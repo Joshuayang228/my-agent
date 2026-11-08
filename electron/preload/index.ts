@@ -479,6 +479,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('companion:inner-thought-created', handler)
       return () => ipcRenderer.removeListener('companion:inner-thought-created', handler)
     },
+    listKeepsakes: (
+      roleId?: string,
+    ): Promise<import('../../src/shared/types').CompanionKeepsakeRecord[]> =>
+      ipcRenderer.invoke('companion:list-keepsakes', roleId),
+    giftKeepsake: (
+      roleId?: string,
+      keepsakeKey?: string,
+      customReason?: string,
+    ): Promise<import('../../src/shared/types').CompanionKeepsakeRecord | null> =>
+      ipcRenderer.invoke('companion:gift-keepsake', roleId, keepsakeKey, customReason),
+    onKeepsakeGifted: (
+      callback: (payload: import('../../src/shared/types').CompanionKeepsakeGiftEvent) => void,
+    ) => {
+      const handler = (
+        _e: Electron.IpcRendererEvent,
+        payload: import('../../src/shared/types').CompanionKeepsakeGiftEvent,
+      ) => callback(payload)
+      ipcRenderer.on('companion:keepsake-gifted', handler)
+      return () => ipcRenderer.removeListener('companion:keepsake-gifted', handler)
+    },
   },
 
   mcp: {

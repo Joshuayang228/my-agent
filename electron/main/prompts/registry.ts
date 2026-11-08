@@ -5,6 +5,7 @@ import { buildChatResonancePrompt } from './chat-resonance'
 import { buildCultureReviewPrompt } from './culture-review'
 import { buildSpontaneousImpulsePrompt } from './spontaneous-impulse'
 import { buildInnerThoughtPrompt } from './inner-thought'
+import { buildKeepsakeGiftPrompt } from './keepsake-gift'
 import { buildProactiveGreetingPrompt } from './proactive-greeting'
 import { formatRoleAppearanceForImagePrompt } from '../companion/identity/profile'
 import { buildImageGenerationPrompt } from './image-generation'
@@ -307,6 +308,32 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
       { name: 'weather', source: '当前天气或环境', lifecycle: '独白产生时' },
       { name: 'moodSummary', source: '当前心情简述', lifecycle: '独白产生时' },
       { name: 'triggerReason', source: '触发独白的契机或反思动机', lifecycle: '独白产生时' },
+    ],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.companionKeepsakeGift,
+    domain: 'character', name: '羁绊深度跃迁与专属信物馈赠', category: 'companion', role: 'companion-character',
+    featureKey: PROMPT_FEATURE_CONTRACTS.keepsakeGift.key, adaptationStatus: 'adapted',
+    purpose: '角色在与用户羁绊升温或关键里程碑达成时，以专属第一人称口吻赠送专属信物并附带赠礼寄语',
+    desc: '角色将极具个人象征意义的珍贵信物赠予用户，形成深厚同伴誓约与回忆纪念。',
+    sourcePath: 'electron/main/prompts/keepsake-gift.ts#buildKeepsakeGiftPrompt',
+    definitions: [
+      'electron/main/prompts/keepsake-gift.ts#buildKeepsakeGiftPrompt',
+      'electron/main/prompts/registered-request.ts#compileKeepsakeGiftRequest',
+    ],
+    template: buildKeepsakeGiftPrompt({
+      protagonistName: '{{protagonistName}}',
+      protagonistBrief: '{{protagonistBrief}}',
+      keepsakeName: '{{keepsakeName}}',
+      keepsakeLore: '{{keepsakeLore}}',
+      giftReason: '{{giftReason}}',
+    }),
+    slots: [
+      { name: 'protagonistName', source: '当前主角姓名', lifecycle: '赠送信物时' },
+      { name: 'protagonistBrief', source: '当前主角公开人设与风格', lifecycle: '赠送信物时' },
+      { name: 'keepsakeName', source: '信物名称', lifecycle: '赠送信物时' },
+      { name: 'keepsakeLore', source: '信物深层背景与设定', lifecycle: '赠送信物时' },
+      { name: 'giftReason', source: '赠送契机与原因', lifecycle: '赠送信物时' },
     ],
   }),
   dynamicAsset({

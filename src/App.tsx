@@ -488,6 +488,16 @@ function App() {
         })
       }
     })
+    const unsubKeepsakeGifted = window.electronAPI.companion.onKeepsakeGifted?.((payload) => {
+      if (payload.toastTitle) {
+        toast(`🎁 ${payload.toastTitle}：${payload.keepsake.name}`, 'info', {
+          onClick: () => {
+            setActiveView('world')
+            setWorldTab('keepsakes')
+          },
+        })
+      }
+    })
     return () => {
       unsub?.()
       unsubMilestone?.()
@@ -497,6 +507,7 @@ function App() {
       unsubResonanceCompleted?.()
       unsubGreeting?.()
       unsubSpontaneousImpulse?.()
+      unsubKeepsakeGifted?.()
     }
   }, [toast])
 

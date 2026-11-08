@@ -1,5 +1,7 @@
 # 项目进度
 
+羁绊深度跃迁与专属信物馈赠落地（2026-11-08）：角色专属信物馈赠与实体羁绊承载流落地（`relationship-keepsake.ts`）；达成相处里程碑或体验完共同文化心愿时，角色主动将带有深层背景设定与誓约意义的专属信物赠予用户；赠礼发言直接写入角色主会话，并记录关系里程碑 `keepsake_gifted` 与广播桌面通知；出厂自动为路飞播种首件信物「生命卡的一角」，体验完文化作品自动触发第二件信物「梅利号的小羊金色铃铛」；人物世界（`WorldHub`）新增 `keepsakes` 分区（`WorldKeepsakesPanel`），支持高光视觉呈现与一键「触摸信物·与TA聊聊」直达主会话。新增 `relationship-keepsake.test.ts` 3 项单测，门禁全绿。
+
 私密内心独白与航海日记落地（2026-11-08）：角色私密内心世界与航海日记流落地（`inner-thoughts.ts`）；独立于朋友圈与即时聊天，角色在独处、夜间或清晨产生对伙伴、旅途与羁绊的真情实感，经每日上限 2 次与 6 小时冷却门控，通过受控配方 `compileInnerThoughtRequest`（或规则保底）生成第一人称私密随笔；出厂自动为路飞播种 3 篇具情感羁绊的 starter 日记；人物世界（`WorldHub`）新增 `journal` 分区（`WorldJournalPanel`），支持实时广播更新、星标收藏与删除，并支持一键将日记契机回引至主对话（「与TA聊聊这篇日记」）。新增 `inner-thoughts.test.ts` 3 项单测，门禁全绿。
 
 突发生活意图与主动找聊落地（2026-11-08）：角色由纯被动响应升级为具备突发即兴搭话冲动的真人伙伴（`spontaneous-impulse.ts`）；在生活推进中结合社交渴望度（`socialNeed >= 70`）与活动，经每日频次（2 次）、冷却（3 小时）及勿扰时段门控，由 `compileSpontaneousImpulseRequest`（或规则保底）生成生动的第一人称搭话消息，直接写入该角色的主会话中并向窗口广播 `companion:spontaneous-impulse`；前端 `App.tsx` 响应桌面通知，点击一键直达会话，若当前正处于该会话则即时推入消息。新增 `spontaneous-impulse.test.ts` 2 项单测，门禁全绿。

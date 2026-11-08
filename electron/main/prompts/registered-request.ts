@@ -6,6 +6,7 @@ import { buildChatResonancePrompt, type ChatResonanceInput } from './chat-resona
 import { buildCultureReviewPrompt, type CultureReviewInput } from './culture-review'
 import { buildSpontaneousImpulsePrompt, type SpontaneousImpulseInput } from './spontaneous-impulse'
 import { buildInnerThoughtPrompt, type InnerThoughtPromptInput } from './inner-thought'
+import { buildKeepsakeGiftPrompt, type KeepsakeGiftPromptInput } from './keepsake-gift'
 import { buildImageGenerationPrompt } from './image-generation'
 /**
  * 背景：手填资产 key 无法证明正文来自登记的生产定义。
@@ -272,4 +273,8 @@ export function compileSpontaneousImpulseRequest(input: SpontaneousImpulseInput)
 
 export function compileInnerThoughtRequest(input: InnerThoughtPromptInput): RegisteredModelRequest {
   return signRequest([{ role: 'user', content: buildInnerThoughtPrompt(input) }], [PROMPT_KEYS.companionInnerThought], ['inner-thought'])
+}
+
+export function compileKeepsakeGiftRequest(input: KeepsakeGiftPromptInput): RegisteredModelRequest {
+  return signRequest([{ role: 'user', content: buildKeepsakeGiftPrompt(input) }], [PROMPT_KEYS.companionKeepsakeGift], ['keepsake-gift'])
 }

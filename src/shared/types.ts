@@ -1389,4 +1389,26 @@ export interface CompanionInnerThoughtRecord {
   createdAt: number
 }
 
+export interface CompanionKeepsakeRecord {
+  id: string
+  roleId: string
+  name: string
+  description: string
+  lore: string
+  giftMessage: string
+  giftReason: string
+  iconName: string
+  imageUrl?: string
+  acquiredAt: number
+}
+
+export interface CompanionKeepsakeGiftEvent {
+  roleId: string
+  keepsake: CompanionKeepsakeRecord
+  giftMessage: string
+  toastTitle: string
+  timestamp: number
+}
+
+
 

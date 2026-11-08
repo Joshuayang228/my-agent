@@ -273,6 +273,14 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent({ trigger: 'life-ticker-journal', cooldownMs: 21_600_000, promptKey: PROMPT_KEYS.companionInnerThought }),
     dependencies: [PROMPT_KEYS.companionInnerThought],
+  }), makeCompanionAsset({
+    key: 'companion:policy:relationship-keepsakes', name: '羁绊深度跃迁与专属信物馈赠策略',
+    purpose: '当角色与用户达成关键羁绊里程碑或心愿共鸣时，主动赠予专属信物并写入主会话',
+    role: 'platform', description: '专属信物持久化于 companion_keepsakes，赠礼发言直接推入主会话并触发关系里程碑，形成不可替代的同伴誓约纪念。',
+    source: 'electron/main/companion/growth/relationship-keepsake.ts#triggerGiftKeepsake', version: 'keepsake-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ trigger: 'relationship-milestone', promptKey: PROMPT_KEYS.companionKeepsakeGift }),
+    dependencies: [PROMPT_KEYS.companionKeepsakeGift],
   })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {

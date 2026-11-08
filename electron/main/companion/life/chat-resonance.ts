@@ -520,6 +520,26 @@ export async function completeCultureResonance(
     }
   }
 
+  // 5. 共同心愿达成触发专属信物奖励（如梅利号金色小羊铃铛）
+  if (roleId === 'luffy') {
+    void (async () => {
+      try {
+        const { triggerGiftKeepsake, listKeepsakes } = await import('../growth/relationship-keepsake')
+        const owned = await listKeepsakes(roleId)
+        if (!owned.some((k) => k.id === 'luffy-merry-bell')) {
+          await triggerGiftKeepsake(
+            roleId,
+            'luffy-merry-bell',
+            `共同心愿达成·体验完「${currentResonance.targetName}」的专属纪念`,
+            now,
+          )
+        }
+      } catch (err) {
+        log.warn('Failed to check keepsake on resonance completed', { roleId, error: String(err) })
+      }
+    })()
+  }
+
   log.info('Culture resonance completed', { roleId, resonanceId: currentResonance.id, targetName: currentResonance.targetName })
   return { ok: true, resonance: updatedResonance }
 }

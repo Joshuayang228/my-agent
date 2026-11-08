@@ -164,6 +164,12 @@ export const PROMPT_FEATURE_CONTRACTS = Object.freeze({
     overrideBoundary: ['角色最真实的私密心声与说话风格'], output: '只输出 JSON 对象，包含 title 标题、content 日记正文、mood 心情、weather 天气、location 地点、activity 活动。',
     fallback: '模型不可用或解析失败时使用基于角色人设与当前场景的确定性日记记录，不阻塞流程。', consumers: ['electron/main/companion/life/inner-thoughts.ts'],
   }),
+  keepsakeGift: contract({
+    key: 'feature:keepsake-gift', name: '羁绊深度跃迁与专属信物馈赠', domain: 'character', purpose: '角色在与用户羁绊升温或关键里程碑达成时，以专属第一人称口吻赠送专属信物并附带赠礼寄语。',
+    staticInputs: ['安全规则', '专属信物赠言协议', 'JSON输出约束'], runtimeInputs: ['角色公开人设与口吻', '信物名称与背景设定', '赠送契机与羁绊背景'],
+    overrideBoundary: ['角色赠礼口吻与称呼习惯'], output: '只输出 JSON 对象，包含 giftSpeech 赠送寄语与 celebrationTitle 桌面提醒标题。',
+    fallback: '模型不可用或解析失败时使用基于角色人设与信物设定的确定性赠礼寄语，不阻塞流程。', consumers: ['electron/main/companion/growth/relationship-keepsake.ts'],
+  }),
 } as const)
 
 export type PromptFeatureContractKey = keyof typeof PROMPT_FEATURE_CONTRACTS

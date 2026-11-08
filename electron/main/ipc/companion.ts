@@ -238,6 +238,18 @@ export function registerCompanionIPC(): void {
     return deleteInnerThought(id)
   })
 
+  ipcMain.handle('companion:list-keepsakes', async (_e, roleId?: string) => {
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const { listKeepsakes } = await import('../companion/growth/relationship-keepsake')
+    return listKeepsakes(targetRoleId)
+  })
+
+  ipcMain.handle('companion:gift-keepsake', async (_e, roleId?: string, keepsakeKey?: string, customReason?: string) => {
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const { triggerGiftKeepsake } = await import('../companion/growth/relationship-keepsake')
+    return triggerGiftKeepsake(targetRoleId, keepsakeKey, customReason)
+  })
+
   ipcMain.handle('companion:catchup-status', async () => {
     const roleId = await getActiveRoleId()
     const state = await getRoleState(roleId)

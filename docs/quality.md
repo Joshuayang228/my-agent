@@ -1,5 +1,7 @@
 # 质量总控
 
+羁绊深度跃迁与专属信物馈赠门禁（2026-11-08）：`relationship-keepsake.test.ts` 3 项测试覆盖表初始化时为路飞自动播种首件信物「生命卡的一角」并记录 `keepsake_gifted` 关系里程碑、赠送下一件信物（梅利号小羊铃铛）并自动将赠言写入角色专属主会话与窗口广播、预设信物赠完后平滑定制高阶信物；`milestones.test.ts` 扩展支持 `keepsake_gifted` 里程碑解析与去重；`prompt-feature-contracts.test.ts` 扩展至 20 个核心功能合同（含 `keepsakeGift`）。
+
 私密内心独白与航海日记门禁（2026-11-08）：`inner-thoughts.test.ts` 3 项测试覆盖 `decideInnerThought` 规则门控（夜间/清晨沉思时段放行、下午非沉思时段拦截、每日上限 2 次与 6 小时冷却）、表初始化时为路飞自动播种 3 篇情感充沛的 starter 日记、日记列表按时间倒序查询、星标收藏状态切换、单篇删除、受控模型触发与人设规则平滑保底；`world-hub.test.ts` 覆盖 `journal` 视图判定与标签路由映射；`prompt-feature-contracts.test.ts` 同步扩展至 19 个核心功能合同（含 `innerThought`）。
 
 突发生活意图与主动找聊门禁（2026-11-08）：`spontaneous-impulse.test.ts` 2 项测试覆盖 `decideSpontaneousImpulse` 规则门控（夜间勿扰、每日上限 2 次、冷却 3 小时、低表达欲拦截与高表达欲放行）、消息直接落盘进角色主会话、`companion:spontaneous-impulse` 事件窗口广播以及历史查询；`prompt-feature-contracts.test.ts` 同步扩展至 18 个核心功能合同（含 `spontaneousImpulse`）。

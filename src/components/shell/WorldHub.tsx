@@ -5,8 +5,9 @@
 import { useState, type ReactNode } from 'react'
 import { TabStrip } from '../foundation/TabStrip'
 import { IconButton } from '../foundation/IconButton'
-import { Newspaper, Shirt, Users, BookOpen, Home, MapPin, RefreshCw, X, FileText } from 'lucide-react'
+import { Newspaper, Shirt, Users, BookOpen, Home, MapPin, RefreshCw, X, FileText, Gift } from 'lucide-react'
 import { WorldJournalPanel } from '../world/WorldJournalPanel'
+import { WorldKeepsakesPanel } from '../world/WorldKeepsakesPanel'
 import { MomentsPanel, type MomentItem, type MomentsPreviewData } from '../MomentsPanel'
 import { AssetsPanel } from '../AssetsPanel'
 import { WorldContactsPanel } from '../world/WorldContactsPanel'
@@ -16,13 +17,14 @@ import type { ShellView } from './SecondaryNav'
 import type { WorldAssetRecord } from '../world/WorldAssetEditor'
 import { layoutProfileStyle } from '../../shared/content-layout'
 
-export type WorldTab = 'moments' | 'journal' | 'assets' | 'cast' | 'wardrobe' | 'culture' | 'home' | 'footprints'
+export type WorldTab = 'moments' | 'journal' | 'keepsakes' | 'assets' | 'cast' | 'wardrobe' | 'culture' | 'home' | 'footprints'
 
 export type WorldTabDefinition = { id: WorldTab; label: string; icon: ReactNode }
 
 const WORLD_TABS: WorldTabDefinition[] = [
   { id: 'moments', label: '朋友圈', icon: <Newspaper size={14} strokeWidth={1.5} /> },
   { id: 'journal', label: '航海日记', icon: <FileText size={14} strokeWidth={1.5} /> },
+  { id: 'keepsakes', label: '专属信物', icon: <Gift size={14} strokeWidth={1.5} /> },
   { id: 'wardrobe', label: '衣柜', icon: <Shirt size={14} strokeWidth={1.5} /> },
   { id: 'culture', label: '文化角', icon: <BookOpen size={14} strokeWidth={1.5} /> },
   { id: 'home', label: '家居', icon: <Home size={14} strokeWidth={1.5} /> },
@@ -31,12 +33,12 @@ const WORLD_TABS: WorldTabDefinition[] = [
 ]
 
 export function isWorldView(view: ShellView): boolean {
-  return view === 'world' || view === 'moments' || view === 'journal' || view === 'assets' || view === 'cast' || view === 'wardrobe' || view === 'culture' || view === 'home' || view === 'footprints'
+  return view === 'world' || view === 'moments' || view === 'journal' || view === 'keepsakes' || view === 'assets' || view === 'cast' || view === 'wardrobe' || view === 'culture' || view === 'home' || view === 'footprints'
 }
 
 export function worldTabFromView(view: ShellView): WorldTab {
   if (view === 'assets') return 'wardrobe'
-  if (view === 'cast' || view === 'moments' || view === 'journal' || view === 'wardrobe' || view === 'culture' || view === 'home' || view === 'footprints') return view
+  if (view === 'cast' || view === 'moments' || view === 'journal' || view === 'keepsakes' || view === 'wardrobe' || view === 'culture' || view === 'home' || view === 'footprints') return view
   return 'moments'
 }
 
@@ -113,7 +115,7 @@ export function WorldHub({
   const [worldRefreshToken, setWorldRefreshToken] = useState(0)
   const [worldRefreshing, setWorldRefreshing] = useState(false)
 
-  const refreshLabel = ({ moments: '刷新朋友圈', journal: '刷新日记', assets: '刷新衣柜', wardrobe: '刷新衣柜', culture: '刷新文化角', home: '刷新家居', cast: '刷新通讯录', footprints: '刷新足迹' } as const)[tab]
+  const refreshLabel = ({ moments: '刷新朋友圈', journal: '刷新日记', keepsakes: '刷新信物', assets: '刷新衣柜', wardrobe: '刷新衣柜', culture: '刷新文化角', home: '刷新家居', cast: '刷新通讯录', footprints: '刷新足迹' } as const)[tab]
   const defaultToolbarAction = !toolbarAction ? (
     <IconButton
       label={refreshLabel}
@@ -178,6 +180,7 @@ export function WorldHub({
           <>
             {tab === 'moments' && <MomentsPanel onTakeToChat={onTakeToChat} onClose={onClose} onLoadingChange={setWorldRefreshing} refreshToken={momentsPreview ? undefined : worldRefreshToken} previewData={momentsPreview} appearance={momentsAppearance ?? 'alice-feed'} hideHeader={hideMomentsHeader ?? true} showSocialActions={showSocialActions} compactClosedComposer={compactClosedComposer} enableImagePreview={enableImagePreview} previewChrome="minimal" />}
             {tab === 'journal' && <WorldJournalPanel roleId={roleId} onTakeToChat={onTakeToChat} refreshToken={worldRefreshToken} onLoadingChange={setWorldRefreshing} />}
+            {tab === 'keepsakes' && <WorldKeepsakesPanel roleId={roleId} onTakeToChat={onTakeToChat} refreshToken={worldRefreshToken} onLoadingChange={setWorldRefreshing} />}
             {tab === 'wardrobe' && <AssetsPanel refreshToken={worldRefreshToken} onLoadingChange={setWorldRefreshing} allowAssetEditing={canEditAssets} onGenerateAssetImage={canEditAssets ? onGenerateAssetImage : undefined} showAssetTabs={false} showAddControls={false} presentation="wardrobe-gallery" />}
             {(tab === 'culture' || tab === 'home' || tab === 'footprints') && <WorldDetailsPanel onTakeToChat={onTakeToChat} refreshToken={worldRefreshToken} onLoadingChange={setWorldRefreshing} tab={tab} allowAssetEditing={canEditAssets} onGenerateAssetImage={canEditAssets ? onGenerateAssetImage : undefined} showDetailTitle={false} showAddControls={false} />}
             {tab === 'cast' && (

@@ -13,6 +13,7 @@ export type MilestoneKind =
   | 'first_role_switch'
   | 'first_reflection'
   | 'first_rapport'
+  | 'keepsake_gifted'
 
 export interface RelationshipMilestone {
   kind: MilestoneKind
@@ -48,6 +49,11 @@ const META: Record<
     promptHint:
       '里程碑·首次进入默契密度：可更自然，仍尊重边界与事实。',
   },
+  keepsake_gifted: {
+    toast: (name) => `收到了来自${name}的专属信物——羁绊升温的珍贵见证`,
+    promptHint:
+      '里程碑·已收到专属信物：双方建立了深厚的伙伴羁绊，可自然提及信物回忆。',
+  },
 }
 
 type Store = Record<string, MilestoneKind[]>
@@ -64,7 +70,8 @@ function parseStore(raw: string): Store {
         (k): k is MilestoneKind =>
           k === 'first_role_switch' ||
           k === 'first_reflection' ||
-          k === 'first_rapport',
+          k === 'first_rapport' ||
+          k === 'keepsake_gifted',
       )
     }
     return out

@@ -402,6 +402,11 @@ declare global {
         onInnerThoughtCreated: (
           callback: (payload: import('./shared/types').CompanionInnerThoughtRecord) => void,
         ) => () => void
+        listKeepsakes: (roleId?: string) => Promise<import('./shared/types').CompanionKeepsakeRecord[]>
+        giftKeepsake: (roleId?: string, keepsakeKey?: string, customReason?: string) => Promise<import('./shared/types').CompanionKeepsakeRecord | null>
+        onKeepsakeGifted: (
+          callback: (payload: import('./shared/types').CompanionKeepsakeGiftEvent) => void,
+        ) => () => void
       }
       mcp: {
         connect: (config: import('./shared/types').McpServerConfig) => Promise<{ success: boolean; toolCount?: number; error?: string }>
