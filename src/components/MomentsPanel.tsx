@@ -118,10 +118,20 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
   const [replyTargetByMomentId, setReplyTargetByMomentId] = useState<Record<string, { commentId: string; actorName: string } | null>>({})
   const [pendingLikeIds, setPendingLikeIds] = useState<Set<string>>(new Set())
   const [pendingCommentIds, setPendingCommentIds] = useState<Set<string>>(new Set())
+  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
+  /**
+   * 微信式评论区回复交互：
+   * 背景：用户在朋友圈回复特定人物时，微信交互习惯是直接点击评论条目即可进入回复，而非额外放置视觉杂乱的回复按钮。
+   * 设计意图：使整条评论项具备按钮角色与点击响应，点击后自动切换对应动态的回复目标并聚焦输入框；放弃独立按钮降低视觉负担。
+   * 关键约束：必须保留 aria-label 与键盘无障碍触发，保持评论作者和回复引用高亮；切换时同步输入框 placeholder。
+   */
   const handleStartReply = useCallback((momentId: string, target: { commentId: string; actorName: string }) => {
     setReplyTargetByMomentId((current) => ({ ...current, [momentId]: target }))
     setCommentFocusId(momentId)
+    setTimeout(() => {
+      inputRefs.current[momentId]?.focus()
+    }, 50)
   }, [])
 
   const handleCancelReply = useCallback((momentId: string) => {
@@ -334,11 +344,20 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
   }, [commentDrafts, patchSocial, previewData, replyTargetByMomentId, socialEnabled])
 
   const handleCommentKey = useCallback((event: KeyboardEvent<HTMLInputElement>, momentId: string) => {
+    if (event.key === 'Backspace' && !(commentDrafts[momentId] ?? '') && replyTargetByMomentId[momentId]) {
+      // 微信交互对齐：草稿为空时按退格键取消对特定人物的回复，恢复为对动态的根评论
+      setReplyTargetByMomentId((current) => ({ ...current, [momentId]: null }))
+      return
+    }
+    if (event.key === 'Escape' && replyTargetByMomentId[momentId]) {
+      setReplyTargetByMomentId((current) => ({ ...current, [momentId]: null }))
+      return
+    }
     if (event.key !== 'Enter' || event.shiftKey) return
     if (event.nativeEvent.isComposing || event.keyCode === 229) return
     event.preventDefault()
     void handleSubmitComment(momentId)
-  }, [handleSubmitComment])
+  }, [commentDrafts, handleSubmitComment, replyTargetByMomentId])
 
   return (
     <div className={`flex h-full flex-col ${isSocialFeed ? 'moments-social-feed' : ''} ${isAliceFeed ? 'moments-alice-feed' : ''}`} data-testid="moments-panel">
@@ -460,29 +479,30 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
                         {comments.length ? (
                           <ul className="mt-2 space-y-1 rounded-md px-2.5 py-2 text-[11px]" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
                             {comments.map((c) => (
-                              <li key={c.key} data-testid="moment-comment" data-comment-source={c.source} className="group flex items-start justify-between gap-1 leading-snug">
-                                <div className="flex-1 break-words">
-                                  <span style={{ color: 'var(--accent-fg)', fontWeight: 500 }}>{c.actorName}</span>
-                                  {c.replyToActorName ? (
-                                    <>
-                                      <span className="mx-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>回复</span>
-                                      <span style={{ color: 'var(--accent-fg)' }}>@{c.replyToActorName}</span>
-                                    </>
-                                  ) : null}
-                                  <span>：{c.text || '赞'}</span>
-                                </div>
-                                {socialEnabled && (
-                                  <ActionButton
-                                    variant="plain"
-                                    size="sm"
-                                    aria-label={`回复 ${c.actorName}`}
-                                    onClick={() => handleStartReply(m.id, { commentId: c.id ?? c.key, actorName: c.actorName })}
-                                    className="h-4 px-1 text-[10px] opacity-0 transition-opacity hover:text-[var(--accent-fg)] focus-visible:opacity-100 group-hover:opacity-100"
-                                    style={{ color: 'var(--text-muted)' }}
-                                  >
-                                    回复
-                                  </ActionButton>
-                                )}
+                              <li
+                                key={c.key}
+                                data-testid="moment-comment"
+                                data-comment-source={c.source}
+                                role={socialEnabled ? 'button' : undefined}
+                                tabIndex={socialEnabled ? 0 : undefined}
+                                aria-label={socialEnabled ? `回复 ${c.actorName}` : undefined}
+                                onClick={socialEnabled ? () => handleStartReply(m.id, { commentId: c.id ?? c.key, actorName: c.actorName }) : undefined}
+                                onKeyDown={socialEnabled ? (event) => {
+                                  if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault()
+                                    handleStartReply(m.id, { commentId: c.id ?? c.key, actorName: c.actorName })
+                                  }
+                                } : undefined}
+                                className={`leading-snug break-words ${socialEnabled ? 'cursor-pointer rounded px-1.5 -mx-1.5 py-0.5 transition-colors hover:bg-[var(--hover-overlay)] active:opacity-75 focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--accent-fg)]' : ''}`}
+                              >
+                                <span style={{ color: 'var(--accent-fg)', fontWeight: 500 }}>{c.actorName}</span>
+                                {c.replyToActorName ? (
+                                  <>
+                                    <span className="mx-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>回复</span>
+                                    <span style={{ color: 'var(--accent-fg)' }}>@{c.replyToActorName}</span>
+                                  </>
+                                ) : null}
+                                <span>：{c.text || '赞'}</span>
                               </li>
                             ))}
                           </ul>
@@ -505,7 +525,21 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
                                 aria-label="评论"
                                 aria-pressed={commentOpen}
                                 data-testid="moment-comment-button"
-                                onClick={() => setCommentFocusId((current) => current === m.id ? null : m.id)}
+                                onClick={() => {
+                                  setCommentFocusId((current) => {
+                                    if (current === m.id) {
+                                      if (replyTargetByMomentId[m.id]) {
+                                        setReplyTargetByMomentId((cur) => ({ ...cur, [m.id]: null }))
+                                        setTimeout(() => inputRefs.current[m.id]?.focus(), 50)
+                                        return m.id
+                                      }
+                                      return null
+                                    }
+                                    setReplyTargetByMomentId((cur) => ({ ...cur, [m.id]: null }))
+                                    setTimeout(() => inputRefs.current[m.id]?.focus(), 50)
+                                    return m.id
+                                  })
+                                }}
                                 className="moments-alice-action gap-1.5"
                                 style={{ color: commentOpen ? 'var(--accent-fg)' : 'var(--text-muted)', background: commentOpen ? 'var(--accent-subtle)' : 'transparent', borderColor: 'transparent' }}
                               >
@@ -530,10 +564,11 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
                             </div>
                             {(!compactClosedComposer || commentOpen) && <div className="mt-2 grid h-8 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" data-testid="moment-comment-composer">
                               <TextField
+                                ref={(el: HTMLInputElement | null) => { inputRefs.current[m.id] = el }}
                                 value={commentDrafts[m.id] ?? ''}
                                 onChange={(event: ChangeEvent<HTMLInputElement>) => setCommentDrafts((current) => ({ ...current, [m.id]: event.target.value }))}
                                 onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => handleCommentKey(event, m.id)}
-                                placeholder="写评论"
+                                placeholder={replyTargetByMomentId[m.id] ? `回复 @${replyTargetByMomentId[m.id]!.actorName}：` : '写评论'}
                                 disabled={commentPending}
                                 aria-hidden={!commentOpen}
                                 tabIndex={commentOpen ? 0 : -1}
@@ -573,29 +608,31 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
                   {comments.length ? (
                     <ul className="mt-2 space-y-1 border-t pt-2" style={{ borderColor: 'var(--border-subtle)' }}>
                       {comments.map((c) => (
-                        <li key={c.key} data-testid="moment-comment" data-comment-source={c.source} className="group flex items-start justify-between gap-1 text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }}>
-                          <div className="flex-1 break-words">
-                            <span style={{ color: 'var(--companion-accent-warm)', fontWeight: 500 }}>{c.actorName}</span>
-                            {c.replyToActorName ? (
-                              <>
-                                <span className="mx-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>回复</span>
-                                <span style={{ color: 'var(--companion-accent-warm)' }}>@{c.replyToActorName}</span>
-                              </>
-                            ) : null}
-                            <span>：{c.text || '赞'}</span>
-                          </div>
-                          {socialEnabled && (
-                            <ActionButton
-                              variant="plain"
-                              size="sm"
-                              aria-label={`回复 ${c.actorName}`}
-                              onClick={() => handleStartReply(m.id, { commentId: c.id ?? c.key, actorName: c.actorName })}
-                              className="h-4 px-1 text-[10px] opacity-0 transition-opacity hover:text-[var(--companion-accent-warm)] focus-visible:opacity-100 group-hover:opacity-100"
-                              style={{ color: 'var(--text-muted)' }}
-                            >
-                              回复
-                            </ActionButton>
-                          )}
+                        <li
+                          key={c.key}
+                          data-testid="moment-comment"
+                          data-comment-source={c.source}
+                          role={socialEnabled ? 'button' : undefined}
+                          tabIndex={socialEnabled ? 0 : undefined}
+                          aria-label={socialEnabled ? `回复 ${c.actorName}` : undefined}
+                          onClick={socialEnabled ? () => handleStartReply(m.id, { commentId: c.id ?? c.key, actorName: c.actorName }) : undefined}
+                          onKeyDown={socialEnabled ? (event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault()
+                              handleStartReply(m.id, { commentId: c.id ?? c.key, actorName: c.actorName })
+                            }
+                          } : undefined}
+                          className={`text-[11px] leading-snug break-words ${socialEnabled ? 'cursor-pointer rounded px-1.5 -mx-1.5 py-0.5 transition-colors hover:bg-[var(--hover-overlay)] active:opacity-75 focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--companion-accent-warm)]' : ''}`}
+                          style={{ color: 'var(--text-secondary)' }}
+                        >
+                          <span style={{ color: 'var(--companion-accent-warm)', fontWeight: 500 }}>{c.actorName}</span>
+                          {c.replyToActorName ? (
+                            <>
+                              <span className="mx-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>回复</span>
+                              <span style={{ color: 'var(--companion-accent-warm)' }}>@{c.replyToActorName}</span>
+                            </>
+                          ) : null}
+                          <span>：{c.text || '赞'}</span>
                         </li>
                       ))}
                     </ul>

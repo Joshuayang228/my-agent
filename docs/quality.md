@@ -1,6 +1,6 @@
 # 质量总控
 
-朋友圈回复互动与人物/NPC 自主回复决策门禁（2026-11-08）：`moment-autonomous-reply.test.ts` 4 项测试覆盖用户回复朋友圈评论（包含 NPC 评论与多级回复）、`parentInteractionId` 与 `replyToActorName` 关联存储与展示、人物/NPC 自主决策回复（支持 `shouldReply: false` 不回复，以及 `responderId` 针对性回复）、NPC 自主决定延迟时间（`delaySeconds` 动态调度，并在到期后通过 `companion:moment-updated` 事件通知渲染端），以及 `MomentsPanel` 静态渲染下的评论回复交互与占位符切换。
+朋友圈回复互动与人物/NPC 自主回复决策门禁（2026-11-08）：`moment-autonomous-reply.test.ts` 4 项测试覆盖用户回复朋友圈评论（包含 NPC 评论与多级回复）、`parentInteractionId` 与 `replyToActorName` 关联存储与展示、人物/NPC 自主决策回复（支持 `shouldReply: false` 不回复，以及 `responderId` 针对性回复）、NPC 自主决定延迟时间（`delaySeconds` 动态调度，并在到期后通过 `companion:moment-updated` 事件通知渲染端），以及 `MomentsPanel` 静态渲染下的微信式直接点击评论行回复（无独立回复按钮、具备 `role="button"` 与 `aria-label` 且输入框自动聚焦与切换占位符）。
 
 今日生活轨迹、生活面直通会话与消息流自主卡片门禁（2026-11-08）：`today-timeline.test.ts` 3 项单测覆盖角色今日时间轴聚合（`getTodayTimelineForRole`）、时间槽状态（past/current/upcoming）推导、时间槽关联朋友圈动态（`getMomentByEventId`）与未生成日剧本时的确定性 fallback，以及 `WorldTodayTimeline` 组件静态渲染；验证朋友圈、文化角、旅行足迹详情页的「聊聊」/「和TA聊聊」直通主会话带入引用话题，以及消息流 `ToolCallbackList` 在伙伴自主发圈或创作完成后的内联卡片渲染与一键跳转。
 

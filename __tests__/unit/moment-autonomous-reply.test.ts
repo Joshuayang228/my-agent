@@ -213,7 +213,9 @@ describe('朋友圈回复互动与 NPC 自主决策', () => {
     // 验证索隆评论在列表中渲染
     expect(html).toContain('索隆')
     expect(html).toContain('甲板上风挺大')
-    // 验证针对评论的回复按钮存在
-    expect(html).toContain('回复 索隆')
+    // 微信式交互：点击评论行本身直接触发回复，无额外独立回复按钮
+    expect(html).toContain('aria-label="回复 索隆"')
+    expect(html).toContain('role="button"')
+    expect(html).not.toContain('>回复</button>')
   })
 })
