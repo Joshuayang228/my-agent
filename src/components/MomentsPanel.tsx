@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
-import { Heart, MapPin, MessageCircle, MoreHorizontal, Newspaper, RefreshCw, X, ZoomIn } from 'lucide-react'
+import { Heart, MapPin, MessageCircle, MessageSquareShare, MoreHorizontal, Newspaper, RefreshCw, X, ZoomIn } from 'lucide-react'
 import { ActionButton } from './foundation/ActionButton'
 import { ImageViewer } from './foundation/ImageViewer'
 import { IconButton } from './foundation/IconButton'
@@ -64,6 +64,7 @@ interface MomentsPanelProps {
   enableImagePreview?: boolean
   /** 已确认的精简装饰；正式人物世界与隔离样张显式采用。 */
   previewChrome?: 'minimal'
+  onTakeToChat?: (opts: { text: string }) => void
 }
 
 const TYPE_DOT: Record<string, string> = {
@@ -102,7 +103,7 @@ function typeColor(type: unknown): string {
 }
 
 
-export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewData, appearance = 'default', hideHeader = false, showSocialActions = false, compactClosedComposer = false, onMomentSelect, enableImagePreview = false, previewChrome }: MomentsPanelProps) {
+export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewData, appearance = 'default', hideHeader = false, showSocialActions = false, compactClosedComposer = false, onMomentSelect, enableImagePreview = false, previewChrome, onTakeToChat }: MomentsPanelProps) {
   const minimalPreviewChrome = previewChrome === 'minimal'
   const isSocialFeed = appearance === 'social-feed' || appearance === 'alice-feed'
   const isAliceFeed = appearance === 'alice-feed'
@@ -460,6 +461,21 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
                                 <MessageCircle size={13} aria-hidden="true" />
                                 <span aria-hidden="true">{comments.length || '评论'}</span>
                               </ActionButton>
+                              {onTakeToChat && (
+                                <ActionButton
+                                  aria-label="和TA聊聊"
+                                  data-testid="moment-chat-button"
+                                  onClick={() => {
+                                    const excerpt = m.text.trim().slice(0, 36)
+                                    onTakeToChat({ text: `关于动态「${excerpt}${m.text.trim().length > 36 ? "..." : ""}」：` })
+                                  }}
+                                  className="moments-alice-action gap-1.5"
+                                  style={{ color: 'var(--text-muted)', background: 'transparent', borderColor: 'transparent' }}
+                                >
+                                  <MessageSquareShare size={13} aria-hidden="true" />
+                                  <span aria-hidden="true">聊聊</span>
+                                </ActionButton>
+                              )}
                             </div>
                             {(!compactClosedComposer || commentOpen) && <div className="mt-2 grid h-8 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" data-testid="moment-comment-composer">
                               <TextField

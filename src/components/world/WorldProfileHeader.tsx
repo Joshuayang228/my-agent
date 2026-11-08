@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import { IconButton } from '../foundation/IconButton'
 import { ActionButton } from '../foundation/ActionButton'
+import { WorldTodayTimeline } from './WorldTodayTimeline'
 
 export interface WorldProfile {
   name: string
@@ -11,8 +12,11 @@ export interface WorldProfile {
 }
 
 /** 共享身份呈现不读取角色或夹具；调用方负责真实身份，缺省内容不得编造人设。 */
-export function WorldProfileHeader({ profile, onClose, testId = 'world-profile' }: {
+export function WorldProfileHeader({ profile, roleId, onTakeToChat, onViewMoment, onClose, testId = 'world-profile' }: {
   profile: WorldProfile
+  roleId?: string
+  onTakeToChat?: (opts: { text: string }) => void
+  onViewMoment?: (momentId: string) => void
   onClose?: () => void
   testId?: string
 }) {
@@ -40,6 +44,7 @@ export function WorldProfileHeader({ profile, onClose, testId = 'world-profile' 
           {statusMode === 'narrative' ? '看数字' : '看描述'}
         </ActionButton>
       </div>}
+      <WorldTodayTimeline roleId={roleId} onTakeToChat={onTakeToChat} onViewMoment={onViewMoment} />
     </div>
     {onClose && <div className="absolute right-4 top-3"><IconButton label="返回聊天" onClick={onClose} style={{ color: 'var(--text-muted)' }}><X size={14} /></IconButton></div>}
   </section>

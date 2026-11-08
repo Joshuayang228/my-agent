@@ -1287,3 +1287,25 @@ export interface CompanionWardrobeChangeInput { roleId: string; assetId: string;
 export type CompanionWardrobeChangeResult =
   | { ok: true; asset: { id: string; roleId: string; kind: string; name: string; payload: Record<string, unknown>; acquiredAt: number; sourceEventId: string | null } }
   | { ok: false; code: 'INVALID' | 'ROLE_MISMATCH' | 'NOT_FOUND'; error: string }
+
+export interface CompanionTodayTimelineSlot {
+  hour: number
+  minute: number
+  timeStr: string
+  activity: string
+  mood: string
+  location: string
+  type: 'moment' | 'activity'
+  status: 'past' | 'current' | 'upcoming'
+  scheduledAt: number
+  eventId?: string
+  momentId?: string
+}
+
+export interface CompanionTodayTimeline {
+  roleId: string
+  date: string
+  theme: string
+  slots: CompanionTodayTimelineSlot[]
+  currentSlotIndex: number
+}

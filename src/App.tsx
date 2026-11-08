@@ -1192,6 +1192,12 @@ function App() {
             {isWorldView(activeView) ? (
               <WorldHub
                 profile={{ name: currentPersonaName, description: companionBlurb, statusSummary: companionStatusSummary, statusMetrics: companionStatusMetrics }}
+                roleId={activeRoleId}
+                onTakeToChat={({ text }: { text: string }) => {
+                  setActiveView('chat')
+                  setInput(text)
+                  setTimeout(() => inputRef.current?.focus(), 0)
+                }}
                 allowAssetEditing={false}
                 onGenerateAssetImage={(asset) => {
                   setActiveView('chat')
@@ -1419,6 +1425,10 @@ function App() {
                               tools={turnTools}
                               sessionId={activeSessionId}
                               onToggleCollapse={toggleToolCollapse}
+                              onNavigateToWorld={(targetTab: 'moments' | 'culture' | 'wardrobe' | 'home' | 'footprints') => {
+                                setActiveView('world')
+                                setWorldTab(targetTab)
+                              }}
                               className="mt-1"
                             />
                           ) : null

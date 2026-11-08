@@ -60,6 +60,8 @@ export function WorldHub({
   profile,
   onGenerateAssetImage,
   allowAssetEditing = false,
+  roleId,
+  onTakeToChat,
   toolbarAction,
 }: {
   tab: WorldTab
@@ -95,6 +97,8 @@ export function WorldHub({
   onGenerateAssetImage?: (asset: WorldAssetRecord) => void
   /** 人物世界正式入口只浏览；独立资产维护入口不受影响。 */
   allowAssetEditing?: boolean
+  roleId?: string
+  onTakeToChat?: (opts: { text: string }) => void
   /** 组合页可把当前生活面的刷新动作放到统一生活面工具栏；未传入时保持正式默认布局。 */
   toolbarAction?: ReactNode
 }) {
@@ -120,7 +124,7 @@ export function WorldHub({
   ) : null
   return (
     <div className="world-shape-scope flex h-full flex-col" style={layoutProfileStyle('world')} data-testid="world-hub">
-      {!hideHeader && (profile ? <WorldProfileHeader profile={profile} onClose={onClose} /> : <div
+      {!hideHeader && (profile ? <WorldProfileHeader profile={profile} roleId={roleId} onTakeToChat={onTakeToChat} onViewMoment={() => onTabChange('moments')} onClose={onClose} /> : <div
         className="flex shrink-0 items-center justify-between gap-3 border-b px-5 py-3"
         style={{ borderColor: 'var(--border-subtle)' }}
       >
@@ -157,9 +161,9 @@ export function WorldHub({
       <div id={`world-panel-${tab}`} role="tabpanel" className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
         {previewPanels?.[tab] ?? (
           <>
-            {tab === 'moments' && <MomentsPanel onClose={onClose} onLoadingChange={setWorldRefreshing} refreshToken={momentsPreview ? undefined : worldRefreshToken} previewData={momentsPreview} appearance={momentsAppearance ?? 'alice-feed'} hideHeader={hideMomentsHeader ?? true} showSocialActions={showSocialActions} compactClosedComposer={compactClosedComposer} enableImagePreview={enableImagePreview} previewChrome="minimal" />}
+            {tab === 'moments' && <MomentsPanel onTakeToChat={onTakeToChat} onClose={onClose} onLoadingChange={setWorldRefreshing} refreshToken={momentsPreview ? undefined : worldRefreshToken} previewData={momentsPreview} appearance={momentsAppearance ?? 'alice-feed'} hideHeader={hideMomentsHeader ?? true} showSocialActions={showSocialActions} compactClosedComposer={compactClosedComposer} enableImagePreview={enableImagePreview} previewChrome="minimal" />}
             {tab === 'wardrobe' && <AssetsPanel refreshToken={worldRefreshToken} onLoadingChange={setWorldRefreshing} allowAssetEditing={canEditAssets} onGenerateAssetImage={canEditAssets ? onGenerateAssetImage : undefined} showAssetTabs={false} showAddControls={false} presentation="wardrobe-gallery" />}
-            {(tab === 'culture' || tab === 'home' || tab === 'footprints') && <WorldDetailsPanel refreshToken={worldRefreshToken} onLoadingChange={setWorldRefreshing} tab={tab} allowAssetEditing={canEditAssets} onGenerateAssetImage={canEditAssets ? onGenerateAssetImage : undefined} showDetailTitle={false} showAddControls={false} />}
+            {(tab === 'culture' || tab === 'home' || tab === 'footprints') && <WorldDetailsPanel onTakeToChat={onTakeToChat} refreshToken={worldRefreshToken} onLoadingChange={setWorldRefreshing} tab={tab} allowAssetEditing={canEditAssets} onGenerateAssetImage={canEditAssets ? onGenerateAssetImage : undefined} showDetailTitle={false} showAddControls={false} />}
             {tab === 'cast' && (
               <WorldContactsPanel refreshToken={worldRefreshToken} onLoadingChange={setWorldRefreshing} />
             )}

@@ -1,5 +1,7 @@
 # 质量总控
 
+今日生活轨迹、生活面直通会话与消息流自主卡片门禁（2026-11-08）：`today-timeline.test.ts` 3 项单测覆盖角色今日时间轴聚合（`getTodayTimelineForRole`）、时间槽状态（past/current/upcoming）推导、时间槽关联朋友圈动态（`getMomentByEventId`）与未生成日剧本时的确定性 fallback，以及 `WorldTodayTimeline` 组件静态渲染；验证朋友圈、文化角、旅行足迹详情页的「聊聊」/「和TA聊聊」直通主会话带入引用话题，以及消息流 `ToolCallbackList` 在伙伴自主发圈或创作完成后的内联卡片渲染与一键跳转。
+
 跨天因果日剧本、交谈冲动与主动问候入会话门禁（2026-11-08）：`conversation-impulse.test.ts` 6 项单测覆盖交谈冲动格式化、闲聊开场引导、旅行见闻提取、日剧本连续性线索（`lifeContext`）注入及主动问候在角色专属主会话中的消息持久化；`prompt-assets.test.ts` 验证 `PROMPT_KEYS.companionContext` 动态插槽登记包含 `conversationImpulse`，主对话模板 slots 扩展至 31 项，`assets:check` 全绿通过。
 
 Foundation 布局基线与控件复用 AST 自动门禁（2026-11-08）：新增 `foundation-enforcement-gate.test.ts` 8 项测试并纳入门禁 `npm run assets:check`（12 文件 / 112 项用例全绿通过）；通过 TypeScript Compiler API 符号级解析证明四大体验候选（Chat、人物世界、设置、工作区）的表单与操作按钮真实渲染 Foundation 控件（`SelectField`、`TextField`、`ActionButton`、`IconButton`、`TabStrip` 等），全面审计并拦截未经授权的原生交互标签；验证 `LAYOUT_DENSITIES`、`LAYOUT_PROFILES` 与 `readingContentStyle()` 左对齐限宽的单一事实源；并通过 5 类负例 fixture 验证未使用导入、局部同名遮蔽、未经授权的原生标签、冲突居中布局和无效组件 key 的严格 fail-closed 拦截能力。

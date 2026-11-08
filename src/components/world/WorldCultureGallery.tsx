@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { ArrowLeft, BookOpen, Camera, Clapperboard, Music } from 'lucide-react'
+import { ArrowLeft, BookOpen, MessageSquareShare, Camera, Clapperboard, Music } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { EmptyState } from '../foundation/EmptyState'
 import { ErrorState } from '../foundation/ErrorState'
@@ -68,7 +68,7 @@ function Artwork({ asset, maximumHeight, showPreviewImages = false, readImage, r
  * 设计意图：外层负责真实读写，本组件复用分类、详情与预览；不复制一套生产皮肤。
  * 关键约束：样张图片必须显式启用；详情关闭恢复焦点 / 位置，编辑动作仍由正式加载层提供。
  */
-export function WorldCultureGallery({ assets, readingNotes = [], readError = '', onRetry, renderEditor, toolbarAction, ...artworkSource }: { assets: readonly LivingAsset[]; readingNotes?: readonly CultureReadingNote[]; readError?: string; onRetry?: () => void; renderEditor?: LivingAssetEditor; toolbarAction?: ReactNode } & ArtworkSource) {
+export function WorldCultureGallery({ assets, readingNotes = [], readError = '', onRetry, renderEditor, toolbarAction, onTakeToChat, ...artworkSource }: { assets: readonly LivingAsset[]; readingNotes?: readonly CultureReadingNote[]; readError?: string; onRetry?: () => void; renderEditor?: LivingAssetEditor; toolbarAction?: ReactNode; onTakeToChat?: (opts: { text: string }) => void } & ArtworkSource) {
   const [category, setCategory] = useState('reading')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const scroll = useRef<HTMLDivElement>(null)
@@ -104,7 +104,19 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
     <div ref={scroll} className="min-h-0 flex-1 overflow-y-auto scrollbar-thin" data-testid="culture-content-scroll">
       {readError ? <ErrorState title="文化记录未能读取" description={readError} action={onRetry && <ActionButton onClick={onRetry}>重新读取</ActionButton>} />
         : selected ? <section data-testid="culture-detail" className={LAYOUT_CLASSES.section} style={readingContentStyle()} onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); close() } }}>
-          <ActionButton variant="plain" onClick={close}><ArrowLeft size={14} className="mr-2" />返回列表</ActionButton>
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <ActionButton variant="plain" onClick={close}><ArrowLeft size={14} className="mr-2" />返回列表</ActionButton>
+            {onTakeToChat && (
+              <ActionButton
+                tone="accent"
+                data-testid="culture-chat-button"
+                onClick={() => onTakeToChat({ text: `关于作品《${selected.name}》：` })}
+              >
+                <MessageSquareShare size={13} className="mr-1 inline" />
+                和TA聊聊
+              </ActionButton>
+            )}
+          </div>
           {category === 'reading' ? <div className="flex items-start gap-4" data-testid="reading-book-header">
             <div className="w-24 shrink-0"><Artwork asset={selected} {...artworkSource} /></div>
             <div className="min-w-0 flex-1 space-y-2">

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 伙伴与人格生产资产注册表。
  *
  * 背景：Role Pack 的 manifest、profile、默认世界、场景和生活 starter 会影响伙伴行为，
@@ -57,9 +57,9 @@ function buildSceneAssets(universeId: string, roleId: string, rolePack: RolePack
 
 /**
  * 生活目录只登记生产 starter 定义，不读取已经播种或被用户修改的数据库资产。
- * 背景：角色生命体征（world-vitals）与生活资产切片（life-assets-slice）驱动动态状态流转，
- * 设计意图：动态体征与运行时状态不作为静态 ModelContextAsset 登记，仅通过 formatLifeAssetsSliceForPrompt 进入 Prompt 上下文；
- * 关键约束：此处仅收录确定性出厂 starter 资产，禁止把运行时体征值或用户修改落入静态目录。
+ * 背景：角色生命体征（world-vitals）、生活资产切片（life-assets-slice）与今日生活轨迹（timeline）驱动动态状态流转，
+ * 设计意图：动态体征与今日生活时段（past/current/upcoming）不作为静态 ModelContextAsset 登记，仅通过 formatLifeAssetsSliceForPrompt 与 companion:get-today-timeline 提供运行时投影；
+ * 关键约束：此处仅收录确定性出厂 starter 资产，禁止把运行时体征值、动态日程计算或用户修改落入静态目录。
  */
 function buildLifeAssets(universeId: string, roleId: string, rolePack: RolePack): ModelContextAsset[] {
   return getStarterAssetDefinitions(roleId).map((item) => {

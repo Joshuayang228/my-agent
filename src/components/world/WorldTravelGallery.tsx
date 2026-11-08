@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { ArrowLeft, ImageOff, MapPin } from 'lucide-react'
+import { ArrowLeft, ImageOff, MessageSquareShare, MapPin } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { Badge } from '../foundation/Badge'
 import { EmptyState } from '../foundation/EmptyState'
@@ -27,12 +27,12 @@ export function tripDates(trip: TravelRecordView) {
  * 设计意图：共享列表 / 详情，外层注入受控媒体和维护动作，沿用一个滚动容器。
  * 关键约束：只呈现已出发旅行；按 ID 选择，返回恢复原卡焦点与列表位置，不猜测日期。
  */
-export function WorldTravelGallery({ trips: input, renderImage, renderEditor, toolbarAction, initialSelectedId = null, embedded = false }: {
+export function WorldTravelGallery({ trips: input, renderImage, renderEditor, toolbarAction, initialSelectedId = null, embedded = false, onTakeToChat }: {
   trips: readonly TravelRecordView[];
   renderImage?: (trip: TravelRecordView, thumbnail: boolean) => ReactNode;
   renderEditor?: (id: string) => ReactNode
   toolbarAction?: ReactNode
-  initialSelectedId?: string | null; embedded?: boolean
+  initialSelectedId?: string | null; embedded?: boolean; onTakeToChat?: (opts: { text: string }) => void
 }) {
   const trips = visibleTrips(input)
   const [selected, setSelected] = useState<string | null>(initialSelectedId)
@@ -55,7 +55,21 @@ export function WorldTravelGallery({ trips: input, renderImage, renderEditor, to
     {!embedded && toolbarAction && <div className="flex shrink-0 justify-end px-4 pt-3">{toolbarAction}</div>}
     <div ref={scroller} className={embedded ? 'min-w-0' : 'min-h-0 flex-1 overflow-y-auto'} data-testid="travel-scroll" style={{ ...(!embedded ? contentGutterStyle() : {}), color: 'var(--text-primary)' }}>
       {trip ? <div onKeyDown={event => { if (event.key === 'Escape' && !embedded) { event.stopPropagation(); back() } }}>
-        {!embedded && <ActionButton variant="plain" className="mb-5" onClick={back}><ArrowLeft size={14} className="mr-2" />返回</ActionButton>}
+        {!embedded && (
+          <div className="mb-5 flex items-center justify-between gap-2">
+            <ActionButton variant="plain" onClick={back}><ArrowLeft size={14} className="mr-2" />返回</ActionButton>
+            {onTakeToChat && (
+              <ActionButton
+                tone="accent"
+                data-testid="travel-chat-button"
+                onClick={() => onTakeToChat({ text: `关于旅行「${trip.title}」：` })}
+              >
+                <MessageSquareShare size={13} className="mr-1 inline" />
+                和TA聊聊
+              </ActionButton>
+            )}
+          </div>
+        )}
         <article data-testid="travel-detail" className="space-y-5 [overflow-wrap:anywhere]" style={readingContentStyle()}>
           <header className="space-y-2"><div className="flex flex-wrap items-center gap-2"><h2 ref={heading} tabIndex={-1} className="text-lg font-semibold leading-7">{trip.title}</h2>{trip.status === 'active' && <Badge tone="accent">旅行中</Badge>}</div>
             <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs" style={{ color: 'var(--text-muted)' }}><span className="inline-flex items-center gap-1"><MapPin size={12} />{trip.destination}</span><span>{tripDates(trip)}</span></p></header>

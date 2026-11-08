@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-08：今日生活轨迹、生活面双向连通与消息流自主生活卡片落地：新增 `companion:get-today-timeline` 与 `WorldTodayTimeline` 组件，在人物世界呈现角色一日主题与进行中生活时段；朋友圈、文化角作品和旅行足迹新增「和TA聊聊」快捷跳转，点击平滑直达对话并预填对应话题；Chat 消息流针对模型自主调用伙伴生活工具接入行内生活卡片与一键反跳生活面。
+
 2026-11-08：跨天因果日剧本、主对话交谈冲动与主动问候真实入会话落地：日剧本提示词接入昨日实际事件、当前旅行足迹、体征与近 24 小时用户诉求；主对话提示词扩展 `conversationImpulse`（插槽 31），闲聊时自然分享近期生活见闻与想法；主动问候投递时自动在角色主会话中保存为 `assistant` 消息，Toast 点击一键平滑直达该会话。
 
 2026-11-08：四大体验候选（Chat、人物世界、设置、工作区）全面收口原生交互控件，接入 Foundation `SelectField`、`TextField`、`ActionButton`、`IconButton` 等基础组件；新增 TypeScript AST 源码级自动化门禁（`foundation-enforcement-gate.test.ts`）纳入 `npm run assets:check`，严格校验符号解析真实性、拦截未授权原生标签及冲突居中布局，通过 5 组负例保证 fail-closed。

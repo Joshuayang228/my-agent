@@ -2,7 +2,7 @@
  * Tool 通道 UI：紧凑行内卡片（挂在 assistant 回合下，对齐 Alice）。
  */
 
-import { ChevronRight, Wrench } from 'lucide-react'
+import { ChevronRight, Newspaper, Sparkles, Wrench } from 'lucide-react'
 import { useCallback } from 'react'
 import { GeneratedImageResult, type GeneratedImageReader, type GeneratedImageRevealer } from './GeneratedImageResult'
 import type { ToolCallbackItem } from './types'
@@ -23,6 +23,7 @@ export function ToolCallbackList({
   sessionId,
   readGeneratedImage,
   revealGeneratedImage,
+  onNavigateToWorld,
 }: {
   tools: ToolCallbackItem[]
   onToggleCollapse: (callId: string) => void
@@ -30,6 +31,7 @@ export function ToolCallbackList({
   sessionId?: string | null
   readGeneratedImage?: GeneratedImageReader
   revealGeneratedImage?: GeneratedImageRevealer
+  onNavigateToWorld?: (tab: 'moments' | 'culture' | 'wardrobe' | 'home' | 'footprints') => void
 }) {
   const readImage = useCallback<GeneratedImageReader>(async imageId => {
     if (readGeneratedImage) return readGeneratedImage(imageId)
@@ -113,6 +115,46 @@ export function ToolCallbackList({
                       {tool.result.slice(0, 2000)}
                     </pre>
                   </div>
+                )}
+              </div>
+            )}
+                        {tool.name === 'companion_post_moment' && tool.status === 'done' && (
+              <div className="flex items-center justify-between gap-2 border-t px-3 py-2 text-[12px]" style={{ background: 'var(--accent-subtle)', borderColor: 'var(--border-subtle)' }} data-testid="tool-moment-card">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Newspaper size={14} style={{ color: 'var(--accent-fg)' }} />
+                  <span className="truncate" style={{ color: 'var(--accent-fg)' }}>
+                    伙伴发布了动态：{typeof tool.args?.text === 'string' ? `「${tool.args.text.slice(0, 30)}${tool.args.text.length > 30 ? '...' : ''}」` : '生活记录'}
+                  </span>
+                </div>
+                {onNavigateToWorld && (
+                  <ActionButton
+                    variant="plain"
+                    size="sm"
+                    onClick={() => onNavigateToWorld('moments')}
+                    className="shrink-0"
+                  >
+                    去朋友圈查看
+                  </ActionButton>
+                )}
+              </div>
+            )}
+            {tool.name === 'companion_create_asset' && tool.status === 'done' && (
+              <div className="flex items-center justify-between gap-2 border-t px-3 py-2 text-[12px]" style={{ background: 'var(--accent-subtle)', borderColor: 'var(--border-subtle)' }} data-testid="tool-asset-card">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Sparkles size={14} style={{ color: 'var(--accent-fg)' }} />
+                  <span className="truncate" style={{ color: 'var(--accent-fg)' }}>
+                    生活记录已存入：{typeof tool.args?.name === 'string' ? `《${tool.args.name}》` : '新记录'}
+                  </span>
+                </div>
+                {onNavigateToWorld && (
+                  <ActionButton
+                    variant="plain"
+                    size="sm"
+                    onClick={() => onNavigateToWorld(tool.args?.kind === 'culture' || tool.args?.kind === 'bookshelf' ? 'culture' : tool.args?.kind === 'wardrobe' ? 'wardrobe' : 'home')}
+                    className="shrink-0"
+                  >
+                    去人物世界查看
+                  </ActionButton>
                 )}
               </div>
             )}

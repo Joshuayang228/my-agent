@@ -186,6 +186,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       lastTickAt: number
       presence: string
     }> => ipcRenderer.invoke('companion:catchup-status'),
+    getTodayTimeline: (roleId?: string): Promise<import('../../src/shared/types').CompanionTodayTimeline> =>
+      ipcRenderer.invoke('companion:get-today-timeline', roleId),
     getAssets: (opts?: { kind?: string }): Promise<{
       roleId: string
       items: Array<{

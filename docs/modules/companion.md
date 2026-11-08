@@ -94,6 +94,17 @@ Chat 工具入口复核：普通 Chat 注册全部内置工具；人物体系 Sk
   - 后台投递主动问候（`proactive-greeting.ts#dispatchProactiveGreeting`）时，通过 `ensureMainSessionForRole(roleId)` 确保角色专属的主会话存在，并将问候文案以 `assistant` 角色持久化写入该会话（`saveMessage`），并在投递事件载荷中携带 `sessionId`；
   - 前端主动问候 Toast 气泡绑定点击事件，用户点击 Toast 即可一键平滑跳转至对应角色的主会话并自动载入上下文，使主动问候真正成为一次可延续的对话起点，消除「气泡看完即消失」的割裂感。
 
+## 已落地能力：今日生活轨迹、生活面双向连通与消息流生活卡片
+
+- **今日生活轨迹服务与组件（Today Timeline）**：
+  - 新增 `timeline.ts#getTodayTimelineForRole` 与 IPC 通道 `companion:get-today-timeline`，以角色今日日剧本（主题、全天时段）、已发布/计划事件与朋友圈动态为依据，计算各时段状态（`past` 已完成 / `current` 进行中 / `upcoming` 未开始）与当前进行中索引；
+  - `WorldTodayTimeline` 基础组件接入人物世界头栏（`WorldProfileHeader`），常态展示今日主题与当前进行中活动（带呼吸光点），展开可查阅全天日程分布、心情与地点，让用户清晰感受伙伴在另一时空的时间流动。
+- **生活面与主会话双向连通（和TA聊聊）**：
+  - 朋友圈（`MomentsPanel`）、文化角（`WorldCultureGallery`）和旅行足迹（`WorldTravelGallery`）卡片与详情页全面接入「和TA聊聊」快捷动作；
+  - 点击后平滑返回主对话输入框，并根据对应生活切片自动预填上下文引导话题（如：`关于动态「...」：`、`关于作品《...》：`、`关于旅行「...」：`）并聚焦输入框，使生活面内容天然成为对话切入点。
+- **对话消息流自主生活卡片（Inline Life Activity Card）**：
+  - `ToolCallbackList` 针对模型自主调用的伙伴生活工具（`companion_post_moment` 动态发布、`companion_create_asset` 生活物什与文化创作）接入行内生活卡片，完成时展示带图标的通知横幅并提供「去朋友圈查看」/「去人物世界查看」一键跳转，消解纯机械式 JSON 回显。
+
 ## 已落地能力：伙伴行为请求自动绑定来源
 
 主对话和四种后台行为通过 `prompts/registered-request.ts` 的固定配方生成模型请求，服务不再手填来源 key。角色文件、成长覆盖、行为增量与可选语气回退依赖随实际编译自动推导；新增角色仍复用 Role Pack 与行为协议，新增行为需同步配方、注册定义和边界测试。Debug 生产详情只读，动态正文以模板 / 插槽及真实调用区分展示。
@@ -548,3 +559,4 @@ published event（事件事实）
 - 2026-11-08：路飞人物世界六面出场内容全量补齐：`roles/luffy/visual/` 新增 6 张专属插画（奇异生物图鉴、空岛映像贝、宾克斯的美酒合唱、船头夕阳草帽、东海启航木桶誓言、空岛黄金钟），`ensureStarterCulture('luffy')` 播种书籍 / 影视 / 音乐 / 摄影四类初始文化体验与首条图鉴读书笔记，`world.default.json` 新增 `trips` 三段多站点旅行故事（东海启航、空岛黄金钟、千里阳光号巡航）并在 `ensureStarterFootprints` 播种为 `recordType=trip` 记录；同时新增 `ensureStarterMoments('luffy')`，在首次打开朋友圈或初始化资产时写入两条昨日发布的出场动态、配图与草帽一伙互动（确定性 ID 支持备份幂等合并，且不消耗当日自动发帖配额或触发 4 小时冷却）。
 - 2026-11-08：角色基础生命体征与当前生活切片注入：新增 `world-vitals.ts` 结算体力、饱腹度、心情与社交欲望 4 项生命体征，主会话后通过 `settleVitalsAfterChat` 释放社交需求；同时新增 `formatLifeAssetsSliceForPrompt`，将角色当前穿着、在读/在看/在听文化活动及进行中旅行有界压缩为 `lifeAssetsSlice` 注入主对话，解决角色在主聊天中无法获知自身当前活动与着装的问题。
 - 2026-11-08：跨天因果日剧本、交谈冲动与主动问候入会话：日剧本提示词接入前日事件、当前足迹、体征与近 24 小时用户诉求；主对话提示词接入 `conversationImpulse`（槽位 31），闲聊时自然分享生活与思考；主动问候在角色主会话中落地为真实消息历史，Toast 点击一键直达会话。
+- 2026-11-08：今日生活轨迹、生活面双向连通与消息流生活卡片：新增 `timeline.ts` 与 `companion:get-today-timeline` 计算一日时段轨迹与当前进行中事项并在人物世界头栏展示 `WorldTodayTimeline`；朋友圈、文化角和旅行足迹全面接入「和TA聊聊」快捷直达主对话预填话题；Chat 消息流对自主发圈与资产创作工具展示行内生活卡片与一键反跳生活面。

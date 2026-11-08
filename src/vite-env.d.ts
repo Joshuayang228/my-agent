@@ -200,6 +200,7 @@ declare global {
           lastTickAt: number
           presence: string
         }>
+        getTodayTimeline: (roleId?: string) => Promise<import('./shared/types').CompanionTodayTimeline>
         getAssets: (opts?: { kind?: string }) => Promise<{
           roleId: string
           items: Array<{
