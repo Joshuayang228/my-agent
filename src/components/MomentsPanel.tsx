@@ -231,6 +231,22 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
     })
   }, [load, previewData])
 
+  useEffect(() => {
+    if (previewData || !window.electronAPI?.companion.onMomentUpdated) return
+    return window.electronAPI.companion.onMomentUpdated((payload) => {
+      if (roleId && payload.roleId && payload.roleId !== roleId) return
+      void load()
+    })
+  }, [load, previewData, roleId])
+
+  useEffect(() => {
+    if (previewData || !window.electronAPI?.companion.onMomentTip) return
+    return window.electronAPI.companion.onMomentTip((payload) => {
+      if (roleId && payload.roleId && payload.roleId !== roleId) return
+      void load()
+    })
+  }, [load, previewData, roleId])
+
   const patchSocial = useCallback((momentId: string, social: MomentSocialView) => {
     setSocialByMomentId((current) => ({ ...current, [momentId]: social }))
   }, [])

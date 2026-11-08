@@ -63,6 +63,7 @@ export function PrimarySidebar({
   developerMode = false,
   collapseFooterDivider = true,
   collapseControlPlacement = 'toolbar',
+  unreadMomentsCount = 0,
 }: {
   personaName: string
   personaBlurb: string
@@ -99,6 +100,8 @@ export function PrimarySidebar({
   collapseFooterDivider?: boolean
   /** 顶部工具槽仅供已明确选择的候选调用方；正式默认入口不变。 */
   collapseControlPlacement?: 'toolbar' | 'header'
+  /** 朋友圈新回复或新动态未读计数 */
+  unreadMomentsCount?: number
 }) {
   return (
     <aside
@@ -351,6 +354,7 @@ export function PrimarySidebar({
           <div className="grid grid-cols-2 gap-1">
             {DOCK.map((item) => {
               const active = item.id === 'world' ? isWorldView(activeView) : activeView === item.id
+              const hasBadge = item.id === 'world' && unreadMomentsCount > 0
               return (
                 <ActionButton
                   key={item.id}
@@ -365,7 +369,19 @@ export function PrimarySidebar({
                   onMouseLeave={(event) => { if (!active) event.currentTarget.style.background = 'transparent' }}
                   title={item.label}
                 >
-                  {item.icon}
+                  <div className="relative flex items-center justify-center">
+                    {item.icon}
+                    {hasBadge && (
+                      <span
+                        data-testid="world-unread-badge"
+                        className="absolute -right-2.5 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-1 text-[9px] font-bold text-white shadow-sm"
+                        style={{ background: 'var(--danger, #ef4444)' }}
+                        aria-label={`有 ${unreadMomentsCount} 条未读动态`}
+                      >
+                        {unreadMomentsCount > 99 ? '99+' : unreadMomentsCount}
+                      </span>
+                    )}
+                  </div>
                   <span>{item.label}</span>
                 </ActionButton>
               )

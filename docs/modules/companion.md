@@ -47,7 +47,9 @@ Chat 的内置工具注册链现在包含 `companion_post_moment`、`companion_c
     1. 是否回复（`shouldReply`: true/false，如纯标点或无意义内容可不回复）；
     2. 由谁来回复（主角回复或在场 NPC 如索隆、山治等插话回应）；
     3. 延迟多长时间回复（`delaySeconds`: 5 到 60 秒，急性子秒回，思考或慢热人物多隔数十秒，拒绝写死固定时间）；
-  - 延迟到达后自动持久化为 `actorType=protagonist` 或 `actorType=cast` 的独立互动，并通过 `companion:moment-updated` 事件广播，前端朋友圈面板无感增量刷新，主应用在非朋友圈视图下弹出轻量回复提示。
+  - 延迟到达后自动持久化为 `actorType=protagonist` 或 `actorType=cast` 的独立互动，并通过 `companion:moment-updated` 事件广播，前端朋友圈面板无感增量刷新；
+  - 主应用在非朋友圈视图下弹出轻量回复提示，支持点击一键跳转至朋友圈；
+  - PrimarySidebar 底栏「人物世界」入口与 WorldHub「朋友圈」分区 TabStrip 实时展示未读角标计数，进入朋友圈后自动清零。
 
 ## 已落地能力：主角回复用户评论
 

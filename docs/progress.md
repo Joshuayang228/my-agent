@@ -1,5 +1,7 @@
 # 项目进度
 
+朋友圈未读感知与角标反馈落地（2026-11-08）：针对 NPC 异步回复与生活动态推送，在 `PrimarySidebar` 的底栏「人物世界」入口与 `WorldHub`「朋友圈」TabStrip 标签实现实时未读徽标计数（支持 99+ 截断），并在用户进入朋友圈后自动清零；Toast 提示支持点击一键直达朋友圈；`MomentsPanel` 挂载时监听 `companion:onMomentUpdated` 与 `onMomentTip` 事件，在后台回复或新动态到达时实时静默拉取更新，实现朋友圈全流程即时互动闭环。新增 `moments-notification-badge.test.ts` 7 项单测，门禁全绿。
+
 会话到生活因果反哺落地（2026-11-08）：主对话结算链路接入 `chat-resonance.ts`，异步通过结构化提示词识别文化作品推荐、美食与行动心愿；自动创建 `planned` 状态文化资产（书/影/音）并记录 `companion_life_resonances`；次日日剧本上下文（`collectDayScriptLifeContext`）自动吸收活跃心愿并推进状态；IPC 暴露 `companion:list-life-resonances` 与 `companion:life-resonance-created` 广播通知。新增 `chat-life-resonance.test.ts` 3 项单测，门禁全绿。
 
 朋友圈评论回复与人物/NPC 自主决策落地（2026-11-08）：朋友圈新增针对 NPC 评论及评论区回复的多层交互，交互对齐微信朋友圈自然习惯，直接点击评论行即可进入回复并自动聚焦输入框，占位符切换为 `回复 @某某：`，不设冗余的独立回复按钮；支持 `replyToActorName` 呈现与 `parentInteractionId` 级联；用户评论提交后，由主角及在场卡司依据情境与性格自主决定是否回复（`shouldReply`）、由谁回复（主角或在场 NPC）以及延迟多长时间回复（`delaySeconds` 动态决策，非硬编码），在延迟到达后落盘并向渲染端广播更新。新增 `moment-autonomous-reply.test.ts` 4 项单测，全量 254 个测试文件（1653 项用例）全绿通过。

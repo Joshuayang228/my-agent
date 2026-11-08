@@ -8,6 +8,7 @@ export interface TabStripItem {
   panelId?: string
   testId?: string
   separatorBefore?: boolean
+  badge?: ReactNode
 }
 
 interface TabStripProps {
@@ -71,6 +72,7 @@ export function TabStrip({ label, items, activeId, onSelect, onClose, itemTestId
           }}>
           {item.icon && <span className="flex shrink-0" aria-hidden="true">{item.icon}</span>}
           <span className="truncate">{item.label}</span>
+          {item.badge}
         </button>
         {onClose && <button type="button" aria-label={'关闭' + item.label} title={'关闭' + item.label}
           className="flex h-6 w-6 shrink-0 items-center justify-center rounded hover:bg-[var(--hover-overlay)]"

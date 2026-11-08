@@ -63,6 +63,7 @@ export function WorldHub({
   roleId,
   onTakeToChat,
   toolbarAction,
+  unreadMomentsCount = 0,
 }: {
   tab: WorldTab
   onTabChange: (tab: WorldTab) => void
@@ -101,6 +102,8 @@ export function WorldHub({
   onTakeToChat?: (opts: { text: string }) => void
   /** 组合页可把当前生活面的刷新动作放到统一生活面工具栏；未传入时保持正式默认布局。 */
   toolbarAction?: ReactNode
+  /** 朋友圈新回复或新动态未读计数 */
+  unreadMomentsCount?: number
 }) {
   const canEditAssets = allowAssetEditing
   const visibleTabs = (tabs ?? WORLD_TABS).filter((item) => !hiddenTabs.includes(item.id))
@@ -151,6 +154,16 @@ export function WorldHub({
             icon: item.icon,
             panelId: 'world-panel-' + item.id,
             testId: 'world-tab-' + item.id,
+            badge: item.id === 'moments' && unreadMomentsCount > 0 ? (
+              <span
+                data-testid="moments-tab-badge"
+                className="ml-1 inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-1 text-[9px] font-bold text-white shadow-sm"
+                style={{ background: 'var(--danger, #ef4444)' }}
+                aria-label={`有 ${unreadMomentsCount} 条未读动态`}
+              >
+                {unreadMomentsCount > 99 ? '99+' : unreadMomentsCount}
+              </span>
+            ) : undefined,
           }))}
           activeId={tab}
           onSelect={id => { const target = visibleTabs.find(item => item.id === id); if (target) { setWorldRefreshing(false); onTabChange(target.id) } }}

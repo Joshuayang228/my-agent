@@ -1,5 +1,7 @@
 # 质量总控
 
+朋友圈未读感知与角标反馈门禁（2026-11-08）：`moments-notification-badge.test.ts` 7 项测试覆盖 `PrimarySidebar` 在未读动态或回复存在时于底栏「人物世界」展示未读角标与数量（含 99+ 截断）、无未读时不渲染；`TabStrip` 基础组件支持 `badge` 属性渲染；`WorldHub`「朋友圈」分区 Tab 在存在未读时渲染未读角标；以及 `MomentsPanel` 挂载时注册 `companion:onMomentUpdated` 与 `onMomentTip` 事件，在异步回复或新动态到达时实时静默拉取刷新。
+
 会话生活因果反哺门禁（2026-11-08）：`chat-life-resonance.test.ts` 3 项测试覆盖用户推荐文化作品自动记录心愿并在文化角创建 planned 状态阅读资产、无推荐对话安全识别为 hasResonance: false 不凭空捏造、日剧本上下文生成自动吸收活跃心愿并更新状态为 absorbed_in_script，以及 IPC 广播事件与列表查询。
 
 朋友圈回复互动与人物/NPC 自主回复决策门禁（2026-11-08）：`moment-autonomous-reply.test.ts` 4 项测试覆盖用户回复朋友圈评论（包含 NPC 评论与多级回复）、`parentInteractionId` 与 `replyToActorName` 关联存储与展示、人物/NPC 自主决策回复（支持 `shouldReply: false` 不回复，以及 `responderId` 针对性回复）、NPC 自主决定延迟时间（`delaySeconds` 动态调度，并在到期后通过 `companion:moment-updated` 事件通知渲染端），以及 `MomentsPanel` 静态渲染下的微信式直接点击评论行回复（无独立回复按钮、具备 `role="button"` 与 `aria-label` 且输入框自动聚焦与切换占位符）。

@@ -9,7 +9,7 @@
 朋友圈回复互动与人物/NPC 自主回复决策架构（2026-11-08）：
 - 评论回复数据链：`companion_moment_user_interactions` 扩展 `reply_to_actor_name` 列与 `actor_type=cast` 支持；用户可直接评论动态，亦可回复在场 NPC（如索隆）或现有回复；`mergeMomentComments` 支持递归解析回复目标人物；
 - NPC 自主回复决策：`moments.ts#addMomentCommentForRole` 在保存用户评论后，结合动态上下文、在场卡司名册（`buildRosterLines`）与已有评论历史，调用 `moment-reply` 提示词让在场人物自主决策是否回复（`shouldReply`）、由哪位在场角色回复（`responderId`/`actorType`）以及回复延迟时长（`delaySeconds: 5..60`，不写死）；
-- 异步延迟调度与事件广播：当 NPC 决策延迟回复时，通过异步定时器挂载任务，在延迟到达后持久化回复，并通过 `companion:moment-updated` 事件广播通知前端，`MomentsPanel` 实时刷新而 `App.tsx` 在非活跃时轻量 Toast 提醒。
+- 异步延迟调度与事件广播：当 NPC 决策延迟回复时，通过异步定时器挂载任务，在延迟到达后持久化回复，并通过 `companion:moment-updated` 事件广播通知前端，`MomentsPanel` 监听事件无感增量刷新；`App.tsx` 在非活跃时记录 `unreadMomentsCount`，在 `PrimarySidebar` 的底栏「人物世界」入口与 `WorldHub`「朋友圈」Tab 呈现未读徽标与提示，支持 Toast 点击直达朋友圈，进入朋友圈后自动清零。
 
 今日生活轨迹与生活面会话连通架构（2026-11-08）：
 - 今日生活轨迹聚合：`companion/life/timeline.ts` 提供 `getTodayTimelineForRole`，结合当前时间推算今日各时间槽状态（past / current / upcoming）、当前进行中节点与已发布朋友圈动态，通过 IPC `companion:get-today-timeline` 提供给前端 `WorldTodayTimeline` 组件展示；

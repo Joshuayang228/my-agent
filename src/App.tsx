@@ -141,6 +141,11 @@ function App() {
   const [settingsEntry, setSettingsEntry] = useState<'default' | 'role-shelf'>('default')
   const settingsReturnView = useRef<ShellView>('chat')
   const [worldTab, setWorldTab] = useState<WorldTab>('moments')
+  const [unreadMomentsCount, setUnreadMomentsCount] = useState(0)
+  const activeViewRef = useRef(activeView)
+  activeViewRef.current = activeView
+  const worldTabRef = useRef(worldTab)
+  worldTabRef.current = worldTab
   const [theme, setTheme] = useState<string>(() => {
     return normalizeThemeId(localStorage.getItem('theme'))
   })
@@ -168,6 +173,12 @@ function App() {
   const [companionFirstContact, setCompanionFirstContact] = useState<{ openingLine: string; quote?: string } | undefined>()
   const [showFirstContact, setShowFirstContact] = useState(false)
   const [activeRoleId, setActiveRoleId] = useState('luffy')
+
+  useEffect(() => {
+    if ((activeView === 'world' && worldTab === 'moments') || activeView === 'moments') {
+      setUnreadMomentsCount(0)
+    }
+  }, [activeView, worldTab])
   const [protagonistNames, setProtagonistNames] = useState<Record<string, string>>({ luffy: '路飞' })
   const [reasoning, setReasoning] = useState<ReasoningCallbackState>(() => resetReasoning())
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
@@ -392,11 +403,29 @@ function App() {
       if (payload.toast) toast(payload.toast, 'info')
     })
     const unsubMomentTip = window.electronAPI.companion.onMomentTip?.((payload) => {
-      if (payload.toast) toast(payload.toast, 'info')
+      if (payload.toast) {
+        if (!((activeViewRef.current === 'world' && worldTabRef.current === 'moments') || activeViewRef.current === 'moments')) {
+          setUnreadMomentsCount((c) => c + (payload.published || 1))
+        }
+        toast(payload.toast, 'info', {
+          onClick: () => {
+            setActiveView('world')
+            setWorldTab('moments')
+          },
+        })
+      }
     })
     const unsubMomentUpdated = window.electronAPI.companion.onMomentUpdated?.((payload) => {
       if (payload.reply) {
-        toast(`${payload.reply.actorName} 回复了评论：“${payload.reply.text}”`, 'info')
+        if (!((activeViewRef.current === 'world' && worldTabRef.current === 'moments') || activeViewRef.current === 'moments')) {
+          setUnreadMomentsCount((c) => c + 1)
+        }
+        toast(`${payload.reply.actorName} 回复了评论：“${payload.reply.text}”`, 'info', {
+          onClick: () => {
+            setActiveView('world')
+            setWorldTab('moments')
+          },
+        })
       }
     })
     const unsubLifeResonance = window.electronAPI.companion.onLifeResonanceCreated?.((payload) => {
@@ -1059,6 +1088,7 @@ function App() {
           pinnedIds={pinnedIds}
           bgStreamingSessionId={bgStreamingSessionId}
           activeBgTaskCount={activeBgTaskCount}
+          unreadMomentsCount={unreadMomentsCount}
           sidebarSearchOpen={sidebarSearchOpen}
           sessionFilter={sessionFilter}
           sessionFilterRef={sessionFilterRef}
@@ -1231,6 +1261,7 @@ function App() {
                 onClose={() => setActiveView('chat')}
                 onOpenSession={(sid) => { void openSummonSession(sid) }}
                 onOpenShelf={openRoleShelf}
+                unreadMomentsCount={unreadMomentsCount}
                 enableImagePreview
                 recentByRole={Object.fromEntries(
                   sessions
