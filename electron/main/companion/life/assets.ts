@@ -449,6 +449,7 @@ function startersFor(kind: AssetKind, roleId: string): StarterItem[] {
   if (kind === ASSET_KIND_HOME) return worldHomeStarters(roleId)
   if (kind === ASSET_KIND_FOOTPRINT) return worldFootprintStarters(roleId)
   if (kind === ASSET_KIND_WARDROBE && roleId === 'luffy') return luffyWardrobeStarters()
+  if (kind === ASSET_KIND_CULTURE && roleId === 'luffy') return luffyCultureStarters()
   // 无已确认 Role Pack 来源时保持空态；衣物、作品与阅读经历不能由服务默认值编造。
   return []
 }
@@ -463,6 +464,91 @@ function luffyWardrobeStarters(): StarterItem[] {
     { key: 'red-vest', name: '轻便红色背心', payload: { recordType: 'garment', category: 'top', color: '红色', description: '无袖、便于活动的轻便上装；视觉锚点仍可由用户调整。', style: '轻快、耐用、适合行动', visualPath: 'visual/wardrobe-red-vest-v1.png', seededFrom: 'role-pack:luffy' } },
     { key: 'blue-shorts', name: '深蓝短裤', payload: { recordType: 'garment', category: 'bottom', color: '深蓝色', description: '活动时保持轻松的短裤；长度与细节不固定为唯一版本。', style: '简洁、便于移动', visualPath: 'visual/wardrobe-blue-shorts-v1.png', seededFrom: 'role-pack:luffy' } },
     { key: 'deck-sandals', name: '甲板凉鞋', payload: { recordType: 'garment', category: 'shoes', color: '棕色', description: '适合甲板和短途移动的耐用鞋履。', style: '实用、耐磨', visualPath: 'visual/wardrobe-deck-sandals-v1.png', seededFrom: 'role-pack:luffy' } },
+  ]
+}
+
+/**
+ * 背景：路飞的人物世界文化角包含书籍、影视、音乐、摄影四个分类，出场时需呈现符合其冒险性格的真实作品记录。
+ * 设计意图：由 Role Pack 提供四类初始文化体验与对应静态配图，并通过 readingNotes 为图鉴提供首条结构化笔记。
+ * 关键约束：仅对 luffy 生效；通过 companion_asset_seeds 保证只播种一次，用户删除后不复活。
+ */
+function luffyCultureStarters(): StarterItem[] {
+  return [
+    {
+      key: 'sea-beasts-atlas',
+      name: '伟大航路奇异生物与岛屿图鉴',
+      payload: {
+        type: 'reading',
+        author: '罗宾帮忙标过重点的航海图册',
+        readingStatus: 'reading',
+        currentPage: 48,
+        totalPages: 120,
+        summary: '不爱读密密麻麻的长篇文字，但只要翻到长着翅膀的鱼、会喷火的甲虫和没去过的奇怪岛屿插画，就能趴在甲板上看半天。',
+        detail: '图鉴里画满了伟大航路各海域的巨型海王类、空岛云贝和珍奇甲虫。每次翻到没见过的怪物，第一反应都是先问山治能不能烤着吃，再问乌索普要不要去抓一只。',
+        note: '看到独角仙和奇怪海兽那一页折了角，下次靠岸想亲眼去找！',
+        readingNotes: [
+          {
+            id: 'culture:luffy:sea-beasts-atlas:note-1',
+            text: '第 48 页画着比船还大的金鱼和全身发亮的七角独角仙！下次指针指到这种岛，一定要第一个跳下船去找！',
+            author: 'companion',
+            page: 48,
+            chapter: '奇异海兽与巨虫篇',
+            occurredAt: 1770000000000,
+            createdAt: 1770000000000,
+          },
+        ],
+        visualPath: 'visual/culture-reading-atlas-v1.png',
+        seededFrom: 'role-pack:luffy',
+      },
+    },
+    {
+      key: 'skypiea-vision-dial',
+      name: '空岛黄金钟与云海巨影（映像贝纪录）',
+      payload: {
+        type: 'film',
+        director: '乌索普与伙伴们用映像贝录下的冒险影像',
+        mediaKind: 'movie',
+        watchStatus: 'finished',
+        summary: '把冲上白白海、篝火晚会和敲响黄金钟的瞬间收进映像贝，每次在船舱放出来大家都会跟着大喊大笑。',
+        detail: '乌索普整理的空岛冒险映像贝。画面从冲天海流一直晃到阿帕亚多森林的篝火，最后定格在雷云散开、黄金钟震响和云海巨大投影的瞬间。',
+        note: '篝火跳舞那段不管回放多少次都超有趣！',
+        visualPath: 'visual/culture-film-skypiea-v1.png',
+        seededFrom: 'role-pack:luffy',
+      },
+    },
+    {
+      key: 'binks-sake-chorus',
+      name: '宾克斯的美酒（甲板大合唱版）',
+      payload: {
+        type: 'music',
+        artist: '布鲁克领唱 · 草帽一伙甲板合唱',
+        musicKind: 'track',
+        listeningStatus: 'revisiting',
+        albumTitle: '千里阳光号宴会歌单',
+        summary: '只要小提琴和「哟霍霍霍」一响起来，整艘船就会立刻变成端着烤肉和木杯的大宴会。',
+        detail: '最喜欢的船歌没有之一！不管刚经历过多大的风浪，只要大家围在甲板上一起唱起「去送宾克斯的美酒」，力气和笑声就会立刻满回来。',
+        note: '唱到副歌时要把手里的烤肉举到最高！',
+        visualPath: 'visual/culture-music-binks-sake-v1.png',
+        seededFrom: 'role-pack:luffy',
+      },
+    },
+    {
+      key: 'sunny-sunset-straw-hat',
+      name: '千里阳光号船头的夕阳与草帽',
+      payload: {
+        type: 'photography',
+        locationName: '千里阳光号 · 狮子船头特等席',
+        depictedAt: '傍晚起风时',
+        workStatus: 'published',
+        imageWidth: 1200,
+        imageHeight: 896,
+        summary: '傍晚海面变成金橙色时留在船头的一张照片：草帽压在木栏边，前面就是下一座还没去过的岛。',
+        detail: '最喜欢的特等席视角。夕阳把千里阳光号的狮子船头和海浪都染成亮金色，海风吹过来的时候，感觉什么无聊的规矩都能甩在身后。',
+        note: '娜美说那天晚霞预示第二天是顺风好天气。',
+        visualPath: 'visual/culture-photo-sunny-sunset-v1.png',
+        seededFrom: 'role-pack:luffy',
+      },
+    },
   ]
 }
 
@@ -777,8 +863,75 @@ function worldFootprintStarters(roleId: string): StarterItem[] {
   }))
 }
 
+function worldTripStarters(roleId: string): StarterItem[] {
+  const world = loadRoleWorldDefaults(roleId)
+  if (!world || !Array.isArray(world.trips)) return []
+  return world.trips
+    .filter((trip) => trip && typeof trip.id === 'string' && trip.id.trim() && typeof trip.title === 'string' && trip.title.trim())
+    .map((trip) => ({
+      key: `trip:${trip.id.trim()}`,
+      name: trip.title.trim(),
+      payload: {
+        recordType: 'trip',
+        destination: trip.destination,
+        start: trip.start,
+        ...(trip.end ? { end: trip.end } : {}),
+        status: trip.status,
+        story: trip.story,
+        stops: trip.stops,
+        ...(trip.visualPath ? { visualPath: trip.visualPath } : {}),
+        seededFrom: 'world.default',
+      },
+    }))
+}
+
+/**
+ * 背景：路飞的文化角出厂包含书籍、影视、音乐、摄影四类初始作品，且需支持旧库无损升级与删除不复活。
+ * 设计意图：结合 companion_asset_seeds 一次性补齐缺失的出厂文化记录，并为既有记录回填静态配图。
+ * 关键约束：仅对拥有文化种子的角色生效；标记写入后若用户删除作品，绝不再次自动补种。
+ */
 export async function ensureStarterCulture(roleId: string): Promise<{ created: number }> {
-  return ensureStarterForKind(roleId, ASSET_KIND_CULTURE)
+  const starter = startersFor(ASSET_KIND_CULTURE, roleId)
+  if (!starter.length) return { created: 0 }
+  await ensureTables()
+  const db = await getDatabase()
+  db.run(`CREATE TABLE IF NOT EXISTS companion_asset_seeds (
+    role_id TEXT NOT NULL, kind TEXT NOT NULL, PRIMARY KEY (role_id, kind)
+  )`)
+  const seedKind = `${ASSET_KIND_CULTURE}:starter`
+  const seeded = db.exec('SELECT 1 FROM companion_asset_seeds WHERE role_id = ? AND kind = ?', [roleId, seedKind])
+  let created = 0
+  if (!seeded.length) {
+    const base = Date.now()
+    for (let i = 0; i < starter.length; i++) {
+      const item = starter[i]
+      const id = `${ASSET_KIND_CULTURE}:${roleId}:${item.key}`
+      const check = db.prepare('SELECT 1 AS x FROM companion_assets WHERE id = ?')
+      check.bind([id])
+      const exists = check.step()
+      check.free()
+      if (exists) continue
+      await addAsset({
+        id,
+        roleId,
+        kind: ASSET_KIND_CULTURE,
+        name: item.name,
+        payload: withMaterializedStarterImage(roleId, item.payload),
+        acquiredAt: base + i,
+        sourceEventId: null,
+      })
+      created += 1
+    }
+    db.run('INSERT OR IGNORE INTO companion_asset_seeds (role_id, kind) VALUES (?, ?)', [roleId, seedKind])
+    persist()
+  }
+  let backfilled = false
+  for (const item of starter) {
+    const id = `${ASSET_KIND_CULTURE}:${roleId}:${item.key}`
+    if (backfillRowStarterImage(db, roleId, id, item.payload.visualPath)) backfilled = true
+  }
+  if (backfilled) persist()
+  return { created }
 }
 
 /**
@@ -789,8 +942,9 @@ export async function ensureStarterCulture(roleId: string): Promise<{ created: n
 async function ensureWorldDetailStarter(roleId: string, kind: typeof ASSET_KIND_HOME | typeof ASSET_KIND_FOOTPRINT): Promise<{ created: number }> {
   const starter = startersFor(kind, roleId)
   if (!starter.length) return { created: 0 }
-  const roomStarters = kind === ASSET_KIND_HOME ? worldHomeRoomStarters(roleId) : []
-  const fullStarter = [...starter, ...roomStarters]
+  const extraStarters = kind === ASSET_KIND_HOME ? worldHomeRoomStarters(roleId) : worldTripStarters(roleId)
+  const extraSeedKind = kind === ASSET_KIND_HOME ? `${kind}:rooms` : `${kind}:trips`
+  const fullStarter = [...starter, ...extraStarters]
   await ensureTables()
   const db = await getDatabase()
   db.run(`CREATE TABLE IF NOT EXISTS companion_asset_seeds (
@@ -813,8 +967,8 @@ async function ensureWorldDetailStarter(roleId: string, kind: typeof ASSET_KIND_
         }
       }
       db.run('INSERT INTO companion_asset_seeds (role_id, kind) VALUES (?, ?)', [roleId, kind])
-      if (roomStarters.length) {
-        db.run('INSERT OR IGNORE INTO companion_asset_seeds (role_id, kind) VALUES (?, ?)', [roleId, `${kind}:rooms`])
+      if (extraStarters.length) {
+        db.run('INSERT OR IGNORE INTO companion_asset_seeds (role_id, kind) VALUES (?, ?)', [roleId, extraSeedKind])
       }
     } else {
       for (const item of starter) {
@@ -822,26 +976,26 @@ async function ensureWorldDetailStarter(roleId: string, kind: typeof ASSET_KIND_
           updated = true
         }
       }
-      if (kind === ASSET_KIND_HOME && roomStarters.length) {
-        const residenceId = `${ASSET_KIND_HOME}:${roleId}:residence`
-        const hasResidence = db.exec('SELECT 1 FROM companion_assets WHERE id = ? AND role_id = ?', [residenceId, roleId]).length > 0
-        const roomsSeeded = db.exec('SELECT 1 FROM companion_asset_seeds WHERE role_id = ? AND kind = ?', [roleId, `${kind}:rooms`]).length > 0
-        if (hasResidence && !roomsSeeded) {
+      if (extraStarters.length) {
+        const anchorId = `${kind}:${roleId}:${starter[0].key}`
+        const hasAnchor = db.exec('SELECT 1 FROM companion_assets WHERE id = ? AND role_id = ?', [anchorId, roleId]).length > 0
+        const extraSeeded = db.exec('SELECT 1 FROM companion_asset_seeds WHERE role_id = ? AND kind = ?', [roleId, extraSeedKind]).length > 0
+        if (hasAnchor && !extraSeeded) {
           const now = Date.now()
-          for (const [index, room] of roomStarters.entries()) {
-            const roomId = `${kind}:${roleId}:${room.key}`
-            const exists = db.exec('SELECT 1 FROM companion_assets WHERE id = ?', [roomId]).length > 0
+          for (const [index, extra] of extraStarters.entries()) {
+            const extraId = `${kind}:${roleId}:${extra.key}`
+            const exists = db.exec('SELECT 1 FROM companion_assets WHERE id = ?', [extraId]).length > 0
             if (!exists) {
-              const payload = withMaterializedStarterImage(roleId, room.payload)
+              const payload = withMaterializedStarterImage(roleId, extra.payload)
               db.run(`INSERT INTO companion_assets (id, role_id, kind, name, payload_json, acquired_at, source_event_id)
-                VALUES (?, ?, ?, ?, ?, ?, NULL)`, [roomId, roleId, kind, room.name, JSON.stringify(payload), now + index])
+                VALUES (?, ?, ?, ?, ?, ?, NULL)`, [extraId, roleId, kind, extra.name, JSON.stringify(payload), now + index])
               created++
             }
           }
-          db.run('INSERT OR IGNORE INTO companion_asset_seeds (role_id, kind) VALUES (?, ?)', [roleId, `${kind}:rooms`])
+          db.run('INSERT OR IGNORE INTO companion_asset_seeds (role_id, kind) VALUES (?, ?)', [roleId, extraSeedKind])
         }
-        for (const room of roomStarters) {
-          if (backfillRowStarterImage(db, roleId, `${kind}:${roleId}:${room.key}`, room.payload.visualPath)) {
+        for (const extra of extraStarters) {
+          if (backfillRowStarterImage(db, roleId, `${kind}:${roleId}:${extra.key}`, extra.payload.visualPath)) {
             updated = true
           }
         }
@@ -917,6 +1071,198 @@ export async function ensureWorldDefaultPossessions(roleId: string): Promise<{ c
   return { created }
 }
 
+/**
+ * 背景：路飞作为首个完整人物，首次打开「人物世界 · 朋友圈」时不能呈现空白列表，需自带已发布的出厂动态、配图与草帽一伙互动。
+ * 设计意图：仅在路飞尚无任何动态且未写入 moments:starter 标记时，在单事务中写入确定性 ID 的 published 事件、动态与关联边（含配图与卡司同框），并把发布时间设为昨日以避免消耗今日自动发帖配额或触发 4 小时冷却。
+ * 关键约束：底层 store.listMoments 不自动触发，以免污染单测空库断言；若已有动态（如先导入了备份）则只记标记不补种。
+ */
+export async function ensureStarterMoments(roleId: string): Promise<{ created: number }> {
+  if (roleId !== 'luffy') return { created: 0 }
+  await ensureTables()
+  const db = await getDatabase()
+  db.run(`CREATE TABLE IF NOT EXISTS companion_asset_seeds (
+    role_id TEXT NOT NULL, kind TEXT NOT NULL, PRIMARY KEY (role_id, kind)
+  )`)
+  const seedKind = 'moments:starter'
+  const seeded = db.exec('SELECT 1 FROM companion_asset_seeds WHERE role_id = ? AND kind = ?', [roleId, seedKind])
+  if (seeded.length) return { created: 0 }
+
+  await ensureStarterWardrobe(roleId)
+  await ensureStarterCulture(roleId)
+  await ensureStarterHome(roleId)
+  await ensureStarterFootprints(roleId)
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS companion_events (
+      id            TEXT PRIMARY KEY,
+      role_id       TEXT NOT NULL,
+      scheduled_at  INTEGER NOT NULL,
+      status        TEXT NOT NULL,
+      type          TEXT NOT NULL,
+      payload_json  TEXT NOT NULL,
+      day_script_id TEXT
+    )
+  `)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS companion_moments (
+      id           TEXT PRIMARY KEY,
+      role_id      TEXT NOT NULL,
+      event_id     TEXT NOT NULL,
+      published_at INTEGER NOT NULL,
+      text         TEXT NOT NULL,
+      meta_json    TEXT NOT NULL DEFAULT '{}'
+    )
+  `)
+  db.run(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_companion_moments_event
+      ON companion_moments(event_id)
+  `)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS companion_event_links (
+      id            TEXT PRIMARY KEY,
+      event_id      TEXT NOT NULL,
+      role_id       TEXT NOT NULL,
+      target_type   TEXT NOT NULL,
+      target_id     TEXT NOT NULL,
+      relation      TEXT NOT NULL,
+      metadata_json TEXT NOT NULL DEFAULT '{}',
+      created_at    INTEGER NOT NULL,
+      UNIQUE(event_id, target_type, target_id, relation)
+    )
+  `)
+
+  const existingMoments = db.exec('SELECT 1 FROM companion_moments WHERE role_id = ? LIMIT 1', [roleId])
+  if (existingMoments.length) {
+    db.run('INSERT OR IGNORE INTO companion_asset_seeds (role_id, kind) VALUES (?, ?)', [roleId, seedKind])
+    persist()
+    return { created: 0 }
+  }
+
+  const sunnyImage = materializeRoleVisualImage(roleId, 'visual/thousand-sunny-crew-scene-v1.png')
+  const lookoutImage = materializeRoleVisualImage(roleId, 'visual/lookout-viewpoint-v1.png')
+  const now = Date.now()
+  const deckPublishedAt = Math.max(1, now - 30 * 60 * 60 * 1000)
+  const lookoutPublishedAt = Math.max(2, now - 26 * 60 * 60 * 1000)
+
+  const starters = [
+    {
+      eventId: 'event:luffy:starter-deck-breeze',
+      momentId: 'moment:luffy:starter-deck-breeze',
+      publishedAt: deckPublishedAt,
+      text: '千里阳光号的草坪甲板风超舒服！山治刚端出烤肉，娜美在旁边画航线图，乌索普又在吹嘘他的新发明了——吃饱了就准备向下一座岛出发！',
+      eventPayload: {
+        activity: '在草坪甲板吹海风、等山治的烤肉出锅',
+        story: '千里阳光号的草坪甲板风超舒服！山治刚端出烤肉，娜美在旁边画航线图，乌索普又在吹嘘他的新发明了——吃饱了就准备向下一座岛出发！',
+        mood: '畅快期待',
+        moodIntensity: 85,
+        location: '千里阳光号 · 共享甲板',
+        theme: '出海前的甲板日常',
+        assetId: 'wardrobe:luffy:starter-outfit',
+        participantIds: ['nami', 'usopp', 'sanji'],
+        ...(sunnyImage ? { imageId: sunnyImage.id, imageIds: [sunnyImage.id] } : {}),
+        seededFrom: 'role-pack:luffy',
+      },
+      momentMeta: {
+        type: 'moment',
+        mood: '畅快期待',
+        location: '千里阳光号 · 共享甲板',
+        theme: '出海前的甲板日常',
+        assetId: 'wardrobe:luffy:starter-outfit',
+        outfit: '草帽冒险日常装',
+        textSource: 'template',
+        participantIds: ['nami', 'usopp', 'sanji'],
+        interactions: [
+          { kind: 'coframe', castId: 'nami', castName: '娜美' },
+          { kind: 'comment', castId: 'sanji', castName: '山治', text: '别直接上手抓！刚出锅的烤肉还烫着呢，先把盘子端稳！' },
+          { kind: 'comment', castId: 'usopp', castName: '乌索普', text: '喂路飞，听我把超强新弹弓讲完再抢肉啊！' },
+        ],
+      },
+      links: [
+        { id: 'link:luffy:starter-deck-breeze:wears', targetType: 'asset', targetId: 'wardrobe:luffy:starter-outfit', relation: 'wears', metadata: { name: '草帽冒险日常装' } },
+        { id: 'link:luffy:starter-deck-breeze:coframe:nami', targetType: 'cast', targetId: 'nami', relation: 'coframe', metadata: { name: '娜美' } },
+        { id: 'link:luffy:starter-deck-breeze:coframe:usopp', targetType: 'cast', targetId: 'usopp', relation: 'coframe', metadata: { name: '乌索普' } },
+        { id: 'link:luffy:starter-deck-breeze:coframe:sanji', targetType: 'cast', targetId: 'sanji', relation: 'coframe', metadata: { name: '山治' } },
+        ...(sunnyImage ? [{ id: 'link:luffy:starter-deck-breeze:image:0', targetType: 'image', targetId: sunnyImage.id, relation: 'depicts', metadata: { position: 0 } }] : []),
+      ],
+    },
+    {
+      eventId: 'event:luffy:starter-lookout-horizon',
+      momentId: 'moment:luffy:starter-lookout-horizon',
+      publishedAt: lookoutPublishedAt,
+      text: '爬到能看见远处的高处吹了会儿海风，顺便翻了翻奇异生物图鉴。海平线那头的云团长得好奇怪，感觉下一座岛一定藏着没见过的大家伙！',
+      eventPayload: {
+        activity: '在高处眺望海平线上的新云团',
+        story: '爬到能看见远处的高处吹了会儿海风，顺便翻了翻奇异生物图鉴。海平线那头的云团长得好奇怪，感觉下一座岛一定藏着没见过的大家伙！',
+        mood: '好奇兴奋',
+        moodIntensity: 88,
+        location: '能看见远处的高处',
+        theme: '确认下一段航向',
+        assetId: 'wardrobe:luffy:red-vest',
+        bookAssetId: 'culture:luffy:sea-beasts-atlas',
+        participantIds: ['zoro'],
+        ...(lookoutImage ? { imageId: lookoutImage.id, imageIds: [lookoutImage.id] } : {}),
+        seededFrom: 'role-pack:luffy',
+      },
+      momentMeta: {
+        type: 'moment',
+        mood: '好奇兴奋',
+        location: '能看见远处的高处',
+        theme: '确认下一段航向',
+        assetId: 'wardrobe:luffy:red-vest',
+        outfit: '轻便红色背心',
+        bookAssetId: 'culture:luffy:sea-beasts-atlas',
+        book: '伟大航路奇异生物与岛屿图鉴',
+        textSource: 'template',
+        participantIds: ['zoro'],
+        interactions: [
+          { kind: 'coframe', castId: 'zoro', castName: '索隆' },
+          { kind: 'comment', castId: 'zoro', castName: '索隆', text: '看好脚下，别风一吹连人带草帽一起从瞭望台滚下来。' },
+          { kind: 'comment', castId: 'nami', castName: '娜美', text: '那是积帝云的边缘，别看图鉴看入迷了，快下来准备收帆！' },
+        ],
+      },
+      links: [
+        { id: 'link:luffy:starter-lookout-horizon:wears', targetType: 'asset', targetId: 'wardrobe:luffy:red-vest', relation: 'wears', metadata: { name: '轻便红色背心' } },
+        { id: 'link:luffy:starter-lookout-horizon:references', targetType: 'asset', targetId: 'culture:luffy:sea-beasts-atlas', relation: 'references', metadata: { name: '伟大航路奇异生物与岛屿图鉴' } },
+        { id: 'link:luffy:starter-lookout-horizon:coframe:zoro', targetType: 'cast', targetId: 'zoro', relation: 'coframe', metadata: { name: '索隆' } },
+        ...(lookoutImage ? [{ id: 'link:luffy:starter-lookout-horizon:image:0', targetType: 'image', targetId: lookoutImage.id, relation: 'depicts', metadata: { position: 0 } }] : []),
+      ],
+    },
+  ]
+
+  let created = 0
+  db.run('BEGIN TRANSACTION')
+  try {
+    for (const item of starters) {
+      db.run(
+        `INSERT OR IGNORE INTO companion_events (id, role_id, scheduled_at, status, type, payload_json, day_script_id)
+         VALUES (?, ?, ?, 'published', 'moment', ?, NULL)`,
+        [item.eventId, roleId, item.publishedAt, JSON.stringify(item.eventPayload)],
+      )
+      db.run(
+        `INSERT OR IGNORE INTO companion_moments (id, role_id, event_id, published_at, text, meta_json)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [item.momentId, roleId, item.eventId, item.publishedAt, item.text, JSON.stringify(item.momentMeta)],
+      )
+      for (const link of item.links) {
+        db.run(
+          `INSERT OR IGNORE INTO companion_event_links
+           (id, event_id, role_id, target_type, target_id, relation, metadata_json, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [link.id, item.eventId, roleId, link.targetType, link.targetId, link.relation, JSON.stringify(link.metadata), item.publishedAt],
+        )
+      }
+      created += 1
+    }
+    db.run('INSERT OR IGNORE INTO companion_asset_seeds (role_id, kind) VALUES (?, ?)', [roleId, seedKind])
+    db.run('COMMIT')
+  } catch (error) {
+    db.run('ROLLBACK')
+    throw error
+  }
+  persist()
+  return { created }
+}
+
 /** 活跃主角打开生活面时初始化已有种子；住所与地点没有设定时不生成记录。 */
 export async function ensureStarterAssets(roleId: string): Promise<{ created: number }> {
   const w = await ensureStarterWardrobe(roleId)
@@ -925,6 +1271,7 @@ export async function ensureStarterAssets(roleId: string): Promise<{ created: nu
   const h = await ensureStarterHome(roleId)
   const f = await ensureStarterFootprints(roleId)
   const p = await ensureWorldDefaultPossessions(roleId)
+  await ensureStarterMoments(roleId)
   return { created: w.created + b.created + c.created + h.created + f.created + p.created }
 }
 

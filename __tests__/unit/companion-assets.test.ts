@@ -64,6 +64,9 @@ const {
 
 const { readGeneratedImageReference } =
   await import('../../electron/main/storage/generated-images')
+const { momentImageIdsForRole, readMomentImageForRole } = await import('../../electron/main/companion/life/moment-images')
+const { readingNotesForAsset } = await import('../../src/shared/world-records')
+const { travelRecordsForRole } = await import('../../src/components/world/WorldLivingContent')
 
 const { ensureDayScripts, __lifeStore } =
   await import('../../electron/main/companion/life/engine')
@@ -425,7 +428,7 @@ describe('Companion Assets', () => {
 
   it('路飞初始化包为千里阳光号、共享甲板、草帽、高处足迹、三件衣物和初始套装全部挂载可读取配图', async () => {
     const seeded = await ensureStarterAssets('luffy')
-    expect(seeded.created).toBe(8)
+    expect(seeded.created).toBe(15)
 
     const assets = await listAssets('luffy')
     expect(assets.filter((item) => item.payload.recordType === 'wear-state')).toEqual([])
@@ -435,12 +438,43 @@ describe('Companion Assets', () => {
       'home:luffy:space:shared-deck',
       'world:luffy:straw-hat',
       'footprint:luffy:lookout',
+      'footprint:luffy:trip:east-blue-voyage',
+      'footprint:luffy:trip:skypiea-golden-bell',
+      'footprint:luffy:trip:sunny-current-route',
+      'culture:luffy:sea-beasts-atlas',
+      'culture:luffy:skypiea-vision-dial',
+      'culture:luffy:binks-sake-chorus',
+      'culture:luffy:sunny-sunset-straw-hat',
       'wardrobe:luffy:red-vest',
       'wardrobe:luffy:blue-shorts',
       'wardrobe:luffy:deck-sandals',
       'wardrobe:luffy:starter-outfit',
     ]
     expect(assets.map((item) => item.id).sort()).toEqual([...expectedIds].sort())
+    const trips = travelRecordsForRole(assets, 'luffy')
+    expect(trips.map((trip) => trip.title)).toEqual([
+      '东海启航：集结伙伴的誓言之旅',
+      '空岛奇航：敲响云端一万米的黄金钟',
+      '千里阳光号巡航：未知岛屿的冒险航段',
+    ])
+    expect(trips.every((trip) => trip.stops.length >= 2)).toBe(true)
+    const cultureItems = assets.filter((item) => item.kind === 'culture')
+    expect(cultureItems.map((item) => item.payload.type).sort()).toEqual(['film', 'music', 'photography', 'reading'])
+    const atlas = assets.find((item) => item.id === 'culture:luffy:sea-beasts-atlas')!
+    expect(readingNotesForAsset(atlas)).toHaveLength(1)
+    expect(readingNotesForAsset(atlas)[0].text).toContain('七角独角仙')
+    const moments = await __lifeStore.listMoments('luffy')
+    expect(moments.map((item) => item.id)).toEqual([
+      'moment:luffy:starter-lookout-horizon',
+      'moment:luffy:starter-deck-breeze',
+    ])
+    for (const moment of moments) {
+      expect(Array.isArray(moment.meta.interactions) && moment.meta.interactions.length >= 2).toBe(true)
+      const imageIds = await momentImageIdsForRole('luffy', moment.id)
+      expect(imageIds).toHaveLength(1)
+      const momentImage = await readMomentImageForRole('luffy', moment.id, imageIds[0])
+      expect(momentImage.ok).toBe(true)
+    }
 
     const space = assets.find((item) => item.id === 'home:luffy:space:shared-deck')!
     expect(space.payload).toMatchObject({

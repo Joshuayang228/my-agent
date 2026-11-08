@@ -517,3 +517,4 @@ published event（事件事实）
 
 - 2026-11-05：Debug 世界态新增生活执行账本，记录事件尝试时间、已分享 / 跳过 / 延后动作、策略原因和关联 Moment。
 - 2026-11-07：路飞出厂初始化包视觉补齐与挂载：`roles/luffy/visual/` 补齐草帽、红背心、深蓝短裤、甲板凉鞋与高处足迹 5 张 PNG，连同既有千里阳光号外景、室内空间和初始穿搭共 8 张视觉资产统一在 `ensureStarterAssets` 播种时落入 `userData/companion-media/images/` 并生成 `GeneratedImageReference`；同时将 `rooms[0]` 播种为 `home:luffy:space:shared-deck` 空间资产、草帽关联至该空间，并初始化可一键换上的 `wardrobe:luffy:starter-outfit`（不自动写入 `wear-state`），旧库支持无损补图。数据备份导出时，未改动的 Role Pack 出厂静态配图仅保留 `visualPath` 而不计入 16MB 用户生成媒体上限，导入后自动从 Role Pack 恢复本地图片引用。
+- 2026-11-08：路飞人物世界六面出场内容全量补齐：`roles/luffy/visual/` 新增 6 张专属插画（奇异生物图鉴、空岛映像贝、宾克斯的美酒合唱、船头夕阳草帽、东海启航木桶誓言、空岛黄金钟），`ensureStarterCulture('luffy')` 播种书籍 / 影视 / 音乐 / 摄影四类初始文化体验与首条图鉴读书笔记，`world.default.json` 新增 `trips` 三段多站点旅行故事（东海启航、空岛黄金钟、千里阳光号巡航）并在 `ensureStarterFootprints` 播种为 `recordType=trip` 记录；同时新增 `ensureStarterMoments('luffy')`，在首次打开朋友圈或初始化资产时写入两条昨日发布的出场动态、配图与草帽一伙互动（确定性 ID 支持备份幂等合并，且不消耗当日自动发帖配额或触发 4 小时冷却）。

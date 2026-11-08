@@ -21,7 +21,7 @@ import {
   type MomentSocialView,
   type MomentUserInteraction,
 } from '../../../../src/shared/moment-user-interactions'
-import { getAsset, maybeGrantFromEvent } from './assets'
+import { ensureStarterMoments, getAsset, maybeGrantFromEvent } from './assets'
 import { formatMomentText } from './moment-format'
 import { resolveCastInteractions } from './moment-comment-service'
 import { resolveMomentText } from './moment-polish'
@@ -298,7 +298,7 @@ async function canAutomaticallyPost(roleId: string, now: number, candidate: Comp
   const cooldownMinutes = Math.max(0, Math.min(24 * 60, Number.parseInt(await getSetting('companionMomentCooldownMinutes'), 10) || 240))
   const start = new Date(now)
   start.setHours(0, 0, 0, 0)
-  const recent = await listMomentsForRole(roleId, { limit: 500 })
+  const recent = await store.listMoments(roleId, { limit: 500 })
   const todayCount = recent.filter(moment => moment.publishedAt >= start.getTime() && moment.publishedAt <= now).length
   const lastPublishedAt = recent.reduce((latest, moment) => Math.max(latest, moment.publishedAt), 0)
   if (todayCount >= (cadence === 'low' ? 1 : maxPerDay)) return { allow: false, reason: 'daily-limit' }
@@ -321,6 +321,7 @@ export async function listMomentsForRole(
   roleId: string,
   opts?: { limit?: number; offset?: number },
 ): Promise<CompanionMoment[]> {
+  await ensureStarterMoments(roleId)
   return store.listMoments(roleId, opts)
 }
 

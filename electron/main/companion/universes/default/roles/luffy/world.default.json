@@ -8,6 +8,51 @@
   "initialLocation": "千里阳光号",
   "mobility": {"primary": "步行与船上移动", "alternatives": ["由事件定义的交通方式"]},
   "favoritePlaces": [{"id": "lookout", "name": "能看见远处的高处", "kind": "viewpoint", "description": "适合确认方向、吹风和讨论下一步；不对应现实地点", "travelMinutes": 10, "visualPath": "visual/lookout-viewpoint-v1.png"}],
+  "trips": [
+    {
+      "id": "east-blue-voyage",
+      "title": "东海启航：集结伙伴的誓言之旅",
+      "destination": "东海 → 伟大航路入口",
+      "start": "2026-01-10",
+      "end": "2026-02-18",
+      "status": "completed",
+      "story": "从风车村独自出海，在东海一路结识索隆、娜美、乌索普与山治。暴风雨来临前，五个人的脚先后踏在同一个木桶上，大声喊出各自的梦想，然后冲向颠倒山的上升海流。",
+      "stops": [
+        {"id": "windmill-harbor", "name": "风车村小码头", "date": "2026-01-10", "story": "按住草帽跳上小木船出海，海鸥在头顶盘旋，决定先去找齐最可靠的伙伴。"},
+        {"id": "baratie-deck", "name": "海上餐厅巴拉蒂", "date": "2026-01-28", "story": "尝到了全世界最棒的海鲜炒饭，听山治聊起 All Blue 的传说，终于迎来船上最关键的厨师。"},
+        {"id": "reverse-mountain-barrel", "name": "罗格镇外海与颠倒山入口", "date": "2026-02-18", "story": "暴雨和雷光里把脚踩在木桶上立下誓言，迎着咆哮的上升海流冲进伟大航路。"}
+      ],
+      "visualPath": "visual/footprint-east-blue-vow-v1.png"
+    },
+    {
+      "id": "skypiea-golden-bell",
+      "title": "空岛奇航：敲响云端一万米的黄金钟",
+      "destination": "白白海 · 空岛神之岛",
+      "start": "2026-04-02",
+      "end": "2026-04-20",
+      "status": "completed",
+      "story": "乘着冲天海流直入一万米高空的积帝云，证明被人嘲笑的空岛真实存在。在古老藤蔓顶端敲响沉寂四百年的黄金钟，让钟声与云海巨影一起传回青海。",
+      "stops": [
+        {"id": "knock-up-stream", "name": "加雅岛外海 · 冲天海流", "date": "2026-04-02", "story": "在所有人都不相信的目光里，顺着直冲云霄的巨大水柱飞向白海。"},
+        {"id": "angel-beach-campfire", "name": "天使海滩与阿帕亚多森林篝火", "date": "2026-04-12", "story": "在软绵绵的云朵海滩试玩贝壳，夜里和空兽群围着巨型篝火跳舞开宴会。"},
+        {"id": "shandora-belfry", "name": "巨大豆蔓顶端 · 黄金钟楼", "date": "2026-04-20", "story": "雷云散开的一刻敲响黄金钟，让四百年的约定响彻整片天空与大海。"}
+      ],
+      "visualPath": "visual/footprint-skypiea-bell-v1.png"
+    },
+    {
+      "id": "sunny-current-route",
+      "title": "千里阳光号巡航：未知岛屿的冒险航段",
+      "destination": "新世界航段 · 下一座指针记录岛",
+      "start": "2026-07-01",
+      "status": "active",
+      "story": "和伙伴们乘着千里阳光号继续在海上航行。白天坐在狮子船头吹海风、盯紧记录指针晃动的方向，傍晚在草坪甲板抢山治刚出锅的烤肉，随时准备登陆下一座有奇怪生物的岛屿。",
+      "stops": [
+        {"id": "sunny-figurehead", "name": "千里阳光号 · 狮子船头特等席", "date": "2026-07-01", "story": "迎着海浪坐上最喜欢的船头位置，第一眼看见海平线上的新云团。"},
+        {"id": "shared-lawn-deck", "name": "共享草坪甲板与眺望台", "date": "2026-07-15", "story": "和索隆、娜美、乌索普、山治在甲板上确认补给与风向，等待下一段奇遇。"}
+      ],
+      "visualPath": "visual/thousand-sunny-crew-scene-v1.png"
+    }
+  ],
   "possessions": [{"id": "straw-hat", "kind": "symbolic-item", "name": "草帽", "description": "路飞最重要的随身象征物；通常放在共享甲板的个人物件位，出发或需要确认方向时随身携带。", "condition": "稳定保管；具体来源和历史按用户确认的资料补充", "spaceId": "home:luffy:space:shared-deck", "visualPath": "visual/straw-hat-v1.png"}],
   "routines": {"weekday": ["根据当前事件安排探索、休息和交流"], "weekend": ["不预设固定周末，按世界事件决定"]},
   "standingFacts": ["这是人物共创用的虚构世界，不是现实定位", "地点、物件和事件只有在来源明确时才进入运行态", "千里阳光号是当前默认住所；运行后仍以真实世界状态为准", "草帽是路飞的稳定象征物，属于物件资产而非衣柜分类"],

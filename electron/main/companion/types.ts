@@ -129,6 +129,26 @@ export interface RoleWorldPlace {
   visualPath?: string
 }
 
+export interface RoleWorldTripStop {
+  id: string
+  name: string
+  story: string
+  date?: string
+}
+
+export interface RoleWorldTrip {
+  id: string
+  title: string
+  destination: string
+  start: string
+  end?: string
+  status: 'planned' | 'active' | 'completed' | 'cancelled'
+  story: string
+  stops: RoleWorldTripStop[]
+  /** 可选项目内视觉参考（相对角色目录） */
+  visualPath?: string
+}
+
 export interface RoleWorldPossession {
   id: string
   kind: string
@@ -181,6 +201,7 @@ export interface RoleWorldDefaults {
     alternatives: string[]
   }
   favoritePlaces: RoleWorldPlace[]
+  trips?: RoleWorldTrip[]
   possessions: RoleWorldPossession[]
   routines: {
     weekday: string[]

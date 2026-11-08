@@ -1,5 +1,7 @@
 # 质量总控
 
+路飞人物世界六面出场内容门禁（2026-11-08）：`companion-assets.test.ts` 与 `companion-source-boundary.test.ts` 扩展验证路飞 15 项出厂生活资产（含四类文化角作品、结构化读书笔记、三段多站点旅行足迹）与 2 条出场朋友圈动态的配图可读性、卡司互动、旧库无损补齐及删除不复活；`generated-image-backup.test.ts` 验证 15 项出厂配图不计入 16MB 备份媒体上限且与确定性 ID 出场动态一起支持备份导出导入幂等往返；`onboarding.test.ts` 同步路飞文化角与旅行足迹正式入口断言。
+
 角色架世界观切换与跨世界隔离完整闭环（2026-11-08）：`onboarding.test.ts` 的「正式共享角色架点击切角后重载保留并恢复原角色」通过真实 Electron 验证从正式角色架「当前世界观」下拉切换至用户世界观、主角列表同步刷新、跨世界文化资产隔离、同世界切角与重载保留及切回默认世界观；`universe-switch.test.ts` 3 项通过，覆盖跨世界切换时 Companion 资产目录按 `universeId` 隔离聚合。四份人物/世界观施工合同（`world-and-character-authoring-v1`、`character-luffy-v1`、`character-state-and-relationship-v1`、`companion-autonomous-moment-media-v1`）验收完成并冻结为快照。
 
 路飞初始化包配图挂载门禁（2026-11-07）：`companion-assets.test.ts` 新增 2 项回归，验证 `ensureStarterAssets('luffy')` 为住所、共享甲板空间、草帽、高处足迹、三件单品与初始套装共 8 条出厂记录挂载可通过 `readGeneratedImageReference` 安全核验的 PNG 引用，换上初始套装可沿用套装配图，且旧库已播种记录支持无损补图、用户删除套装后不复活。
