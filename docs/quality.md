@@ -1,5 +1,7 @@
 # 质量总控
 
+Prompt 四层组合与隔离人物适配门禁（2026-11-08）：`prompt-feature-contracts.test.ts` 扩展至 5 项，验证路飞与隔离测试人物 `isolated-role` 在不改动任何功能实现的情况下走通主对话、朋友圈润色、一日剧本、生活补叙、成长反思、评论回复、NPC 评论、主动问候和生图全套四层组合，确认人物适配无法覆盖平台安全约束与输出协议，并核对核心 Prompt / Role Pack 资产与 `getPromptAssetTraces` 的 `featureKey` / `adaptationStatus` 投影。至此 `prompt-layered-composition-v1`、`character-system-extension-v1`、`character-design-method-v1`、`companion-material-grounding-v1` 四份施工合同全部验收完成并冻结为快照。
+
 路飞人物世界六面出场内容门禁（2026-11-08）：`companion-assets.test.ts` 与 `companion-source-boundary.test.ts` 扩展验证路飞 15 项出厂生活资产（含四类文化角作品、结构化读书笔记、三段多站点旅行足迹）与 2 条出场朋友圈动态的配图可读性、卡司互动、旧库无损补齐及删除不复活；`generated-image-backup.test.ts` 验证 15 项出厂配图不计入 16MB 备份媒体上限且与确定性 ID 出场动态一起支持备份导出导入幂等往返；`onboarding.test.ts` 同步路飞文化角与旅行足迹正式入口断言。
 
 角色架世界观切换与跨世界隔离完整闭环（2026-11-08）：`onboarding.test.ts` 的「正式共享角色架点击切角后重载保留并恢复原角色」通过真实 Electron 验证从正式角色架「当前世界观」下拉切换至用户世界观、主角列表同步刷新、跨世界文化资产隔离、同世界切角与重载保留及切回默认世界观；`universe-switch.test.ts` 3 项通过，覆盖跨世界切换时 Companion 资产目录按 `universeId` 隔离聚合。四份人物/世界观施工合同（`world-and-character-authoring-v1`、`character-luffy-v1`、`character-state-and-relationship-v1`、`companion-autonomous-moment-media-v1`）验收完成并冻结为快照。

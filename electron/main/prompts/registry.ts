@@ -180,6 +180,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
     id: PROMPT_KEYS.momentComment,
     domain: 'social', name: '朋友圈角色评论', category: 'companion', role: 'companion-background',
+    featureKey: PROMPT_FEATURE_CONTRACTS.momentComment.key, adaptationStatus: 'adapted',
     purpose: '基于公开名册回应已发布动态', desc: '仅润色已有确定性选中的评论者，不代替用户发言；无配置或校验失败保留原短句。',
     sourcePath: 'electron/main/prompts/moment-comment.ts#buildMomentCommentPrompt',
     definitions: ['electron/main/prompts/moment-comment.ts#buildMomentCommentPrompt', 'electron/main/prompts/registered-request.ts#compileMomentCommentRequest'],
@@ -189,6 +190,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
     id: PROMPT_KEYS.imageGeneration,
     domain: 'visual', name: '图片生成描述包装', category: 'tool', role: 'image-generation',
+    featureKey: PROMPT_FEATURE_CONTRACTS.imageGeneration.key, adaptationStatus: 'adapted',
     purpose: '约束独立图片协议中的明确描述与人物事实', desc: '图片描述是运行时资料，包装与来源由专用配方签发，不增加文本模型请求。',
     sourcePath: 'electron/main/prompts/image-generation.ts#buildImageGenerationPrompt',
     definitions: ['electron/main/prompts/image-generation.ts#buildImageGenerationPrompt', 'electron/main/prompts/registered-request.ts#compileImageGenerationRequest', 'electron/main/companion/identity/profile.ts#formatRoleAppearanceForImagePrompt'],
@@ -198,6 +200,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
     id: PROMPT_KEYS.momentReply,
     domain: 'social', name: '主角回复用户评论', category: 'companion', role: 'companion-social',
+    featureKey: PROMPT_FEATURE_CONTRACTS.momentReply.key, adaptationStatus: 'adapted',
     purpose: '主角回复已保存的用户评论', desc: '只回复当前动态下的用户评论；生成失败不影响用户评论写入。',
     sourcePath: 'electron/main/prompts/moment-reply.ts#buildMomentReplyPrompt',
     definitions: ['electron/main/prompts/moment-reply.ts#buildMomentReplyPrompt', 'electron/main/prompts/registered-request.ts#compileMomentReplyRequest'],
@@ -206,6 +209,7 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   }),
   dynamicAsset({
     id: PROMPT_KEYS.proactiveGreeting, domain: 'proactive', name: '个性化主动问候', category: 'companion', role: 'proactive-message',
+    featureKey: PROMPT_FEATURE_CONTRACTS.proactiveGreeting.key, adaptationStatus: 'adapted',
     purpose: '依据已发布动态生成轻量主动问候', desc: '只在既有投递门闸允许且辅助模型可用时生成；失败回退确定性提醒。',
     sourcePath: 'electron/main/prompts/proactive-greeting.ts#buildProactiveGreetingPrompt',
     definitions: ['electron/main/prompts/proactive-greeting.ts#buildProactiveGreetingPrompt', 'electron/main/prompts/registered-request.ts#compileProactiveGreetingRequest'],
@@ -285,6 +289,8 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
     id: PROMPT_KEYS.promptCompiler,
     domain: 'conversation',
+    featureKey: PROMPT_FEATURE_CONTRACTS.mainChat.key,
+    adaptationStatus: 'adapted',
     definitions: ['electron/main/prompts/registered-request.ts#compileMainSystem', 'electron/main/prompts/compiler.ts#compileMainChatPrompt', 'electron/main/prompts/compiler.ts#buildPlatformModule', 'electron/main/prompts/compiler.ts#buildCharacterModules', 'electron/main/prompts/compiler.ts#buildBehaviorModule', 'electron/main/prompts/compiler.ts#buildSituationModule', 'electron/main/prompts/compiler.ts#buildOutputModule', 'electron/main/companion/identity/profile.ts#formatRoleProfileForPrompt', 'electron/main/companion/identity/profile.ts#formatRoleWorldDefaultsForPrompt'],
     name: 'System Prompt 语义编译器',
     category: 'system',
@@ -360,6 +366,8 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
     id: PROMPT_KEYS.l3Collapse,
     domain: 'memory',
+    featureKey: PROMPT_FEATURE_CONTRACTS.compact.key,
+    adaptationStatus: 'generic',
     definitions: ['electron/main/prompts/registered-request.ts#compileCompactRequest', 'electron/main/prompts/compact.ts#buildCompactPrompt', 'electron/main/prompts/compact.ts#formatMinSetWhitelistForCompactPrompt', 'electron/main/prompts/compact.ts#buildCompactHistoryPrompt'],
     name: 'L3 Collapse 摘要指令',
     category: 'context',
@@ -374,6 +382,8 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
     id: PROMPT_KEYS.l4Autocompact,
     domain: 'memory',
+    featureKey: PROMPT_FEATURE_CONTRACTS.compact.key,
+    adaptationStatus: 'generic',
     definitions: ['electron/main/prompts/registered-request.ts#compileCompactRequest', 'electron/main/prompts/compact.ts#buildCompactPrompt', 'electron/main/prompts/compact.ts#formatMinSetWhitelistForCompactPrompt', 'electron/main/prompts/compact.ts#buildCompactHistoryPrompt'],
     name: 'L4 AutoCompact 全量摘要',
     category: 'context',
@@ -388,6 +398,8 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   staticAsset({
     id: PROMPT_KEYS.profileExtraction,
     domain: 'memory',
+    featureKey: PROMPT_FEATURE_CONTRACTS.profileExtraction.key,
+    adaptationStatus: 'generic',
     version: '1.1.0',
     definitions: ['electron/main/prompts/registered-request.ts#compileProfileRequest', 'electron/main/prompts/texts.ts#EXTRACTION_PROMPT'],
     name: '用户画像提取',
@@ -545,6 +557,8 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
     id: PROMPT_KEYS.skillContext,
     domain: 'tools',
+    featureKey: PROMPT_FEATURE_CONTRACTS.skill.key,
+    adaptationStatus: 'generic',
     definitions: ['electron/main/skills/registry.ts#buildSkillSummaryForPrompt', 'electron/main/prompts/runtime-context.ts#buildActiveSkillPrompt'],
     name: 'Skill 上下文提示',
     category: 'system',
@@ -561,6 +575,8 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
     id: PROMPT_KEYS.companionContext,
     domain: 'life',
+    featureKey: PROMPT_FEATURE_CONTRACTS.summon.key,
+    adaptationStatus: 'adapted',
     definitions: ['electron/main/companion/life/assets.ts#formatBookshelfSliceForPrompt', 'electron/main/companion/life/moment-consistency.ts#formatRecentMomentsForPrompt', 'electron/main/companion/life/world-codec.ts#formatWorldSliceForPrompt', 'electron/main/companion/cast/roster.ts#formatRosterForPrompt', 'electron/main/companion/cast/scene-prompts.ts#defaultCastScenePrompt', 'electron/main/companion/cast/scene-prompts.ts#loadCastScenePrompt', 'electron/main/companion/cast/scene-prompts.ts#formatSummonSceneBlock', 'electron/main/companion/cast/summon-delegation.ts#summonParentDelegationHint', 'electron/main/prompts/runtime-context.ts#buildSummonContextPrompt'],
     template: buildSummonContextPrompt('{{presence}}', '{{delegation}}', '{{scene}}'),
     name: '伙伴世界上下文片段',
@@ -593,6 +609,8 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
     id: PROMPT_KEYS.companionReflection,
     domain: 'memory',
+    featureKey: PROMPT_FEATURE_CONTRACTS.reflection.key,
+    adaptationStatus: 'adapted',
     dependencies: [PROMPT_KEYS.companionCompiler],
     definitions: ['electron/main/prompts/registered-request.ts#compileReflectionRequest', 'electron/main/prompts/companion-behaviors.ts#buildReflectionPrompt'],
     name: '伙伴反思更新 Prompt',
@@ -623,6 +641,8 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
     id: PROMPT_KEYS.companionCatchup,
     domain: 'life',
+    featureKey: PROMPT_FEATURE_CONTRACTS.catchup.key,
+    adaptationStatus: 'adapted',
     dependencies: [PROMPT_KEYS.companionCompiler],
     definitions: ['electron/main/prompts/registered-request.ts#compileCatchupRequest', 'electron/main/prompts/companion-behaviors.ts#buildCatchupLlmPrompt'],
     name: '伙伴生活补叙 Prompt',
@@ -639,6 +659,8 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
     id: PROMPT_KEYS.companionMomentPolish,
     domain: 'social',
+    featureKey: PROMPT_FEATURE_CONTRACTS.momentPolish.key,
+    adaptationStatus: 'adapted',
     dependencies: [PROMPT_KEYS.companionCompiler],
     definitions: ['electron/main/prompts/registered-request.ts#compileMomentRequest', 'electron/main/prompts/companion-behaviors.ts#buildPolishPrompt'],
     name: '伙伴 Moment 润色 Prompt',
@@ -655,6 +677,8 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
     id: PROMPT_KEYS.companionDayScript,
     domain: 'life',
+    featureKey: PROMPT_FEATURE_CONTRACTS.dayScript.key,
+    adaptationStatus: 'adapted',
     dependencies: [PROMPT_KEYS.companionCompiler],
     definitions: ['electron/main/prompts/registered-request.ts#compileDayRequest', 'electron/main/prompts/companion-behaviors.ts#buildLlmPrompt'],
     name: '伙伴日程剧本 Prompt',
@@ -689,6 +713,8 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   dynamicAsset({
     id: PROMPT_KEYS.subagentSystem,
     domain: 'tools',
+    featureKey: PROMPT_FEATURE_CONTRACTS.subagent.key,
+    adaptationStatus: 'generic',
     template: buildSubAgentPrompt('{{roleDescription}}', '{{summonBoundary}}'),
     definitions: ['electron/main/prompts/registered-request.ts#compileSubagentSystem', 'electron/main/prompts/agent-behaviors.ts#buildSubAgentPrompt', 'electron/main/agent/subagent.ts#buildSubAgentSystemPrompt', 'electron/main/companion/cast/summon-delegation.ts#summonWorkerSystemAddon'],
     name: '子 Agent System Prompt',
@@ -720,6 +746,8 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
   staticAsset({
     id: PROMPT_KEYS.toolResultSafety,
     domain: 'tools',
+    featureKey: PROMPT_FEATURE_CONTRACTS.toolContext.key,
+    adaptationStatus: 'character-independent',
     definitions: ['electron/main/agent/tool-result-safety.ts#prepareToolResultForModel', 'electron/main/agent/loop.ts#agentLoop'],
     name: '工具结果安全锚点',
     category: 'system',
@@ -732,25 +760,25 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
 ]
 
 const ROLE_PROMPT_FILES = [
-  { suffix: 'protected.md', label: 'PROTECTED 人格正文', domain: 'character' },
-  { suffix: 'mutable.default.md', label: 'MUTABLE 默认状态', domain: 'character' },
-  { suffix: 'voice.md', label: '语气补充', domain: 'character' },
-  { suffix: 'summary.txt', label: '角色摘要', domain: 'character' },
-  { suffix: 'scenes/display.md', label: '展示场景', domain: 'life' },
-  { suffix: 'scenes/interact.md', label: '互动场景', domain: 'social' },
-  { suffix: 'scenes/execute.md', label: '执行场景', domain: 'conversation' },
-  { suffix: 'scenes/first-contact.md', label: '首次冷启场景', domain: 'conversation' },
-  { suffix: 'timeline/continuity.md', label: '人物连续性', domain: 'character' },
-  { suffix: 'timeline/canon.json', label: '既有经历索引', domain: 'character' },
-  { suffix: 'timeline/current.json', label: '当前状态索引', domain: 'life' },
-  { suffix: 'timeline/interaction.json', label: '共同经历索引', domain: 'memory' },
-  { suffix: 'timeline/character-view.json', label: '人物经历视角', domain: 'character' },
-  { suffix: 'timeline/canon.md', label: '人物既有经历提案', domain: 'character' },
-  { suffix: 'timeline/external-evidence.md', label: '外部经历证据', domain: 'character' },
-  { suffix: 'behaviors/moment-polish.md', label: 'Moment 行为补充', domain: 'social' },
-  { suffix: 'behaviors/day-script.md', label: '日程行为补充', domain: 'life' },
-  { suffix: 'behaviors/catchup.md', label: '补叙行为补充', domain: 'life' },
-  { suffix: 'behaviors/reflection.md', label: '反思行为补充', domain: 'memory' },
+  { suffix: 'protected.md', label: 'PROTECTED 人格正文', domain: 'character', featureKey: PROMPT_FEATURE_CONTRACTS.mainChat.key },
+  { suffix: 'mutable.default.md', label: 'MUTABLE 默认状态', domain: 'character', featureKey: PROMPT_FEATURE_CONTRACTS.mainChat.key },
+  { suffix: 'voice.md', label: '语气补充', domain: 'character', featureKey: PROMPT_FEATURE_CONTRACTS.mainChat.key },
+  { suffix: 'summary.txt', label: '角色摘要', domain: 'character', featureKey: PROMPT_FEATURE_CONTRACTS.summon.key },
+  { suffix: 'scenes/display.md', label: '展示场景', domain: 'life', featureKey: PROMPT_FEATURE_CONTRACTS.summon.key },
+  { suffix: 'scenes/interact.md', label: '互动场景', domain: 'social', featureKey: PROMPT_FEATURE_CONTRACTS.summon.key },
+  { suffix: 'scenes/execute.md', label: '执行场景', domain: 'conversation', featureKey: PROMPT_FEATURE_CONTRACTS.summon.key },
+  { suffix: 'scenes/first-contact.md', label: '首次冷启场景', domain: 'conversation', featureKey: PROMPT_FEATURE_CONTRACTS.mainChat.key },
+  { suffix: 'timeline/continuity.md', label: '人物连续性', domain: 'character', featureKey: PROMPT_FEATURE_CONTRACTS.mainChat.key },
+  { suffix: 'timeline/canon.json', label: '既有经历索引', domain: 'character', featureKey: PROMPT_FEATURE_CONTRACTS.mainChat.key },
+  { suffix: 'timeline/current.json', label: '当前状态索引', domain: 'life', featureKey: PROMPT_FEATURE_CONTRACTS.mainChat.key },
+  { suffix: 'timeline/interaction.json', label: '共同经历索引', domain: 'memory', featureKey: PROMPT_FEATURE_CONTRACTS.mainChat.key },
+  { suffix: 'timeline/character-view.json', label: '人物经历视角', domain: 'character', featureKey: PROMPT_FEATURE_CONTRACTS.mainChat.key },
+  { suffix: 'timeline/canon.md', label: '人物既有经历提案', domain: 'character', featureKey: PROMPT_FEATURE_CONTRACTS.mainChat.key },
+  { suffix: 'timeline/external-evidence.md', label: '外部经历证据', domain: 'character', featureKey: PROMPT_FEATURE_CONTRACTS.mainChat.key },
+  { suffix: 'behaviors/moment-polish.md', label: 'Moment 行为补充', domain: 'social', featureKey: PROMPT_FEATURE_CONTRACTS.momentPolish.key },
+  { suffix: 'behaviors/day-script.md', label: '日程行为补充', domain: 'life', featureKey: PROMPT_FEATURE_CONTRACTS.dayScript.key },
+  { suffix: 'behaviors/catchup.md', label: '补叙行为补充', domain: 'life', featureKey: PROMPT_FEATURE_CONTRACTS.catchup.key },
+  { suffix: 'behaviors/reflection.md', label: '反思行为补充', domain: 'memory', featureKey: PROMPT_FEATURE_CONTRACTS.reflection.key },
 ] as const
 
 let roleSourceAssetsCache: PromptAsset[] | undefined
@@ -779,6 +807,8 @@ function loadRoleAssets(): Array<PromptAsset & { content: string }> {
           role: roleId,
           roleIds: [roleId],
           domain: file.domain,
+          featureKey: file.featureKey,
+          adaptationStatus: 'adapted',
           roleUses: [{ roleId, purpose: file.suffix === 'mutable.default.md' ? '成长与关系' : file.suffix === 'protected.md' || file.suffix === 'summary.txt' ? '身份' : file.suffix.startsWith('scenes/') ? '生活情境' : '行为' }],
           desc: `角色 Pack 的 ${file.label}，由 Identity loader 读取。`,
           sourcePath: `electron/main/companion/universes/default/roles/${roleId}/${file.suffix}`,
@@ -809,11 +839,13 @@ export function getPromptAssets(): Array<PromptAsset & { content?: string }> {
  */
 export function getPromptAssetTraces(keys?: readonly string[]): PromptAssetTrace[] {
   if (keys) return resolvePromptAssetTraces(keys).assets
-  return getPromptAssets().map(({ key, purpose, role, domain, source, version, fingerprint, fingerprintKind, locale, mode, slots, behavior }) => ({
+  return getPromptAssets().map(({ key, purpose, role, domain, featureKey, adaptationStatus, source, version, fingerprint, fingerprintKind, locale, mode, slots, behavior }) => ({
     key,
     purpose,
     role,
     domain,
+    ...(featureKey ? { featureKey } : {}),
+    ...(adaptationStatus ? { adaptationStatus } : {}),
     source,
     version,
     fingerprint,
@@ -852,8 +884,8 @@ export function resolvePromptAssetTraces(keys: readonly string[]): PromptAssetRe
       unknownKeys.push(key)
       continue
     }
-    const { purpose, role, domain, source, version, fingerprint, fingerprintKind, locale, mode, slots, behavior } = asset
-    assets.push({ key, purpose, role, domain, source, version, fingerprint, fingerprintKind, locale, mode, slots, ...(behavior ? { behavior } : {}) })
+    const { purpose, role, domain, featureKey, adaptationStatus, source, version, fingerprint, fingerprintKind, locale, mode, slots, behavior } = asset
+    assets.push({ key, purpose, role, domain, ...(featureKey ? { featureKey } : {}), ...(adaptationStatus ? { adaptationStatus } : {}), source, version, fingerprint, fingerprintKind, locale, mode, slots, ...(behavior ? { behavior } : {}) })
   }
 
   return { assets, unknownKeys }

@@ -1,5 +1,7 @@
 # 项目进度
 
+Prompt 分层组合与人物体系合同全量收口冻结（2026-11-08）：补齐核心 Prompt、Role Pack 资产及调用追踪投影的 `featureKey` / `adaptationStatus` 关系标签，新增隔离测试人物全套四层组合与防越权覆盖验证，并将已完工的 `prompt-layered-composition-v1`、`character-system-extension-v1`、`character-design-method-v1`、`companion-material-grounding-v1` 四份施工合同稳定事实吸入模块卡后冻结为施工快照。
+
 路飞人物世界六面出场内容全量补齐（2026-11-08）：在首批居所、空间、草帽、高处与衣柜 8 张视觉资产基础上，再补齐 6 张专属插画（奇异生物与岛屿图鉴、空岛映像贝、宾克斯的美酒合唱、船头夕阳草帽、东海木桶誓言、空岛黄金钟），为路飞播种书籍 / 影视 / 音乐 / 摄影四类文化角记录（含结构化读书笔记）、三段带站点故事的旅行足迹（`recordType=trip`）以及两条附带配图与草帽一伙互动的出场朋友圈动态，使人物世界六个板块开箱即有完整内容。
 
 角色架世界观切换闭环与人物合同收口冻结（2026-11-08）：补齐 `CharacterShelfPanel` 切换世界观后的宿主活跃主角回调，并在真实 Electron E2E 与 `universe-switch.test.ts` 中完成角色架 UI 世界观切换、跨世界生活资产与资产目录隔离及重载恢复验收；将已完工的 `world-and-character-authoring-v1`、`character-luffy-v1`、`character-state-and-relationship-v1`、`companion-autonomous-moment-media-v1` 四份施工合同吸收至模块卡并冻结为施工快照。

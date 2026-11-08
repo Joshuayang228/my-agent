@@ -1,5 +1,7 @@
 # Agent 运行时
 
+Prompt 四层功能组合与关系标签收口（2026-11-08）：15 个核心功能合同与核心 Prompt / Role Pack 文本资产统一关联 `featureKey` 与 `adaptationStatus`（`adapted` / `generic` / `character-independent`），`getPromptAssetTraces` 同步投影该关系元数据，供 Debug 提示词管理器直接阅读通用功能定义、人物适配与最终组合关系。新增人物只需提供 Role Pack 与 `behaviors/` 适配文件，无需修改功能实现中的人物分支。
+
 出厂静态视觉备份边界（2026-11-07）：`data:export` 在收集生活资产配图时排除未改动的 Role Pack `visualPath` 出厂静态图片，避免内置高清配图占用 16MB 生成媒体预算；`data:import` 对携带 `visualPath` 的资产自动物化本地图片引用，不改变 Agent Loop 或工具调用边界。
 
 主进程类型门禁（2026-11-07）：运行时、LLM、工具和 Eval 共享源码纳入 `tsconfig.node.json`，`npm run typecheck` / `npm run build` 会在 Renderer 检查后执行主进程检查，当前诊断为 0。

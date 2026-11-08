@@ -29,10 +29,6 @@
 | 文档 | 说明 |
 |------|------|
 | [prompt-coverage-and-review-v2.md](./prompt-coverage-and-review-v2.md) | 全量方案已确认：推进用途 / 消费者门禁、集中展示、缺失生成闭环和人物扩展；新增 UI 待候选验收后统一回流 |
-| [prompt-layered-composition-v1.md](./prompt-layered-composition-v1.md) | 进行中：通用功能 Prompt、平台约束、人物适配和运行时上下文的四层组合改造 |
-| [character-system-extension-v1.md](./character-system-extension-v1.md) | 首个人物的 Role Pack、Prompt 装配、材料采集、验收与扩展边界 |
-| [character-design-method-v1.md](./character-design-method-v1.md) | 进行中：通用人物设计、首次冷启与既有经历连续性承接 |
-| [companion-material-grounding-v1.md](./companion-material-grounding-v1.md) | 进行中：阅读材料来源、观察 / 推断分离、人物自主写回与反思边界 |
 | [foundation-reuse-enforcement-v1.md](./foundation-reuse-enforcement-v1.md) | P0 方案待确认：四个产品体验的真实基础复用、Markdown / Diff / 控件收口与源码自动门禁 |
 | [playground-state-switchers-v1.md](./playground-state-switchers-v1.md) | P0：统一 Playground 场景、状态与宽度控制器，采用 MCP 独立选项样式 |
 | [playground-page-baseline-polish-v1.md](./playground-page-baseline-polish-v1.md) | P0 施工：Sidebar 底栏、Toast、Right Dock、人物世界与记忆页面样张统一精修 |
@@ -78,6 +74,10 @@ Debug 阅读层级：[debug-foundation-reading-v2.md](./debug-foundation-reading
 
 | 文档 | 说明 |
 |------|------|
+| [prompt-layered-composition-v1.md](./prompt-layered-composition-v1.md) | 已完成施工快照（冻结）：15 项通用功能 Prompt 合同、四层固定顺序组合器、人物适配覆盖边界、关系标签与隔离人物验证 |
+| [character-system-extension-v1.md](./character-system-extension-v1.md) | 已完成施工快照（冻结）：首个人物的 Role Pack 分工、Prompt 装配、材料采集与扩展边界 |
+| [character-design-method-v1.md](./character-design-method-v1.md) | 已完成施工快照（冻结）：通用人物设计方法、首次冷启持久化、三条连续性分离、世界观经历库与主动搜索边界 |
+| [companion-material-grounding-v1.md](./companion-material-grounding-v1.md) | 已完成施工快照（冻结）：阅读材料来源、观察 / 推断分离、确认主体记录、会话图片候选观察与失败证据 |
 | [world-and-character-authoring-v1.md](./world-and-character-authoring-v1.md) | 已完成施工快照（冻结）：世界观套装、主角 / 朋友边界、用户人物草稿与发布、正式角色架世界观切换及跨世界生活数据隔离 |
 | [character-luffy-v1.md](./character-luffy-v1.md) | 已完成施工快照（冻结）：默认宇宙唯一首个人物路飞、四位核心伙伴卡司、8 张出厂视觉资产与全套 Electron 验收 |
 | [character-state-and-relationship-v1.md](./character-state-and-relationship-v1.md) | 已完成施工快照（冻结）：关系事件历史、情绪事件幂等、朋友圈可见性与发布/互动策略、正式设置回流与状态展示切换 |

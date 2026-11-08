@@ -54,7 +54,17 @@ Debug 的诊断选角独立于活跃主角，专用读取只消费已初始化�
 
 人物共创新增通用设计方法：世界位置、稳定身份、欲望与需要、恐惧与核心矛盾、触发式行为规则、双向关系、日常生活、首次冷启和成长证据。既有角色显式区分 `canon`、`current` 与 `interaction` 三条连续性，避免把原有经历、当前状态和用户共同经历混成一份背景。
 
-人物草稿支持戏剧驱动力、决策规则、连续性、首次冷启与证据分区；审阅发布时会保留首次冷启场景和连续性材料。Role Pack 的 Debug 目录登记这些来源，首次冷启使用人物自己的自我介绍与名言，普通功能 Prompt 仍按平台约束 → 功能协议 → 人物适配 → 运行时资料 → 输出协议装配。通用方法与边界见 [施工合同](../requirements/character-design-method-v1.md) 和 [人物设计参考](../../.agents/skills/character-system-builder/references/character-design-method.md)。
+人物草稿支持戏剧驱动力、决策规则、连续性、首次冷启与证据分区；审阅发布时会保留首次冷启场景和连续性材料。Role Pack 的 Debug 目录登记这些来源，首次冷启使用人物自己的自我介绍与名言，普通功能 Prompt 仍按平台约束 → 功能协议 → 人物适配 → 运行时资料 → 输出协议装配。通用方法与边界见已冻结的 [施工合同](../requirements/character-design-method-v1.md) 和 [人物设计参考](../../.agents/skills/character-system-builder/references/character-design-method.md)。
+
+## 已落地能力：材料依据、图片观察与阅读感想闭环
+
+人物阅读笔记在 `bookshelf` 资产的 `readingNotes` 中支持结构化 `grounding`（`observation` 可直接核对的材料观察与 `inference` 人物推断分离）以及 `confirmation`（记录 `user` 或 `companion` 确认主体与确认时间）。旧笔记保持兼容可读；新的人物自主阅读笔记必须提供 `source` 和 `grounding.observation`，不得仅凭书名或无来源闲聊写回。
+
+`companion_observe_material` 只读取当前会话已有的图片附件，通过注册配方生成 `observation / inference / uncertainties` 候选，不自动写入人物资产；开始、成功、失败与缺图尝试写入有界表 `companion_material_observation_attempts`（不保存图片二进制），供 Debug 成长证据追溯。成长反思只消费已确认写回的阅读笔记。背景见已冻结的 [人物材料依据与阅读感想闭环施工合同](../requirements/companion-material-grounding-v1.md)。
+
+## 已落地能力：首个人物体系扩展与四层 Prompt 适配
+
+人物扩展仅提供 Role Pack（`manifest.json`、`protected.md`、`mutable.default.md`、`voice.md`、`summary.txt`、可选 `profile.json` / `world.default.json`、`scenes/*.md`、`timeline/*` 与 `behaviors/*.md`），主对话、日程、朋友圈、补叙、评论、主动问候、生图、记忆提炼、反思、压缩、召唤、子代理、Skill 与工具协作统一由 `composeFeaturePrompt` 按「平台约束 → 功能协议 → 人物适配 → 运行时资料 → 输出协议」四层顺序组合。新增人物无需修改功能实现中的人物分支，且人物适配层无法覆盖平台安全约束或输出校验协议。背景见已冻结的 [Prompt 分层组合合同](../requirements/prompt-layered-composition-v1.md) 与 [首个人物体系扩展契约](../requirements/character-system-extension-v1.md)。
 
 首次冷启的展示资格按人物独立持久化，只在第一次空白关系入口领取；后续新聊天不重复播放宣言，切换到另一个人物仍可独立领取。
 

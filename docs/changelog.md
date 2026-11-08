@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-08：补齐核心 Prompt、Role Pack 资产与追踪投影的 `featureKey` / `adaptationStatus` 关系标签，完成路飞与隔离测试人物全套四层 Prompt 组合及防覆盖门禁验证，并冻结 `prompt-layered-composition-v1`、`character-system-extension-v1`、`character-design-method-v1`、`companion-material-grounding-v1` 四份施工合同。
+
 2026-11-08：补齐路飞人物世界「文化角」「旅行足迹」与「出场朋友圈」初始内容及 6 张专属插画：新增四类文化记录（奇异生物图鉴、空岛映像贝、宾克斯的美酒、船头夕阳草帽）、三段多站点旅行故事（东海启航、空岛黄金钟、千里阳光号巡航）与两条带配图和伙伴互动的出场朋友圈动态，旧库支持无损升级且备份导出导入保持幂等。
 
 2026-11-08：补齐正式角色架切换世界观时的宿主活跃主角同步回调，完成角色架 UI 世界观切换、跨世界生活资产与生产目录隔离及重载恢复的真实 Electron E2E 验收，并冻结已完工的四份人物与世界观施工合同。
