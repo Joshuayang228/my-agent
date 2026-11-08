@@ -583,7 +583,7 @@ test('正式生活资产经真实备份导出导入后保留且不覆盖现有�
   }
 })
 
-async function seedMultiRoleTestUniverse(): Promise<() => Promise<void>> {
+async function seedMultiRoleTestUniverse(opts?: { autoSwitch?: boolean }): Promise<() => Promise<void>> {
   const universeDir = path.join(userDataDir, 'universes', 'e2e-multi-role')
   await mkdir(path.join(universeDir, 'roles'), { recursive: true })
   await writeFile(path.join(universeDir, 'manifest.json'), JSON.stringify({
@@ -612,8 +612,10 @@ async function seedMultiRoleTestUniverse(): Promise<() => Promise<void>> {
     await writeFile(path.join(roleDir, 'mutable.default.md'), '当前可变行为状态尚未设定。', 'utf8')
     await writeFile(path.join(roleDir, 'summary.txt'), description, 'utf8')
   }
-  const switched = await page.evaluate(() => window.electronAPI.companion.switchUniverse('e2e-multi-role'))
-  expect(switched.ok).toBe(true)
+  if (opts?.autoSwitch !== false) {
+    const switched = await page.evaluate(() => window.electronAPI.companion.switchUniverse('e2e-multi-role'))
+    expect(switched.ok).toBe(true)
+  }
   return async () => {
     await page.evaluate(() => window.electronAPI.companion.switchUniverse('default'))
     await rm(universeDir, { recursive: true, force: true })
@@ -936,18 +938,37 @@ test('正式共享角色架点击切角后重载保留并恢复原角色', async
   }, baseUrl)
   await page.reload()
   await expect(page.locator('#startup-splash')).toBeHidden()
-  const cleanupUniverse = await seedMultiRoleTestUniverse()
-  const original = await page.evaluate(() => window.electronAPI.companion.getActive())
-  const other = (await page.evaluate(() => window.electronAPI.companion.listProtagonists())).find(role => role.id !== original.id)!
-  expect(other).toBeDefined()
+  const cleanupUniverse = await seedMultiRoleTestUniverse({ autoSwitch: false })
   const openShelf = async () => {
     if (await page.getByTestId('settings-panel').isVisible()) await page.getByTestId('settings-back').click()
     await page.getByTestId('primary-sidebar').getByTitle('打开角色架').click()
     await expect(page.getByTestId('settings-panel').getByTestId('character-shelf-panel')).toBeVisible()
     await expect(page.getByTestId('world-hub')).toHaveCount(0)
   }
+  let createdLinAssetId = ''
   try {
     await openShelf()
+    const universeSelect = page.getByTestId('character-shelf-panel').getByRole('combobox', { name: '当前世界观', exact: true })
+    await expect(universeSelect).toHaveValue('default')
+    await expect(page.getByTestId('character-option-luffy')).toHaveAttribute('aria-pressed', 'true')
+
+    await universeSelect.selectOption('e2e-multi-role')
+    await expect(universeSelect).toHaveValue('e2e-multi-role')
+    await expect(page.getByTestId('character-option-lin')).toHaveAttribute('aria-pressed', 'true')
+    await expect.poll(async () => (await page.evaluate(() => window.electronAPI.companion.getActive())).id).toBe('lin')
+
+    const createdAsset = await page.evaluate(() => window.electronAPI.companion.createAsset({
+      roleId: 'lin',
+      kind: 'culture',
+      name: '跨世界隔离验收作品',
+      payload: { type: 'reading', note: '仅属于 e2e-multi-role 小林的读书记录' },
+    }))
+    expect(createdAsset.ok).toBe(true)
+    if (createdAsset.ok) createdLinAssetId = createdAsset.asset.id
+
+    const original = await page.evaluate(() => window.electronAPI.companion.getActive())
+    const other = (await page.evaluate(() => window.electronAPI.companion.listProtagonists())).find(role => role.id !== original.id)!
+    expect(other).toBeDefined()
     await page.getByTestId('character-option-' + other.id).click()
     await expect(page.getByTestId('character-option-' + other.id)).toHaveAttribute('aria-pressed', 'true')
     await expect.poll(async () => (await page.evaluate(() => window.electronAPI.companion.getActive())).id).toBe(other.id)
@@ -957,12 +978,21 @@ test('正式共享角色架点击切角后重载保留并恢复原角色', async
     await page.reload()
     await expect(page.locator('#startup-splash')).toBeHidden()
     await openShelf()
+    await expect(page.getByTestId('character-shelf-panel').getByRole('combobox', { name: '当前世界观', exact: true })).toHaveValue('e2e-multi-role')
     await expect(page.getByTestId('character-option-' + other.id)).toHaveAttribute('aria-pressed', 'true')
     await page.getByTestId('character-option-' + original.id).click()
     await expect(page.getByTestId('character-option-' + original.id)).toHaveAttribute('aria-pressed', 'true')
     await expect.poll(async () => (await page.evaluate(() => window.electronAPI.companion.getActive())).id).toBe(original.id)
+
+    await page.getByTestId('character-shelf-panel').getByRole('combobox', { name: '当前世界观', exact: true }).selectOption('default')
+    await expect(page.getByTestId('character-option-luffy')).toHaveAttribute('aria-pressed', 'true')
+    await expect.poll(async () => (await page.evaluate(() => window.electronAPI.companion.getActive())).id).toBe('luffy')
+    const luffyAssets = await page.evaluate(() => window.electronAPI.companion.getAssets())
+    expect(luffyAssets.items.some(item => item.name === '跨世界隔离验收作品')).toBe(false)
   } finally {
-    await page.evaluate(id => window.electronAPI.companion.requestSwitch(id), original.id)
+    if (createdLinAssetId) {
+      await page.evaluate(id => window.electronAPI.companion.deleteAsset(id), createdLinAssetId)
+    }
     await cleanupUniverse()
     await page.reload()
     await expect(page.locator('#startup-splash')).toBeHidden()

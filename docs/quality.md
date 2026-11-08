@@ -1,5 +1,7 @@
 # 质量总控
 
+角色架世界观切换与跨世界隔离完整闭环（2026-11-08）：`onboarding.test.ts` 的「正式共享角色架点击切角后重载保留并恢复原角色」通过真实 Electron 验证从正式角色架「当前世界观」下拉切换至用户世界观、主角列表同步刷新、跨世界文化资产隔离、同世界切角与重载保留及切回默认世界观；`universe-switch.test.ts` 3 项通过，覆盖跨世界切换时 Companion 资产目录按 `universeId` 隔离聚合。四份人物/世界观施工合同（`world-and-character-authoring-v1`、`character-luffy-v1`、`character-state-and-relationship-v1`、`companion-autonomous-moment-media-v1`）验收完成并冻结为快照。
+
 路飞初始化包配图挂载门禁（2026-11-07）：`companion-assets.test.ts` 新增 2 项回归，验证 `ensureStarterAssets('luffy')` 为住所、共享甲板空间、草帽、高处足迹、三件单品与初始套装共 8 条出厂记录挂载可通过 `readGeneratedImageReference` 安全核验的 PNG 引用，换上初始套装可沿用套装配图，且旧库已播种记录支持无损补图、用户删除套装后不复活。
 
 真实 Electron 证据契约同步与全套收口（2026-11-07）：`debug-production.test.ts` 的注册资产目录计数对齐 `· 世界观 default` 范围展示，`image-generation.test.ts` 的生图请求断言对齐四层结构化运行时资料 JSON；`moment-backup.test.ts` 与 `onboarding.test.ts` 对齐路飞默认唯一主角、千里阳光号「共享甲板」与四位伙伴卡司，多主角切角与角色隔离用例通过受控临时用户世界观验证；同时修复出厂静态 `visualPath` 配图计入 16MB 备份媒体上限的问题（`generated-image-backup.test.ts` 25 项通过）。至此 `playwright.electron.config.ts` 全部 13 个真实 Electron E2E 测试文件（共 46 项用例）全量通过。

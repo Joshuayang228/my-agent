@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { rm } from 'node:fs/promises'
 import path from 'node:path'
 import { publishCharacterDraft, saveCharacterDraft } from '../../electron/main/companion/authoring/draft-store'
+import { getCompanionAssetCatalog } from '../../electron/main/companion/asset-registry'
 
 const root = path.join(process.cwd(), '.agent-data', 'universes')
 let universeId = 'default'
@@ -41,5 +42,21 @@ describe('用户世界观切换', () => {
     expect(result).toEqual({ ok: false, code: 'UNKNOWN_UNIVERSE' })
     expect(universeId).toBe('default')
     expect(roleId).toBe('luffy')
+  })
+
+  it('切换用户世界与恢复默认世界时，伙伴资产目录按当前 universeId 隔离聚合', async () => {
+    const draft = await saveCharacterDraft({ action: 'create', universeId: 'switch-world', title: '切换测试世界', roleId: 'hero', roleName: '测试主角', section: 'identity', content: '测试身份。' })
+    await saveCharacterDraft({ action: 'submit_for_review', draftId: draft.id })
+    await publishCharacterDraft(draft.id)
+
+    await requestUniverseSwitch('switch-world')
+    const switchedCatalog = getCompanionAssetCatalog(universeId)
+    expect(switchedCatalog.some(asset => asset.key.includes('switch-world-hero'))).toBe(true)
+    expect(switchedCatalog.some(asset => asset.key.includes('luffy'))).toBe(false)
+
+    await requestUniverseSwitch('default')
+    const defaultCatalog = getCompanionAssetCatalog(universeId)
+    expect(defaultCatalog.some(asset => asset.key.includes('luffy'))).toBe(true)
+    expect(defaultCatalog.some(asset => asset.key.includes('switch-world-hero'))).toBe(false)
   })
 })

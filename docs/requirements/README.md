@@ -30,12 +30,8 @@
 |------|------|
 | [prompt-coverage-and-review-v2.md](./prompt-coverage-and-review-v2.md) | 全量方案已确认：推进用途 / 消费者门禁、集中展示、缺失生成闭环和人物扩展；新增 UI 待候选验收后统一回流 |
 | [prompt-layered-composition-v1.md](./prompt-layered-composition-v1.md) | 进行中：通用功能 Prompt、平台约束、人物适配和运行时上下文的四层组合改造 |
-| [world-and-character-authoring-v1.md](./world-and-character-authoring-v1.md) | 进行中：世界观套装、主角 / 朋友边界与用户人物生成 |
 | [character-system-extension-v1.md](./character-system-extension-v1.md) | 首个人物的 Role Pack、Prompt 装配、材料采集、验收与扩展边界 |
-| [character-luffy-v1.md](./character-luffy-v1.md) | 进行中：删除默认宇宙旧人物资产，建立唯一首个人物路飞并验证制作流程 |
 | [character-design-method-v1.md](./character-design-method-v1.md) | 进行中：通用人物设计、首次冷启与既有经历连续性承接 |
-| [character-state-and-relationship-v1.md](./character-state-and-relationship-v1.md) | 进行中：亲密关系、情绪状态与朋友圈频率 / 可见性策略 |
-| [companion-autonomous-moment-media-v1.md](./companion-autonomous-moment-media-v1.md) | 进行中：朋友圈自主配图的触发、预算、媒体归属、失败恢复与 Debug 证据 |
 | [companion-material-grounding-v1.md](./companion-material-grounding-v1.md) | 进行中：阅读材料来源、观察 / 推断分离、人物自主写回与反思边界 |
 | [foundation-reuse-enforcement-v1.md](./foundation-reuse-enforcement-v1.md) | P0 方案待确认：四个产品体验的真实基础复用、Markdown / Diff / 控件收口与源码自动门禁 |
 | [playground-state-switchers-v1.md](./playground-state-switchers-v1.md) | P0：统一 Playground 场景、状态与宽度控制器，采用 MCP 独立选项样式 |
@@ -82,6 +78,10 @@ Debug 阅读层级：[debug-foundation-reading-v2.md](./debug-foundation-reading
 
 | 文档 | 说明 |
 |------|------|
+| [world-and-character-authoring-v1.md](./world-and-character-authoring-v1.md) | 已完成施工快照（冻结）：世界观套装、主角 / 朋友边界、用户人物草稿与发布、正式角色架世界观切换及跨世界生活数据隔离 |
+| [character-luffy-v1.md](./character-luffy-v1.md) | 已完成施工快照（冻结）：默认宇宙唯一首个人物路飞、四位核心伙伴卡司、8 张出厂视觉资产与全套 Electron 验收 |
+| [character-state-and-relationship-v1.md](./character-state-and-relationship-v1.md) | 已完成施工快照（冻结）：关系事件历史、情绪事件幂等、朋友圈可见性与发布/互动策略、正式设置回流与状态展示切换 |
+| [companion-autonomous-moment-media-v1.md](./companion-autonomous-moment-media-v1.md) | 已完成施工快照（冻结）：朋友圈自主配图的事件级幂等、预算门闸、受控媒体归属与 Debug 证据；外部供应商效果按凭据条件验收 |
 | [debug-ui-information-architecture-v1.md](./debug-ui-information-architecture-v1.md) | 已完成施工快照（冻结）：Debug 七组正式回流与只读证据；屏幕验收限制见快照 |
 | [debug-prompt-layered-assets-v1.md](./debug-prompt-layered-assets-v1.md) | 已完成施工快照（冻结）：Prompt 语义编译、全入口注册与防漏门禁 |
 | [product-experience-production-rollout-v1.md](./product-experience-production-rollout-v1.md) | 已完成施工快照：Chat、人物世界、设置、记忆、主题 / Foundation、工作区的正式回流与主线后端验收；RAG、MCP OAuth、完整 PTY 等后置边界明确保留 |

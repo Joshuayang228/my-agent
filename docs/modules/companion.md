@@ -2,15 +2,15 @@
 
 ## 已落地能力：世界观主角与卡司边界
 
-默认世界观 manifest 现在显式区分 `protagonistIds` 与 `castIds`：路飞是当前唯一主角，索隆、娜美、乌索普、山治是朋友角色。朋友角色可以进入名册、关系、召唤和 Debug 资产目录，但不能因此自动成为 `activeRoleId`。世界观套装切换与用户生成人物仍由 [世界观套装与人物生成施工合同](../requirements/world-and-character-authoring-v1.md) 指导施工。
+默认世界观 manifest 显式区分 `protagonistIds` 与 `castIds`：路飞是当前唯一主角，索隆、娜美、乌索普、山治是朋友角色。朋友角色可以进入名册、关系、召唤和 Debug 资产目录，但不能因此自动成为 `activeRoleId`。背景与当时决策保留在已冻结的 [世界观套装与人物生成施工合同](../requirements/world-and-character-authoring-v1.md)。
 
-## 已落地能力：用户人物体系草稿
+## 已落地能力：用户人物体系草稿与世界观切换
 
-运行时 `character-system-builder` Skill 通过 `companion_character_draft` 把世界观、身份、关系、外观、行为和材料保存为用户数据目录中的分区草稿。模型只能整理和提交审阅，不能直接发布 Role Pack、覆盖内置资产或切换世界观；发布与切换仍待同一施工合同的后续批次。
+运行时 `character-system-builder` Skill 通过 `companion_character_draft` 把世界观、身份、关系、外观、行为和材料保存为用户数据目录中的分区草稿。模型只能整理和提交审阅，不能直接发布 Role Pack、覆盖内置资产或切换世界观。
 
-审阅草稿可由受控工具发布为用户 Universe / Role Pack；发布生成带世界观前缀的内部人物 ID，避免现有按 `roleId` 分桶的生活数据碰撞。`companion_switch_universe` 只切换已加载且默认主角有效的套装，流式会话期间拒绝，设置写入失败时尽力恢复旧组合；完整跨世界数据迁移和正式 UI 入口仍在施工。
+审阅草稿可由受控工具发布为用户 Universe / Role Pack；发布生成带世界观前缀的内部人物 ID，避免现有按 `roleId` 分桶的生活数据碰撞。切换世界观只允许在已加载且默认主角有效的套装上执行，流式会话期间拒绝，设置写入失败时尽力恢复旧组合。
 
-角色架正式入口现在读取 `companion:list-universes`，显示当前世界观并通过 `companion:switch-universe` 切换；切换成功后重新读取主角列表，失败保留原选择与错误状态。
+角色架正式入口读取 `companion:list-universes`，显示当前世界观并通过 `companion:switch-universe` 切换；切换成功后同步更新宿主活跃主角、刷新主角列表并保持跨世界生活资产隔离，重载后保留当前世界观与主角。
 
 ## 已落地能力：动态 NPC 评论生成
 

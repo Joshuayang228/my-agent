@@ -1,5 +1,7 @@
 # 项目进度
 
+角色架世界观切换闭环与人物合同收口冻结（2026-11-08）：补齐 `CharacterShelfPanel` 切换世界观后的宿主活跃主角回调，并在真实 Electron E2E 与 `universe-switch.test.ts` 中完成角色架 UI 世界观切换、跨世界生活资产与资产目录隔离及重载恢复验收；将已完工的 `world-and-character-authoring-v1`、`character-luffy-v1`、`character-state-and-relationship-v1`、`companion-autonomous-moment-media-v1` 四份施工合同吸收至模块卡并冻结为施工快照。
+
 路飞初始化包全套配图挂载与补齐（2026-11-07）：补齐草帽、三件基础衣物与高处足迹 5 张 PNG，连同既有千里阳光号船景、室内空间与初始穿搭共 8 张 Role Pack 视觉资产统一接入 `ensureStarterAssets('luffy')`；新增共享甲板空间资产播种、草帽空间关联与可一键换上的《草帽冒险日常装》套装（不预写 `wear-state`），旧库支持无损补图且删除不复活。
 
 真实 Electron 证据契约同步与全套收口（2026-11-07）：`debug-production.test.ts` 目录计数断言同步世界观范围标签，`image-generation.test.ts` 生图 Prompt 断言同步四层结构化运行时资料；`moment-backup.test.ts` 与 `onboarding.test.ts` 对齐路飞默认唯一主角与共享甲板空间，多主角切角与隔离用例通过临时用户世界观验证；同时修复路飞 8 张出厂静态 `visualPath` 配图计入 16MB 备份媒体上限的问题（导出仅保留 `visualPath`、导入自动从 Role Pack 恢复本地引用）。`playwright.electron.config.ts` 全部 13 个 Electron E2E 文件（46 项用例）全绿通过。

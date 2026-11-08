@@ -88,6 +88,7 @@ export function CharacterShelfPanel({ onClose, onSwitched }: CharacterShelfPanel
     try {
       const result = await window.electronAPI?.companion.switchUniverse(id)
       if (result?.ok) {
+        onSwitched?.({ id: result.roleId, name: result.name, description: '' })
         toast(`已切换到${universes.find(item => item.id === id)?.title || id}`, 'success')
         await load()
       } else {
