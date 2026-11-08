@@ -386,6 +386,9 @@ declare global {
             message: string
           }) => void,
         ) => () => void
+        onTimelineUpdated: (
+          callback: (payload: { roleId: string; now: number }) => void,
+        ) => () => void
       }
       mcp: {
         connect: (config: import('./shared/types').McpServerConfig) => Promise<{ success: boolean; toolCount?: number; error?: string }>

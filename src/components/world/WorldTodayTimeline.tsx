@@ -33,12 +33,27 @@ export function WorldTodayTimeline({
       return
     }
     let cancelled = false
-    window.electronAPI?.companion?.getTodayTimeline(roleId)
-      .then((data) => {
-        if (!cancelled && data) setTimeline(data)
-      })
-      .catch(() => {})
-    return () => { cancelled = true }
+    const refresh = () => {
+      window.electronAPI?.companion?.getTodayTimeline(roleId)
+        .then((data) => {
+          if (!cancelled && data) setTimeline(data)
+        })
+        .catch(() => {})
+    }
+    refresh()
+
+    const unsub = window.electronAPI?.companion?.onTimelineUpdated?.((payload) => {
+      if (roleId && payload.roleId && payload.roleId !== roleId) return
+      refresh()
+    })
+
+    const minuteInterval = setInterval(refresh, 60_000)
+
+    return () => {
+      cancelled = true
+      unsub?.()
+      clearInterval(minuteInterval)
+    }
   }, [roleId, initialTimeline])
 
   if (!timeline || !timeline.slots.length) return null

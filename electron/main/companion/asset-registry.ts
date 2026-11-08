@@ -242,6 +242,13 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent({ trigger: 'main-session-end', wishTypes: ['culture_wish', 'day_activity_wish', 'travel_wish', 'cuisine_wish'], dedupDays: 7 }),
     dependencies: [PROMPT_KEYS.companionChatResonance],
+  }), makeCompanionAsset({
+    key: 'companion:policy:timeline-dynamic-clock', name: '生活时钟事件实时驱动策略',
+    purpose: '生活世界定时推进从静态盲等升级为事件时钟感知，有临近计划事件时动态对齐事件时刻触发',
+    role: 'platform', description: '默认 5 分钟轮询保底；当 active 角色接下来有 planned 事件时优先在该事件时刻（+500ms slack）唤醒，并在事件落地时广播 companion:timeline-updated。',
+    source: 'electron/main/companion/life/ticker.ts#startLifeTicker', version: 'clock-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ defaultIntervalMs: 300_000, minDelayMs: 3000, eventAlignmentSlackMs: 500, broadcastChannel: 'companion:timeline-updated' }),
   })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {

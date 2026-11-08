@@ -14,7 +14,8 @@
 今日生活轨迹与生活面会话连通架构（2026-11-08）：
 - 今日生活轨迹聚合：`companion/life/timeline.ts` 提供 `getTodayTimelineForRole`，结合当前时间推算今日各时间槽状态（past / current / upcoming）、当前进行中节点与已发布朋友圈动态，通过 IPC `companion:get-today-timeline` 提供给前端 `WorldTodayTimeline` 组件展示；
 - 生活面直通主会话：`WorldHub` 朋友圈（`MomentsPanel`）、文化角（`WorldCultureGallery`）与旅行足迹（`WorldTravelGallery`）支持一键「聊聊 / 和TA聊聊」，自动切入 Chat 并在输入框填入结构化引用话题；
-- 消息流自主生活卡片：`ToolCallbackList` 捕获 `companion_post_moment` 与 `companion_create_asset` 工具完成态，内联渲染生活动态卡片与直达链接，打通模型自主生活与前端视觉呈现。
+- 消息流自主生活卡片：`ToolCallbackList` 捕获 `companion_post_moment` 与 `companion_create_asset` 工具完成态，内联渲染生活动态卡片与直达链接，打通模型自主生活与前端视觉呈现；
+- 时钟事件动态对齐与轨迹实时流转：`ticker.ts` 结合接下来 planned 事件 scheduledAt 动态推算唤醒延迟（`getNextPlannedEventDelay`），在事件落地与推进后通过 `companion:timeline-updated` 广播通知；`WorldTodayTimeline` 结合事件广播与每分钟心跳定时器动态驱动节点状态更新。
 
 日剧本因果流与主动问候入会话架构（2026-11-08）：
 - 跨天因果日剧本：`script-generator.ts` 聚合前日已发布事件、当前旅行足迹、生命体征与近 24 小时主会话用户诉求，注入辅助模型日剧本规划提示词，确保日程编排具备真实因果连续性；

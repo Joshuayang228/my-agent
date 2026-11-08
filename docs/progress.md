@@ -1,5 +1,7 @@
 # 项目进度
 
+生活时钟事件实时驱动与轨迹流动落地（2026-11-08）：生活世界 Ticker 调度由固定 5 分钟轮询升级为计划事件动态对齐（`getNextPlannedEventDelay`），在活跃角色存在临近计划事件时精确对齐事件 scheduledAt 触发唤醒；事件发布与定期推进向渲染进程广播 `companion:timeline-updated`；前端 `WorldTodayTimeline` 接入事件监听与每分钟心跳自动刷新当前生活时段与状态流转；在资产注册表新增 `companion:policy:timeline-dynamic-clock` 生产策略资产。`today-timeline.test.ts` 扩展至 6 项单测，门禁全绿。
+
 朋友圈未读感知与角标反馈落地（2026-11-08）：针对 NPC 异步回复与生活动态推送，在 `PrimarySidebar` 的底栏「人物世界」入口与 `WorldHub`「朋友圈」TabStrip 标签实现实时未读徽标计数（支持 99+ 截断），并在用户进入朋友圈后自动清零；Toast 提示支持点击一键直达朋友圈；`MomentsPanel` 挂载时监听 `companion:onMomentUpdated` 与 `onMomentTip` 事件，在后台回复或新动态到达时实时静默拉取更新，实现朋友圈全流程即时互动闭环。新增 `moments-notification-badge.test.ts` 7 项单测，门禁全绿。
 
 会话到生活因果反哺落地（2026-11-08）：主对话结算链路接入 `chat-resonance.ts`，异步通过结构化提示词识别文化作品推荐、美食与行动心愿；自动创建 `planned` 状态文化资产（书/影/音）并记录 `companion_life_resonances`；次日日剧本上下文（`collectDayScriptLifeContext`）自动吸收活跃心愿并推进状态；IPC 暴露 `companion:list-life-resonances` 与 `companion:life-resonance-created` 广播通知。新增 `chat-life-resonance.test.ts` 3 项单测，门禁全绿。

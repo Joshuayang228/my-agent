@@ -6,6 +6,7 @@
  * 约束：tick 仅处理 active；当日剧本 prefer LLM（失败回退哈希）；Catch-up 细补默认哈希。
  */
 
+import { BrowserWindow } from 'electron'
 import type { LLMConfig } from '../../../../src/shared/types'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { startSpan } from '../../utils/tracer'
@@ -181,6 +182,11 @@ export async function tickActiveRole(now: number): Promise<{
           await maybeNotifyNewMoments(roleId, published, now)
         } catch (err) {
           log.warn('moment tip notify failed', { roleId, error: String(err) })
+        }
+        for (const win of BrowserWindow.getAllWindows()) {
+          if (!win.isDestroyed()) {
+            win.webContents.send('companion:timeline-updated', { roleId, now })
+          }
         }
       }
       if (published || created) {

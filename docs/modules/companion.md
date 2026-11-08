@@ -129,7 +129,8 @@ Chat 工具入口复核：普通 Chat 注册全部内置工具；人物体系 Sk
 
 - **今日生活轨迹服务与组件（Today Timeline）**：
   - 新增 `timeline.ts#getTodayTimelineForRole` 与 IPC 通道 `companion:get-today-timeline`，以角色今日日剧本（主题、全天时段）、已发布/计划事件与朋友圈动态为依据，计算各时段状态（`past` 已完成 / `current` 进行中 / `upcoming` 未开始）与当前进行中索引；
-  - `WorldTodayTimeline` 基础组件接入人物世界头栏（`WorldProfileHeader`），常态展示今日主题与当前进行中活动（带呼吸光点），展开可查阅全天日程分布、心情与地点，让用户清晰感受伙伴在另一时空的时间流动。
+  - `WorldTodayTimeline` 基础组件接入人物世界头栏（`WorldProfileHeader`），常态展示今日主题与当前进行中活动（带呼吸光点），展开可查阅全天日程分布、心情与地点，让用户清晰感受伙伴在另一时空的时间流动；
+  - **生活时钟事件实时驱动（Timeline Dynamic Clock Trigger）**：`ticker.ts` 定时调度由固定 5 分钟轮询升级为计划事件动态对齐：若当前活跃角色接下来有 planned 计划事件（如午餐或动态节点），下一次 tick 唤醒延迟自动对齐至事件 scheduledAt 时刻（带 500ms slack 容差），消除高达 5 分钟的感知滞后；推进事件落盘或定时 tick 完成后，主进程向渲染窗口广播 `companion:timeline-updated`，前端 `WorldTodayTimeline` 监听事件并结合每分钟心跳自动刷新当前时段状态（past/current/upcoming）与高亮索引。
 - **生活面与主会话双向连通（和TA聊聊）**：
   - 朋友圈（`MomentsPanel`）、文化角（`WorldCultureGallery`）和旅行足迹（`WorldTravelGallery`）卡片与详情页全面接入「和TA聊聊」快捷动作；
   - 点击后平滑返回主对话输入框，并根据对应生活切片自动预填上下文引导话题（如：`关于动态「...」：`、`关于作品《...》：`、`关于旅行「...」：`）并聚焦输入框，使生活面内容天然成为对话切入点。

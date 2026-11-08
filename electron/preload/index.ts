@@ -422,6 +422,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('companion:life-resonance-created', handler)
       return () => ipcRenderer.removeListener('companion:life-resonance-created', handler)
     },
+    onTimelineUpdated: (
+      callback: (payload: { roleId: string; now: number }) => void,
+    ) => {
+      const handler = (
+        _e: Electron.IpcRendererEvent,
+        payload: { roleId: string; now: number },
+      ) => callback(payload)
+      ipcRenderer.on('companion:timeline-updated', handler)
+      return () => ipcRenderer.removeListener('companion:timeline-updated', handler)
+    },
   },
 
   mcp: {

@@ -1318,6 +1318,11 @@ export interface CompanionTodayTimeline {
   currentSlotIndex: number
 }
 
+export interface CompanionTimelineUpdateEvent {
+  roleId: string
+  now: number
+}
+
 export type CompanionLifeResonanceKind = 'culture_wish' | 'day_activity_wish' | 'travel_wish' | 'cuisine_wish'
 
 export interface CompanionLifeResonance {

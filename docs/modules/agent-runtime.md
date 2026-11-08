@@ -7,6 +7,7 @@
 
 今日生活轨迹与消息流自主卡片（2026-11-08）：
 - `companion:get-today-timeline` IPC 暴露角色生活轨迹时间轴读取接口，由 `timeline.ts` 聚合；
+- 新增 `companion:timeline-updated` 广播通道，在生活事件到期物化或动态时钟定时推进时通知前端实时刷新今日生活轨迹；
 - 消息流 `ToolCallbackList` 在 `companion_post_moment` 或 `companion_create_asset` 执行成功后内联渲染伙伴自主生活动态卡片，提供直达朋友圈或人物世界的生活面跳转。
 
 生活切片与生命体征结算（2026-11-08）：主对话编译请求新增 `situation.lifeAssetsSlice` 插槽（对应主模板第 30 个插槽），在与主角本人的主对话轮次中装配当前衣着、活跃文化体验与进行中旅行的有界摘要；会话结束且成功回复后异步触发 `settleVitalsAfterChat` 结算体力、心情、饱腹度及社交需求，并异步触发 `settleChatResonance` 提取用户推荐与生活因果心愿。召唤朋友会话不注入主角生活切片，亦不满足主角社交需求。

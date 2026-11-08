@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-08：生活时钟事件实时驱动（Timeline Dynamic Clock Trigger）落地：后台 Ticker 调度从静态轮询升级为事件时刻动态对齐唤醒，消除固定轮询带来的事件感知滞后；事件物化与推进后广播 `companion:timeline-updated`；`WorldTodayTimeline` 组件接入事件广播与分钟级心跳，使今日生活时段轨迹（past / current / upcoming）与进行中事项在桌面端实时无感平滑推移。
+
 2026-11-08：朋友圈未读感知与角标反馈（Moments Notification & Badge）落地：新增全局未读朋友圈动态与回复计数状态；在 `PrimarySidebar` 底栏「人物世界」与 `WorldHub`「朋友圈」TabStrip 呈现未读徽标（支持 99+ 截断），用户进入朋友圈后自动清零；Toast 提示支持点击一键直达朋友圈；`MomentsPanel` 挂载时监听 `companion:onMomentUpdated` 与 `onMomentTip`，后台回复或新动态到达时实时静默刷新列表。
 
 2026-11-08：主会话到生活因果反哺（Chat to Life Resonance）落地：在主会话结算时异步提取用户推荐的文化作品（书/影/音）或美食、地点生活心愿，自动在文化角创建 planned / queued 待体验资产并在 SQLite 持久化为活跃心愿；次日日剧本自动吸收近期心愿至日程上下文（absorbed_in_script），形成对话直接改变角色生活的因果闭环；桌面端支持在心愿创建时弹出轻量通知并可一键跳转文化角。

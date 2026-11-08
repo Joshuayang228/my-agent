@@ -11,9 +11,20 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { getTodayTimelineForRole } from '../../electron/main/companion/life/timeline'
+import {
+  getNextPlannedEventDelay,
+  broadcastTimelineUpdated,
+} from '../../electron/main/companion/life/ticker'
 import { WorldTodayTimeline } from '../../src/components/world/WorldTodayTimeline'
 import * as store from '../../electron/main/companion/life/store'
 import { localDateTimeMs } from '../../electron/main/companion/life/dates'
+
+const sendMock = vi.fn()
+vi.mock('electron', () => ({
+  BrowserWindow: {
+    getAllWindows: () => [{ isDestroyed: () => false, webContents: { send: sendMock } }],
+  },
+}))
 
 vi.mock('../../electron/main/companion/life/store', () => ({
   getDayScript: vi.fn(),
@@ -166,5 +177,44 @@ describe('今日生活轨迹服务 (Today Timeline)', () => {
     expect(html).toContain('12:00 烤肉午宴')
     expect(html).toContain('聊聊此刻')
     expect(html).toContain('全天日程')
+  })
+
+  it('getNextPlannedEventDelay 遇到临近 planned 事件时动态对齐事件时刻唤醒', async () => {
+    const roleId = 'luffy'
+    const now = 1_000_000
+    // 接下来 60 秒后有一个午餐事件
+    vi.mocked(store.listEvents).mockResolvedValue([
+      {
+        id: 'ev-next',
+        roleId,
+        scheduledAt: now + 60_000,
+        status: 'planned',
+        type: 'moment',
+        payload: { activity: '午餐烤肉' },
+        dayScriptId: 'script-1',
+      },
+    ])
+
+    const delay = await getNextPlannedEventDelay(roleId, now, 300_000)
+    // 应该为 60_000 + 500 ms = 60_500 ms
+    expect(delay).toBe(60_500)
+  })
+
+  it('getNextPlannedEventDelay 无临近计划事件时回退默认周期', async () => {
+    const roleId = 'luffy'
+    const now = 1_000_000
+    vi.mocked(store.listEvents).mockResolvedValue([])
+
+    const delay = await getNextPlannedEventDelay(roleId, now, 300_000)
+    expect(delay).toBe(300_000)
+  })
+
+  it('broadcastTimelineUpdated 向活跃窗口广播 companion:timeline-updated', () => {
+    sendMock.mockClear()
+    broadcastTimelineUpdated('luffy', 1_700_000_000_000)
+    expect(sendMock).toHaveBeenCalledWith('companion:timeline-updated', {
+      roleId: 'luffy',
+      now: 1_700_000_000_000,
+    })
   })
 })
