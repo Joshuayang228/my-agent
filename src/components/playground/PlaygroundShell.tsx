@@ -23,7 +23,7 @@ import { DesignSystemPanel } from './DesignSystemPanel'
 import { UiControlsPanel } from './UiControlsPanel'
 import { FoundationComponentsPanel } from './FoundationComponentsPanel'
 import { ProductExperienceDependencies } from './ProductExperienceDependencies'
-import type { ProductExperienceTabId } from '../../shared/product-experience-registry'
+import { PRODUCT_EXPERIENCE_ASSETS, type ProductExperienceTabId } from '../../shared/product-experience-registry'
 import { SurfaceBaselinePanel } from './SurfaceBaselinePanel'
 import { ImageGenerationExperienceCandidate } from './ImageGenerationExperienceCandidate'
 import { PromptLabPanel } from './PromptLabPanel'
@@ -166,10 +166,8 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
             title={activeTab.label}
             description={activeTab.description ?? activeGroup.description}
             descriptionInline
-            metaInline={!experienceTabId}
-            meta={experienceTabId
-              ? <ProductExperienceDependencies tabId={experienceTabId} showSource />
-              : <PlaygroundSourcePath sourcePaths={activeTab.sourcePaths ?? []} />}
+            topMeta={<PlaygroundSourcePath sourcePaths={(experienceTabId ? PRODUCT_EXPERIENCE_ASSETS.find((asset) => asset.playgroundTabId === experienceTabId)?.sourcePaths : activeTab.sourcePaths) ?? []} />}
+            meta={experienceTabId ? <ProductExperienceDependencies tabId={experienceTabId} showSource /> : null}
           />
           <div className="view-transition" key={tab}>
             {tab === 'design-tokens' && <DesignSystemPanel />}

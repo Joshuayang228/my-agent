@@ -50,16 +50,18 @@ export function PlaygroundPageHeader({
   title,
   description,
   meta,
+  topMeta,
   descriptionInline = true,
   metaInline = false,
 }: {
   title: string
   description: string
   meta?: ReactNode
+  topMeta?: ReactNode
   descriptionInline?: boolean
   metaInline?: boolean
 }) {
-  return <PageHeader title={title} description={description} meta={meta} descriptionInline={descriptionInline} metaInline={metaInline} className="playground-page-header" testId="playground-page-header" titleRowTestId="playground-page-title-row" />
+  return <PageHeader title={title} description={description} meta={meta} topMeta={topMeta} descriptionInline={descriptionInline} metaInline={metaInline} className="playground-page-header" testId="playground-page-header" titleRowTestId="playground-page-title-row" />
 }
 
 export function PlaygroundStoryTabs({

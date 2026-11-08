@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-08：Foundation 布局规范与控件复用链路获批回流（Phase P1）：共享 PageHeader 扩展 topMeta 接口将长文件路径移至首行标题右侧，第二行基础引用胶囊全宽展开并引入 .no-scrollbar 隐藏滚动条，保留滚轮直接横向平滑滚动；TS AST 源码门禁全面生效。
+
 2026-11-08：生活时钟事件实时驱动（Timeline Dynamic Clock Trigger）落地：后台 Ticker 调度从静态轮询升级为事件时刻动态对齐唤醒，消除固定轮询带来的事件感知滞后；事件物化与推进后广播 `companion:timeline-updated`；`WorldTodayTimeline` 组件接入事件广播与分钟级心跳，使今日生活时段轨迹（past / current / upcoming）与进行中事项在桌面端实时无感平滑推移。
 
 2026-11-08：朋友圈未读感知与角标反馈（Moments Notification & Badge）落地：新增全局未读朋友圈动态与回复计数状态；在 `PrimarySidebar` 底栏「人物世界」与 `WorldHub`「朋友圈」TabStrip 呈现未读徽标（支持 99+ 截断），用户进入朋友圈后自动清零；Toast 提示支持点击一键直达朋友圈；`MomentsPanel` 挂载时监听 `companion:onMomentUpdated` 与 `onMomentTip`，后台回复或新动态到达时实时静默刷新列表。

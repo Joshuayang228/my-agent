@@ -812,6 +812,16 @@ html[data-font-scale="lg"] {
   height: 0;
 }
 
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 /**
  * 滚动条槽位常占位（防文字被挤），拇指默认透明；悬停 / focus-within 才显色。
  * 嵌套长文块与 Debug 侧栏列表优先用这个。

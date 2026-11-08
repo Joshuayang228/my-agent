@@ -1,5 +1,7 @@
 # 质量总控
 
+Foundation 双层页头元信息与无条直接横滚回流门禁（2026-11-08）：Playground 展厅候选与四大体验基础引用链路经用户在桌面真实环境中完整走查验收，明确批准回流（P1）；共享 PageHeader 扩展 topMeta 接口，将长文件位置/源码路径移至首行标题右侧充分利用空白空间；第二行基础引用胶囊全宽展开并引入 .no-scrollbar 强制清除 WebKit 滚动条轨道与左右箭头按钮，保留滚轮与触屏直觉直接横滚；TS AST 符号解析门禁（foundation-enforcement-gate.test.ts）闭环生效。
+
 朋友圈未读感知与角标反馈门禁（2026-11-08）：`moments-notification-badge.test.ts` 7 项测试覆盖 `PrimarySidebar` 在未读动态或回复存在时于底栏「人物世界」展示未读角标与数量（含 99+ 截断）、无未读时不渲染；`TabStrip` 基础组件支持 `badge` 属性渲染；`WorldHub`「朋友圈」分区 Tab 在存在未读时渲染未读角标；以及 `MomentsPanel` 挂载时注册 `companion:onMomentUpdated` 与 `onMomentTip` 事件，在异步回复或新动态到达时实时静默拉取刷新。
 
 会话生活因果反哺门禁（2026-11-08）：`chat-life-resonance.test.ts` 3 项测试覆盖用户推荐文化作品自动记录心愿并在文化角创建 planned 状态阅读资产、无推荐对话安全识别为 hasResonance: false 不凭空捏造、日剧本上下文生成自动吸收活跃心愿并更新状态为 absorbed_in_script，以及 IPC 广播事件与列表查询。
