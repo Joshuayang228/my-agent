@@ -4,6 +4,7 @@ import { buildMomentReplyPrompt } from './moment-reply'
 import { buildChatResonancePrompt } from './chat-resonance'
 import { buildCultureReviewPrompt } from './culture-review'
 import { buildSpontaneousImpulsePrompt } from './spontaneous-impulse'
+import { buildInnerThoughtPrompt } from './inner-thought'
 import { buildProactiveGreetingPrompt } from './proactive-greeting'
 import { formatRoleAppearanceForImagePrompt } from '../companion/identity/profile'
 import { buildImageGenerationPrompt } from './image-generation'
@@ -276,6 +277,36 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
       { name: 'currentLocation', source: '当前所在空间或地点', lifecycle: '突发意图产生时' },
       { name: 'vitalsSummary', source: '当前生命体征简况', lifecycle: '突发意图产生时' },
       { name: 'topicKind', source: '话题分类', lifecycle: '突发意图产生时' },
+    ],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.companionInnerThought,
+    domain: 'life', name: '私密内心独白与航海日记', category: 'companion', role: 'companion-life',
+    featureKey: PROMPT_FEATURE_CONTRACTS.innerThought.key, adaptationStatus: 'adapted',
+    purpose: '角色在独处、夜航或经历关键生活事件后，以极其真实的私密视角记录个人航海日记或内心独白',
+    desc: '角色在独处或夜间产生对伙伴、旅途、梦想与生活的真实感悟，作为不公开的私密记录沉淀在日记流中。',
+    sourcePath: 'electron/main/prompts/inner-thought.ts#buildInnerThoughtPrompt',
+    definitions: [
+      'electron/main/prompts/inner-thought.ts#buildInnerThoughtPrompt',
+      'electron/main/prompts/registered-request.ts#compileInnerThoughtRequest',
+    ],
+    template: buildInnerThoughtPrompt({
+      protagonistName: '{{protagonistName}}',
+      protagonistBrief: '{{protagonistBrief}}',
+      currentActivity: '{{currentActivity}}',
+      currentLocation: '{{currentLocation}}',
+      weather: '{{weather}}',
+      moodSummary: '{{moodSummary}}',
+      triggerReason: '{{triggerReason}}',
+    }),
+    slots: [
+      { name: 'protagonistName', source: '当前主角姓名', lifecycle: '独白产生时' },
+      { name: 'protagonistBrief', source: '当前主角公开简介与性格', lifecycle: '独白产生时' },
+      { name: 'currentActivity', source: '当前进行中的活动或发呆动作', lifecycle: '独白产生时' },
+      { name: 'currentLocation', source: '当前所处空间或场景', lifecycle: '独白产生时' },
+      { name: 'weather', source: '当前天气或环境', lifecycle: '独白产生时' },
+      { name: 'moodSummary', source: '当前心情简述', lifecycle: '独白产生时' },
+      { name: 'triggerReason', source: '触发独白的契机或反思动机', lifecycle: '独白产生时' },
     ],
   }),
   dynamicAsset({

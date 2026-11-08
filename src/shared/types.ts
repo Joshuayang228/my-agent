@@ -1376,3 +1376,17 @@ export interface SpontaneousImpulseEvent {
   timestamp: number
 }
 
+export interface CompanionInnerThoughtRecord {
+  id: string
+  roleId: string
+  title: string
+  content: string
+  mood?: string
+  weather?: string
+  location?: string
+  activity?: string
+  isFavorite?: boolean
+  createdAt: number
+}
+
+

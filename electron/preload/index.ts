@@ -452,6 +452,33 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('companion:spontaneous-impulse', handler)
       return () => ipcRenderer.removeListener('companion:spontaneous-impulse', handler)
     },
+    listInnerThoughts: (
+      roleId?: string,
+    ): Promise<import('../../src/shared/types').CompanionInnerThoughtRecord[]> =>
+      ipcRenderer.invoke('companion:list-inner-thoughts', roleId),
+    createInnerThought: (
+      roleId?: string,
+      trigger?: string,
+    ): Promise<import('../../src/shared/types').CompanionInnerThoughtRecord | null> =>
+      ipcRenderer.invoke('companion:create-inner-thought', roleId, trigger),
+    toggleInnerThoughtFavorite: (
+      id: string,
+    ): Promise<boolean> =>
+      ipcRenderer.invoke('companion:toggle-inner-thought-favorite', id),
+    deleteInnerThought: (
+      id: string,
+    ): Promise<boolean> =>
+      ipcRenderer.invoke('companion:delete-inner-thought', id),
+    onInnerThoughtCreated: (
+      callback: (payload: import('../../src/shared/types').CompanionInnerThoughtRecord) => void,
+    ) => {
+      const handler = (
+        _e: Electron.IpcRendererEvent,
+        payload: import('../../src/shared/types').CompanionInnerThoughtRecord,
+      ) => callback(payload)
+      ipcRenderer.on('companion:inner-thought-created', handler)
+      return () => ipcRenderer.removeListener('companion:inner-thought-created', handler)
+    },
   },
 
   mcp: {

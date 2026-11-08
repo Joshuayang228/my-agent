@@ -158,6 +158,12 @@ export const PROMPT_FEATURE_CONTRACTS = Object.freeze({
     overrideBoundary: ['角色生活即兴想法与口头禅'], output: '只输出 JSON 对象，包含 impulseText 突发主动找聊文本、contextHint 背景提示与 topicKind 分类。',
     fallback: '模型不可用或解析失败时使用基于角色当前活动与体征的确定性搭话，不阻塞流程。', consumers: ['electron/main/companion/life/spontaneous-impulse.ts'],
   }),
+  innerThought: contract({
+    key: 'feature:inner-thought', name: '私密内心独白与航海日记', domain: 'life', purpose: '角色在独处、夜航或经历关键生活事件后，以极其真实的私密视角记录个人航海日记或内心独白。',
+    staticInputs: ['安全规则', '私密内心独白叙事协议', 'JSON输出约束'], runtimeInputs: ['角色公开人设与内心世界', '当前所处空间与天气', '近期心情与经历的事件'],
+    overrideBoundary: ['角色最真实的私密心声与说话风格'], output: '只输出 JSON 对象，包含 title 标题、content 日记正文、mood 心情、weather 天气、location 地点、activity 活动。',
+    fallback: '模型不可用或解析失败时使用基于角色人设与当前场景的确定性日记记录，不阻塞流程。', consumers: ['electron/main/companion/life/inner-thoughts.ts'],
+  }),
 } as const)
 
 export type PromptFeatureContractKey = keyof typeof PROMPT_FEATURE_CONTRACTS

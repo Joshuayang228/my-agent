@@ -5,6 +5,7 @@ import { buildProactiveGreetingPrompt, type ProactiveGreetingInput } from './pro
 import { buildChatResonancePrompt, type ChatResonanceInput } from './chat-resonance'
 import { buildCultureReviewPrompt, type CultureReviewInput } from './culture-review'
 import { buildSpontaneousImpulsePrompt, type SpontaneousImpulseInput } from './spontaneous-impulse'
+import { buildInnerThoughtPrompt, type InnerThoughtPromptInput } from './inner-thought'
 import { buildImageGenerationPrompt } from './image-generation'
 /**
  * 背景：手填资产 key 无法证明正文来自登记的生产定义。
@@ -267,4 +268,8 @@ export function compileCultureReviewRequest(input: CultureReviewInput): Register
 
 export function compileSpontaneousImpulseRequest(input: SpontaneousImpulseInput): RegisteredModelRequest {
   return signRequest([{ role: 'user', content: buildSpontaneousImpulsePrompt(input) }], [PROMPT_KEYS.companionSpontaneousImpulse], ['spontaneous-impulse'])
+}
+
+export function compileInnerThoughtRequest(input: InnerThoughtPromptInput): RegisteredModelRequest {
+  return signRequest([{ role: 'user', content: buildInnerThoughtPrompt(input) }], [PROMPT_KEYS.companionInnerThought], ['inner-thought'])
 }

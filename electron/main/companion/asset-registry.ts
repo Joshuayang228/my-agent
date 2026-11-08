@@ -265,6 +265,14 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent({ trigger: 'life-ticker-impulse', dailyLimit: 2, cooldownMs: 10_800_000, promptKey: PROMPT_KEYS.companionSpontaneousImpulse }),
     dependencies: [PROMPT_KEYS.companionSpontaneousImpulse],
+  }), makeCompanionAsset({
+    key: 'companion:policy:inner-thought-journal', name: '私密内心独白与航海日记策略',
+    purpose: '角色在独处、夜间或经历关键生活事件后，以私密视角记录个人日记或内心独白',
+    role: 'platform', description: '基于生活沉淀、夜间反思与羁绊经历生成真情实感的内心随笔，保存在 companion_inner_thoughts，支持收藏与作为对话契机回引。',
+    source: 'electron/main/companion/life/inner-thoughts.ts#triggerInnerThought', version: 'journal-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ trigger: 'life-ticker-journal', cooldownMs: 21_600_000, promptKey: PROMPT_KEYS.companionInnerThought }),
+    dependencies: [PROMPT_KEYS.companionInnerThought],
   })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {

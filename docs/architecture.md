@@ -6,6 +6,7 @@
 - 日剧本因果闭环：`script-generator.ts#collectDayScriptLifeContext` 读取活跃心愿作为次日剧本输入，并更新状态为 `absorbed_in_script`，让聊天中提到的话题真正出现在角色次日日程中；
 - 文化心愿体验闭环与主动反馈：`ticker.ts` 动态生活推进或定时轮询时调用 `checkAndProgressAbsorbedResonances`，通过 `compileCultureReviewRequest` 生成第一人称评语与下次对话引子（`chatOpener`），文化资产推进至 `finished` 并将感悟追加至 `readingNotes`；待反馈引子注入 `formatConversationImpulseForPrompt`（插槽 31），主对话送达后调用 `markResonanceFeedbackDelivered` 标记投递，并广播 `companion:resonance-completed` 通知；
 - 突发生活意图与主动找聊（Spontaneous Impulse）：`ticker.ts` 结合体征（`socialNeed >= 70` 或 `energy >= 80`）与活动，经 `decideSpontaneousImpulse` 规则门控（每日最多 2 次、冷却 3 小时、避开勿扰时段），通过 `compileSpontaneousImpulseRequest` 生成即兴搭话消息；主动消息直接写入角色主会话（`sessionKind === 'main'`），并广播 `companion:spontaneous-impulse` 通知，前端支持 Toast 一键直达会话与即时无感渲染；
+- 私密内心独白与航海日记（Inner Thoughts & Private Journal Stream）：构建角色私密内心记录流（SQLite `companion_inner_thoughts` 表）；`ticker.ts` 结合夜间/清晨时段与生活状态，经 `decideInnerThought`（每日 2 次、冷却 6 小时）通过 `compileInnerThoughtRequest`（或保底）生成第一人称私密随笔；出厂自动为路飞播种 3 篇具情感羁绊的 starter 日记；`WorldHub` 新增 `journal` 分区（`WorldJournalPanel`），支持实时广播更新、星标收藏与删除，并支持一键将日记契机回引至主对话（「与TA聊聊这篇日记」）；
 - 实时通知与跳转：心愿入库后通过 `companion:life-resonance-created` 广播给渲染进程，前端 Toast 提供一键跳转文化角查看。
 
 朋友圈回复互动与人物/NPC 自主回复决策架构（2026-11-08）：

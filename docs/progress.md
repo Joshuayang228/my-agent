@@ -1,5 +1,7 @@
 # 项目进度
 
+私密内心独白与航海日记落地（2026-11-08）：角色私密内心世界与航海日记流落地（`inner-thoughts.ts`）；独立于朋友圈与即时聊天，角色在独处、夜间或清晨产生对伙伴、旅途与羁绊的真情实感，经每日上限 2 次与 6 小时冷却门控，通过受控配方 `compileInnerThoughtRequest`（或规则保底）生成第一人称私密随笔；出厂自动为路飞播种 3 篇具情感羁绊的 starter 日记；人物世界（`WorldHub`）新增 `journal` 分区（`WorldJournalPanel`），支持实时广播更新、星标收藏与删除，并支持一键将日记契机回引至主对话（「与TA聊聊这篇日记」）。新增 `inner-thoughts.test.ts` 3 项单测，门禁全绿。
+
 突发生活意图与主动找聊落地（2026-11-08）：角色由纯被动响应升级为具备突发即兴搭话冲动的真人伙伴（`spontaneous-impulse.ts`）；在生活推进中结合社交渴望度（`socialNeed >= 70`）与活动，经每日频次（2 次）、冷却（3 小时）及勿扰时段门控，由 `compileSpontaneousImpulseRequest`（或规则保底）生成生动的第一人称搭话消息，直接写入该角色的主会话中并向窗口广播 `companion:spontaneous-impulse`；前端 `App.tsx` 响应桌面通知，点击一键直达会话，若当前正处于该会话则即时推入消息。新增 `spontaneous-impulse.test.ts` 2 项单测，门禁全绿。
 
 文化心愿体验闭环与主动反馈落地（2026-11-08）：文化心愿在被日剧本吸收并满足体验时长后，自动触发 `completeCultureResonance`，通过受控小模型配方（`compileCultureReviewRequest`）以第一人称口吻生成专属评语（`reviewText`）与对话引子（`chatOpener`）；文化资产推进为 `finished` 并将感悟追加进 `readingNotes`；主会话组装器在 `formatConversationImpulseForPrompt` 中注入 `【重要回访心愿反馈】`，角色在后续对话中会主动向用户倾诉体验感悟并在送达后标记已投递（`markResonanceFeedbackDelivered`）；IPC 广播 `companion:resonance-completed`，桌面端支持通知横幅点击一键直达文化角。新增 `culture-wish-review.test.ts` 4 项单测，门禁全绿。

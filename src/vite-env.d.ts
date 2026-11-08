@@ -395,6 +395,13 @@ declare global {
         onSpontaneousImpulse: (
           callback: (payload: import('./shared/types').SpontaneousImpulseEvent) => void,
         ) => () => void
+        listInnerThoughts: (roleId?: string) => Promise<import('./shared/types').CompanionInnerThoughtRecord[]>
+        createInnerThought: (roleId?: string, trigger?: string) => Promise<import('./shared/types').CompanionInnerThoughtRecord | null>
+        toggleInnerThoughtFavorite: (id: string) => Promise<boolean>
+        deleteInnerThought: (id: string) => Promise<boolean>
+        onInnerThoughtCreated: (
+          callback: (payload: import('./shared/types').CompanionInnerThoughtRecord) => void,
+        ) => () => void
       }
       mcp: {
         connect: (config: import('./shared/types').McpServerConfig) => Promise<{ success: boolean; toolCount?: number; error?: string }>
