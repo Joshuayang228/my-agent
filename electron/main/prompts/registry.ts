@@ -1,6 +1,7 @@
 import { extractTemplatePlaceholders } from '../../../src/shared/prompt-template'
 import { buildMomentCommentPrompt } from './moment-comment'
 import { buildMomentReplyPrompt } from './moment-reply'
+import { buildChatResonancePrompt } from './chat-resonance'
 import { buildProactiveGreetingPrompt } from './proactive-greeting'
 import { formatRoleAppearanceForImagePrompt } from '../companion/identity/profile'
 import { buildImageGenerationPrompt } from './image-generation'
@@ -196,6 +197,28 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     definitions: ['electron/main/prompts/image-generation.ts#buildImageGenerationPrompt', 'electron/main/prompts/registered-request.ts#compileImageGenerationRequest', 'electron/main/companion/identity/profile.ts#formatRoleAppearanceForImagePrompt'],
     template: buildImageGenerationPrompt('{{description}}', '{{visualAnchor}}'),
     slots: [{ name: 'description', source: 'image_generate.prompt', lifecycle: '每次显式生成' }, { name: 'visualAnchor', source: '当前人物 appearance 与绑定穿搭资产（可为空）', lifecycle: '每次显式生成' }],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.companionChatResonance,
+    domain: 'life', name: '会话生活因果反哺提取', category: 'companion', role: 'companion-social',
+    featureKey: PROMPT_FEATURE_CONTRACTS.chatResonance.key, adaptationStatus: 'adapted',
+    purpose: '从用户与角色的近期对话中识别文化推荐、美食或生活心愿，反哺角色真实生活状态与次日剧本',
+    desc: '从对话上下文提取用户推荐的书籍、影视、音乐、美食或行动心愿；无推荐或无意向时不凭空捏造。',
+    sourcePath: 'electron/main/prompts/chat-resonance.ts#buildChatResonancePrompt',
+    definitions: [
+      'electron/main/prompts/chat-resonance.ts#buildChatResonancePrompt',
+      'electron/main/prompts/registered-request.ts#compileChatResonanceRequest',
+    ],
+    template: buildChatResonancePrompt({
+      protagonistName: '{{protagonistName}}',
+      protagonistBrief: '{{protagonistBrief}}',
+      recentDialogue: '{{recentDialogue}}',
+    }),
+    slots: [
+      { name: 'protagonistName', source: '当前主角 Role Pack', lifecycle: '每次会话结算' },
+      { name: 'protagonistBrief', source: '当前主角公开简介', lifecycle: '每次会话结算' },
+      { name: 'recentDialogue', source: '主会话近期对话记录', lifecycle: '每次会话结算' },
+    ],
   }),
   dynamicAsset({
     id: PROMPT_KEYS.momentReply,

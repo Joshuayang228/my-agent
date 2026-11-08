@@ -1317,3 +1317,21 @@ export interface CompanionTodayTimeline {
   slots: CompanionTodayTimelineSlot[]
   currentSlotIndex: number
 }
+
+export type CompanionLifeResonanceKind = 'culture_wish' | 'day_activity_wish' | 'travel_wish' | 'cuisine_wish'
+
+export interface CompanionLifeResonance {
+  id: string
+  roleId: string
+  sessionId: string
+  kind: CompanionLifeResonanceKind
+  title: string
+  targetName: string
+  userQuote: string
+  reason: string
+  cultureType?: 'reading' | 'film' | 'music' | null
+  status: 'active' | 'absorbed_in_script' | 'fulfilled' | 'archived'
+  createdAt: number
+  absorbedAt: number | null
+  assetId: string | null
+}

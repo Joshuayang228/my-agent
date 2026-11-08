@@ -53,6 +53,7 @@ import { claimFirstContact, getRoleState, listRelationshipStates } from '../comp
 import { resolveMomentVisibilityDays } from '../companion/life/moment-visibility'
 import { getLifeSliceForRole } from '../companion/life/slices'
 import { getTodayTimelineForRole } from '../companion/life/timeline'
+import { listLifeResonances } from '../companion/life/chat-resonance'
 import { momentImageIdsForRole, readMomentImageForRole } from '../companion/life/moment-images'
 import * as settings from '../storage/settings-store'
 import { loadAuxLLMConfig } from '../llm/aux-config'
@@ -208,6 +209,11 @@ export function registerCompanionIPC(): void {
   ipcMain.handle('companion:get-today-timeline', async (_e, roleId?: string) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     return getTodayTimelineForRole(targetRoleId)
+  })
+
+  ipcMain.handle('companion:list-life-resonances', async (_e, roleId?: string) => {
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    return listLifeResonances(targetRoleId)
   })
 
   ipcMain.handle('companion:catchup-status', async () => {

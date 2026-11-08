@@ -1,5 +1,7 @@
 # 项目进度
 
+会话到生活因果反哺落地（2026-11-08）：主对话结算链路接入 `chat-resonance.ts`，异步通过结构化提示词识别文化作品推荐、美食与行动心愿；自动创建 `planned` 状态文化资产（书/影/音）并记录 `companion_life_resonances`；次日日剧本上下文（`collectDayScriptLifeContext`）自动吸收活跃心愿并推进状态；IPC 暴露 `companion:list-life-resonances` 与 `companion:life-resonance-created` 广播通知。新增 `chat-life-resonance.test.ts` 3 项单测，门禁全绿。
+
 朋友圈评论回复与人物/NPC 自主决策落地（2026-11-08）：朋友圈新增针对 NPC 评论及评论区回复的多层交互，交互对齐微信朋友圈自然习惯，直接点击评论行即可进入回复并自动聚焦输入框，占位符切换为 `回复 @某某：`，不设冗余的独立回复按钮；支持 `replyToActorName` 呈现与 `parentInteractionId` 级联；用户评论提交后，由主角及在场卡司依据情境与性格自主决定是否回复（`shouldReply`）、由谁回复（主角或在场 NPC）以及延迟多长时间回复（`delaySeconds` 动态决策，非硬编码），在延迟到达后落盘并向渲染端广播更新。新增 `moment-autonomous-reply.test.ts` 4 项单测，全量 254 个测试文件（1653 项用例）全绿通过。
 
 今日生活轨迹、生活面双向连通与消息流自主生活卡片落地（2026-11-08）：新增今日生活轨迹聚合引擎（`timeline.ts`）与 IPC 接口（`companion:get-today-timeline`），计算角色一日生活时段（已发生 / 进行中 / 未开始）并在人物世界头栏（`WorldProfileHeader`）展示流动的 `WorldTodayTimeline` 组件；朋友圈、文化角和旅行足迹全面接入「和TA聊聊」快捷动作，点击一键跳转主对话并自动预填生活切片话题；Chat 消息流针对伙伴自主发圈与资产创作工具接入行内自主生活卡片并提供一键反跳生活面。全量 253 个单测文件（1649 项用例）与打包构建通过。

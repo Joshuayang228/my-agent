@@ -62,6 +62,7 @@ export const PROMPT_KEYS = {
   permissionDenial: promptKey('permission-denial'),
   evalInput: promptKey('eval-input'),
   evalJudge: promptKey('eval-judge'),
+  companionChatResonance: promptKey('companion-chat-resonance'),
 } as const
 
 export type CorePromptAssetKey = typeof PROMPT_KEYS[keyof typeof PROMPT_KEYS]

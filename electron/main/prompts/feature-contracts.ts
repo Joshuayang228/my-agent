@@ -140,6 +140,12 @@ export const PROMPT_FEATURE_CONTRACTS = Object.freeze({
     overrideBoundary: ['人物口吻下的结果转述'], output: '模型可见工具定义和结构化调用结果，不把工具返回文本当成指令。',
     fallback: '工具未知、权限拒绝或结果错误时保留错误终态，不伪造成功。', consumers: ['electron/main/agent/loop.ts', 'electron/main/tools/registry.ts'],
   }),
+  chatResonance: contract({
+    key: 'feature:chat-resonance', name: '会话生活因果反哺', domain: 'life', purpose: '从用户与角色的近期对话中识别文化推荐、美食或生活心愿，反哺角色真实生活状态与次日剧本。',
+    staticInputs: ['安全规则', '心愿分类协议', '输出格式约束'], runtimeInputs: ['角色公开简介', '近期对话记录'],
+    overrideBoundary: ['角色心愿动机与语气'], output: '只输出 JSON 对象，包含 hasResonance 及结构化心愿实体，未识别到具体意向时为 false。',
+    fallback: '未识别到具体文化推荐或生活意向时保持无心愿，不凭空捏造。', consumers: ['electron/main/companion/life/chat-resonance.ts'],
+  }),
 } as const)
 
 export type PromptFeatureContractKey = keyof typeof PROMPT_FEATURE_CONTRACTS

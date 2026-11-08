@@ -378,6 +378,14 @@ declare global {
             reply?: { actorName: string; text: string }
           }) => void,
         ) => () => void
+        listLifeResonances: (roleId?: string) => Promise<import('./shared/types').CompanionLifeResonance[]>
+        onLifeResonanceCreated: (
+          callback: (payload: {
+            roleId: string
+            resonance: import('./shared/types').CompanionLifeResonance
+            message: string
+          }) => void,
+        ) => () => void
       }
       mcp: {
         connect: (config: import('./shared/types').McpServerConfig) => Promise<{ success: boolean; toolCount?: number; error?: string }>

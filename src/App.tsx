@@ -399,6 +399,18 @@ function App() {
         toast(`${payload.reply.actorName} 回复了评论：“${payload.reply.text}”`, 'info')
       }
     })
+    const unsubLifeResonance = window.electronAPI.companion.onLifeResonanceCreated?.((payload) => {
+      if (payload.message) {
+        toast(payload.message, 'info', {
+          onClick: () => {
+            setActiveView('world')
+            if (payload.resonance.kind === 'culture_wish') {
+              setWorldTab('culture')
+            }
+          },
+        })
+      }
+    })
     const unsubGreeting = window.electronAPI.companion.onProactiveGreeting?.((payload) => {
       if (payload.toast) {
         toast(payload.toast, 'info', {
@@ -425,6 +437,7 @@ function App() {
       unsubMilestone?.()
       unsubMomentTip?.()
       unsubMomentUpdated?.()
+      unsubLifeResonance?.()
       unsubGreeting?.()
     }
   }, [toast])

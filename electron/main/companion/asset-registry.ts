@@ -234,6 +234,14 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     source: 'electron/main/companion/life/material-observation-store.ts#recordMaterialObservationAttempt', version: 'material-observation-v1',
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent({ observation: 'candidate-only', writeback: 'explicit-confirmation', failureEvidence: 'bounded-attempts', imageBytes: 'not-persisted' }),
+  }), makeCompanionAsset({
+    key: 'companion:policy:chat-life-resonance', name: '会话生活因果反哺策略',
+    purpose: '主会话结束后异步提取用户对话中的文化推荐与生活心愿，反哺角色真实生活状态与次日剧本',
+    role: 'platform', description: '仅主会话结算；文化类心愿自动播种 planned 资产，全量心愿写入 companion_life_resonances 供日剧本吸收。',
+    source: 'electron/main/companion/life/chat-resonance.ts#settleChatResonance', version: 'resonance-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ trigger: 'main-session-end', wishTypes: ['culture_wish', 'day_activity_wish', 'travel_wish', 'cuisine_wish'], dedupDays: 7 }),
+    dependencies: [PROMPT_KEYS.companionChatResonance],
   })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {

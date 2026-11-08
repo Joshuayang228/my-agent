@@ -22,6 +22,7 @@ import { formatSummonSceneBlock } from '../companion/cast/scene-prompts'
 import { summonParentDelegationHint } from '../companion/cast/summon-delegation'
 import { scheduleReflectionAfterChat } from '../companion/growth/reflection-service'
 import { settleVitalsAfterChat } from '../companion/life/world-state'
+import { settleChatResonance } from '../companion/life/chat-resonance'
 import {
   formatRelationshipStageForPrompt,
   resolveRelationshipStageForRole,
@@ -662,6 +663,9 @@ class AgentRuntime {
       if (companion.sessionKind === 'main') {
         settleVitalsAfterChat(companion.roleId).catch(error => {
           log.warn('对话后结算角色生命体征失败', { roleId: companion.roleId, error: error instanceof Error ? error.message : String(error) })
+        })
+        settleChatResonance(companion.roleId, sessionId, llmConfig).catch(error => {
+          log.warn('对话后提取生活因果反哺失败', { roleId: companion.roleId, error: error instanceof Error ? error.message : String(error) })
         })
       }
     }

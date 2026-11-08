@@ -273,6 +273,13 @@ export async function collectDayScriptLifeContext(roleId: string): Promise<strin
       parts.push(`当前正进行的航程/旅行：${activeTrip.name}${lastStop ? `（刚到达：${lastStop}）` : ''}`)
     }
 
+    const { listLifeResonances, markResonancesAbsorbed } = await import('./chat-resonance')
+    const activeResonances = await listLifeResonances(roleId, { status: 'active', limit: 3 })
+    if (activeResonances.length) {
+      parts.push(`与用户近期交流激发的愿望与行动意向：${activeResonances.map(r => `想尝试「${r.targetName}」（${r.reason}）`).join('；')}`)
+      await markResonancesAbsorbed(activeResonances.map(r => r.id))
+    }
+
     const { listRecentUserMessagesForRole } = await import('../../storage/session-store')
     const userMsgs = await listRecentUserMessagesForRole(roleId, Date.now() - 36 * 3600 * 1000, 3)
     if (userMsgs.length) {

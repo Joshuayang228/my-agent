@@ -400,6 +400,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('companion:moment-updated', handler)
       return () => ipcRenderer.removeListener('companion:moment-updated', handler)
     },
+    listLifeResonances: (
+      roleId?: string,
+    ): Promise<import('../../src/shared/types').CompanionLifeResonance[]> =>
+      ipcRenderer.invoke('companion:list-life-resonances', roleId),
+    onLifeResonanceCreated: (
+      callback: (payload: {
+        roleId: string
+        resonance: import('../../src/shared/types').CompanionLifeResonance
+        message: string
+      }) => void,
+    ) => {
+      const handler = (
+        _e: Electron.IpcRendererEvent,
+        payload: {
+          roleId: string
+          resonance: import('../../src/shared/types').CompanionLifeResonance
+          message: string
+        },
+      ) => callback(payload)
+      ipcRenderer.on('companion:life-resonance-created', handler)
+      return () => ipcRenderer.removeListener('companion:life-resonance-created', handler)
+    },
   },
 
   mcp: {

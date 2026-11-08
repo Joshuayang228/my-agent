@@ -1,5 +1,11 @@
 # 系统架构
 
+会话到生活因果反哺架构（Chat to Life Resonance，2026-11-08）：
+- 主对话结束钩子：`AgentRuntime` 在主会话（`sessionKind === 'main'`）结束后异步调用 `settleChatResonance`，分析近期对话中的具体文化推荐、美食或生活向往；
+- 意向抽取与自动播种：由 `compileChatResonanceRequest` 签名签发并由辅助模型分析提取，文化类意向自动调用 `createAsset` 在文化角创建 `planned`/`queued` 状态的待体验物什，意向全量存入 SQLite `companion_life_resonances`；
+- 日剧本因果闭环：`script-generator.ts#collectDayScriptLifeContext` 读取活跃心愿作为次日剧本输入，并更新状态为 `absorbed_in_script`，让聊天中提到的话题真正出现在角色次日日程中；
+- 实时通知与跳转：心愿入库后通过 `companion:life-resonance-created` 广播给渲染进程，前端 Toast 提供一键跳转文化角查看。
+
 朋友圈回复互动与人物/NPC 自主回复决策架构（2026-11-08）：
 - 评论回复数据链：`companion_moment_user_interactions` 扩展 `reply_to_actor_name` 列与 `actor_type=cast` 支持；用户可直接评论动态，亦可回复在场 NPC（如索隆）或现有回复；`mergeMomentComments` 支持递归解析回复目标人物；
 - NPC 自主回复决策：`moments.ts#addMomentCommentForRole` 在保存用户评论后，结合动态上下文、在场卡司名册（`buildRosterLines`）与已有评论历史，调用 `moment-reply` 提示词让在场人物自主决策是否回复（`shouldReply`）、由哪位在场角色回复（`responderId`/`actorType`）以及回复延迟时长（`delaySeconds: 5..60`，不写死）；
