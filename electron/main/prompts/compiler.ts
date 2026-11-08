@@ -78,6 +78,7 @@ export interface PromptSituationContext {
   worldSlice?: string
   recentMomentsSlice?: string
   bookshelfSlice?: string
+  lifeAssetsSlice?: string
   rosterLines?: string
   relationshipSummary?: string
   emotionSummary?: string
@@ -169,6 +170,7 @@ function buildSituationModule(situation?: PromptSituationContext): PromptSemanti
     situation.emotionSummary?.trim() ? `## 情绪线索\n${situation.emotionSummary.trim()}\n（情绪只影响表达温度与生活叙事，不改变事实、权限或任务结果。）` : undefined,
     situation.recentMomentsSlice?.trim() ? `## 近期动态\n${situation.recentMomentsSlice.trim()}` : undefined,
     situation.bookshelfSlice?.trim() ? `## 书架\n${situation.bookshelfSlice.trim()}` : undefined,
+    situation.lifeAssetsSlice?.trim() ? `## 此刻的生活\n${situation.lifeAssetsSlice.trim()}` : undefined,
     situation.rosterLines?.trim() ? `## 角色名册\n${situation.rosterLines.trim()}` : undefined,
   ])
 }
@@ -259,7 +261,7 @@ export const MAIN_CHAT_TEMPLATE = compileMainChatPrompt({
     milestone: '{{milestone}}', expertise: '{{expertise}}', skillSummary: '{{skillSummary}}', activeSkillBody: '{{activeSkillBody}}' },
   situation: { userProfile: { identity: '{{userIdentity}}', workflow: '{{userWorkflow}}', voice: '{{userVoice}}' },
     memories: '{{memories}}', sessionInfo: '{{sessionInfo}}', catchupSummary: '{{catchupSummary}}', worldSlice: '{{worldSlice}}',
-    recentMomentsSlice: '{{recentMomentsSlice}}', bookshelfSlice: '{{bookshelfSlice}}', rosterLines: '{{rosterLines}}' },
+    recentMomentsSlice: '{{recentMomentsSlice}}', bookshelfSlice: '{{bookshelfSlice}}', lifeAssetsSlice: '{{lifeAssetsSlice}}', rosterLines: '{{rosterLines}}' },
   currentDate: '{{currentDate}}',
 }).text
 
@@ -277,7 +279,7 @@ const mainSlotPaths: Record<string, string> = {
   behaviorSupplement: 'behavior.characterSupplement', userIdentity: 'situation.userProfile.identity',
   userWorkflow: 'situation.userProfile.workflow', userVoice: 'situation.userProfile.voice',
   ...Object.fromEntries(['policy', 'customInstructions', 'replyStance', 'toneControl', 'relationshipStage', 'milestone', 'expertise', 'skillSummary', 'activeSkillBody'].map(name => [name, `behavior.${name}`])),
-  ...Object.fromEntries(['memories', 'sessionInfo', 'catchupSummary', 'worldSlice', 'recentMomentsSlice', 'bookshelfSlice', 'rosterLines'].map(name => [name, `situation.${name}`])),
+  ...Object.fromEntries(['memories', 'sessionInfo', 'catchupSummary', 'worldSlice', 'recentMomentsSlice', 'bookshelfSlice', 'lifeAssetsSlice', 'rosterLines'].map(name => [name, `situation.${name}`])),
 }
 /** 模板真实占位符与实际编译输入绑定；新增占位符必须同时说明来源，不拿六组摘要冒充完整变量目录。 */
 export const MAIN_CHAT_TEMPLATE_SLOTS: PromptSlot[] = extractTemplatePlaceholders(MAIN_CHAT_TEMPLATE).map(name => {

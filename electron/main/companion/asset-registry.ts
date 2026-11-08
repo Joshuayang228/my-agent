@@ -55,7 +55,12 @@ function buildSceneAssets(universeId: string, roleId: string, rolePack: RolePack
   })
 }
 
-/** 生活目录只登记生产 starter 定义，不读取已经播种或被用户修改的数据库资产。 */
+/**
+ * 生活目录只登记生产 starter 定义，不读取已经播种或被用户修改的数据库资产。
+ * 背景：角色生命体征（world-vitals）与生活资产切片（life-assets-slice）驱动动态状态流转，
+ * 设计意图：动态体征与运行时状态不作为静态 ModelContextAsset 登记，仅通过 formatLifeAssetsSliceForPrompt 进入 Prompt 上下文；
+ * 关键约束：此处仅收录确定性出厂 starter 资产，禁止把运行时体征值或用户修改落入静态目录。
+ */
 function buildLifeAssets(universeId: string, roleId: string, rolePack: RolePack): ModelContextAsset[] {
   return getStarterAssetDefinitions(roleId).map((item) => {
     const content = jsonContent({ kind: item.kind, key: item.key, name: item.name, payload: item.payload })

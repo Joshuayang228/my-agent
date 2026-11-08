@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-08：主对话装配管线接入 `lifeAssetsSlice`，将当前穿着单品、文化角在读 / 在看 / 在听进度及进行中的旅行航线有界注入 Prompt，解决角色对自身衣物、作品和足迹缺乏感知的问题；新增角色生命体征演化引擎（`world-vitals.ts`），使 `mood`、`energy` 和 `socialNeed` 随已发布生活事件自然波动并向基线回归，主对话交互后自动释放 `socialNeed`。
+
 2026-11-08：补齐核心 Prompt、Role Pack 资产与追踪投影的 `featureKey` / `adaptationStatus` 关系标签，完成路飞与隔离测试人物全套四层 Prompt 组合及防覆盖门禁验证，并冻结 `prompt-layered-composition-v1`、`character-system-extension-v1`、`character-design-method-v1`、`companion-material-grounding-v1` 四份施工合同。
 
 2026-11-08：补齐路飞人物世界「文化角」「旅行足迹」与「出场朋友圈」初始内容及 6 张专属插画：新增四类文化记录（奇异生物图鉴、空岛映像贝、宾克斯的美酒、船头夕阳草帽）、三段多站点旅行故事（东海启航、空岛黄金钟、千里阳光号巡航）与两条带配图和伙伴互动的出场朋友圈动态，旧库支持无损升级且备份导出导入保持幂等。

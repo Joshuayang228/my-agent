@@ -1,5 +1,7 @@
 # 系统架构
 
+生活体征与切片装配架构（2026-11-08）：主对话装配管线由 `AgentRuntime` 读取 `companion_life_assets`（穿着、在读在看在听文化活动）及 `world_json` 中的进行中旅程，通过 `formatLifeAssetsSliceForPrompt` 有界切片注入 `situation.lifeAssetsSlice`；对话流式响应完成并在主进程安全落地后，调用 `settleVitalsAfterChat` 结算角色体力消耗与社交满足度，更新至 `companion_role_state`，与朋友角色的召唤会话不产生主角体征结算。
+
 出厂静态视觉备份边界（2026-11-07）：`ipc/data-export.ts` 通过 `companion/life/assets.ts` 的 `isStarterVisualImage` 识别与 Role Pack `visualPath` 摘要一致的出厂静态图片，导出 JSON 时仅保留 `visualPath` 而不打包进 `generatedImageMedia`；导入时通过 `restoreStarterVisualPayload` 从本地 Role Pack 重新物化受控图片引用，用户重新生成的资产配图仍走完整 base64 媒体备份与恢复链路。
 
 类型检查边界（2026-11-07）：Renderer 与主进程分别由根 `tsconfig.json` 和 `tsconfig.node.json` 检查；`typecheck` / `build` 强制执行两套检查，主进程、Eval 与共享源码不再依赖隐式 include。

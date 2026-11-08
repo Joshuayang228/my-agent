@@ -21,6 +21,7 @@ import { describeCastPresence } from '../companion/cast/availability'
 import { formatSummonSceneBlock } from '../companion/cast/scene-prompts'
 import { summonParentDelegationHint } from '../companion/cast/summon-delegation'
 import { scheduleReflectionAfterChat } from '../companion/growth/reflection-service'
+import { settleVitalsAfterChat } from '../companion/life/world-state'
 import {
   formatRelationshipStageForPrompt,
   resolveRelationshipStageForRole,
@@ -247,6 +248,7 @@ class AgentRuntime {
         worldSlice,
         recentMomentsSlice,
         bookshelfSlice,
+        lifeAssetsSlice,
         rosterLines,
         relationshipSummary,
         emotionSummary,
@@ -403,6 +405,7 @@ class AgentRuntime {
           worldSlice: isSummon ? undefined : worldSlice,
           recentMomentsSlice: isSummon ? undefined : recentMomentsSlice,
           bookshelfSlice: isSummon ? undefined : bookshelfSlice,
+          lifeAssetsSlice: isSummon ? undefined : lifeAssetsSlice,
           rosterLines,
           relationshipSummary,
           emotionSummary: isSummon ? undefined : emotionSummary,
@@ -653,6 +656,12 @@ class AgentRuntime {
         llmConfig,
         { sessionKind: companion.sessionKind },
       )
+      // 只有与主角本人的主对话才算「聊过」；召唤的朋友会话不应满足主角的社交需求。
+      if (companion.sessionKind === 'main') {
+        settleVitalsAfterChat(companion.roleId).catch(error => {
+          log.warn('对话后结算角色生命体征失败', { roleId: companion.roleId, error: error instanceof Error ? error.message : String(error) })
+        })
+      }
     }
   }
 

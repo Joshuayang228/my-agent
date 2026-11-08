@@ -1,5 +1,7 @@
 # 质量总控
 
+角色生命体征与生活切片门禁（2026-11-08）：`world-vitals.test.ts` 9 项单测覆盖体力、饱腹度、心情与社交欲望 4 项生命体征的事件差值计算、边界约束（0–100 整数截断）与主会话后社交需求释放；`life-assets-slice.test.ts` 4 项单测覆盖当前穿着、在读在看在听文化体验（上限 3 条）及进行中旅行的 Prompt 有界切片组装；`prompt-assets.test.ts` 验证 `PROMPT_KEYS.companionContext` 动态插槽登记包含 `lifeAssetsSlice`，主对话模板 slots 扩展至 30 项。
+
 Prompt 四层组合与隔离人物适配门禁（2026-11-08）：`prompt-feature-contracts.test.ts` 扩展至 5 项，验证路飞与隔离测试人物 `isolated-role` 在不改动任何功能实现的情况下走通主对话、朋友圈润色、一日剧本、生活补叙、成长反思、评论回复、NPC 评论、主动问候和生图全套四层组合，确认人物适配无法覆盖平台安全约束与输出协议，并核对核心 Prompt / Role Pack 资产与 `getPromptAssetTraces` 的 `featureKey` / `adaptationStatus` 投影。至此 `prompt-layered-composition-v1`、`character-system-extension-v1`、`character-design-method-v1`、`companion-material-grounding-v1` 四份施工合同全部验收完成并冻结为快照。
 
 路飞人物世界六面出场内容门禁（2026-11-08）：`companion-assets.test.ts` 与 `companion-source-boundary.test.ts` 扩展验证路飞 15 项出厂生活资产（含四类文化角作品、结构化读书笔记、三段多站点旅行足迹）与 2 条出场朋友圈动态的配图可读性、卡司互动、旧库无损补齐及删除不复活；`generated-image-backup.test.ts` 验证 15 项出厂配图不计入 16MB 备份媒体上限且与确定性 ID 出场动态一起支持备份导出导入幂等往返；`onboarding.test.ts` 同步路飞文化角与旅行足迹正式入口断言。

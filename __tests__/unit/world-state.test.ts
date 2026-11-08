@@ -42,6 +42,7 @@ const {
 const {
   ensureWorldState,
   refreshSituationFromLife,
+  settleVitalsAfterChat,
 } = await import('../../electron/main/companion/life/world-state')
 
 const store = await import('../../electron/main/companion/life/store')
@@ -221,5 +222,44 @@ describe('world-state store', () => {
     const world = await refreshSituationFromLife('lin', now)
     expect(world.currentLocation).toBe('附近街道')
     expect(world.currentActivity).toBe('午饭散步')
+  })
+
+  it('refreshSituationFromLife 结算新生活事件并波动 mood / energy / socialNeed', async () => {
+    const baseNow = 1000000000000
+    await store.setWorldState('lin', {
+      ...defaultWorldState('lin'),
+      mood: 60,
+      energy: 70,
+      socialNeed: 45,
+      updatedAt: baseNow,
+    })
+    // 插入比 updatedAt 晚的午睡事件
+    await store.insertEvent({
+      roleId: 'lin',
+      scheduledAt: baseNow + 1000,
+      type: 'moment',
+      status: 'published',
+      payload: { activity: '甲板下午打盹小憩', location: '甲板' },
+      dayScriptId: null,
+    })
+    const updated = await refreshSituationFromLife('lin', baseNow + 2000)
+    // 睡眠应恢复精力
+    expect(updated.energy).toBeGreaterThan(70)
+    expect(updated.updatedAt).toBe(baseNow + 2000)
+  })
+
+  it('settleVitalsAfterChat 对话后释放社交渴望并微升心情', async () => {
+    await store.setWorldState('lin', {
+      ...defaultWorldState('lin'),
+      mood: 60,
+      energy: 70,
+      socialNeed: 80,
+      updatedAt: 12345,
+    })
+    const after = await settleVitalsAfterChat('lin')
+    expect(after.socialNeed).toBe(65)
+    expect(after.mood).toBe(62)
+    // 保持原有的 updatedAt，不污染事件结算水位线
+    expect(after.updatedAt).toBe(12345)
   })
 })

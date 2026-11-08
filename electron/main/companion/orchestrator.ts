@@ -163,6 +163,8 @@ export async function loadRoleAssembleInput(
   recentMomentsSlice?: string
   /** M25 旁路：书架薄切片 */
   bookshelfSlice?: string
+  /** 当前穿着 / 在读在看在听 / 进行中旅程 */
+  lifeAssetsSlice?: string
   rosterLines?: string
   relationshipSummary?: string
   emotionSummary?: string
@@ -176,12 +178,13 @@ export async function loadRoleAssembleInput(
   // 延迟 import，避免 orchestrator ↔ life 启动环
   const { ensureWorldState, formatWorldSliceForPrompt } = await import('./life/world-state')
   const { collectRecentMomentsSlice } = await import('./life/moment-consistency')
-  const { collectBookshelfSlice } = await import('./life/assets')
+  const { collectBookshelfSlice, collectLifeAssetsSlice } = await import('./life/assets')
   const { listEvents, listRelationshipStates, listEmotionEvents } = await import('./life/store')
   const world = await ensureWorldState(roleId)
   const worldSlice = formatWorldSliceForPrompt(world) || undefined
   const { slice: recentMomentsSlice } = await collectRecentMomentsSlice(roleId)
   const { slice: bookshelfSlice } = await collectBookshelfSlice(roleId)
+  const { slice: lifeAssetsSlice } = await collectLifeAssetsSlice(roleId)
   const relationshipStates = await listRelationshipStates(roleId)
   const relationshipEvents = (await listEvents(roleId, { status: 'published', order: 'desc', limit: 30 }))
     .filter(event => event.payload.relationship && typeof event.payload.relationship === 'object')
@@ -202,6 +205,7 @@ export async function loadRoleAssembleInput(
     worldSlice,
     recentMomentsSlice: recentMomentsSlice || undefined,
     bookshelfSlice: bookshelfSlice || undefined,
+    lifeAssetsSlice: lifeAssetsSlice || undefined,
     rosterLines: roster || undefined,
     relationshipSummary,
     emotionSummary,
@@ -215,6 +219,8 @@ export async function loadActiveAssembleInput(): Promise<{
   worldSlice?: string
   recentMomentsSlice?: string
   bookshelfSlice?: string
+  /** 当前穿着 / 在读在看在听 / 进行中旅程 */
+  lifeAssetsSlice?: string
   rosterLines?: string
   relationshipSummary?: string
   emotionSummary?: string

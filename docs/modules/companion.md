@@ -76,6 +76,13 @@ Debug 的诊断选角独立于活跃主角，专用读取只消费已初始化�
 
 Chat 工具入口复核：普通 Chat 注册全部内置工具；人物体系 Skill 激活时额外保留世界观切换、朋友圈发布 / 评论和人物生活资产创建工具，避免 Skill 过滤器把人物共创所需的真实能力隐藏掉。
 
+## 已落地能力：主对话生活事实切片与生命体征动态演化
+
+- 主对话装配（`orchestrator.ts#loadRoleAssembleInput`）除原有书架摘要外，新增当前生活事实薄切片（`lifeAssetsSlice`）：将当前穿搭（衣柜 `wear-state` 槽位引用的衣物名）、文化角进行中的阅读 / 观影 / 听歌进度与笔记（`readingStatus: 'reading'`, `watchStatus: 'watching'`, `listeningStatus: in ['listening', 'revisiting']`），以及当前进行中的旅行（`status: 'active'` 的最新站点）压缩为有界切片并注入主对话，解决角色不知道自己穿什么、在看什么或正在哪段航线的问题。
+- 角色生命体征（`world.mood`, `world.energy`, `world.socialNeed`）接入动态演化引擎（`world-vitals.ts`）：
+  - 5 分钟心跳推进并发布生活事件时，以 `world.updatedAt` 为水位线，按事件活动内容结算生命体征（午睡小憩恢复精力、大宴会大烤肉涨心情并消耗精力、普通日常微耗精力并累加社交渴望），并向基准值自然回归，避免数值崩塌或长期死值。
+  - 用户与主角主会话完成一轮交互后，触发 `settleVitalsAfterChat` 释放社交渴望（`socialNeed` 回落至健康区间并微升心情），且不改变结算水位线，实现「有人陪聊后得到满足」的自然呼吸感。
+
 ## 已落地能力：伙伴行为请求自动绑定来源
 
 主对话和四种后台行为通过 `prompts/registered-request.ts` 的固定配方生成模型请求，服务不再手填来源 key。角色文件、成长覆盖、行为增量与可选语气回退依赖随实际编译自动推导；新增角色仍复用 Role Pack 与行为协议，新增行为需同步配方、注册定义和边界测试。Debug 生产详情只读，动态正文以模板 / 插槽及真实调用区分展示。
@@ -528,3 +535,4 @@ published event（事件事实）
 - 2026-11-05：Debug 世界态新增生活执行账本，记录事件尝试时间、已分享 / 跳过 / 延后动作、策略原因和关联 Moment。
 - 2026-11-07：路飞出厂初始化包视觉补齐与挂载：`roles/luffy/visual/` 补齐草帽、红背心、深蓝短裤、甲板凉鞋与高处足迹 5 张 PNG，连同既有千里阳光号外景、室内空间和初始穿搭共 8 张视觉资产统一在 `ensureStarterAssets` 播种时落入 `userData/companion-media/images/` 并生成 `GeneratedImageReference`；同时将 `rooms[0]` 播种为 `home:luffy:space:shared-deck` 空间资产、草帽关联至该空间，并初始化可一键换上的 `wardrobe:luffy:starter-outfit`（不自动写入 `wear-state`），旧库支持无损补图。数据备份导出时，未改动的 Role Pack 出厂静态配图仅保留 `visualPath` 而不计入 16MB 用户生成媒体上限，导入后自动从 Role Pack 恢复本地图片引用。
 - 2026-11-08：路飞人物世界六面出场内容全量补齐：`roles/luffy/visual/` 新增 6 张专属插画（奇异生物图鉴、空岛映像贝、宾克斯的美酒合唱、船头夕阳草帽、东海启航木桶誓言、空岛黄金钟），`ensureStarterCulture('luffy')` 播种书籍 / 影视 / 音乐 / 摄影四类初始文化体验与首条图鉴读书笔记，`world.default.json` 新增 `trips` 三段多站点旅行故事（东海启航、空岛黄金钟、千里阳光号巡航）并在 `ensureStarterFootprints` 播种为 `recordType=trip` 记录；同时新增 `ensureStarterMoments('luffy')`，在首次打开朋友圈或初始化资产时写入两条昨日发布的出场动态、配图与草帽一伙互动（确定性 ID 支持备份幂等合并，且不消耗当日自动发帖配额或触发 4 小时冷却）。
+- 2026-11-08：角色基础生命体征与当前生活切片注入：新增 `world-vitals.ts` 结算体力、饱腹度、心情与社交欲望 4 项生命体征，主会话后通过 `settleVitalsAfterChat` 释放社交需求；同时新增 `formatLifeAssetsSliceForPrompt`，将角色当前穿着、在读/在看/在听文化活动及进行中旅行有界压缩为 `lifeAssetsSlice` 注入主对话，解决角色在主聊天中无法获知自身当前活动与着装的问题。

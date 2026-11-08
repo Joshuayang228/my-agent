@@ -25,7 +25,7 @@ const { requestUniverseSwitch } = await import('../../electron/main/companion/or
 
 describe('用户世界观切换', () => {
   beforeEach(() => { universeId = 'default'; roleId = 'luffy' })
-  afterEach(async () => { await rm(root, { recursive: true, force: true }) })
+  afterEach(async () => { await rm(path.join(root, 'switch-world'), { recursive: true, force: true }) })
 
   it('切换到已发布用户世界并绑定其默认主角', async () => {
     const draft = await saveCharacterDraft({ action: 'create', universeId: 'switch-world', title: '切换测试世界', roleId: 'hero', roleName: '测试主角', section: 'identity', content: '测试身份。' })

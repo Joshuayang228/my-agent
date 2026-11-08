@@ -1365,6 +1365,69 @@ export async function collectBookshelfSlice(
   }
 }
 
+export const LIFE_ASSETS_PROMPT_LIMIT = 3
+
+const ACTIVE_CULTURE_STATUS: Record<string, { field: string; values: string[]; verb: string }> = {
+  reading: { field: 'readingStatus', values: ['reading'], verb: '在读' },
+  film: { field: 'watchStatus', values: ['watching'], verb: '在看' },
+  music: { field: 'listeningStatus', values: ['listening', 'revisiting'], verb: '在听' },
+}
+
+/**
+ * 背景：主对话原先只读旧 bookshelf 分类，路飞的文化角（在读/在看/在听）、当前穿着和进行中的旅行都不在 Prompt 里，
+ * 用户问「你今天穿什么 / 最近在看什么 / 现在航行到哪了」时角色只能编造或回避。
+ * 设计意图：把三类「此刻正在进行」的生活事实压成一段有界摘要；只摘当前态，不灌历史作品，也不复制资产正文。
+ * 关键约束：衣物名只取同角色 wear-state 槽位引用的有效 garment；文化条目最多 LIFE_ASSETS_PROMPT_LIMIT 条；
+ * 只取 status=active 的 trip；全部缺失时返回空串，由调用方省略整段，避免让模型凭空脑补。
+ */
+export function formatLifeAssetsSliceForPrompt(assets: CompanionAsset[]): string {
+  const lines: string[] = []
+
+  const wearState = assets.find(a => a.kind === ASSET_KIND_WARDROBE && a.payload.recordType === 'wear-state')
+  const slots = wearState && typeof wearState.payload.slots === 'object' && wearState.payload.slots && !Array.isArray(wearState.payload.slots)
+    ? Object.values(wearState.payload.slots as Record<string, unknown>)
+    : []
+  const worn = slots
+    .map(id => assets.find(a => a.id === id && a.kind === ASSET_KIND_WARDROBE)?.name.trim())
+    .filter((name): name is string => Boolean(name))
+  if (worn.length) lines.push(`- 当前穿着：${worn.join('、')}`)
+
+  const culture = assets
+    .filter(a => a.kind === ASSET_KIND_CULTURE)
+    .map(a => {
+      const rule = ACTIVE_CULTURE_STATUS[String(a.payload.type)]
+      if (!rule || !rule.values.includes(String(a.payload[rule.field]))) return ''
+      const progress = Number.isFinite(a.payload.currentPage) && Number.isFinite(a.payload.totalPages)
+        ? `（第 ${a.payload.currentPage}/${a.payload.totalPages} 页）`
+        : ''
+      const note = latestReadingNote(a.payload).slice(0, 24)
+      return `- ${rule.verb}《${a.name.trim()}》${progress}${note ? ` · ${note}` : ''}`
+    })
+    .filter(Boolean)
+    .slice(0, LIFE_ASSETS_PROMPT_LIMIT)
+  lines.push(...culture)
+
+  const trip = assets
+    .filter(a => a.kind === ASSET_KIND_FOOTPRINT && a.payload.recordType === 'trip' && a.payload.status === 'active')
+    .sort((a, b) => b.acquiredAt - a.acquiredAt)[0]
+  if (trip) {
+    const stops = Array.isArray(trip.payload.stops) ? trip.payload.stops as Array<Record<string, unknown>> : []
+    const lastStop = typeof stops[stops.length - 1]?.name === 'string' ? String(stops[stops.length - 1].name).trim() : ''
+    lines.push(`- 进行中的旅程：${trip.name.trim()}${lastStop ? `（最近到过：${lastStop}）` : ''}`)
+  }
+
+  if (lines.length === 0) return ''
+  return ['此刻的生活事实（来自衣柜 / 文化角 / 足迹，未列出的不要宣称）：', ...lines].join('\n')
+}
+
+export async function collectLifeAssetsSlice(roleId: string): Promise<{ slice: string }> {
+  await ensureStarterWardrobe(roleId)
+  await ensureStarterCulture(roleId)
+  await ensureStarterFootprints(roleId)
+  const assets = await listAssets(roleId)
+  return { slice: formatLifeAssetsSliceForPrompt(assets) }
+}
+
 /**
  * 背景：衣柜短标签与文化 / 家居 / 足迹正文共用更新入口，统一截为 24 字会造成静默数据丢失。
  * 设计意图：名称与 payload 走同一套规范化 helper，超限或类型错误拒绝整次更新，短标签保持兼容。

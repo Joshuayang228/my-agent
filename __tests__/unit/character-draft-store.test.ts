@@ -8,7 +8,7 @@ import { getCompanionAssetCatalog } from '../../electron/main/companion/asset-re
 const draftRoot = path.join(process.cwd(), '.agent-data', 'character-drafts')
 const universeRoot = path.join(process.cwd(), '.agent-data', 'universes')
 
-afterEach(async () => { await rm(draftRoot, { recursive: true, force: true }); await rm(universeRoot, { recursive: true, force: true }) })
+afterEach(async () => { await rm(draftRoot, { recursive: true, force: true }); await rm(path.join(universeRoot, 'test-world'), { recursive: true, force: true }); await rm(path.join(universeRoot, 'draft-world'), { recursive: true, force: true }); await rm(path.join(universeRoot, 'continuity-world'), { recursive: true, force: true }) })
 
 describe('人物体系草稿存储', () => {
   it('支持创建、补充分区和提交审阅，不直接发布生产人物', async () => {
