@@ -111,7 +111,7 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
     evidencePaths: ['__tests__/e2e/chat.test.ts', '__tests__/e2e/onboarding.test.ts', '__tests__/unit/workspace-backend-contract.test.ts', '__tests__/unit/workspace-foundation-control-audit.test.ts'],
     fixtureAssetPaths: ['src/assets/playground/moment-tea-by-window.jpg'],
     experienceParts: ['审阅', '浏览器', '文件', '终端', '侧边聊天'],
-    usesFoundation: ['developer.file-tree', 'developer.markdown', 'developer.diff-viewer', 'layout.resize-handle', 'behavior.tabs', 'behavior.input', 'behavior.icon-button', 'behavior.action-button'],
+    usesFoundation: ['developer.file-tree', 'developer.markdown', 'developer.diff-viewer', 'layout.resize-handle', 'behavior.tabs', 'behavior.input', 'behavior.select', 'behavior.icon-button', 'behavior.action-button'],
   }),
   experience({
     key: 'experience.debug',

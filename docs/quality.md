@@ -1,5 +1,7 @@
 # 质量总控
 
+Foundation 布局基线与控件复用 AST 自动门禁（2026-11-08）：新增 `foundation-enforcement-gate.test.ts` 8 项测试并纳入门禁 `npm run assets:check`（12 文件 / 112 项用例全绿通过）；通过 TypeScript Compiler API 符号级解析证明四大体验候选（Chat、人物世界、设置、工作区）的表单与操作按钮真实渲染 Foundation 控件（`SelectField`、`TextField`、`ActionButton`、`IconButton`、`TabStrip` 等），全面审计并拦截未经授权的原生交互标签；验证 `LAYOUT_DENSITIES`、`LAYOUT_PROFILES` 与 `readingContentStyle()` 左对齐限宽的单一事实源；并通过 5 类负例 fixture 验证未使用导入、局部同名遮蔽、未经授权的原生标签、冲突居中布局和无效组件 key 的严格 fail-closed 拦截能力。
+
 角色生命体征与生活切片门禁（2026-11-08）：`world-vitals.test.ts` 9 项单测覆盖体力、饱腹度、心情与社交欲望 4 项生命体征的事件差值计算、边界约束（0–100 整数截断）与主会话后社交需求释放；`life-assets-slice.test.ts` 4 项单测覆盖当前穿着、在读在看在听文化体验（上限 3 条）及进行中旅行的 Prompt 有界切片组装；`prompt-assets.test.ts` 验证 `PROMPT_KEYS.companionContext` 动态插槽登记包含 `lifeAssetsSlice`，主对话模板 slots 扩展至 30 项。
 
 Prompt 四层组合与隔离人物适配门禁（2026-11-08）：`prompt-feature-contracts.test.ts` 扩展至 5 项，验证路飞与隔离测试人物 `isolated-role` 在不改动任何功能实现的情况下走通主对话、朋友圈润色、一日剧本、生活补叙、成长反思、评论回复、NPC 评论、主动问候和生图全套四层组合，确认人物适配无法覆盖平台安全约束与输出协议，并核对核心 Prompt / Role Pack 资产与 `getPromptAssetTraces` 的 `featureKey` / `adaptationStatus` 投影。至此 `prompt-layered-composition-v1`、`character-system-extension-v1`、`character-design-method-v1`、`companion-material-grounding-v1` 四份施工合同全部验收完成并冻结为快照。

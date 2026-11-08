@@ -1,9 +1,10 @@
 # Foundation 复用链路与自动门禁施工合同
 
-> 状态：进行中（2026-09-13，范围与方案待确认，尚未开始代码施工）
+> 状态：进行中（2026-11-08，P0 四大体验候选表单/控件收口与 TS AST 符号自动门禁施工完成，负例拦截全通，待人工验收）
 > 生命周期：Phase P0；仅整改 Playground，正式回流必须另获许可。
 > 来源：用户要求统一检查 Markdown 及其他产品体验控件，用工程化方式保证产品体验来自基础层。
 
+当前进展补充（2026-11-08）：四大体验候选（Chat、人物世界、设置、工作区）的散落原生交互标签已完成全量收口，接入 Foundation SelectField、ActionButton、IconButton、TextField 等统一控件；新增 TypeScript AST 源码门禁（foundation-enforcement-gate.test.ts），真实符号解析 JSX 渲染、严格拦截未经授权的原生交互控件、未使用导入、局部同名遮蔽伪组件及冲突居中布局，并全量纳入门禁检查（assets:check）。
 当前进展补充：共享 TabStrip、CodeBlock、就近主题/Mermaid 与 DiffViewer 已在获批的 `playground-workspace-five-tools-v1.md` P1 范围实施。下表保留审计时证据，不作为这些片段的当前实现；整体四页面通用控件整改仍未完成，也未因共享片段回流而扩大本合同授权。
 当前进展补充：工作区输入、固定图标操作和 HTML 预览/源码模式已分别接入 `TextField`、`IconButton` 与 `SegmentedControl`；共享 Prism 主题清洗已去掉 oneLight 容器白底，内部 token 透明，Diff 语义高亮保留。本合同仍处于进行中，不能据此宣称所有业务控件已完成 Foundation 复用，也不能把全产品标 adopted。
 

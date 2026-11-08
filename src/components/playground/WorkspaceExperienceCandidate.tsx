@@ -6,6 +6,8 @@ import { MarkdownRenderer } from '../MarkdownRenderer'
 import { DiffViewer, DiffViewControls, type DiffViewMode } from '../foundation/DiffViewer'
 import { TabStrip } from '../foundation/TabStrip'
 import { IconButton } from '../foundation/IconButton'
+import { ActionButton } from '../foundation/ActionButton'
+import { SelectField } from '../foundation/SelectField'
 import { WorkspaceToolMenu } from '../foundation/WorkspaceToolMenu'
 import { TextField } from '../foundation/TextField'
 import teaImage from '../../assets/playground/moment-tea-by-window.jpg'
@@ -103,7 +105,7 @@ function ReviewSample({ scene }: { scene: string }) {
   const newText = file === 'theme.ts' ? after : '# 项目笔记\n\n整理资料，并核对页面。'
   return <>
     <div className="flex flex-wrap items-center gap-2 border-b p-3 text-[12px]" style={{ borderColor: 'var(--border-subtle)' }}>
-      {scene === '多文件' ? <select className="theme-input min-w-0 rounded border p-1" aria-label="审阅文件" value={file} onChange={(event) => setFile(event.target.value)}><option>theme.ts</option><option>notes.md</option></select> : <span>{file}</span>}
+      {scene === '多文件' ? <SelectField aria-label="审阅文件" value={file} onChange={(event) => setFile(event.target.value)} className="min-w-0 text-[12px]"><option>theme.ts</option><option>notes.md</option></SelectField> : <span>{file}</span>}
       <span className="ml-auto" style={{ color: 'var(--success)' }}>+{file === 'theme.ts' ? 2 : 1}</span><span style={{ color: 'var(--danger)' }}>−{file === 'theme.ts' ? 2 : 1}</span>
       <DiffViewControls mode={mode} canSplit onChange={setMode} />
     </div>
@@ -135,7 +137,7 @@ function BrowserSample({ scene }: { scene: string }) {
       <IconButton label="刷新页面" size={24} onClick={navigate}><RefreshCw size={14} /></IconButton>
     </form>
     {error && <p role="alert" className="px-3 py-2 text-[11px]" style={{ color: 'var(--danger)' }}>{error}</p>}
-    {state === '无样张' ? <p className="m-auto p-4 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>此地址没有本地页面样张。</p> : state === '加载中' ? <div className="m-auto flex items-center gap-2 text-[12px]" role="status"><LoaderCircle size={16} className="animate-spin" />正在加载页面</div> : state === '加载失败' ? <div className="m-auto space-y-3 text-center text-[12px]"><p>无法打开此页面</p><button type="button" onClick={() => setState('网页')} className="settings-option px-3 py-1.5">重新加载</button></div> : <iframe key={revision} title="浏览器网页样张" sandbox="" referrerPolicy="no-referrer" srcDoc={browserDocument} className="mx-auto min-h-0 w-full flex-1 border-0" style={{ maxWidth: scene === '窄屏网页' ? 320 : '100%' }} />}
+    {state === '无样张' ? <p className="m-auto p-4 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>此地址没有本地页面样张。</p> : state === '加载中' ? <div className="m-auto flex items-center gap-2 text-[12px]" role="status"><LoaderCircle size={16} className="animate-spin" />正在加载页面</div> : state === '加载失败' ? <div className="m-auto space-y-3 text-center text-[12px]"><p>无法打开此页面</p><ActionButton onClick={() => setState('网页')}>重新加载</ActionButton></div> : <iframe key={revision} title="浏览器网页样张" sandbox="" referrerPolicy="no-referrer" srcDoc={browserDocument} className="mx-auto min-h-0 w-full flex-1 border-0" style={{ maxWidth: scene === '窄屏网页' ? 320 : '100%' }} />}
   </>
 }
 
@@ -151,7 +153,7 @@ function WorkspaceChatShell() {
   const [messages, setMessages] = useState(['帮我看看 theme.ts 的间距调整。'])
   return <>
     <div className="min-h-0 flex-1 space-y-4 overflow-auto p-3 text-[12px] leading-6">{messages.map((message, index) => <p key={index} className="break-words">{message}</p>)}<p style={{ color: 'var(--text-muted)' }}>可以打开右侧审阅，查看修改前后的内容。</p></div>
-    <form className="flex items-end gap-1 border-t p-2" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); if (input.trim()) { setMessages((current) => [...current, input.trim()]); setInput('') } }}><TextField multiline aria-label="主对话样张消息" rows={3} className="min-w-0 flex-1 resize-none p-2 text-[12px]" placeholder="继续对话…" value={input} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setInput(event.target.value)} /><button type="submit" aria-label="发送主对话样张" title="发送主对话样张" disabled={!input.trim()} className="p-1 disabled:opacity-40"><ArrowUp size={14} /></button></form>
+    <form className="flex items-end gap-1 border-t p-2" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); if (input.trim()) { setMessages((current) => [...current, input.trim()]); setInput('') } }}><TextField multiline aria-label="主对话样张消息" rows={3} className="min-w-0 flex-1 resize-none p-2 text-[12px]" placeholder="继续对话…" value={input} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setInput(event.target.value)} /><IconButton type="submit" label="发送主对话样张" size={28} disabled={!input.trim()}><ArrowUp size={14} /></IconButton></form>
   </>
 }
 
@@ -170,9 +172,9 @@ function TerminalSample({ scene }: { scene: string }) {
     setInput('')
   }
   return <>
-    <div className="flex items-center gap-2 border-b p-2 text-[11px]" style={{ borderColor: 'var(--border-subtle)' }}>{(scene === '多终端' ? ['1', '2'] : ['1']).map((id) => <button key={id} type="button" className="settings-option px-2 py-1" aria-pressed={active === id} onClick={() => setActive(id)} data-selected={active === id ? 'true' : undefined}>终端 {id}</button>)}{running && <button className="ml-auto p-1" type="button" aria-label="停止运行" title="停止运行" onClick={() => { setRunning(false); setOutput((current) => ({ ...current, [active]: current[active] + '\n^C\n已停止' })) }}><Square size={13} /></button>}</div>
+    <div data-playground-switcher role="tablist" aria-label="终端切换" className="flex items-center gap-2 border-b p-2 text-[11px]" style={{ borderColor: 'var(--border-subtle)' }}>{(scene === '多终端' ? ['1', '2'] : ['1']).map((id) => <button key={id} type="button" className="settings-option px-2 py-1" aria-pressed={active === id} onClick={() => setActive(id)} data-selected={active === id ? 'true' : undefined}>终端 {id}</button>)}{running && <IconButton className="ml-auto" size={24} label="停止运行" onClick={() => { setRunning(false); setOutput((current) => ({ ...current, [active]: current[active] + '\n^C\n已停止' })) }}><Square size={13} /></IconButton>}</div>
     <pre className={`min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block} font-mono text-[12px] leading-6`} data-testid="workspace-terminal-output">{output[active]}{running && <span className="animate-pulse"> ▌</span>}</pre>
-    <form className="flex items-center gap-2 border-t p-3" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); submit() }}><span>$</span><TextField aria-label="终端样张命令" placeholder="help" className="min-w-0 flex-1 text-[12px]" value={input} disabled={running} onChange={(event: ChangeEvent<HTMLInputElement>) => setInput(event.target.value)} /><button type="submit" disabled={running || !input.trim()} title="运行样张命令" aria-label="运行样张命令" className="p-1 disabled:opacity-40"><ArrowUp size={14} /></button></form>
+    <form className="flex items-center gap-2 border-t p-3" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); submit() }}><span>$</span><TextField aria-label="终端样张命令" placeholder="help" className="min-w-0 flex-1 text-[12px]" value={input} disabled={running} onChange={(event: ChangeEvent<HTMLInputElement>) => setInput(event.target.value)} /><IconButton type="submit" disabled={running || !input.trim()} label="运行样张命令" size={24}><ArrowUp size={14} /></IconButton></form>
   </>
 }
 
@@ -190,9 +192,9 @@ function SideChatSample({ scene }: { scene: string }) {
       {messages.length === 0 && <p className="py-12 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>还没有消息</p>}
       {messages.map((message, index) => <div key={index} className={message.role === 'user' ? 'ml-auto max-w-[90%] rounded-lg px-3 py-2 text-[12px]' : 'text-[12px] leading-6'} style={{ background: message.role === 'user' ? 'var(--bg-secondary)' : undefined }}><MarkdownRenderer content={message.text} /></div>)}
       {state === '生成中' && <span className="inline-flex items-center gap-2 text-[11px]" role="status"><LoaderCircle size={13} className="animate-spin" />正在生成</span>}
-      {state === '发送失败' && <div className="flex items-center gap-3 text-[11px]"><span style={{ color: 'var(--danger)' }}>消息未发送</span><button type="button" onClick={() => { setMessages((current) => [...current, { role: 'assistant', text: '样张回复：这处变化影响布局留白。' }]); setState('对话') }}>重试</button></div>}
+      {state === '发送失败' && <div className="flex items-center gap-3 text-[11px]"><span style={{ color: 'var(--danger)' }}>消息未发送</span><ActionButton onClick={() => { setMessages((current) => [...current, { role: 'assistant', text: '样张回复：这处变化影响布局留白。' }]); setState('对话') }}>重试</ActionButton></div>}
     </div>
-    <form className="flex items-end gap-2 border-t p-3" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); send() }}><TextField multiline aria-label="侧边聊天消息" rows={2} placeholder="继续聊聊…" className="min-w-0 flex-1 resize-none p-2 text-[12px]" value={input} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setInput(event.target.value)} />{state === '生成中' ? <button type="button" aria-label="停止生成" title="停止生成" className="p-2" onClick={() => setState('对话')}><Square size={15} /></button> : <button type="submit" aria-label="发送消息" title="发送消息" disabled={!input.trim()} className="p-2 disabled:opacity-40"><ArrowUp size={16} /></button>}</form>
+    <form className="flex items-end gap-2 border-t p-3" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event) => { event.preventDefault(); send() }}><TextField multiline aria-label="侧边聊天消息" rows={2} placeholder="继续聊聊…" className="min-w-0 flex-1 resize-none p-2 text-[12px]" value={input} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setInput(event.target.value)} />{state === '生成中' ? <IconButton label="停止生成" size={32} onClick={() => setState('对话')}><Square size={15} /></IconButton> : <IconButton type="submit" label="发送消息" size={32} disabled={!input.trim()}><ArrowUp size={16} /></IconButton>}</form>
   </>
 }
 

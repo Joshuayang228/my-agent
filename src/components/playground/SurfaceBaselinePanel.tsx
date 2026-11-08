@@ -297,8 +297,8 @@ function ChatTaskJourney({ journey, onJourneyChange }: { journey: ChatJourney; o
         <div className="flex items-center gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}><CircleAlert size={15} style={{ color: 'var(--danger)' }} />这次还没有完成</div>
         <p className="mt-2 text-[12px] leading-5" style={{ color: 'var(--text-secondary)' }}>我没能读取目标材料，因此没有修改任何内容。你可以重试，或者先继续聊聊再决定。</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => onJourneyChange('work')} className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[10px] transition" style={{ color: 'var(--accent-fg)', background: 'var(--accent-subtle)' }} data-testid="chat-surface-retry-task"><RotateCcw size={11} />重试</button>
-          <button type="button" onClick={() => onJourneyChange('conversation')} className="rounded-md px-2.5 py-1.5 text-[10px] transition" style={{ color: 'var(--text-muted)' }} data-testid="chat-surface-return-to-conversation">回到对话</button>
+          <ActionButton tone="accent" onClick={() => onJourneyChange('work')} data-testid="chat-surface-retry-task"><RotateCcw size={11} className="mr-1 inline" />重试</ActionButton>
+          <ActionButton variant="plain" onClick={() => onJourneyChange('conversation')} data-testid="chat-surface-return-to-conversation">回到对话</ActionButton>
         </div>
       </div>
     )
@@ -508,7 +508,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                 <div className="flex w-full max-w-md flex-col items-stretch gap-3" data-testid="chat-surface-confirmation">
                   <p className="px-1 text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}>这是应用内全局确认层，不属于 Chat 消息流；确认后任务才会继续。</p>
                   <PermissionConfirmCard toolName="file_write" args={{ path: 'src/components/', operation: '整理目录结构' }} onAllow={() => setJourney('work')} onDeny={() => setJourney('failed')} />
-                  <button type="button" onClick={() => setJourney('conversation')} className="self-start rounded-md px-2.5 py-1.5 text-[10px] transition" style={{ color: 'var(--text-muted)' }} data-testid="chat-surface-return-to-conversation">暂时不处理，回到对话</button>
+                  <ActionButton variant="plain" onClick={() => setJourney('conversation')} data-testid="chat-surface-return-to-conversation">暂时不处理，回到对话</ActionButton>
                 </div>
               </div>
             )}
@@ -806,13 +806,13 @@ function MemorySurface({ onNavigate, onOpenMemorySettings }: { onNavigate?: (tab
       <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>状态样张</span>
       <PlaygroundStateSwitcher ariaLabel="记忆页面场景" items={scenarios} value={scenario}
         onChange={(id) => { setScenario(id); setScenarioGroup(group) }} />
-      <button type="button" role="switch" aria-checked={debugEnabled} aria-label="Debug 模式" data-testid="memory-debug-mode"
+      <ActionButton variant={debugEnabled ? 'default' : 'plain'} role="switch" aria-checked={debugEnabled} aria-label="Debug 模式" data-testid="memory-debug-mode"
         onClick={() => { setDebugEnabled(!debugEnabled); setShowSource(false) }}
-        className="ml-auto rounded-md px-2 py-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>Debug {debugEnabled ? '开' : '关'}</button>
-      {debugEnabled && <button type="button" role="switch" aria-checked={showSource} aria-label="查看来源" data-testid="memory-show-source"
-        onClick={() => setShowSource(!showSource)} className="rounded-md px-2 py-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>查看来源</button>}
-      {onNavigate && <button type="button" data-testid="memory-open-settings" className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px]"
-        style={{ color: 'var(--text-muted)' }} onClick={() => { onNavigate('settings'); onOpenMemorySettings?.() }}>去设置 <ArrowRight size={11} /></button>}
+        className="ml-auto">Debug {debugEnabled ? '开' : '关'}</ActionButton>
+      {debugEnabled && <ActionButton variant={showSource ? 'default' : 'plain'} role="switch" aria-checked={showSource} aria-label="查看来源" data-testid="memory-show-source"
+        onClick={() => setShowSource(!showSource)}>查看来源</ActionButton>}
+      {onNavigate && <ActionButton variant="plain" data-testid="memory-open-settings"
+        onClick={() => { onNavigate('settings'); onOpenMemorySettings?.() }}>去设置 <ArrowRight size={11} className="ml-1 inline" /></ActionButton>}
     </div></PlaygroundCandidateControls>
     <div className="playground-memory-candidate" data-testid="memory-surface-candidate">
       <MemoryPanel key={scenario} onClose={noop} previewMemories={memories} previewEvidence={MEMORY_PREVIEW_EVIDENCE}

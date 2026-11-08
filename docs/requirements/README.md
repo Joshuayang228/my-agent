@@ -22,14 +22,14 @@
 
 伙伴时间控件：[companion-quiet-time-controls-v1.md](./companion-quiet-time-controls-v1.md)，Foundation 整点时间选择已回流到正式与 Playground 伙伴设置；正式默认、存量偏好数据与通知调度不变。
 
-布局基线：[foundation-layout-boundaries-v1.md](./foundation-layout-boundaries-v1.md)，布局与间距、透明度 P0 候选施工，正式回流未授权。
+布局基线：[foundation-layout-boundaries-v1.md](./foundation-layout-boundaries-v1.md)，P0 布局、间距、透明度候选施工及防覆盖 AST 门禁完成，正式回流未授权。
 
 足迹设计：[footprints-travel-v1.md](./footprints-travel-v1.md)，旅行粒度与产品边界已确认；数据 / 交互方案待确认，正式回流未授权。
 
 | 文档 | 说明 |
 |------|------|
 | [prompt-coverage-and-review-v2.md](./prompt-coverage-and-review-v2.md) | 全量方案已确认：推进用途 / 消费者门禁、集中展示、缺失生成闭环和人物扩展；新增 UI 待候选验收后统一回流 |
-| [foundation-reuse-enforcement-v1.md](./foundation-reuse-enforcement-v1.md) | P0 方案待确认：四个产品体验的真实基础复用、Markdown / Diff / 控件收口与源码自动门禁 |
+| [foundation-reuse-enforcement-v1.md](./foundation-reuse-enforcement-v1.md) | P0 候选施工完成：四大体验候选基础控件全量收口与 TS AST 符号自动门禁通过，待人工验收 |
 | [playground-state-switchers-v1.md](./playground-state-switchers-v1.md) | P0：统一 Playground 场景、状态与宽度控制器，采用 MCP 独立选项样式 |
 | [playground-page-baseline-polish-v1.md](./playground-page-baseline-polish-v1.md) | P0 施工：Sidebar 底栏、Toast、Right Dock、人物世界与记忆页面样张统一精修 |
 | [playground-navigation-world-polish-v1.md](./playground-navigation-world-polish-v1.md) | P0 施工：一级导航、Right Dock 四 Tab、朋友圈社交流与记忆四色语义 |

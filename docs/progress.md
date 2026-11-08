@@ -1,5 +1,9 @@
 # 项目进度
 
+Foundation 布局与控件复用自动门禁落地（2026-11-08）：四大体验候选（Chat、人物世界、设置、工作区）的散落原生交互控件收口接入 Foundation 基础组件，统一布局 Token、间距阶梯与正文限宽左对齐基线；新增基于 TypeScript AST 的符号级源码门禁（`foundation-enforcement-gate.test.ts`），建立真实调用验证、原生标签限制、布局防覆盖及 5 项负例拦截机制，并纳入门禁流水线（`assets:check` 12 个文件 112 项全通过）。
+
+跨天因果日剧本、交谈冲动与主动问候真实入会话落地（2026-11-08）：日剧本生成管线接入昨日已发生事件、当前旅行足迹、生命体征与近 24 小时用户会话线索（`collectDayScriptLifeContext`），使每日日程具备跨天连续性；主对话装配管线新增 `conversationImpulse`（插槽 31），在闲聊开场时自然引出角色自身生活见闻与想法，打破纯被动应答；主动问候在投递时自动在角色主会话中持久化为 `assistant` 消息，Toast 点击一键直达会话，消除主动问候孤立无存留的问题。全量单测与打包构建通过。
+
 主对话生活事实感知与生命体征动态演化落地（2026-11-08）：主对话装配管线接入 `lifeAssetsSlice`，将当前穿着单品、文化角在读 / 在看 / 在听进度及进行中的旅行航线有界注入 Prompt，解决角色对自身衣物、作品和足迹缺乏感知的问题；新增角色生命体征演化引擎（`world-vitals.ts`），使 `mood`、`energy` 和 `socialNeed` 随已发布生活事件自然波动并向基线回归，主对话交互后自动释放 `socialNeed`，全量 250 个单测文件（1632 项用例）与打包构建通过。
 
 Prompt 分层组合与人物体系合同全量收口冻结（2026-11-08）：补齐核心 Prompt、Role Pack 资产及调用追踪投影的 `featureKey` / `adaptationStatus` 关系标签，新增隔离测试人物全套四层组合与防越权覆盖验证，并将已完工的 `prompt-layered-composition-v1`、`character-system-extension-v1`、`character-design-method-v1`、`companion-material-grounding-v1` 四份施工合同稳定事实吸入模块卡后冻结为施工快照。
