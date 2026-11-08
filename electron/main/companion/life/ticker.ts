@@ -11,6 +11,7 @@ import { createLogger } from '../../utils/logger'
 import { tickActiveRole } from './engine'
 import { maybeProactiveGreeting } from './proactive-greeting'
 import { checkAndProgressAbsorbedResonances } from './chat-resonance'
+import { triggerSpontaneousImpulse } from './spontaneous-impulse'
 import * as store from './store'
 
 const log = createLogger('LifeTicker')
@@ -64,6 +65,9 @@ export function startLifeTicker(defaultIntervalMs = DEFAULT_INTERVAL_MS): void {
         })
         await checkAndProgressAbsorbedResonances(r.roleId, now).catch((err) => {
           log.warn('checkAndProgressAbsorbedResonances failed', { error: String(err) })
+        })
+        await triggerSpontaneousImpulse(r.roleId, now).catch((err) => {
+          log.warn('triggerSpontaneousImpulse failed', { error: String(err) })
         })
       }
     } catch (err) {

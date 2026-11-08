@@ -1,5 +1,7 @@
 # 项目进度
 
+突发生活意图与主动找聊落地（2026-11-08）：角色由纯被动响应升级为具备突发即兴搭话冲动的真人伙伴（`spontaneous-impulse.ts`）；在生活推进中结合社交渴望度（`socialNeed >= 70`）与活动，经每日频次（2 次）、冷却（3 小时）及勿扰时段门控，由 `compileSpontaneousImpulseRequest`（或规则保底）生成生动的第一人称搭话消息，直接写入该角色的主会话中并向窗口广播 `companion:spontaneous-impulse`；前端 `App.tsx` 响应桌面通知，点击一键直达会话，若当前正处于该会话则即时推入消息。新增 `spontaneous-impulse.test.ts` 2 项单测，门禁全绿。
+
 文化心愿体验闭环与主动反馈落地（2026-11-08）：文化心愿在被日剧本吸收并满足体验时长后，自动触发 `completeCultureResonance`，通过受控小模型配方（`compileCultureReviewRequest`）以第一人称口吻生成专属评语（`reviewText`）与对话引子（`chatOpener`）；文化资产推进为 `finished` 并将感悟追加进 `readingNotes`；主会话组装器在 `formatConversationImpulseForPrompt` 中注入 `【重要回访心愿反馈】`，角色在后续对话中会主动向用户倾诉体验感悟并在送达后标记已投递（`markResonanceFeedbackDelivered`）；IPC 广播 `companion:resonance-completed`，桌面端支持通知横幅点击一键直达文化角。新增 `culture-wish-review.test.ts` 4 项单测，门禁全绿。
 
 Foundation 布局规范与控件复用链路获批回流（2026-11-08）：Playground 展厅候选与四大体验基础引用链路经用户在桌面真实环境（Electron）中完整走查验收，明确批准回流（Phase P1）；共享 PageHeader 扩展 topMeta 接口，将长文件位置/源码路径移至首行标题右侧充分利用空白空间；第二行基础引用胶囊全宽展开并引入 .no-scrollbar 强制清除 WebKit 滚动条轨道与左右箭头按钮，保留滚轮与触屏直觉直接横滚；TS AST 符号解析门禁（foundation-enforcement-gate.test.ts）全量闭环。

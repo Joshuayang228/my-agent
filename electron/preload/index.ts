@@ -442,6 +442,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('companion:resonance-completed', handler)
       return () => ipcRenderer.removeListener('companion:resonance-completed', handler)
     },
+    onSpontaneousImpulse: (
+      callback: (payload: import('../../src/shared/types').SpontaneousImpulseEvent) => void,
+    ) => {
+      const handler = (
+        _e: Electron.IpcRendererEvent,
+        payload: import('../../src/shared/types').SpontaneousImpulseEvent,
+      ) => callback(payload)
+      ipcRenderer.on('companion:spontaneous-impulse', handler)
+      return () => ipcRenderer.removeListener('companion:spontaneous-impulse', handler)
+    },
   },
 
   mcp: {

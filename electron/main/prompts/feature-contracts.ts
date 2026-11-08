@@ -152,6 +152,12 @@ export const PROMPT_FEATURE_CONTRACTS = Object.freeze({
     overrideBoundary: ['角色性格评价口吻与趣味偏好'], output: '只输出 JSON 对象，包含 reviewText 角色第一人称感想、chatOpener 主动分享话头、shouldPostMoment 与 momentText。',
     fallback: '模型不可用或解析失败时使用基于人设的确定性短评，不阻塞流程。', consumers: ['electron/main/companion/life/chat-resonance.ts'],
   }),
+  spontaneousImpulse: contract({
+    key: 'feature:spontaneous-impulse', name: '突发生活意图与主动找聊', domain: 'life', purpose: '角色在特定生活状态、空间活动或社交欲望高涨时，自主生成极具真人感的第一人称突发主动搭话。',
+    staticInputs: ['安全规则', '第一人称真实生活搭话协议', 'JSON输出约束'], runtimeInputs: ['角色公开人设与口吻', '当前生活活动或场景', '当前生命体征（心情/饱腹度/社交渴望）'],
+    overrideBoundary: ['角色生活即兴想法与口头禅'], output: '只输出 JSON 对象，包含 impulseText 突发主动找聊文本、contextHint 背景提示与 topicKind 分类。',
+    fallback: '模型不可用或解析失败时使用基于角色当前活动与体征的确定性搭话，不阻塞流程。', consumers: ['electron/main/companion/life/spontaneous-impulse.ts'],
+  }),
 } as const)
 
 export type PromptFeatureContractKey = keyof typeof PROMPT_FEATURE_CONTRACTS

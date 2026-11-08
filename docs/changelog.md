@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-08：突发生活意图与主动找聊（Spontaneous Impulse & Proactive Conversation Outreach）落地：角色在生活世界推进中结合社交渴望度（`socialNeed >= 70`）或特定生活活动，受每日上限 2 次、冷却 3 小时与夜间勿扰约束，由受控配方 `compileSpontaneousImpulseRequest`（或规则保底）生成生动的第一人称即兴搭话消息；主动搭话直接作为 `assistant` 消息写入该角色的主会话，并广播 `companion:spontaneous-impulse`；桌面端 Toast 提醒点击可一键直达会话，若当前正处于该会话则即时推入新消息，提供真实伙伴突发找聊的活人感陪伴。
+
 2026-11-08：文化心愿体验闭环与主动反馈（Culture Progression & Review Loop）落地：文化心愿在被日剧本吸收并满足体验时长后，自动触发 `completeCultureResonance`，通过受控小模型配方（`compileCultureReviewRequest`）以第一人称口吻生成专属评语（`reviewText`）与对话引子（`chatOpener`）；文化资产推进为 `finished` 并将感悟追加进 `readingNotes`；主会话组装器在 `formatConversationImpulseForPrompt` 中注入 `【重要回访心愿反馈】`，角色在后续对话中会主动向用户倾诉体验感悟并在送达后标记已投递（`markResonanceFeedbackDelivered`）；IPC 广播 `companion:resonance-completed`，桌面端支持通知横幅点击一键直达文化角。
 
 2026-11-08：Foundation 布局规范与控件复用链路获批回流（Phase P1）：共享 PageHeader 扩展 topMeta 接口将长文件路径移至首行标题右侧，第二行基础引用胶囊全宽展开并引入 .no-scrollbar 隐藏滚动条，保留滚轮直接横向平滑滚动；TS AST 源码门禁全面生效。

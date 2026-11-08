@@ -257,6 +257,14 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent({ trigger: 'script-absorption-completed', promptKey: PROMPT_KEYS.companionCultureReview, feedbackTarget: 'conversation-impulse' }),
     dependencies: [PROMPT_KEYS.companionCultureReview],
+  }), makeCompanionAsset({
+    key: 'companion:policy:spontaneous-impulse', name: '突发生活意图与主动找聊策略',
+    purpose: '角色生命状态高涨或生活见闻驱动下自主向用户主动搭话',
+    role: 'platform', description: '基于社交欲望/精力体征与生活活动产生即兴找聊冲动，受每日频次（2次）与冷却（3小时）约束，主动写入角色主会话并广播桌面提醒。',
+    source: 'electron/main/companion/life/spontaneous-impulse.ts#triggerSpontaneousImpulse', version: 'impulse-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ trigger: 'life-ticker-impulse', dailyLimit: 2, cooldownMs: 10_800_000, promptKey: PROMPT_KEYS.companionSpontaneousImpulse }),
+    dependencies: [PROMPT_KEYS.companionSpontaneousImpulse],
   })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {

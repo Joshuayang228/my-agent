@@ -5,6 +5,7 @@
 - 意向抽取与自动播种：由 `compileChatResonanceRequest` 签名签发并由辅助模型分析提取，文化类意向自动调用 `createAsset` 在文化角创建 `planned`/`queued` 状态的待体验物什，意向全量存入 SQLite `companion_life_resonances`；
 - 日剧本因果闭环：`script-generator.ts#collectDayScriptLifeContext` 读取活跃心愿作为次日剧本输入，并更新状态为 `absorbed_in_script`，让聊天中提到的话题真正出现在角色次日日程中；
 - 文化心愿体验闭环与主动反馈：`ticker.ts` 动态生活推进或定时轮询时调用 `checkAndProgressAbsorbedResonances`，通过 `compileCultureReviewRequest` 生成第一人称评语与下次对话引子（`chatOpener`），文化资产推进至 `finished` 并将感悟追加至 `readingNotes`；待反馈引子注入 `formatConversationImpulseForPrompt`（插槽 31），主对话送达后调用 `markResonanceFeedbackDelivered` 标记投递，并广播 `companion:resonance-completed` 通知；
+- 突发生活意图与主动找聊（Spontaneous Impulse）：`ticker.ts` 结合体征（`socialNeed >= 70` 或 `energy >= 80`）与活动，经 `decideSpontaneousImpulse` 规则门控（每日最多 2 次、冷却 3 小时、避开勿扰时段），通过 `compileSpontaneousImpulseRequest` 生成即兴搭话消息；主动消息直接写入角色主会话（`sessionKind === 'main'`），并广播 `companion:spontaneous-impulse` 通知，前端支持 Toast 一键直达会话与即时无感渲染；
 - 实时通知与跳转：心愿入库后通过 `companion:life-resonance-created` 广播给渲染进程，前端 Toast 提供一键跳转文化角查看。
 
 朋友圈回复互动与人物/NPC 自主回复决策架构（2026-11-08）：

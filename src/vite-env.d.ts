@@ -392,6 +392,9 @@ declare global {
         onResonanceCompleted: (
           callback: (payload: import('./shared/types').CompanionResonanceCompletedEvent) => void,
         ) => () => void
+        onSpontaneousImpulse: (
+          callback: (payload: import('./shared/types').SpontaneousImpulseEvent) => void,
+        ) => () => void
       }
       mcp: {
         connect: (config: import('./shared/types').McpServerConfig) => Promise<{ success: boolean; toolCount?: number; error?: string }>

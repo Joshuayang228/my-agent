@@ -1351,3 +1351,28 @@ export interface CompanionResonanceCompletedEvent {
   feedbackText: string
   message: string
 }
+
+export type SpontaneousImpulseTopicKind = 'activity' | 'vitals' | 'casual' | 'adventure'
+
+export interface CompanionSpontaneousImpulseRecord {
+  id: string
+  roleId: string
+  sessionId: string
+  messageId: string
+  impulseText: string
+  topicKind: SpontaneousImpulseTopicKind
+  contextHint: string
+  createdAt: number
+}
+
+export interface SpontaneousImpulseEvent {
+  roleId: string
+  sessionId: string
+  messageId: string
+  impulseText: string
+  topicKind: SpontaneousImpulseTopicKind
+  contextHint: string
+  toastMessage: string
+  timestamp: number
+}
+

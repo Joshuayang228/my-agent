@@ -1,5 +1,7 @@
 # 质量总控
 
+突发生活意图与主动找聊门禁（2026-11-08）：`spontaneous-impulse.test.ts` 2 项测试覆盖 `decideSpontaneousImpulse` 规则门控（夜间勿扰、每日上限 2 次、冷却 3 小时、低表达欲拦截与高表达欲放行）、消息直接落盘进角色主会话、`companion:spontaneous-impulse` 事件窗口广播以及历史查询；`prompt-feature-contracts.test.ts` 同步扩展至 18 个核心功能合同（含 `spontaneousImpulse`）。
+
 文化心愿体验闭环与主动反馈门禁（2026-11-08）：`culture-wish-review.test.ts` 4 项测试覆盖文化心愿体验完成时更新资产状态为 finished 并追加角色第一人称感悟笔记、通过受控配方生成专属评语与下次对话引子、待反馈引子通过 `getPendingResonanceFeedback` 查询并在送达后标记已投递、`formatConversationImpulseForPrompt` 注入 `【重要回访心愿反馈】` 倾向，以及后台调度超时自动推进已吸收心愿触发闭环；`prompt-feature-contracts.test.ts` 同步扩展至 17 个核心功能合同（含 `cultureReview`）。
 
 Foundation 双层页头元信息与无条直接横滚回流门禁（2026-11-08）：Playground 展厅候选与四大体验基础引用链路经用户在桌面真实环境中完整走查验收，明确批准回流（P1）；共享 PageHeader 扩展 topMeta 接口，将长文件位置/源码路径移至首行标题右侧充分利用空白空间；第二行基础引用胶囊全宽展开并引入 .no-scrollbar 强制清除 WebKit 滚动条轨道与左右箭头按钮，保留滚轮与触屏直觉直接横滚；TS AST 符号解析门禁（foundation-enforcement-gate.test.ts）闭环生效。

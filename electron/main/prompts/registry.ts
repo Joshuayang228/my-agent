@@ -3,6 +3,7 @@ import { buildMomentCommentPrompt } from './moment-comment'
 import { buildMomentReplyPrompt } from './moment-reply'
 import { buildChatResonancePrompt } from './chat-resonance'
 import { buildCultureReviewPrompt } from './culture-review'
+import { buildSpontaneousImpulsePrompt } from './spontaneous-impulse'
 import { buildProactiveGreetingPrompt } from './proactive-greeting'
 import { formatRoleAppearanceForImagePrompt } from '../companion/identity/profile'
 import { buildImageGenerationPrompt } from './image-generation'
@@ -247,6 +248,34 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
       { name: 'cultureType', source: '文化分类', lifecycle: '作品体验完成时' },
       { name: 'userQuote', source: '用户推荐原文', lifecycle: '作品体验完成时' },
       { name: 'userReason', source: '用户推荐理由', lifecycle: '作品体验完成时' },
+    ],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.companionSpontaneousImpulse,
+    domain: 'life', name: '突发生活意图与主动找聊', category: 'companion', role: 'companion-life',
+    featureKey: PROMPT_FEATURE_CONTRACTS.spontaneousImpulse.key, adaptationStatus: 'adapted',
+    purpose: '当角色产生表达冲动或特定生活状态时，自主生成第一人称突发主动搭话消息',
+    desc: '角色在生活活动、体征变化或即兴想法驱动下，像真人朋友一样在即时会话中主动找用户搭话。',
+    sourcePath: 'electron/main/prompts/spontaneous-impulse.ts#buildSpontaneousImpulsePrompt',
+    definitions: [
+      'electron/main/prompts/spontaneous-impulse.ts#buildSpontaneousImpulsePrompt',
+      'electron/main/prompts/registered-request.ts#compileSpontaneousImpulseRequest',
+    ],
+    template: buildSpontaneousImpulsePrompt({
+      protagonistName: '{{protagonistName}}',
+      protagonistBrief: '{{protagonistBrief}}',
+      currentActivity: '{{currentActivity}}',
+      currentLocation: '{{currentLocation}}',
+      vitalsSummary: '{{vitalsSummary}}',
+      topicKind: 'casual',
+    }),
+    slots: [
+      { name: 'protagonistName', source: '当前主角姓名', lifecycle: '突发意图产生时' },
+      { name: 'protagonistBrief', source: '当前主角公开简介与性格', lifecycle: '突发意图产生时' },
+      { name: 'currentActivity', source: '当前进行中的生活活动', lifecycle: '突发意图产生时' },
+      { name: 'currentLocation', source: '当前所在空间或地点', lifecycle: '突发意图产生时' },
+      { name: 'vitalsSummary', source: '当前生命体征简况', lifecycle: '突发意图产生时' },
+      { name: 'topicKind', source: '话题分类', lifecycle: '突发意图产生时' },
     ],
   }),
   dynamicAsset({

@@ -4,6 +4,7 @@ import { buildMomentReplyPrompt, type MomentReplyInput } from './moment-reply'
 import { buildProactiveGreetingPrompt, type ProactiveGreetingInput } from './proactive-greeting'
 import { buildChatResonancePrompt, type ChatResonanceInput } from './chat-resonance'
 import { buildCultureReviewPrompt, type CultureReviewInput } from './culture-review'
+import { buildSpontaneousImpulsePrompt, type SpontaneousImpulseInput } from './spontaneous-impulse'
 import { buildImageGenerationPrompt } from './image-generation'
 /**
  * 背景：手填资产 key 无法证明正文来自登记的生产定义。
@@ -262,4 +263,8 @@ export function compileChatResonanceRequest(input: ChatResonanceInput): Register
 
 export function compileCultureReviewRequest(input: CultureReviewInput): RegisteredModelRequest {
   return signRequest([{ role: 'user', content: buildCultureReviewPrompt(input) }], [PROMPT_KEYS.companionCultureReview], ['culture-review'])
+}
+
+export function compileSpontaneousImpulseRequest(input: SpontaneousImpulseInput): RegisteredModelRequest {
+  return signRequest([{ role: 'user', content: buildSpontaneousImpulsePrompt(input) }], [PROMPT_KEYS.companionSpontaneousImpulse], ['spontaneous-impulse'])
 }

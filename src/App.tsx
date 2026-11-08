@@ -471,6 +471,23 @@ function App() {
         }
       }
     })
+    const unsubSpontaneousImpulse = window.electronAPI.companion.onSpontaneousImpulse?.((payload) => {
+      if (payload.toastMessage) {
+        toast(payload.toastMessage, 'info', {
+          onClick: () => {
+            if (payload.sessionId) {
+              setActiveView('chat')
+              void switchSession(payload.sessionId)
+            }
+          },
+        })
+      }
+      if (payload.sessionId && activeSessionId === payload.sessionId) {
+        void window.electronAPI.session.get(payload.sessionId).then((s) => {
+          if (s) setMessages(s.messages)
+        })
+      }
+    })
     return () => {
       unsub?.()
       unsubMilestone?.()
@@ -479,6 +496,7 @@ function App() {
       unsubLifeResonance?.()
       unsubResonanceCompleted?.()
       unsubGreeting?.()
+      unsubSpontaneousImpulse?.()
     }
   }, [toast])
 
