@@ -1,5 +1,10 @@
 # 系统架构
 
+日剧本因果流与主动问候入会话架构（2026-11-08）：
+- 跨天因果日剧本：`script-generator.ts` 聚合前日已发布事件、当前旅行足迹、生命体征与近 24 小时主会话用户诉求，注入辅助模型日剧本规划提示词，确保日程编排具备真实因果连续性；
+- 主对话交谈冲动：`orchestrator.ts` 根据角色生活见闻与社交体征萃取 `conversationImpulse` 并经 `AgentRuntime` 注入主对话模板（插槽 31），实现闲聊场景下角色自然引出自身生活叙事；
+- 主动问候入会话：`proactive-greeting.ts` 在投递通知时调用 `session-store.ts` 的 `ensureMainSessionForRole`，将问候文案持久化为角色专属主会话的 `assistant` 消息；事件载荷携带 `sessionId`，前端 Toast 触发一键导航直达会话。
+
 生活体征与切片装配架构（2026-11-08）：主对话装配管线由 `AgentRuntime` 读取 `companion_life_assets`（穿着、在读在看在听文化活动）及 `world_json` 中的进行中旅程，通过 `formatLifeAssetsSliceForPrompt` 有界切片注入 `situation.lifeAssetsSlice`；对话流式响应完成并在主进程安全落地后，调用 `settleVitalsAfterChat` 结算角色体力消耗与社交满足度，更新至 `companion_role_state`，与朋友角色的召唤会话不产生主角体征结算。
 
 出厂静态视觉备份边界（2026-11-07）：`ipc/data-export.ts` 通过 `companion/life/assets.ts` 的 `isStarterVisualImage` 识别与 Role Pack `visualPath` 摘要一致的出厂静态图片，导出 JSON 时仅保留 `visualPath` 而不打包进 `generatedImageMedia`；导入时通过 `restoreStarterVisualPayload` 从本地 Role Pack 重新物化受控图片引用，用户重新生成的资产配图仍走完整 base64 媒体备份与恢复链路。

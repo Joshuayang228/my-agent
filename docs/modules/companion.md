@@ -83,6 +83,17 @@ Chat 工具入口复核：普通 Chat 注册全部内置工具；人物体系 Sk
   - 5 分钟心跳推进并发布生活事件时，以 `world.updatedAt` 为水位线，按事件活动内容结算生命体征（午睡小憩恢复精力、大宴会大烤肉涨心情并消耗精力、普通日常微耗精力并累加社交渴望），并向基准值自然回归，避免数值崩塌或长期死值。
   - 用户与主角主会话完成一轮交互后，触发 `settleVitalsAfterChat` 释放社交渴望（`socialNeed` 回落至健康区间并微升心情），且不改变结算水位线，实现「有人陪聊后得到满足」的自然呼吸感。
 
+## 已落地能力：跨天因果日剧本、交谈冲动与主动问候入会话
+
+- **跨天因果日剧本生成**：
+  - 日剧本规划（`script-generator.ts#generateDayScriptViaLlm`）在提示词（`buildLlmPrompt`）中接入 `lifeContext`（近期生活与现实连续性线索）：包含前一日已发布生活事件、当前未完结的旅行路线与最新站点、当前生命体征（心情/精力/社交欲望），以及近 24 小时内用户在主会话中留下的聊天话题与诉求（`listRecentUserMessagesForRole`），使每日生活安排具备承上启下的因果连续性。
+- **主对话交谈冲动（Conversation Impulse）**：
+  - 主对话装配管线（`orchestrator.ts#loadRoleAssembleInput`）基于近期生活事件、旅行见闻、未决话题与高社交渴望，有界萃取一条角色自身的「交谈冲动」（`conversationImpulse`，插槽 31）；
+  - 当本轮对话属于用户随口问候或闲聊开场时，提示词引导角色在回应之余自然引出自身当下的生活见闻或未决思考，打破「用户不问角色就不提生活」的纯被动问答模式；而在用户有明确严肃任务或指令时保持克制，不强行转移话题。
+- **主动问候落地真实会话**：
+  - 后台投递主动问候（`proactive-greeting.ts#dispatchProactiveGreeting`）时，通过 `ensureMainSessionForRole(roleId)` 确保角色专属的主会话存在，并将问候文案以 `assistant` 角色持久化写入该会话（`saveMessage`），并在投递事件载荷中携带 `sessionId`；
+  - 前端主动问候 Toast 气泡绑定点击事件，用户点击 Toast 即可一键平滑跳转至对应角色的主会话并自动载入上下文，使主动问候真正成为一次可延续的对话起点，消除「气泡看完即消失」的割裂感。
+
 ## 已落地能力：伙伴行为请求自动绑定来源
 
 主对话和四种后台行为通过 `prompts/registered-request.ts` 的固定配方生成模型请求，服务不再手填来源 key。角色文件、成长覆盖、行为增量与可选语气回退依赖随实际编译自动推导；新增角色仍复用 Role Pack 与行为协议，新增行为需同步配方、注册定义和边界测试。Debug 生产详情只读，动态正文以模板 / 插槽及真实调用区分展示。
@@ -536,3 +547,4 @@ published event（事件事实）
 - 2026-11-07：路飞出厂初始化包视觉补齐与挂载：`roles/luffy/visual/` 补齐草帽、红背心、深蓝短裤、甲板凉鞋与高处足迹 5 张 PNG，连同既有千里阳光号外景、室内空间和初始穿搭共 8 张视觉资产统一在 `ensureStarterAssets` 播种时落入 `userData/companion-media/images/` 并生成 `GeneratedImageReference`；同时将 `rooms[0]` 播种为 `home:luffy:space:shared-deck` 空间资产、草帽关联至该空间，并初始化可一键换上的 `wardrobe:luffy:starter-outfit`（不自动写入 `wear-state`），旧库支持无损补图。数据备份导出时，未改动的 Role Pack 出厂静态配图仅保留 `visualPath` 而不计入 16MB 用户生成媒体上限，导入后自动从 Role Pack 恢复本地图片引用。
 - 2026-11-08：路飞人物世界六面出场内容全量补齐：`roles/luffy/visual/` 新增 6 张专属插画（奇异生物图鉴、空岛映像贝、宾克斯的美酒合唱、船头夕阳草帽、东海启航木桶誓言、空岛黄金钟），`ensureStarterCulture('luffy')` 播种书籍 / 影视 / 音乐 / 摄影四类初始文化体验与首条图鉴读书笔记，`world.default.json` 新增 `trips` 三段多站点旅行故事（东海启航、空岛黄金钟、千里阳光号巡航）并在 `ensureStarterFootprints` 播种为 `recordType=trip` 记录；同时新增 `ensureStarterMoments('luffy')`，在首次打开朋友圈或初始化资产时写入两条昨日发布的出场动态、配图与草帽一伙互动（确定性 ID 支持备份幂等合并，且不消耗当日自动发帖配额或触发 4 小时冷却）。
 - 2026-11-08：角色基础生命体征与当前生活切片注入：新增 `world-vitals.ts` 结算体力、饱腹度、心情与社交欲望 4 项生命体征，主会话后通过 `settleVitalsAfterChat` 释放社交需求；同时新增 `formatLifeAssetsSliceForPrompt`，将角色当前穿着、在读/在看/在听文化活动及进行中旅行有界压缩为 `lifeAssetsSlice` 注入主对话，解决角色在主聊天中无法获知自身当前活动与着装的问题。
+- 2026-11-08：跨天因果日剧本、交谈冲动与主动问候入会话：日剧本提示词接入前日事件、当前足迹、体征与近 24 小时用户诉求；主对话提示词接入 `conversationImpulse`（槽位 31），闲聊时自然分享生活与思考；主动问候在角色主会话中落地为真实消息历史，Toast 点击一键直达会话。

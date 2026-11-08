@@ -8,12 +8,13 @@ interface ToastItem {
   message: string
   type: ToastType
   onPresented?: () => void
+  onClick?: () => void
 }
 
 export type ToastPreviewItem = ToastItem
 
 interface ToastContextValue {
-  toast: (message: string, type?: ToastType, options?: { onPresented?: () => void }) => void
+  toast: (message: string, type?: ToastType, options?: { onPresented?: () => void; onClick?: () => void }) => void
 }
 
 const ToastContext = createContext<ToastContextValue>({ toast: () => {} })
@@ -27,9 +28,9 @@ let nextId = 0
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([])
 
-  const toast = useCallback((message: string, type: ToastType = 'info', options?: { onPresented?: () => void }) => {
+  const toast = useCallback((message: string, type: ToastType = 'info', options?: { onPresented?: () => void; onClick?: () => void }) => {
     const id = ++nextId
-    setItems(prev => [...prev, { id, message, type, onPresented: options?.onPresented }])
+    setItems(prev => [...prev, { id, message, type, onPresented: options?.onPresented, onClick: options?.onClick }])
     setTimeout(() => {
       setItems(prev => prev.filter(t => t.id !== id))
     }, 3500)
@@ -101,15 +102,19 @@ export function ToastBubble({ item, onDismiss, staticPreview = false }: { item: 
 
   return (
     <div ref={element}
-      className={`pointer-events-auto flex items-start gap-2 rounded-lg border px-3.5 py-2.5 shadow-lg backdrop-blur-sm transition-all duration-300 ${staticPreview ? 'w-full' : ''} ${visible ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}
+      className={`pointer-events-auto flex items-start gap-2 rounded-lg border px-3.5 py-2.5 shadow-lg backdrop-blur-sm transition-all duration-300 ${item.onClick ? 'cursor-pointer hover:opacity-95' : ''} ${staticPreview ? 'w-full' : ''} ${visible ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}
       style={{ borderColor: style.border, background: style.background, color: style.color }}
       role="status"
+      onClick={() => item.onClick?.()}
     >
       <Icon size={15} strokeWidth={1.8} className="mt-0.5 shrink-0" aria-hidden="true" />
       <span className="min-w-0 text-[12px] leading-5" style={{ color: 'var(--text-primary)' }}>{item.message}</span>
       <button
         type="button"
-        onClick={() => onDismiss(item.id)}
+        onClick={(e) => {
+          e.stopPropagation()
+          onDismiss(item.id)
+        }}
         className={`mt-0.5 shrink-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${staticPreview ? 'ml-auto' : ''}`}
         style={{ color: 'var(--text-muted)' }}
         aria-label="关闭通知"

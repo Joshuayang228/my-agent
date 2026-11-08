@@ -59,7 +59,7 @@ export function recordProactiveSkip(roleId: string, localDay: string, reason: Pr
  * 意图：先可靠预留人物每日名额，再给登记且可见的窗口各发一次性凭据。
  * 约束：无窗口不消费；预留后失败 / 超时不释放名额、不自动重发；只存元数据。
  */
-export function dispatchProactiveGreeting(input: { roleId: string; localDay: string; momentId: string; toast: string; now: number }): { greeted: boolean; reason: 'ok' | 'already-today' | 'no-window' | 'send-failed' | 'evidence-unavailable' } {
+export function dispatchProactiveGreeting(input: { roleId: string; localDay: string; momentId: string; toast: string; now: number; sessionId?: string }): { greeted: boolean; reason: 'ok' | 'already-today' | 'no-window' | 'send-failed' | 'evidence-unavailable' } {
   if (!store || pending.size >= PROACTIVE_DELIVERY_POLICY.maxPending) return { greeted: false, reason: 'evidence-unavailable' }
   const recipients = [...windows.values()].filter(win => !win.isDestroyed() && win.isVisible() && !win.isMinimized() && !win.webContents.isDestroyed() && !win.webContents.isLoadingMainFrame()).slice(0, PROACTIVE_DELIVERY_POLICY.maxRecipients)
   if (!recipients.length) { recordProactiveSkip(input.roleId, input.localDay, 'no-window', input.now, input.momentId); return { greeted: false, reason: 'no-window' } }
@@ -79,7 +79,7 @@ export function dispatchProactiveGreeting(input: { roleId: string; localDay: str
   for (const win of recipients) {
     const token = randomUUID()
     tokens.set(win.webContents.id, token)
-    const payload: ProactiveGreetingPayload = { roleId: input.roleId, momentId: input.momentId, toast: input.toast, attemptId, receiptToken: token }
+    const payload: ProactiveGreetingPayload = { roleId: input.roleId, momentId: input.momentId, toast: input.toast, attemptId, receiptToken: token, ...(input.sessionId ? { sessionId: input.sessionId } : {}) }
     try { win.webContents.send('companion:proactive-greeting', payload); sent += 1 }
     catch { tokens.delete(win.webContents.id); failed += 1 }
   }

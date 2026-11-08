@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-08：跨天因果日剧本、主对话交谈冲动与主动问候真实入会话落地：日剧本提示词接入昨日实际事件、当前旅行足迹、体征与近 24 小时用户诉求；主对话提示词扩展 `conversationImpulse`（插槽 31），闲聊时自然分享近期生活见闻与想法；主动问候投递时自动在角色主会话中保存为 `assistant` 消息，Toast 点击一键平滑直达该会话。
+
 2026-11-08：四大体验候选（Chat、人物世界、设置、工作区）全面收口原生交互控件，接入 Foundation `SelectField`、`TextField`、`ActionButton`、`IconButton` 等基础组件；新增 TypeScript AST 源码级自动化门禁（`foundation-enforcement-gate.test.ts`）纳入 `npm run assets:check`，严格校验符号解析真实性、拦截未授权原生标签及冲突居中布局，通过 5 组负例保证 fail-closed。
 
 2026-11-08：主对话装配管线接入 `lifeAssetsSlice`，将当前穿着单品、文化角在读 / 在看 / 在听进度及进行中的旅行航线有界注入 Prompt，解决角色对自身衣物、作品和足迹缺乏感知的问题；新增角色生命体征演化引擎（`world-vitals.ts`），使 `mood`、`energy` 和 `socialNeed` 随已发布生活事件自然波动并向基线回归，主对话交互后自动释放 `socialNeed`。

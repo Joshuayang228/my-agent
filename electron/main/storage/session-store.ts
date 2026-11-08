@@ -292,6 +292,38 @@ export async function listRecentUserMessagesForRole(
   return out.reverse()
 }
 
+/**
+ * 获取角色最近一个主会话（非 summon / 非 workspace）。
+ */
+export async function getLatestMainSessionForRole(roleId: string): Promise<ChatSession | null> {
+  const db = await getDatabase()
+  const stmt = db.prepare(`
+    SELECT id FROM sessions
+    WHERE role_id = ?
+      AND COALESCE(session_kind, 'main') != 'summon'
+      AND COALESCE(session_kind, 'main') != 'workspace'
+    ORDER BY updated_at DESC
+    LIMIT 1
+  `)
+  stmt.bind([roleId])
+  let sessionId: string | null = null
+  if (stmt.step()) {
+    sessionId = String((stmt.getAsObject() as Record<string, unknown>).id || '')
+  }
+  stmt.free()
+  if (!sessionId) return null
+  return getSession(sessionId)
+}
+
+/**
+ * 确保角色拥有主会话；若不存在则自动创建一个。
+ */
+export async function ensureMainSessionForRole(roleId: string): Promise<ChatSession> {
+  const existing = await getLatestMainSessionForRole(roleId)
+  if (existing) return existing
+  return createSession(roleId, { title: '日常对话', sessionKind: 'main' })
+}
+
 export async function deleteMessage(messageId: string): Promise<void> {
   const db = await getDatabase()
   db.run('DELETE FROM messages WHERE id = ?', [messageId])

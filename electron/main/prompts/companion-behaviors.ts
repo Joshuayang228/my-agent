@@ -103,6 +103,7 @@ export function buildLlmPrompt(input: {
   date: string
   voiceHint: string
   characterHint: string
+  lifeContext?: string
   character?: ReturnType<typeof characterDefinitionFromRolePack>
   behaviorPrompt?: string
 }): string {
@@ -114,7 +115,7 @@ export function buildLlmPrompt(input: {
 ${input.voiceHint || '（无）'}
 
 人物与默认世界参考（只用于保持生活连续性，不要逐条复述）：
-${input.characterHint || '（无）'}`,
+${input.characterHint || '（无）'}${input.lifeContext?.trim() ? `\n\n近期生活与现实连续性线索（体现跨天因果与连贯生活，自然融入今日活动，勿机械复述）：\n${input.lifeContext.trim()}` : ''}`,
       `人物语气：${input.voiceHint || '（无）'}\n功能适配：${input.behaviorPrompt || '（无）'}`,
       `只输出符合 schema 的 JSON 日程；slots ${SLOT_COUNT_MIN}～${SLOT_COUNT_MAX} 条。`,
     ),

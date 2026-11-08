@@ -84,6 +84,36 @@ export async function getActiveRole(): Promise<RoleSummary & { universeId: strin
  * 关键约束：缺少运行态时返回 undefined，不用默认值补造“当前心情”；关系说明和情绪笔记
  * 必须有界，用户可见文案不能暴露内部字段名或诊断术语。
  */
+/**
+ * 将角色当前的话头与表达冲动转成主对话 Prompt 提示。
+ *
+ * 背景：角色虽然发了动态、经历了生活事件，但在聊天中仍常常被动等待提问，缺乏真人「忍不住想跟你分享」的活人感。
+ * 设计意图：结合社交渴望度、最近一条已发布动态或最新生活活动，生成一条轻量的交流倾向提示；
+ * 关键约束：闲聊或打招呼时允许自然带出，但遇到严肃指令或工具执行时严禁强行闲聊夺话。
+ */
+export function formatConversationImpulseForPrompt(input: {
+  socialNeed: number
+  currentActivity?: string
+  latestMomentText?: string
+}): string | undefined {
+  const points: string[] = []
+  if (input.latestMomentText) {
+    points.push(`你最近在朋友圈分享过：${input.latestMomentText.slice(0, 60)}`)
+  } else if (input.currentActivity) {
+    points.push(`你此刻刚在做的事：${input.currentActivity}`)
+  }
+  if (input.socialNeed >= 70) {
+    points.push('你此刻很有倾诉欲和活力，很想跟用户说说今天好玩的事')
+  } else if (input.socialNeed <= 30) {
+    points.push('你当前状态较沉静，倾向于简练回应、多听对方说')
+  }
+  if (!points.length) return undefined
+  return [
+    ...points,
+    '（交流指引：若这轮是闲聊开场或随口问候，找合适时机像真人一样顺口带出上述近况；若用户提出明确具体的工作或任务指令，则专注完成任务，不要强行闲聊。）',
+  ].join('；')
+}
+
 export function formatCompanionStatusSummary(input: {
   world?: { mood: number; energy: number; socialNeed: number }
   relationships: Array<{ subjectId: string; phase: string; note: string }>
@@ -165,6 +195,8 @@ export async function loadRoleAssembleInput(
   bookshelfSlice?: string
   /** 当前穿着 / 在读在看在听 / 进行中旅程 */
   lifeAssetsSlice?: string
+  /** 当前话头与表达冲动 */
+  conversationImpulse?: string
   rosterLines?: string
   relationshipSummary?: string
   emotionSummary?: string
@@ -221,6 +253,8 @@ export async function loadActiveAssembleInput(): Promise<{
   bookshelfSlice?: string
   /** 当前穿着 / 在读在看在听 / 进行中旅程 */
   lifeAssetsSlice?: string
+  /** 当前话头与表达冲动 */
+  conversationImpulse?: string
   rosterLines?: string
   relationshipSummary?: string
   emotionSummary?: string

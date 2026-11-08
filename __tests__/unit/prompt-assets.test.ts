@@ -59,6 +59,7 @@ describe('debug prompt assets', () => {
     const asset = getPromptAssets().find((entry) => entry.key === PROMPT_KEYS.companionContext)
     expect(asset?.slots).toContainEqual(expect.objectContaining({ name: 'bookshelfSlice', source: 'electron/main/companion/life/assets.ts#formatBookshelfSliceForPrompt' }))
     expect(asset?.slots).toContainEqual(expect.objectContaining({ name: 'lifeAssetsSlice', source: 'electron/main/companion/life/assets.ts#formatLifeAssetsSliceForPrompt' }))
+    expect(asset?.slots).toContainEqual(expect.objectContaining({ name: 'conversationImpulse', source: 'electron/main/companion/orchestrator.ts#formatConversationImpulseForPrompt' }))
     expect(asset?.mode).toBe('dynamic')
   })
 
@@ -105,7 +106,7 @@ describe('debug prompt assets', () => {
     expect(assets.find((asset) => asset.key === PROMPT_KEYS.evalJudge)?.locales['zh-CN'].template).toBe(EVAL_JUDGE_TEMPLATE)
     expect(system?.semanticInputs?.some((slot) => slot.name === 'character')).toBe(true)
     expect(system?.slots.some((slot) => slot.name === 'protected' && slot.source === 'MainChatPromptRequest.character.protected')).toBe(true)
-    expect(system?.slots).toHaveLength(30)
+    expect(system?.slots).toHaveLength(31)
   })
 
   it('伙伴行为资产登记真实触发、输入、校验和回退契约', () => {

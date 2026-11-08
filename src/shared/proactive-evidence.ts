@@ -15,6 +15,7 @@ export interface ProactiveGreetingPayload {
   roleId: string
   toast: string
   momentId: string
+  sessionId?: string
 }
 export interface ProactiveGreetingReceipt { attemptId: string; receiptToken: string }
 export interface ProactiveEvidenceRecord {

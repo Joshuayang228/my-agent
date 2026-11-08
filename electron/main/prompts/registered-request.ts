@@ -96,7 +96,7 @@ export function compileMainSystem(pack: RolePack, growth: string, input: MainRun
   if (b.skillSummary?.trim() || b.activeSkillBody?.trim()) keys.push(PROMPT_KEYS.skillContext)
   if (s?.userProfile && Object.values(s.userProfile).some(v => v.trim())) keys.push(PROMPT_KEYS.userProfileContext)
   if (s?.memories?.trim()) keys.push(PROMPT_KEYS.memoryRecallContext)
-  if ([s?.catchupSummary, s?.worldSlice, s?.recentMomentsSlice, s?.bookshelfSlice, s?.lifeAssetsSlice, s?.rosterLines, s?.relationshipSummary, s?.emotionSummary, sessionKind === 'summon' ? s?.sessionInfo : ''].some(v => v?.trim())) keys.push(PROMPT_KEYS.companionContext)
+  if ([s?.catchupSummary, s?.worldSlice, s?.recentMomentsSlice, s?.bookshelfSlice, s?.lifeAssetsSlice, s?.conversationImpulse, s?.rosterLines, s?.relationshipSummary, s?.emotionSummary, sessionKind === 'summon' ? s?.sessionInfo : ''].some(v => v?.trim())) keys.push(PROMPT_KEYS.companionContext)
   if (['key', 'purpose', 'policy', 'characterSupplement'].some(key => key in b)) throw new Error('主对话编译入口只接受已定义的运行时插槽')
   const compiled = compileMainChatPrompt({
     platform: input.platform,

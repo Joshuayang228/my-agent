@@ -395,10 +395,25 @@ function App() {
       if (payload.toast) toast(payload.toast, 'info')
     })
     const unsubGreeting = window.electronAPI.companion.onProactiveGreeting?.((payload) => {
-      if (payload.toast) toast(payload.toast, 'info', { onPresented: () => {
-        void window.electronAPI.companion.acknowledgeProactiveGreeting?.({ attemptId: payload.attemptId, receiptToken: payload.receiptToken })
-          .catch(() => console.warn('[Companion] 问候呈现记录未保存'))
-      } })
+      if (payload.toast) {
+        toast(payload.toast, 'info', {
+          onPresented: () => {
+            void window.electronAPI.companion.acknowledgeProactiveGreeting?.({ attemptId: payload.attemptId, receiptToken: payload.receiptToken })
+              .catch(() => console.warn('[Companion] 问候呈现记录未保存'))
+          },
+          onClick: () => {
+            if (payload.sessionId) {
+              setActiveView('chat')
+              void switchSession(payload.sessionId)
+            }
+          },
+        })
+        if (payload.sessionId && activeSessionId === payload.sessionId) {
+          void window.electronAPI.session.get(payload.sessionId).then((s) => {
+            if (s) setMessages(s.messages)
+          })
+        }
+      }
     })
     return () => {
       unsub?.()

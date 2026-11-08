@@ -243,6 +243,54 @@ export function parseDayScriptPayload(
   return { date, theme, slots }
 }
 
+/**
+ * 收集日剧本生成的现实生活线索与因果连续性上下文。
+ *
+ * 背景：原先日剧本仅输入静态档案与默认世界，LLM 每天独立摇奖；角色昨天去过哪、经历过什么、
+ * 用户聊过什么约定完全被遗忘，缺乏「活人」的昨日留痕感。
+ * 设计意图：读取昨日已发布事件、近期对话意向、进行中旅程和生命体征，压制为 200 字以内的薄切片；
+ * 关键约束：纯数据读取、任何异常安全降级为空串；不改变日剧本输出 schema，回退到哈希剧本时无副作用。
+ */
+export async function collectDayScriptLifeContext(roleId: string): Promise<string> {
+  const parts: string[] = []
+  try {
+    const { listEvents } = await import('./store')
+    const events = await listEvents(roleId, { status: 'published', limit: 3, order: 'desc' })
+    const recentActivities = events
+      .map(e => String(e.payload.activity || '').trim())
+      .filter(Boolean)
+      .slice(0, 2)
+    if (recentActivities.length) {
+      parts.push(`昨日/近期生活轨迹：${recentActivities.join('；')}`)
+    }
+
+    const { listAssets } = await import('./assets')
+    const footprints = await listAssets(roleId, { kind: 'footprint' })
+    const activeTrip = footprints.find(a => a.payload.recordType === 'trip' && a.payload.status === 'active')
+    if (activeTrip) {
+      const stops = Array.isArray(activeTrip.payload.stops) ? activeTrip.payload.stops as Array<Record<string, unknown>> : []
+      const lastStop = typeof stops[stops.length - 1]?.name === 'string' ? String(stops[stops.length - 1].name).trim() : ''
+      parts.push(`当前正进行的航程/旅行：${activeTrip.name}${lastStop ? `（刚到达：${lastStop}）` : ''}`)
+    }
+
+    const { listRecentUserMessagesForRole } = await import('../../storage/session-store')
+    const userMsgs = await listRecentUserMessagesForRole(roleId, Date.now() - 36 * 3600 * 1000, 3)
+    if (userMsgs.length) {
+      const summary = userMsgs.map(m => m.slice(0, 40)).join(' / ')
+      parts.push(`近期用户聊到的事或意向：${summary}`)
+    }
+
+    const { ensureWorldState } = await import('./world-state')
+    const world = await ensureWorldState(roleId)
+    if (world) {
+      parts.push(`当前状态与体征：心情${world.mood}，精力${world.energy}`)
+    }
+  } catch (err) {
+    log.warn('Failed to collect life context for day script', { roleId, error: String(err) })
+  }
+  return parts.join('\n')
+}
+
 /** 尝试 LLM；失败返回 null（由调用方回退哈希） */
 export async function generateDayScriptViaLlm(
   roleId: string,
@@ -259,6 +307,7 @@ export async function generateDayScriptViaLlm(
       ? formatRoleWorldDefaultsForPrompt(pack.worldDefaults).slice(0, 750)
       : ''
     const characterHint = [profileHint, worldHint].filter(Boolean).join('\n')
+    const lifeContext = await collectDayScriptLifeContext(roleId)
     const raw = await chatComplete({
       config: {
         ...llmConfig,
@@ -271,6 +320,7 @@ export async function generateDayScriptViaLlm(
           date,
           voiceHint,
           characterHint,
+          lifeContext,
         }),
       caller: 'day-script',
     })

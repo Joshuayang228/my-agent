@@ -212,7 +212,7 @@ Debug 的生产资产详情只读：静态显示正文，动态显示模板或�
 
 ## 已落地能力：Prompt 全入口注册与防漏门禁
 
-生产 Prompt 正文、动态包装与真实生产符号由 `prompts/registry.ts` 统一索引。主对话、四类伙伴行为、压缩、子任务、拒绝继续策略、输出截断恢复、时间参考、工作区与 Skill 包装都登记稳定 key；有模板的资产由实际纯构造器展开占位符，最终值以实际请求为准。旧 `agent/prompt-builder.ts` 已删除，Eval 直接使用语义编译器，历史单元夹具只存在测试目录。
+生产 Prompt 正文、动态包装与真实生产符号由 `prompts/registry.ts` 统一索引。主对话、四类伙伴行为、压缩、子任务、拒绝继续策略、输出截断恢复、时间参考、工作区与 Skill 包装都登记稳定 key；有模板的资产由实际纯构造器展开占位符，最终值以实际请求为准。主对话模板插槽（`MAIN_CHAT_TEMPLATE_SLOTS`）已扩展为 31 项（包含 `lifeAssetsSlice` 与 `conversationImpulse`）。旧 `agent/prompt-builder.ts` 已删除，Eval 直接使用语义编译器，历史单元夹具只存在测试目录。
 
 人物 manifest / profile / world 来源由 `companion/identity/source-assets.ts` 单一工厂提供，Prompt 和伙伴目录共用同一 key，Debug 聚合去重。真实请求仅登记实际人物文件、成长覆盖和场景来源；当前装配预览只追踪该预览实际注入的输入，不冒充完整会话。
 
