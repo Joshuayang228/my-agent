@@ -10,7 +10,7 @@
 - 新增 `companion:timeline-updated` 广播通道，在生活事件到期物化或动态时钟定时推进时通知前端实时刷新今日生活轨迹；
 - 消息流 `ToolCallbackList` 在 `companion_post_moment` 或 `companion_create_asset` 执行成功后内联渲染伙伴自主生活动态卡片，提供直达朋友圈或人物世界的生活面跳转。
 
-生活切片与生命体征结算（2026-11-08）：主对话编译请求新增 `situation.lifeAssetsSlice` 插槽（对应主模板第 30 个插槽），在与主角本人的主对话轮次中装配当前衣着、活跃文化体验与进行中旅行的有界摘要；会话结束且成功回复后异步触发 `settleVitalsAfterChat` 结算体力、心情、饱腹度及社交需求，并异步触发 `settleChatResonance` 提取用户推荐与生活因果心愿。召唤朋友会话不注入主角生活切片，亦不满足主角社交需求。
+生活切片与生命体征结算（2026-11-08）：主对话编译请求新增 `situation.lifeAssetsSlice` 插槽（对应主模板第 30 个插槽），在与主角本人的主对话轮次中装配当前衣着、活跃文化体验与进行中旅行的有界摘要；主对话装配管线新增 `conversationImpulse`（插槽 31），在存在待反馈心愿（`pendingResonanceFeedbackId`）时自动注入回访话题；会话结束且成功回复后异步触发 `settleVitalsAfterChat` 结算体力、心情、饱腹度及社交需求，异步触发 `settleChatResonance` 提取用户推荐与生活因果心愿，并在主对话完成后调用 `markResonanceFeedbackDelivered` 标记待反馈心愿已投递。召唤朋友会话不注入主角生活切片，亦不满足主角社交需求。
 
 Prompt 四层功能组合与关系标签收口（2026-11-08）：15 个核心功能合同与核心 Prompt / Role Pack 文本资产统一关联 `featureKey` 与 `adaptationStatus`（`adapted` / `generic` / `character-independent`），`getPromptAssetTraces` 同步投影该关系元数据，供 Debug 提示词管理器直接阅读通用功能定义、人物适配与最终组合关系。新增人物只需提供 Role Pack 与 `behaviors/` 适配文件，无需修改功能实现中的人物分支。
 

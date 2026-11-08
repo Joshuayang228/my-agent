@@ -389,6 +389,9 @@ declare global {
         onTimelineUpdated: (
           callback: (payload: { roleId: string; now: number }) => void,
         ) => () => void
+        onResonanceCompleted: (
+          callback: (payload: import('./shared/types').CompanionResonanceCompletedEvent) => void,
+        ) => () => void
       }
       mcp: {
         connect: (config: import('./shared/types').McpServerConfig) => Promise<{ success: boolean; toolCount?: number; error?: string }>

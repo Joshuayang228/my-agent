@@ -34,6 +34,13 @@ Chat 的内置工具注册链现在包含 `companion_post_moment`、`companion_c
   - 角色次日的一日活动与朋友圈自然提及昨天聊到的美食或约定，形成真实可感的活人感。
 - **实时反馈与跳转**：
   - 心愿产生时向桌面窗口广播 `companion:life-resonance-created`，桌面端弹出温馨通知横幅，点击一键跳转至人物世界文化角。
+- **文化心愿体验闭环与主动反馈（Culture Progression & Review Loop）**：
+  - 角色将用户推荐的书籍/影视/音乐记录为文化资产并被日剧本吸收（`absorbed_in_script`）后，在体验时间达到（或由后台动态生活时钟唤醒）时，自动触发 `completeCultureResonance`；
+  - 受控模型以第一人称人设口吻生成专属评语（`reviewText`），文化资产状态推进为 `finished`，评语沉淀为第一人称感悟笔记追加进 `readingNotes`；
+  - 同步生成下次对话的话头引子（`chatOpener`）与可选朋友圈文案（`shouldPostMoment`）；
+  - 主对话装配管线在 `formatConversationImpulseForPrompt` 中注入 `【重要回访心愿反馈】`，角色在后续对话或打招呼中会主动向用户倾诉体验感悟；
+  - 心愿反馈在主会话中带出后立即自动标记为已投递（`markResonanceFeedbackDelivered`），避免重复纠缠；
+  - 心愿完成时广播 `companion:resonance-completed`，桌面端弹出通知横幅，点击支持一键直达文化角。
 
 ## 已落地能力：朋友圈评论回复与人物/NPC 自主决策
 

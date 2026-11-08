@@ -1,5 +1,7 @@
 # 项目进度
 
+文化心愿体验闭环与主动反馈落地（2026-11-08）：文化心愿在被日剧本吸收并满足体验时长后，自动触发 `completeCultureResonance`，通过受控小模型配方（`compileCultureReviewRequest`）以第一人称口吻生成专属评语（`reviewText`）与对话引子（`chatOpener`）；文化资产推进为 `finished` 并将感悟追加进 `readingNotes`；主会话组装器在 `formatConversationImpulseForPrompt` 中注入 `【重要回访心愿反馈】`，角色在后续对话中会主动向用户倾诉体验感悟并在送达后标记已投递（`markResonanceFeedbackDelivered`）；IPC 广播 `companion:resonance-completed`，桌面端支持通知横幅点击一键直达文化角。新增 `culture-wish-review.test.ts` 4 项单测，门禁全绿。
+
 Foundation 布局规范与控件复用链路获批回流（2026-11-08）：Playground 展厅候选与四大体验基础引用链路经用户在桌面真实环境（Electron）中完整走查验收，明确批准回流（Phase P1）；共享 PageHeader 扩展 topMeta 接口，将长文件位置/源码路径移至首行标题右侧充分利用空白空间；第二行基础引用胶囊全宽展开并引入 .no-scrollbar 强制清除 WebKit 滚动条轨道与左右箭头按钮，保留滚轮与触屏直觉直接横滚；TS AST 符号解析门禁（foundation-enforcement-gate.test.ts）全量闭环。
 
 生活时钟事件实时驱动与轨迹流动落地（2026-11-08）：生活世界 Ticker 调度由固定 5 分钟轮询升级为计划事件动态对齐（`getNextPlannedEventDelay`），在活跃角色存在临近计划事件时精确对齐事件 scheduledAt 触发唤醒；事件发布与定期推进向渲染进程广播 `companion:timeline-updated`；前端 `WorldTodayTimeline` 接入事件监听与每分钟心跳自动刷新当前生活时段与状态流转；在资产注册表新增 `companion:policy:timeline-dynamic-clock` 生产策略资产。`today-timeline.test.ts` 扩展至 6 项单测，门禁全绿。

@@ -22,7 +22,7 @@ import { formatSummonSceneBlock } from '../companion/cast/scene-prompts'
 import { summonParentDelegationHint } from '../companion/cast/summon-delegation'
 import { scheduleReflectionAfterChat } from '../companion/growth/reflection-service'
 import { settleVitalsAfterChat } from '../companion/life/world-state'
-import { settleChatResonance } from '../companion/life/chat-resonance'
+import { settleChatResonance, markResonanceFeedbackDelivered } from '../companion/life/chat-resonance'
 import {
   formatRelationshipStageForPrompt,
   resolveRelationshipStageForRole,
@@ -222,6 +222,7 @@ class AgentRuntime {
     let terminalReason: TerminalReason | undefined
     let doneEmitted = false
     let errorSpan: ReturnType<typeof startSpan> | undefined
+    let pendingFeedbackId: string | undefined
 
     try {
       // ── 构建上下文 ──
@@ -251,10 +252,12 @@ class AgentRuntime {
         bookshelfSlice,
         lifeAssetsSlice,
         conversationImpulse,
+        pendingResonanceFeedbackId,
         rosterLines,
         relationshipSummary,
         emotionSummary,
       } = await loadRoleAssembleInput(assembleRoleId)
+      pendingFeedbackId = pendingResonanceFeedbackId
       const character = characterDefinitionFromRolePack(pack, mutableBody)
 
       const chatSpan = startSpan('chat', 'main', 'interaction', undefined, { sessionId, roleId: character.id, model: llmConfig.model })
@@ -529,6 +532,7 @@ class AgentRuntime {
               roleId: assembleRoleId,
               sessionKind: sessionMeta?.sessionKind,
             },
+            pendingFeedbackId,
           )
         }
       }
@@ -616,6 +620,7 @@ class AgentRuntime {
     lastUserMsg: ChatMessage | undefined,
     llmConfig: LLMConfig,
     companion?: { roleId: string; sessionKind?: string },
+    pendingFeedbackId?: string,
   ): void {
     taskQueue.enqueue(sessionId, 'profile-extract', async () => {
       setQuerySource('memory')
@@ -667,6 +672,11 @@ class AgentRuntime {
         settleChatResonance(companion.roleId, sessionId, llmConfig).catch(error => {
           log.warn('对话后提取生活因果反哺失败', { roleId: companion.roleId, error: error instanceof Error ? error.message : String(error) })
         })
+        if (pendingFeedbackId) {
+          markResonanceFeedbackDelivered(pendingFeedbackId).catch(error => {
+            log.warn('标记心愿反馈已送达失败', { feedbackId: pendingFeedbackId, error: error instanceof Error ? error.message : String(error) })
+          })
+        }
       }
     }
   }

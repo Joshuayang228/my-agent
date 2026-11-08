@@ -249,6 +249,14 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     source: 'electron/main/companion/life/ticker.ts#startLifeTicker', version: 'clock-v1',
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent({ defaultIntervalMs: 300_000, minDelayMs: 3000, eventAlignmentSlackMs: 500, broadcastChannel: 'companion:timeline-updated' }),
+  }), makeCompanionAsset({
+    key: 'companion:policy:culture-review-loop', name: '文化心愿体验闭环与主动反馈策略',
+    purpose: '文化心愿体验完成时生成角色专属评语并形成下次主动聊天的自然引子',
+    role: 'platform', description: '当吸收的生活心愿或作品体验完成后，自动生成第一人称感悟并更新文化资产状态，在后续对话中作为表达冲动自然带出。',
+    source: 'electron/main/companion/life/chat-resonance.ts#completeCultureResonance', version: 'review-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ trigger: 'script-absorption-completed', promptKey: PROMPT_KEYS.companionCultureReview, feedbackTarget: 'conversation-impulse' }),
+    dependencies: [PROMPT_KEYS.companionCultureReview],
   })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {

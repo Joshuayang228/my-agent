@@ -3,6 +3,7 @@ import { buildMaterialObservationPrompt } from './material-observation'
 import { buildMomentReplyPrompt, type MomentReplyInput } from './moment-reply'
 import { buildProactiveGreetingPrompt, type ProactiveGreetingInput } from './proactive-greeting'
 import { buildChatResonancePrompt, type ChatResonanceInput } from './chat-resonance'
+import { buildCultureReviewPrompt, type CultureReviewInput } from './culture-review'
 import { buildImageGenerationPrompt } from './image-generation'
 /**
  * 背景：手填资产 key 无法证明正文来自登记的生产定义。
@@ -257,4 +258,8 @@ export function compileProactiveGreetingRequest(input: ProactiveGreetingInput): 
 
 export function compileChatResonanceRequest(input: ChatResonanceInput): RegisteredModelRequest {
   return signRequest([{ role: 'user', content: buildChatResonancePrompt(input) }], [PROMPT_KEYS.companionChatResonance], ['chat-resonance'])
+}
+
+export function compileCultureReviewRequest(input: CultureReviewInput): RegisteredModelRequest {
+  return signRequest([{ role: 'user', content: buildCultureReviewPrompt(input) }], [PROMPT_KEYS.companionCultureReview], ['culture-review'])
 }

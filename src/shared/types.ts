@@ -1335,8 +1335,19 @@ export interface CompanionLifeResonance {
   userQuote: string
   reason: string
   cultureType?: 'reading' | 'film' | 'music' | null
-  status: 'active' | 'absorbed_in_script' | 'fulfilled' | 'archived'
+  status: 'active' | 'absorbed_in_script' | 'fulfilled' | 'completed' | 'archived'
   createdAt: number
   absorbedAt: number | null
+  completedAt?: number | null
+  feedbackText?: string | null
+  feedbackDeliveredAt?: number | null
   assetId: string | null
+}
+
+export interface CompanionResonanceCompletedEvent {
+  roleId: string
+  resonance: CompanionLifeResonance
+  reviewText: string
+  feedbackText: string
+  message: string
 }

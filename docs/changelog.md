@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-08：文化心愿体验闭环与主动反馈（Culture Progression & Review Loop）落地：文化心愿在被日剧本吸收并满足体验时长后，自动触发 `completeCultureResonance`，通过受控小模型配方（`compileCultureReviewRequest`）以第一人称口吻生成专属评语（`reviewText`）与对话引子（`chatOpener`）；文化资产推进为 `finished` 并将感悟追加进 `readingNotes`；主会话组装器在 `formatConversationImpulseForPrompt` 中注入 `【重要回访心愿反馈】`，角色在后续对话中会主动向用户倾诉体验感悟并在送达后标记已投递（`markResonanceFeedbackDelivered`）；IPC 广播 `companion:resonance-completed`，桌面端支持通知横幅点击一键直达文化角。
+
 2026-11-08：Foundation 布局规范与控件复用链路获批回流（Phase P1）：共享 PageHeader 扩展 topMeta 接口将长文件路径移至首行标题右侧，第二行基础引用胶囊全宽展开并引入 .no-scrollbar 隐藏滚动条，保留滚轮直接横向平滑滚动；TS AST 源码门禁全面生效。
 
 2026-11-08：生活时钟事件实时驱动（Timeline Dynamic Clock Trigger）落地：后台 Ticker 调度从静态轮询升级为事件时刻动态对齐唤醒，消除固定轮询带来的事件感知滞后；事件物化与推进后广播 `companion:timeline-updated`；`WorldTodayTimeline` 组件接入事件广播与分钟级心跳，使今日生活时段轨迹（past / current / upcoming）与进行中事项在桌面端实时无感平滑推移。

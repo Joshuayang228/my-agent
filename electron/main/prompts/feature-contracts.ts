@@ -146,6 +146,12 @@ export const PROMPT_FEATURE_CONTRACTS = Object.freeze({
     overrideBoundary: ['角色心愿动机与语气'], output: '只输出 JSON 对象，包含 hasResonance 及结构化心愿实体，未识别到具体意向时为 false。',
     fallback: '未识别到具体文化推荐或生活意向时保持无心愿，不凭空捏造。', consumers: ['electron/main/companion/life/chat-resonance.ts'],
   }),
+  cultureReview: contract({
+    key: 'feature:culture-review', name: '文化心愿体验感想与对话反馈', domain: 'life', purpose: '在角色体验完用户推荐的文化作品后，以符合角色性格的第一人称生成真实读后感/影评，并生成下次对话的主动交流话头。',
+    staticInputs: ['安全规则', '第一人称真实感想协议', 'JSON输出约束'], runtimeInputs: ['角色公开人设与说话风格', '作品名称与分类', '用户原推荐语与理由'],
+    overrideBoundary: ['角色性格评价口吻与趣味偏好'], output: '只输出 JSON 对象，包含 reviewText 角色第一人称感想、chatOpener 主动分享话头、shouldPostMoment 与 momentText。',
+    fallback: '模型不可用或解析失败时使用基于人设的确定性短评，不阻塞流程。', consumers: ['electron/main/companion/life/chat-resonance.ts'],
+  }),
 } as const)
 
 export type PromptFeatureContractKey = keyof typeof PROMPT_FEATURE_CONTRACTS

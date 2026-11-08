@@ -432,6 +432,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('companion:timeline-updated', handler)
       return () => ipcRenderer.removeListener('companion:timeline-updated', handler)
     },
+    onResonanceCompleted: (
+      callback: (payload: import('../../src/shared/types').CompanionResonanceCompletedEvent) => void,
+    ) => {
+      const handler = (
+        _e: Electron.IpcRendererEvent,
+        payload: import('../../src/shared/types').CompanionResonanceCompletedEvent,
+      ) => callback(payload)
+      ipcRenderer.on('companion:resonance-completed', handler)
+      return () => ipcRenderer.removeListener('companion:resonance-completed', handler)
+    },
   },
 
   mcp: {

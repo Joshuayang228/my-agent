@@ -24,8 +24,13 @@ import { getDatabase, persist } from '../../storage/database'
 import { getSession } from '../../storage/session-store'
 import { createLogger } from '../../utils/logger'
 import { loadRolePack } from '../identity/loader'
-import { compileChatResonanceRequest } from '../../prompts/registered-request'
-import { createAsset, ASSET_KIND_CULTURE } from './assets'
+import { loadAuxLLMConfig } from '../../llm/aux-config'
+import {
+  compileChatResonanceRequest,
+  compileCultureReviewRequest,
+} from '../../prompts/registered-request'
+import { createAsset, getAsset, updateAsset, ASSET_KIND_CULTURE } from './assets'
+import { insertMoment } from './store'
 
 const log = createLogger('ChatResonance')
 
@@ -33,21 +38,27 @@ export async function ensureResonanceTable(): Promise<void> {
   const db = await getDatabase()
   db.run(`
     CREATE TABLE IF NOT EXISTS companion_life_resonances (
-      id           TEXT PRIMARY KEY,
-      role_id      TEXT NOT NULL,
-      session_id   TEXT NOT NULL,
-      kind         TEXT NOT NULL,
-      title        TEXT NOT NULL,
-      target_name  TEXT NOT NULL,
-      user_quote   TEXT NOT NULL,
-      reason       TEXT NOT NULL,
-      culture_type TEXT,
-      status       TEXT NOT NULL DEFAULT 'active',
-      created_at   INTEGER NOT NULL,
-      absorbed_at  INTEGER,
-      asset_id     TEXT
+      id                    TEXT PRIMARY KEY,
+      role_id               TEXT NOT NULL,
+      session_id            TEXT NOT NULL,
+      kind                  TEXT NOT NULL,
+      title                 TEXT NOT NULL,
+      target_name           TEXT NOT NULL,
+      user_quote            TEXT NOT NULL,
+      reason                TEXT NOT NULL,
+      culture_type          TEXT,
+      status                TEXT NOT NULL DEFAULT 'active',
+      created_at            INTEGER NOT NULL,
+      absorbed_at           INTEGER,
+      completed_at          INTEGER,
+      feedback_text         TEXT,
+      feedback_delivered_at INTEGER,
+      asset_id              TEXT
     )
   `)
+  try { db.run('ALTER TABLE companion_life_resonances ADD COLUMN completed_at INTEGER') } catch { /* existing */ }
+  try { db.run('ALTER TABLE companion_life_resonances ADD COLUMN feedback_text TEXT') } catch { /* existing */ }
+  try { db.run('ALTER TABLE companion_life_resonances ADD COLUMN feedback_delivered_at INTEGER') } catch { /* existing */ }
   db.run(`
     CREATE INDEX IF NOT EXISTS idx_companion_resonances_role_status
       ON companion_life_resonances(role_id, status, created_at DESC)
@@ -68,6 +79,9 @@ function rowToResonance(row: Record<string, unknown>): CompanionLifeResonance {
     status: row.status as CompanionLifeResonance['status'],
     createdAt: row.created_at as number,
     absorbedAt: typeof row.absorbed_at === 'number' ? row.absorbed_at : null,
+    completedAt: typeof row.completed_at === 'number' ? row.completed_at : null,
+    feedbackText: (row.feedback_text as string) || null,
+    feedbackDeliveredAt: typeof row.feedback_delivered_at === 'number' ? row.feedback_delivered_at : null,
     assetId: (row.asset_id as string) || null,
   }
 }
@@ -314,4 +328,271 @@ export async function settleChatResonance(
     log.warn('Failed to settle chat resonance', { roleId, error: String(err) })
     return { triggered: false }
   }
+}
+
+
+
+export interface CompleteCultureResonanceOptions {
+  llmConfig?: LLMConfig
+  mockResponse?: {
+    reviewText: string
+    chatOpener: string
+    shouldPostMoment?: boolean
+    momentText?: string
+  }
+}
+
+/**
+ * 文化心愿体验闭环：生成角色第一人称感悟、下次主动交流话头及朋友圈分享
+ *
+ * 背景：角色将用户推荐的书籍/影视/音乐记录为文化资产并被日剧本吸收后，若体验过程毫无下文，
+ * 用户就会觉得“推荐完就没了声响”。
+ * 设计意图：受控小模型以角色人设口吻生成专属评语（reviewText），更新文化资产为 completed；
+ * 同时生成下次聊天引子（chatOpener）与可选朋友圈文案，形成因果体验闭环。
+ * 关键约束：幂等执行，已 completed 的心愿不重复触发；失败时优雅保底，不抛未捕获异常。
+ */
+export async function completeCultureResonance(
+  resonanceId: string,
+  roleId: string,
+  opts?: CompleteCultureResonanceOptions,
+): Promise<{ ok: boolean; resonance?: CompanionLifeResonance; error?: string }> {
+  await ensureResonanceTable()
+  const db = await getDatabase()
+  const stmt = db.prepare('SELECT * FROM companion_life_resonances WHERE id = ? AND role_id = ?')
+  let row: Record<string, unknown> | null = null
+  try {
+    stmt.bind([resonanceId, roleId])
+    if (stmt.step()) row = stmt.getAsObject()
+  } finally {
+    stmt.free()
+  }
+  if (!row) {
+    return { ok: false, error: '心愿不存在' }
+  }
+  const currentResonance = rowToResonance(row)
+  if (currentResonance.status === 'completed') {
+    return { ok: true, resonance: currentResonance }
+  }
+
+  const pack = loadRolePack(roleId)
+  let parsedReview: {
+    reviewText: string
+    chatOpener: string
+    shouldPostMoment?: boolean
+    momentText?: string
+  } | null = null
+
+  if (opts?.mockResponse) {
+    parsedReview = opts.mockResponse
+  } else if (opts?.llmConfig && hasLLMAuthentication(opts.llmConfig)) {
+    try {
+      const raw = await chatComplete({
+        config: {
+          ...opts.llmConfig,
+          maxTokens: 400,
+          temperature: 0.7,
+        },
+        request: compileCultureReviewRequest({
+          protagonistName: pack.name,
+          protagonistBrief: `${pack.description}\n${pack.voice ?? ''}`.slice(0, 500),
+          targetName: currentResonance.targetName,
+          cultureType: currentResonance.cultureType || 'reading',
+          userQuote: currentResonance.userQuote,
+          userReason: currentResonance.reason,
+        }),
+        caller: 'culture-review',
+      })
+      const match = raw.match(/\{[\s\S]*\}/)
+      if (match) {
+        const json = JSON.parse(match[0]) as Record<string, unknown>
+        if (json && typeof json.reviewText === 'string' && typeof json.chatOpener === 'string') {
+          parsedReview = {
+            reviewText: json.reviewText.trim(),
+            chatOpener: json.chatOpener.trim(),
+            shouldPostMoment: Boolean(json.shouldPostMoment),
+            momentText: typeof json.momentText === 'string' ? json.momentText.trim() : undefined,
+          }
+        }
+      }
+    } catch (err) {
+      log.warn('Culture review generation failed, falling back to rule-based review', { roleId, error: String(err) })
+    }
+  }
+
+  // 规则保底（若 LLM 失败或未配 LLM）
+  if (!parsedReview) {
+    const isLuffy = roleId === 'luffy'
+    const verb = currentResonance.cultureType === 'film' ? '看完' : currentResonance.cultureType === 'music' ? '听完' : '读完'
+    const reviewText = isLuffy
+      ? `哈哈！终于把《${currentResonance.targetName}》给${verb}了！里面有些地方太有意思了，真是一场大冒险！`
+      : `体验完了《${currentResonance.targetName}》，感觉很有收获。`
+    const chatOpener = isLuffy
+      ? `喂！你之前跟我推荐的《${currentResonance.targetName}》，我已经全${verb}了！快跟我聊聊！`
+      : `之前你推荐的《${currentResonance.targetName}》我已经体验完了，下次聊聊感想吧。`
+    parsedReview = {
+      reviewText,
+      chatOpener,
+      shouldPostMoment: true,
+      momentText: isLuffy
+        ? `《${currentResonance.targetName}》超棒的！下次出海还要找更多好玩的！`
+        : `把之前记下的《${currentResonance.targetName}》体验完了，很充实。`,
+    }
+  }
+
+  const now = Date.now()
+
+  // 1. 若有关联文化资产，更新资产状态为 completed 并将 reviewText 追加至 readingNotes
+  if (currentResonance.assetId) {
+    try {
+      const existingAsset = await getAsset(currentResonance.assetId)
+      if (existingAsset) {
+        const type = (existingAsset.payload.type as string) || currentResonance.cultureType || 'reading'
+        const statusField = type === 'music' ? 'listeningStatus' : type === 'film' ? 'watchStatus' : 'readingStatus'
+        const completedStatusVal = 'finished'
+        const existingNotes = Array.isArray(existingAsset.payload.readingNotes)
+          ? [...existingAsset.payload.readingNotes]
+          : []
+        existingNotes.push({
+          id: `review:${randomUUID().slice(0, 8)}`,
+          text: parsedReview.reviewText,
+          author: 'companion',
+          createdAt: now,
+        })
+
+        await updateAsset(currentResonance.assetId, {
+          payload: {
+            [statusField]: completedStatusVal,
+            readingNotes: existingNotes,
+            note: parsedReview.reviewText,
+          },
+        }, { expectedRoleId: roleId })
+      }
+    } catch (err) {
+      log.warn('Failed to update asset on resonance complete', { assetId: currentResonance.assetId, error: String(err) })
+    }
+  }
+
+  // 2. 更新 companion_life_resonances
+  db.run(
+    `UPDATE companion_life_resonances
+     SET status = 'completed', completed_at = ?, feedback_text = ?
+     WHERE id = ?`,
+    [now, parsedReview.chatOpener, currentResonance.id],
+  )
+  persist()
+
+  // 3. 若有朋友圈分享意向，插入 Moment
+  if (parsedReview.shouldPostMoment && parsedReview.momentText) {
+    try {
+      await insertMoment({
+        roleId,
+        eventId: `resonance-${currentResonance.id}`,
+        publishedAt: now,
+        text: parsedReview.momentText,
+        meta: {
+          resonanceId: currentResonance.id,
+          targetName: currentResonance.targetName,
+          kind: currentResonance.kind,
+        },
+      })
+    } catch (err) {
+      log.warn('Failed to insert moment from resonance review', { roleId, error: String(err) })
+    }
+  }
+
+  const updatedResonance: CompanionLifeResonance = {
+    ...currentResonance,
+    status: 'completed',
+    completedAt: now,
+    feedbackText: parsedReview.chatOpener,
+  }
+
+  const notificationMessage = `${pack.name} 已经体验完了「${currentResonance.targetName}」！`
+
+  // 4. 广播事件
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) {
+      win.webContents.send('companion:resonance-completed', {
+        roleId,
+        resonance: updatedResonance,
+        message: notificationMessage,
+      })
+    }
+  }
+
+  log.info('Culture resonance completed', { roleId, resonanceId: currentResonance.id, targetName: currentResonance.targetName })
+  return { ok: true, resonance: updatedResonance }
+}
+
+/**
+ * 查询等待向用户倾诉/反馈的心愿感悟（还未在对话中被消费）
+ */
+export async function getPendingResonanceFeedback(roleId: string): Promise<CompanionLifeResonance | null> {
+  await ensureResonanceTable()
+  const db = await getDatabase()
+  const stmt = db.prepare(
+    `SELECT * FROM companion_life_resonances
+     WHERE role_id = ? AND status = 'completed' AND feedback_text IS NOT NULL AND feedback_delivered_at IS NULL
+     ORDER BY completed_at DESC LIMIT 1`,
+  )
+  stmt.bind([roleId])
+  try {
+    if (stmt.step()) {
+      return rowToResonance(stmt.getAsObject())
+    }
+  } finally {
+    stmt.free()
+  }
+  return null
+}
+
+/**
+ * 标记心愿反馈已在对话中向用户自然带出
+ */
+export async function markResonanceFeedbackDelivered(resonanceId: string): Promise<void> {
+  await ensureResonanceTable()
+  const db = await getDatabase()
+  db.run(
+    'UPDATE companion_life_resonances SET feedback_delivered_at = ? WHERE id = ?',
+    [Date.now(), resonanceId],
+  )
+  persist()
+}
+
+/**
+ * 检查已被日剧本吸收的心愿，当体验时间满足或剧本事件推移时，自动推进并生成体验闭环
+ */
+export async function checkAndProgressAbsorbedResonances(
+  roleId: string,
+  now: number,
+  opts?: { llmConfig?: LLMConfig },
+): Promise<number> {
+  await ensureResonanceTable()
+  const db = await getDatabase()
+  const stmt = db.prepare(
+    "SELECT * FROM companion_life_resonances WHERE role_id = ? AND status = 'absorbed_in_script'",
+  )
+  stmt.bind([roleId])
+  const absorbed: CompanionLifeResonance[] = []
+  try {
+    while (stmt.step()) {
+      absorbed.push(rowToResonance(stmt.getAsObject()))
+    }
+  } finally {
+    stmt.free()
+  }
+
+  let completedCount = 0
+  const FOUR_HOURS = 4 * 3600 * 1000
+
+  for (const item of absorbed) {
+    const absorbedAt = item.absorbedAt ?? item.createdAt
+    if (now - absorbedAt >= FOUR_HOURS) {
+      const config = opts?.llmConfig ?? (await loadAuxLLMConfig())
+      const res = await completeCultureResonance(item.id, roleId, { llmConfig: config })
+      if (res.ok) completedCount++
+    }
+  }
+
+  return completedCount
 }

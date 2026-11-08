@@ -440,6 +440,16 @@ function App() {
         })
       }
     })
+    const unsubResonanceCompleted = window.electronAPI.companion.onResonanceCompleted?.((payload) => {
+      if (payload.message) {
+        toast(payload.message, 'info', {
+          onClick: () => {
+            setActiveView('world')
+            setWorldTab('culture')
+          },
+        })
+      }
+    })
     const unsubGreeting = window.electronAPI.companion.onProactiveGreeting?.((payload) => {
       if (payload.toast) {
         toast(payload.toast, 'info', {
@@ -467,6 +477,7 @@ function App() {
       unsubMomentTip?.()
       unsubMomentUpdated?.()
       unsubLifeResonance?.()
+      unsubResonanceCompleted?.()
       unsubGreeting?.()
     }
   }, [toast])

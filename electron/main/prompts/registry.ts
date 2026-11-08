@@ -2,6 +2,7 @@ import { extractTemplatePlaceholders } from '../../../src/shared/prompt-template
 import { buildMomentCommentPrompt } from './moment-comment'
 import { buildMomentReplyPrompt } from './moment-reply'
 import { buildChatResonancePrompt } from './chat-resonance'
+import { buildCultureReviewPrompt } from './culture-review'
 import { buildProactiveGreetingPrompt } from './proactive-greeting'
 import { formatRoleAppearanceForImagePrompt } from '../companion/identity/profile'
 import { buildImageGenerationPrompt } from './image-generation'
@@ -218,6 +219,34 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
       { name: 'protagonistName', source: '当前主角 Role Pack', lifecycle: '每次会话结算' },
       { name: 'protagonistBrief', source: '当前主角公开简介', lifecycle: '每次会话结算' },
       { name: 'recentDialogue', source: '主会话近期对话记录', lifecycle: '每次会话结算' },
+    ],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.companionCultureReview,
+    domain: 'life', name: '文化作品体验感想与反馈', category: 'companion', role: 'companion-social',
+    featureKey: PROMPT_FEATURE_CONTRACTS.cultureReview.key, adaptationStatus: 'adapted',
+    purpose: '角色体验完用户推荐的文化作品后，以第一人称口吻生成个人感想、下次对话话头与朋友圈文案',
+    desc: '以角色第一人称生成作品感想、主动交流话头及是否发圈决定；保持鲜明角色人设特征。',
+    sourcePath: 'electron/main/prompts/culture-review.ts#buildCultureReviewPrompt',
+    definitions: [
+      'electron/main/prompts/culture-review.ts#buildCultureReviewPrompt',
+      'electron/main/prompts/registered-request.ts#compileCultureReviewRequest',
+    ],
+    template: buildCultureReviewPrompt({
+      protagonistName: '{{protagonistName}}',
+      protagonistBrief: '{{protagonistBrief}}',
+      targetName: '{{targetName}}',
+      cultureType: 'reading',
+      userQuote: '{{userQuote}}',
+      userReason: '{{userReason}}',
+    }),
+    slots: [
+      { name: 'protagonistName', source: '当前主角 Role Pack', lifecycle: '作品体验完成时' },
+      { name: 'protagonistBrief', source: '当前主角公开简介', lifecycle: '作品体验完成时' },
+      { name: 'targetName', source: '体验作品名称', lifecycle: '作品体验完成时' },
+      { name: 'cultureType', source: '文化分类', lifecycle: '作品体验完成时' },
+      { name: 'userQuote', source: '用户推荐原文', lifecycle: '作品体验完成时' },
+      { name: 'userReason', source: '用户推荐理由', lifecycle: '作品体验完成时' },
     ],
   }),
   dynamicAsset({

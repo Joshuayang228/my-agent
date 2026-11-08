@@ -10,6 +10,7 @@ import { BrowserWindow } from 'electron'
 import { createLogger } from '../../utils/logger'
 import { tickActiveRole } from './engine'
 import { maybeProactiveGreeting } from './proactive-greeting'
+import { checkAndProgressAbsorbedResonances } from './chat-resonance'
 import * as store from './store'
 
 const log = createLogger('LifeTicker')
@@ -60,6 +61,9 @@ export function startLifeTicker(defaultIntervalMs = DEFAULT_INTERVAL_MS): void {
         // M31-G3：默认可关；失败不阻断 ticker
         await maybeProactiveGreeting(r.roleId, now).catch((err) => {
           log.warn('proactive greeting failed', { error: String(err) })
+        })
+        await checkAndProgressAbsorbedResonances(r.roleId, now).catch((err) => {
+          log.warn('checkAndProgressAbsorbedResonances failed', { error: String(err) })
         })
       }
     } catch (err) {

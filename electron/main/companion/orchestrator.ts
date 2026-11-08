@@ -95,8 +95,12 @@ export function formatConversationImpulseForPrompt(input: {
   socialNeed: number
   currentActivity?: string
   latestMomentText?: string
+  resonanceFeedback?: string
 }): string | undefined {
   const points: string[] = []
+  if (input.resonanceFeedback) {
+    points.push(`【重要回访心愿反馈】你之前根据用户的推荐去体验了并有了深刻感悟，心里一直惦记着向用户反馈：“${input.resonanceFeedback.slice(0, 100)}”`)
+  }
   if (input.latestMomentText) {
     points.push(`你最近在朋友圈分享过：${input.latestMomentText.slice(0, 60)}`)
   } else if (input.currentActivity) {
@@ -197,6 +201,7 @@ export async function loadRoleAssembleInput(
   lifeAssetsSlice?: string
   /** 当前话头与表达冲动 */
   conversationImpulse?: string
+  pendingResonanceFeedbackId?: string
   rosterLines?: string
   relationshipSummary?: string
   emotionSummary?: string
@@ -212,11 +217,18 @@ export async function loadRoleAssembleInput(
   const { collectRecentMomentsSlice } = await import('./life/moment-consistency')
   const { collectBookshelfSlice, collectLifeAssetsSlice } = await import('./life/assets')
   const { listEvents, listRelationshipStates, listEmotionEvents } = await import('./life/store')
+  const { getPendingResonanceFeedback } = await import('./life/chat-resonance')
   const world = await ensureWorldState(roleId)
   const worldSlice = formatWorldSliceForPrompt(world) || undefined
   const { slice: recentMomentsSlice } = await collectRecentMomentsSlice(roleId)
   const { slice: bookshelfSlice } = await collectBookshelfSlice(roleId)
   const { slice: lifeAssetsSlice } = await collectLifeAssetsSlice(roleId)
+  const pendingFeedback = await getPendingResonanceFeedback(roleId)
+  const conversationImpulse = formatConversationImpulseForPrompt({
+    socialNeed: world.socialNeed,
+    currentActivity: world.currentActivity,
+    resonanceFeedback: pendingFeedback?.feedbackText || undefined,
+  })
   const relationshipStates = await listRelationshipStates(roleId)
   const relationshipEvents = (await listEvents(roleId, { status: 'published', order: 'desc', limit: 30 }))
     .filter(event => event.payload.relationship && typeof event.payload.relationship === 'object')
@@ -238,6 +250,8 @@ export async function loadRoleAssembleInput(
     recentMomentsSlice: recentMomentsSlice || undefined,
     bookshelfSlice: bookshelfSlice || undefined,
     lifeAssetsSlice: lifeAssetsSlice || undefined,
+    conversationImpulse: conversationImpulse || undefined,
+    pendingResonanceFeedbackId: pendingFeedback?.id,
     rosterLines: roster || undefined,
     relationshipSummary,
     emotionSummary,
@@ -255,6 +269,7 @@ export async function loadActiveAssembleInput(): Promise<{
   lifeAssetsSlice?: string
   /** 当前话头与表达冲动 */
   conversationImpulse?: string
+  pendingResonanceFeedbackId?: string
   rosterLines?: string
   relationshipSummary?: string
   emotionSummary?: string
