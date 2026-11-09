@@ -1,5 +1,7 @@
 # 项目进度
 
+人物世界四大生活维度施工合同收口与冻结（2026-11-09）：将文化角四类生活内容（`culture-corner-v1.md`）、足迹旅行记录（`footprints-travel-v1.md`）、家居空间与物件（`home-spaces-v1.md`）和衣柜与穿搭系统（`wardrobe-clothing-system-v1.md`）四份已在生产环境完整落地（包含真实 SQLite 数据链、正式 UI 回流与生活面呈现、双向跳转及生活切片感知）的施工合同生命周期正式收口冻结为「已完成施工快照（冻结）」，当前能力事实源回归伙伴模块卡与架构/质量总控，更新施工合同索引，并通过 `npm run docs:validate` 门禁。
+
 人物世界「航海日记」与「专属信物」Playground 隔离候选样张落地（2026-11-09）：为新增的「航海日记 / 心事独白」与「专属信物」板块补齐标准的 Playground 隔离候选（`JournalExperienceCandidate.tsx` 与 `KeepsakesExperienceCandidate.tsx`）；两候选均具备完整离线 Mock 夹具与 `PlaygroundStateSwitcher` 状态机（支持默认清单、星标/精简、长正文排版伸缩、空态与读取失败重试）；生产面板（`WorldJournalPanel` 与 `WorldKeepsakesPanel`）扩展 `previewThoughts` / `previewKeepsakes` 属性，在纯前端预览下跳过真实 IPC 与广播，在内存中自闭环响应增删改与筛选；在 `SurfaceBaselinePanel` 的 `previewPanels` 中完成无缝挂载。新增 `playground-world-candidates.test.ts`（3 项用例），UI 组件注册表、产品体验注册表与资产治理门禁全绿通过。
 
 羁绊深度跃迁与专属信物馈赠落地（2026-11-08）：角色专属信物馈赠与实体羁绊承载流落地（`relationship-keepsake.ts`）；达成相处里程碑或体验完共同文化心愿时，角色主动将带有深层背景设定与誓约意义的专属信物赠予用户；赠礼发言直接写入角色主会话，并记录关系里程碑 `keepsake_gifted` 与广播桌面通知；出厂自动为路飞播种首件信物「生命卡的一角」，体验完文化作品自动触发第二件信物「梅利号的小羊金色铃铛」；人物世界（`WorldHub`）新增 `keepsakes` 分区（`WorldKeepsakesPanel`），支持高光视觉呈现与一键「触摸信物·与TA聊聊」直达主会话。新增 `relationship-keepsake.test.ts` 3 项单测，门禁全绿。

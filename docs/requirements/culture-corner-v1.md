@@ -1,7 +1,7 @@
 # 文化角四类生活内容 v1 施工合同
 
-> 状态：进行中，用户许可按方案推进，Playground 候选施工
-> 生命周期：指导 Playground 候选、真实数据链与正式回流；完工后将稳定事实吸入伙伴模块卡、架构与质量文档，再冻结为已完成施工快照。
+> 状态：已完成施工快照（冻结，2026-11-09）。
+> 生命周期：已完成施工快照（冻结）；保留当时 Why/What/How 与施工时证据；当前能力事实源见伙伴模块卡 [docs/modules/companion.md](../modules/companion.md)、架构与质量总控，不再承担当前能力真相。
 > 创建日期：2026-10-06
 > 上位文档：[人物世界模型](./companion-world-model-v1.md) · [六个生活维度](./playground-world-living-dimensions-v1.md)
 > 当前能力事实源：[伙伴模块卡](../modules/companion.md)

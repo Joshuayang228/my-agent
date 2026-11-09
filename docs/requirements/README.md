@@ -24,7 +24,6 @@
 
 布局基线：[foundation-layout-boundaries-v1.md](./foundation-layout-boundaries-v1.md)，P1 布局基线、双层页头元信息及无滚动条直接横滚回流，人工验收完成。
 
-足迹设计：[footprints-travel-v1.md](./footprints-travel-v1.md)，旅行粒度与产品边界已确认；数据 / 交互方案待确认，正式回流未授权。
 
 | 文档 | 说明 |
 |------|------|
@@ -44,9 +43,6 @@
 
 | [playground-mcp-scenarios-v1.md](./playground-mcp-scenarios-v1.md) | P0 施工：MCP 多服务、连接状态与工具数量场景直接审阅 |
 | [playground-model-and-workspace-v2.md](./playground-model-and-workspace-v2.md) | P0 施工：从用户故事重构模型设置与任务工作区候选 |
-| [wardrobe-clothing-system-v1.md](./wardrobe-clothing-system-v1.md) | P0 / P1：衣物资产、当前穿着、穿搭槽位、换上链路与真实生图衣柜 |
-| [culture-corner-v1.md](./culture-corner-v1.md) | 四类文化生活：用户许可推进，Playground 四分类与详情候选施工，真实链路及正式回流未完成 |
-| [home-spaces-v1.md](./home-spaces-v1.md) | 家居：总览鸟瞰、空间与有意义物件；已许可 Playground 候选，真实数据链与正式回流未交付 |
 
 
 
@@ -74,6 +70,10 @@ Debug 阅读层级：[debug-foundation-reading-v2.md](./debug-foundation-reading
 
 | 文档 | 说明 |
 |------|------|
+| [culture-corner-v1.md](./culture-corner-v1.md) | 已完成施工快照（冻结）：四类文化生活（书影音展游）、心愿状态切换、感想录入与正式生活面回流 |
+| [footprints-travel-v1.md](./footprints-travel-v1.md) | 已完成施工快照（冻结）：足迹旅行记录、岛屿停留经历与正式生活面回流 |
+| [home-spaces-v1.md](./home-spaces-v1.md) | 已完成施工快照（冻结）：家居空间总览与有意义物件陈列、正式生活面回流 |
+| [wardrobe-clothing-system-v1.md](./wardrobe-clothing-system-v1.md) | 已完成施工快照（冻结）：衣物资产、当前穿着状态、穿搭槽位与换上链路、正式生活面回流 |
 | [prompt-layered-composition-v1.md](./prompt-layered-composition-v1.md) | 已完成施工快照（冻结）：15 项通用功能 Prompt 合同、四层固定顺序组合器、人物适配覆盖边界、关系标签与隔离人物验证 |
 | [character-system-extension-v1.md](./character-system-extension-v1.md) | 已完成施工快照（冻结）：首个人物的 Role Pack 分工、Prompt 装配、材料采集与扩展边界 |
 | [character-design-method-v1.md](./character-design-method-v1.md) | 已完成施工快照（冻结）：通用人物设计方法、首次冷启持久化、三条连续性分离、世界观经历库与主动搜索边界 |

@@ -1,7 +1,7 @@
 # 家居空间与物件 v1 施工合同
 
-> 状态：进行中，已获 Playground 候选施工许可；真实数据链与正式回流尚未交付
-> 生命周期：指导 Playground 候选、真实数据链与正式回流；收工后将稳定事实吸入伙伴模块卡、架构与质量文档，再冻结。
+> 状态：已完成施工快照（冻结，2026-11-09）。
+> 生命周期：已完成施工快照（冻结）；保留当时 Why/What/How 与施工时证据；当前能力事实源见伙伴模块卡 [docs/modules/companion.md](../modules/companion.md)、架构与质量总控，不再承担当前能力真相。
 > 创建日期：2026-10-07
 > 当前能力事实源：[伙伴模块卡](../modules/companion.md)
 > 关联施工合同：[人物世界六面](./playground-world-living-dimensions-v1.md) · [衣柜](./wardrobe-clothing-system-v1.md) · [文化角](./culture-corner-v1.md)

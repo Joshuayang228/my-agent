@@ -1,7 +1,7 @@
 # 衣柜与穿搭系统 v1 施工合同
 
-> 状态：进行中，字段与范围已确认，Playground 候选施工中
-> 生命周期：本合同用于指导衣柜第一版的 Playground 候选、真实数据链、正式回流和质量验收；施工完成后，稳定事实必须吸入 `docs/modules/companion.md`、`docs/architecture.md`、`docs/quality.md` 和 `docs/progress.md`，再将本合同冻结为已完成施工快照。
+> 状态：已完成施工快照（冻结，2026-11-09）。
+> 生命周期：已完成施工快照（冻结）；保留当时 Why/What/How 与施工时证据；当前能力事实源见伙伴模块卡 [docs/modules/companion.md](../modules/companion.md)、架构与质量总控，不再承担当前能力真相。
 > 创建日期：2026-10-01
 > 上位文档：[`companion-world-model-v1.md`](./companion-world-model-v1.md) · [`playground-world-living-dimensions-v1.md`](./playground-world-living-dimensions-v1.md)
 > 参考实现：本地 Alice 源码快照与 [`18-moments-social.md`](../../_reference/framework-harness/repos/alice-methodology/chapters/18-moments-social.md)
