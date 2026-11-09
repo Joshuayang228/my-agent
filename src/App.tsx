@@ -173,6 +173,10 @@ function App() {
   const [companionFirstContact, setCompanionFirstContact] = useState<{ openingLine: string; quote?: string } | undefined>()
   const [showFirstContact, setShowFirstContact] = useState(false)
   const [activeRoleId, setActiveRoleId] = useState('luffy')
+  const [companionAvatar, setCompanionAvatar] = useState<string | null>(null)
+  const [companionBanner, setCompanionBanner] = useState<string | null>(null)
+  const [roleAvatars, setRoleAvatars] = useState<Record<string, string>>({})
+  const [roleBanners, setRoleBanners] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if ((activeView === 'world' && worldTab === 'moments') || activeView === 'moments') {
@@ -369,16 +373,39 @@ function App() {
       setCompanionStatusSummary(p?.statusSummary)
       setCompanionStatusMetrics(p?.statusMetrics)
       if (p?.id) setActiveRoleId(p.id)
+      if (p?.avatarDataUrl) {
+        setCompanionAvatar(p.avatarDataUrl)
+        if (p.id) setRoleAvatars(prev => ({ ...prev, [p.id]: p.avatarDataUrl! }))
+      }
+      if (p?.bannerDataUrl) {
+        setCompanionBanner(p.bannerDataUrl)
+        if (p.id) setRoleBanners(prev => ({ ...prev, [p.id]: p.bannerDataUrl! }))
+      }
       setCompanionFirstContact(p?.firstContact ? { openingLine: p.firstContact.openingLine, quote: p.firstContact.quote } : undefined)
     })
     window.electronAPI.companion.listProtagonists().then((list) => {
       const map: Record<string, string> = {}
-      for (const p of list) map[p.id] = p.name
+      const avatars: Record<string, string> = {}
+      const banners: Record<string, string> = {}
+      for (const p of list) {
+        map[p.id] = p.name
+        if (p.avatarDataUrl) avatars[p.id] = p.avatarDataUrl
+        if (p.bannerDataUrl) banners[p.id] = p.bannerDataUrl
+      }
       setProtagonistNames((prev) => ({ ...prev, ...map }))
+      setRoleAvatars((prev) => ({ ...prev, ...avatars }))
+      setRoleBanners((prev) => ({ ...prev, ...banners }))
     })
     window.electronAPI.companion.getRoster?.().then((data) => {
       const map: Record<string, string> = {}
-      for (const c of data.cast) map[c.id] = c.name
+      for (const c of data.cast) {
+        map[c.id] = c.name
+        // 异步预热名册角色的头像与横幅
+        void window.electronAPI.companion.getRoleVisuals?.(c.id).then(visuals => {
+          if (visuals?.avatarDataUrl) setRoleAvatars(prev => ({ ...prev, [c.id]: visuals.avatarDataUrl! }))
+          if (visuals?.bannerDataUrl) setRoleBanners(prev => ({ ...prev, [c.id]: visuals.bannerDataUrl! }))
+        }).catch(() => {})
+      }
       setProtagonistNames((prev) => ({ ...prev, ...map }))
     }).catch(() => { /* 旧 preload 无 getRoster */ })
     window.electronAPI.project.get().then((p) => {
@@ -391,6 +418,14 @@ function App() {
         setCompanionStatusSummary(p?.statusSummary)
         setCompanionStatusMetrics(p?.statusMetrics)
         if (p?.id) setActiveRoleId(p.id)
+        if (p?.avatarDataUrl) {
+          setCompanionAvatar(p.avatarDataUrl)
+          if (p.id) setRoleAvatars(prev => ({ ...prev, [p.id]: p.avatarDataUrl! }))
+        }
+        if (p?.bannerDataUrl) {
+          setCompanionBanner(p.bannerDataUrl)
+          if (p.id) setRoleBanners(prev => ({ ...prev, [p.id]: p.bannerDataUrl! }))
+        }
         setCompanionFirstContact(p?.firstContact ? { openingLine: p.firstContact.openingLine, quote: p.firstContact.quote } : undefined)
       })
       const sid = activeSessionIdRef.current
@@ -1121,6 +1156,7 @@ function App() {
           developerMode={developerMode}
           personaName={currentPersonaName}
           personaBlurb={companionBlurb || '越探索，越着迷。'}
+          avatarSrc={companionAvatar}
           activeView={activeView}
           activeSessionId={activeSessionId}
           sessionGroups={sessionGroups}
@@ -1280,7 +1316,14 @@ function App() {
           <div className="view-transition flex flex-1 flex-col overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
             {isWorldView(activeView) ? (
               <WorldHub
-                profile={{ name: currentPersonaName, description: companionBlurb, statusSummary: companionStatusSummary, statusMetrics: companionStatusMetrics }}
+                profile={{
+                  name: currentPersonaName,
+                  description: companionBlurb,
+                  statusSummary: companionStatusSummary,
+                  statusMetrics: companionStatusMetrics,
+                  avatarSrc: roleAvatars[activeRoleId] ?? companionAvatar,
+                  bannerSrc: roleBanners[activeRoleId] ?? companionBanner,
+                }}
                 roleId={activeRoleId}
                 onTakeToChat={({ text }: { text: string }) => {
                   setActiveView('chat')
@@ -1359,13 +1402,15 @@ function App() {
           onDragLeave={() => setDragOver(false)}
           onDrop={(e) => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) handleFileAttach(e.dataTransfer.files) }}
         >
-          <CompanionSceneBackdrop roleId={activeRoleId} />
+          <CompanionSceneBackdrop roleId={activeRoleId} bannerSrc={roleBanners[activeRoleId] ?? companionBanner} />
           <div className={`relative z-[1] flex min-h-full flex-col ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`}>
           <div className="mx-auto flex min-h-full w-full flex-1 flex-col" style={{ maxWidth: 'var(--layout-width)' }} data-testid="chat-content">
             {/* 欢迎屏 — 衬线问候 + 建议 pill（Phase 3） */}
             {messages.length === 0 && (
               <div className="flex flex-1 flex-col items-center justify-center pb-6">
                 <ChatWelcome title={coldStart.title} subtitle={coldStart.subtitle}
+                  avatarSrc={roleAvatars[activeRoleId] ?? companionAvatar}
+                  roleName={currentPersonaName}
                   onGreet={() => { void sendMessage('你好，介绍一下你自己') }}
                   onPlanDay={() => { void sendMessage('今天打算怎么过？陪我想想。') }}
                   onOpenWorld={() => { setWorldTab('moments'); setActiveView('world') }} />
@@ -1397,7 +1442,11 @@ function App() {
                         className="mb-3"
                       />
                     )}
-                    <ChatMessageFrame role={isUser ? 'user' : 'assistant'} name={messagePersonaName} timestamp={msg.timestamp}
+                    <ChatMessageFrame
+                      role={isUser ? 'user' : 'assistant'}
+                      name={messagePersonaName}
+                      avatarSrc={isUser ? undefined : ((messageRoleId ? roleAvatars[messageRoleId] : undefined) ?? roleAvatars[activeRoleId] ?? companionAvatar)}
+                      timestamp={msg.timestamp}
                       editing={isUser && editingMsgId === msg.id}
                       actions={isUser ? (
                         <div className="absolute -bottom-5 right-2 flex items-center gap-1 opacity-0 transition group-hover:opacity-100">

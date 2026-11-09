@@ -1,5 +1,19 @@
 # 伙伴世界（Companion）
 
+## 已落地能力：多角色专属头像体系与空间氛围横幅（Companion Avatars & Atmospheric Banners）
+
+- **多角色专属头像（Companion Avatars）**：角色包（Role Pack）在 `manifest.json` 中配置 `avatarVisualPath` 与 `themeColor`，主进程加载器 `loader.ts` 结合 `resolveRoleAssetFilePath` 将角色头像物化或转换为 base64 dataUrl 供前端消费；为路飞（`luffy`）、索隆（`zoro`）、娜美（`nami`）、山治（`sanji`）、乌索普（`usopp`）出厂落地 1:1 高清专属立绘头像，并为小林（`lin`）补齐展厅候选头像。
+- **全场景高频触点贯通（Omni-Touchpoint Avatar Integration）**：彻底取代冰冷的 `<Bot />` 机器人图标与单调单字方块：
+  1. **Chat 欢迎屏（`ChatWelcome`）**：居中展示主角大尺寸专属头像与人设光晕；
+  2. **Chat 消息气泡（`ChatMessageFrame`）**：各角色（含主对话伙伴与被召唤 NPC）回复气泡带专属圆形头像；
+  3. **人物世界顶部（`WorldProfileHeader`）**：大尺寸圆角专属头像半浮于封面横幅边缘；
+  4. **主侧栏顶栏（`PrimarySidebar`）**：专属头像彰显当前同行伙伴身份；
+  5. **朋友圈动态（`MomentsPanel`）**：动态卡片展示作者头像。
+- **优雅降级（Graceful Fallbacks）**：统一封装 `CompanionAvatar` 组件，支持图片未配置或加载失败时优雅平滑回退至角色首字艺术字与人设主题色渐变。
+- **人物世界生活场景封面（World Profile Cover Banner）**：`WorldProfileHeader` 支持宽幅生活场景背景（如路飞万里阳光号甲板出航 `thousand-sunny-crew-scene-v1.png`），配合顶部半透明暗角渐变与磨砂边缘，形成温馨沉浸的角色个人主页。
+- **Chat 会话区弱场景氛围壁纸（Ambient Chat Scene Wallpaper）**：`CompanionSceneBackdrop` 支持弱场景壁纸层（透光度 ~9%、轻度微模糊与暗角），在不干扰气泡对比度与文本可读性的前提下营造伙伴所在场景的陪伴空间感。
+- **IPC 同步与单测覆盖**：`companion:get-role-visuals` 通道四处同步；新增 `companion-role-visuals.test.ts` 5 项单测，门禁全绿。
+
 ## 已落地能力：世界观主角与卡司边界
 
 默认世界观 manifest 显式区分 `protagonistIds` 与 `castIds`：路飞是当前唯一主角，索隆、娜美、乌索普、山治是朋友角色。朋友角色可以进入名册、关系、召唤和 Debug 资产目录，但不能因此自动成为 `activeRoleId`。背景与当时决策保留在已冻结的 [世界观套装与人物生成施工合同](../requirements/world-and-character-authoring-v1.md)。

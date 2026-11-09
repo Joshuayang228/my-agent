@@ -36,7 +36,7 @@ beforeEach(() => {
   root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'image-backup-')))
   backup = path.join(root, 'backup.json')
   db = new SQL.Database()
-  db.run(`CREATE TABLE sessions (id TEXT PRIMARY KEY, title TEXT, created_at INTEGER, updated_at INTEGER, role_id TEXT, session_kind TEXT);
+  db.run(`CREATE TABLE sessions (id TEXT PRIMARY KEY, title TEXT, created_at INTEGER, updated_at INTEGER, role_id TEXT, session_kind TEXT, parent_session_id TEXT);
     CREATE TABLE messages (id TEXT PRIMARY KEY, session_id TEXT, role TEXT, content TEXT, tool_calls TEXT, tool_call_id TEXT, generated_images TEXT, created_at INTEGER, sort_order INTEGER);`)
   state.save.mockResolvedValue({ canceled: false, filePath: backup })
   state.open.mockResolvedValue({ canceled: false, filePaths: [backup] })

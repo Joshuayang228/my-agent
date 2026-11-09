@@ -12,6 +12,7 @@ import { TextField } from './foundation/TextField'
 import { ErrorState } from './foundation/ErrorState'
 import { LAYOUT_CLASSES } from '../shared/content-layout'
 import { MomentImageGrid } from './world/MomentImageGrid'
+import { CompanionAvatar } from './CompanionAvatar'
 import {
   emptyMomentSocial,
   mergeMomentComments,
@@ -64,6 +65,7 @@ interface MomentsPanelProps {
   enableImagePreview?: boolean
   /** 已确认的精简装饰；正式人物世界与隔离样张显式采用。 */
   previewChrome?: 'minimal'
+  avatarSrc?: string | null
   onTakeToChat?: (opts: { text: string }) => void
 }
 
@@ -103,7 +105,7 @@ function typeColor(type: unknown): string {
 }
 
 
-export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewData, appearance = 'default', hideHeader = false, showSocialActions = false, compactClosedComposer = false, onMomentSelect, enableImagePreview = false, previewChrome, onTakeToChat }: MomentsPanelProps) {
+export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewData, appearance = 'default', hideHeader = false, showSocialActions = false, compactClosedComposer = false, onMomentSelect, enableImagePreview = false, previewChrome, avatarSrc, onTakeToChat }: MomentsPanelProps) {
   const minimalPreviewChrome = previewChrome === 'minimal'
   const isSocialFeed = appearance === 'social-feed' || appearance === 'alice-feed'
   const isAliceFeed = appearance === 'alice-feed'
@@ -426,9 +428,13 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
                 return (
                   <li key={m.id} data-testid={isAliceFeed ? 'moment-post' : undefined} className={isAliceFeed ? 'moments-alice-post' : 'border-b pb-5'} style={isAliceFeed ? { padding: 'var(--layout-post-padding,1.15rem 1.25rem 1rem)' } : { borderColor: 'var(--border-subtle)' }}>
                     <div className="flex items-start gap-2.5">
-                      <span className={`flex ${isAliceFeed ? 'h-10 w-10' : 'h-9 w-9'} shrink-0 items-center justify-center rounded-full text-[13px] font-semibold`} style={{ background: 'var(--accent-subtle)', color: 'var(--companion-accent-warm)' }}>
-                        {(roleName || '小林').slice(0, 1)}
-                      </span>
+                      <CompanionAvatar
+                        src={avatarSrc}
+                        name={roleName || '伙伴'}
+                        role="assistant"
+                        size={isAliceFeed ? 'md' : 'sm'}
+                        className="shrink-0"
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
                           <div className="text-[13px] font-semibold" style={{ color: isAliceFeed ? 'var(--text-primary)' : 'var(--accent-fg)' }}>{roleName || '小林'}</div>

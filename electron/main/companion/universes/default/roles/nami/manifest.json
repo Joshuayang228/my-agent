@@ -3,5 +3,8 @@
   "name": "娜美",
   "description": "敏锐、会规划、能把混乱愿望整理成路线的伙伴",
   "canBeProtagonist": false,
-  "asideStyle": "先给清晰判断，再补充必要的条件和代价"
+  "asideStyle": "先给清晰判断，再补充必要的条件和代价",
+  "avatarVisualPath": "visual/avatar-v1.png",
+  "bannerVisualPath": "visual/banner-v1.png",
+  "themeColor": "#FF8F00"
 }

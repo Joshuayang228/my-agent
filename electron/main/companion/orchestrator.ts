@@ -48,10 +48,11 @@ export async function getActiveRoleId(): Promise<string> {
   return fallback
 }
 
-export async function getActiveRole(): Promise<RoleSummary & { universeId: string }> {
+export async function getActiveRole(): Promise<RoleSummary & { universeId: string; avatarDataUrl?: string | null; bannerDataUrl?: string | null; themeColor?: string | null }> {
   const universeId = await settings.getSetting('universeId')
   const roleId = await getActiveRoleId()
   const pack = identity.loadRolePack(roleId, universeId)
+  const visuals = identity.getRoleVisuals(roleId, universeId)
   const [state, relationships, emotions] = await Promise.all([
     getRoleState(roleId),
     listRelationshipStates(roleId),
@@ -64,6 +65,11 @@ export async function getActiveRole(): Promise<RoleSummary & { universeId: strin
     description: pack.description,
     firstContact: pack.firstContact,
     universeId,
+    avatarVisualPath: pack.avatarVisualPath,
+    bannerVisualPath: pack.bannerVisualPath,
+    themeColor: pack.themeColor,
+    avatarDataUrl: visuals.avatarDataUrl,
+    bannerDataUrl: visuals.bannerDataUrl,
     statusSummary: formatCompanionStatusSummary({ world: state?.world, relationships, emotions }),
     statusMetrics: state ? {
       mood: state.world.mood,
@@ -73,6 +79,12 @@ export async function getActiveRole(): Promise<RoleSummary & { universeId: strin
       relationshipPhase: userRelationship?.phase ?? null,
     } : undefined,
   }
+}
+
+export async function getRoleVisuals(roleId?: string) {
+  const targetId = roleId || (await getActiveRoleId())
+  const universeId = (await settings.getSetting('universeId')) || 'default'
+  return identity.getRoleVisuals(targetId, universeId)
 }
 
 /**

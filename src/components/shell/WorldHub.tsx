@@ -188,7 +188,7 @@ export function WorldHub({
       <div id={`world-panel-${tab}`} role="tabpanel" className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
         {previewPanels?.[tab] ?? (
           <>
-            {tab === 'moments' && <MomentsPanel onTakeToChat={onTakeToChat} onClose={onClose} onLoadingChange={setWorldRefreshing} refreshToken={momentsPreview ? undefined : worldRefreshToken} previewData={momentsPreview} appearance={momentsAppearance ?? 'alice-feed'} hideHeader={hideMomentsHeader ?? true} showSocialActions={showSocialActions} compactClosedComposer={compactClosedComposer} enableImagePreview={enableImagePreview} previewChrome="minimal" />}
+            {tab === 'moments' && <MomentsPanel onTakeToChat={onTakeToChat} onClose={onClose} onLoadingChange={setWorldRefreshing} refreshToken={momentsPreview ? undefined : worldRefreshToken} previewData={momentsPreview} appearance={momentsAppearance ?? 'alice-feed'} hideHeader={hideMomentsHeader ?? true} showSocialActions={showSocialActions} compactClosedComposer={compactClosedComposer} enableImagePreview={enableImagePreview} previewChrome="minimal" avatarSrc={profile?.avatarSrc} />}
             {tab === 'journal' && <WorldJournalPanel roleId={roleId} onTakeToChat={onTakeToChat} refreshToken={worldRefreshToken} onLoadingChange={setWorldRefreshing} />}
             {tab === 'keepsakes' && <WorldKeepsakesPanel roleId={roleId} onTakeToChat={onTakeToChat} refreshToken={worldRefreshToken} onLoadingChange={setWorldRefreshing} />}
             {tab === 'decisions' && <WorldDecisionsPanel roleId={roleId} onTakeToChat={onTakeToChat} refreshToken={worldRefreshToken} onLoadingChange={setWorldRefreshing} />}

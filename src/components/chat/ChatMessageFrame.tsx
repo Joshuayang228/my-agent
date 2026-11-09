@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
-import { Bot, UserRound } from 'lucide-react'
+import { CompanionAvatar } from '../CompanionAvatar'
 
 interface ChatMessageFrameProps {
   role: 'user' | 'assistant'
   name?: string
+  avatarSrc?: string | null
   timestamp?: number
   previewTimeLabel?: string
   editing?: boolean
@@ -14,17 +15,23 @@ interface ChatMessageFrameProps {
 
 /**
  * 背景：候选有头像与身份行，正式消息却另写外框，容易在回流时丢掉工具、引用或编辑能力。
- * 设计意图：只共享消息排列、身份与气泡；正文和操作通过插槽保留原有数据链路，不复制样张消息。
+ * 设计意图：只共享消息排列、身份与气泡；正文和操作通过插槽保留原有数据链路，支持角色专属真实头像与首字回退。
  * 关键约束：正式时间来自消息记录，未知时间不伪造；头像与操作槽不随 hover 改尺寸，长内容不能撑宽会话。
  */
-export function ChatMessageFrame({ role, name, timestamp, previewTimeLabel, editing = false, showUserAvatar = true, actions, children }: ChatMessageFrameProps) {
+export function ChatMessageFrame({ role, name, avatarSrc, timestamp, previewTimeLabel, editing = false, showUserAvatar = true, actions, children }: ChatMessageFrameProps) {
   const isUser = role === 'user'
   const date = typeof timestamp === 'number' && Number.isFinite(timestamp) ? new Date(timestamp) : null
   const validDate = date && Number.isFinite(date.getTime()) ? date : null
-  const avatar = <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full" aria-hidden="true"
-    style={{ background: 'var(--accent-subtle)', color: isUser ? 'var(--accent-fg)' : 'var(--companion-accent-warm)' }}>
-    {isUser ? <UserRound size={14} /> : <Bot size={14} />}
-  </span>
+  const avatar = (
+    <span className="mt-1 shrink-0">
+      <CompanionAvatar
+        src={isUser ? undefined : avatarSrc}
+        name={name}
+        role={role}
+        size="sm"
+      />
+    </span>
+  )
   return <div data-testid="chat-message-frame" data-role={role} className={'flex min-w-0 items-start gap-2.5 ' + (isUser ? 'justify-end' : '')}>
     {!isUser && avatar}
     <div className={'relative min-w-0 ' + (isUser ? 'max-w-[75%]' : 'max-w-[82%] flex-1')}>

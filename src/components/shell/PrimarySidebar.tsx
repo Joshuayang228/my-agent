@@ -14,6 +14,7 @@ import { formatSessionPreview, formatSessionStamp } from './session-format'
 import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
 import { TextField } from '../foundation/TextField'
+import { CompanionAvatar } from '../CompanionAvatar'
 
 export interface SidebarSession {
   id: string
@@ -33,6 +34,7 @@ const DOCK: { id: ShellView; label: string; icon: ReactNode }[] = [
 export function PrimarySidebar({
   personaName,
   personaBlurb,
+  avatarSrc,
   activeView,
   activeSessionId,
   sessionGroups,
@@ -67,6 +69,7 @@ export function PrimarySidebar({
 }: {
   personaName: string
   personaBlurb: string
+  avatarSrc?: string | null
   activeView: ShellView
   activeSessionId: string | null
   sessionGroups: { label: string; items: SidebarSession[] }[]
@@ -124,12 +127,13 @@ export function PrimarySidebar({
         onMouseLeave={(event) => { event.currentTarget.style.background = 'transparent' }}
         title="打开角色架"
       >
-        <span
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[15px] font-semibold"
-          style={{ background: 'var(--accent-subtle)', color: 'var(--companion-accent-warm)' }}
-        >
-          {(personaName || '?').slice(0, 1)}
-        </span>
+        <CompanionAvatar
+          src={avatarSrc}
+          name={personaName}
+          role="assistant"
+          size="md"
+          className="shrink-0 ring-2"
+        />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>
             {personaName || '伙伴'}

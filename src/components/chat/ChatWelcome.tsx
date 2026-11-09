@@ -1,19 +1,27 @@
-import { Bot } from 'lucide-react'
+import { CompanionAvatar } from '../CompanionAvatar'
 import { ActionButton } from '../foundation/ActionButton'
 
 interface ChatWelcomeProps {
   title: string
   subtitle: string
+  avatarSrc?: string | null
+  roleName?: string
   onGreet: () => void
   onPlanDay: () => void
   onOpenWorld: () => void
   actionTestId?: string
 }
 
-export function ChatWelcome({ title, subtitle, onGreet, onPlanDay, onOpenWorld, actionTestId }: ChatWelcomeProps) {
+export function ChatWelcome({ title, subtitle, avatarSrc, roleName, onGreet, onPlanDay, onOpenWorld, actionTestId }: ChatWelcomeProps) {
   return <div className="m-auto w-full max-w-lg text-center" data-testid="chat-welcome">
-    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full" style={{ background: 'var(--accent-subtle)', color: 'var(--companion-accent-warm)' }}>
-      <Bot size={22} strokeWidth={1.5} aria-hidden="true" />
+    <div className="mx-auto flex justify-center">
+      <CompanionAvatar
+        src={avatarSrc}
+        name={roleName ?? title}
+        role="assistant"
+        size="lg"
+        className="ring-4"
+      />
     </div>
     <h1 className="mt-5 break-words font-display text-[1.9rem] font-medium" style={{ color: 'var(--text-primary)', overflowWrap: 'anywhere' }}>{title}</h1>
     <p className="mt-3 whitespace-pre-wrap break-words text-[14px] leading-relaxed" style={{ color: 'var(--text-secondary)', overflowWrap: 'anywhere' }}>{subtitle}</p>

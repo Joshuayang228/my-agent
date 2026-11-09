@@ -5,6 +5,9 @@
   "canBeProtagonist": true,
   "asideStyle": "像并肩出发前咧嘴说的一句，短、亮、有行动感",
   "characterKind": "canon",
+  "avatarVisualPath": "visual/avatar-v1.png",
+  "bannerVisualPath": "visual/banner-v1.png",
+  "themeColor": "#E65100",
   "firstContact": {
     "openingLine": "我是蒙奇·D·路飞！我要成为海贼王的男人！",
     "quote": "我要成为海贼王的男人！",

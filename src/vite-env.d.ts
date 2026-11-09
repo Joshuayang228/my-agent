@@ -154,13 +154,14 @@ declare global {
         >
       }
       companion: {
-        listProtagonists: () => Promise<Array<{ id: string; name: string; description: string; firstContact?: { openingLine: string; quote?: string; followUpStyle?: string; repeatPolicy: string } }>>
+        listProtagonists: () => Promise<Array<import('./shared/types').RoleSummary>>
+        getRoleVisuals: (roleId?: string) => Promise<import('./shared/types').CompanionRoleVisuals>
         listUniverses: () => Promise<Array<{ id: string; title: string; version: number; defaultProtagonistId: string; active: boolean }>>
         switchUniverse: (universeId: string) => Promise<
           | { ok: true; universeId: string; roleId: string; name: string }
           | { ok: false; code: 'UNKNOWN_UNIVERSE' | 'SESSION_ACTIVE' | 'ALREADY_ACTIVE' | 'INVALID_UNIVERSE' | 'SWITCH_FAILED' }
         >
-        getActive: () => Promise<{ id: string; name: string; description: string; universeId: string; statusSummary?: string; statusMetrics?: { mood: number; energy: number; socialNeed: number; relationshipSignal: number | null; relationshipPhase: string | null }; firstContact?: { openingLine: string; quote?: string; followUpStyle?: string; repeatPolicy: string } }>
+        getActive: () => Promise<{ id: string; name: string; description: string; universeId: string; statusSummary?: string; statusMetrics?: { mood: number; energy: number; socialNeed: number; relationshipSignal: number | null; relationshipPhase: string | null }; firstContact?: { openingLine: string; quote?: string; followUpStyle?: string; repeatPolicy: string }; avatarDataUrl?: string | null; bannerDataUrl?: string | null; themeColor?: string | null }>
         claimFirstContact: () => Promise<boolean>
         requestSwitch: (roleId: string) => Promise<
           | {

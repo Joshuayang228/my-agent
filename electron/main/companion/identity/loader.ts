@@ -259,11 +259,73 @@ export function listAvailableUniverseIds(): string[] {
 /**
  * 列出宇宙中已挂上的主角（仅 protagonistIds 中的包）。
  */
+const roleVisualDataUrlCache = new Map<string, string | null>()
+
+/**
+ * 读取角色相对路径的视觉文件并转换为 base64 dataUrl 供前端渲染。
+ * 内存缓存避免重复读取磁盘。
+ */
+export function getRoleVisualDataUrl(
+  roleId: string,
+  visualRelPath?: string,
+  universeId: string = DEFAULT_UNIVERSE,
+): string | null {
+  if (!visualRelPath || typeof visualRelPath !== 'string') return null
+  const cacheKey = `${universeId}:${roleId}:${visualRelPath}`
+  if (roleVisualDataUrlCache.has(cacheKey)) {
+    return roleVisualDataUrlCache.get(cacheKey) ?? null
+  }
+  const absPath = resolveRoleAssetFilePath(roleId, visualRelPath, universeId)
+  if (!absPath || !fs.existsSync(absPath)) {
+    roleVisualDataUrlCache.set(cacheKey, null)
+    return null
+  }
+  try {
+    const bytes = fs.readFileSync(absPath)
+    if (bytes.byteLength < 8 || bytes.byteLength > 15 * 1024 * 1024) {
+      roleVisualDataUrlCache.set(cacheKey, null)
+      return null
+    }
+    const ext = path.extname(absPath).toLowerCase()
+    const mime = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png'
+    const dataUrl = `data:${mime};base64,${bytes.toString('base64')}`
+    roleVisualDataUrlCache.set(cacheKey, dataUrl)
+    return dataUrl
+  } catch {
+    roleVisualDataUrlCache.set(cacheKey, null)
+    return null
+  }
+}
+
+export function getRoleVisuals(roleId: string, universeId: string = DEFAULT_UNIVERSE) {
+  const pack = loadRolePack(roleId, universeId)
+  const avatarPath = pack.avatarVisualPath || 'visual/avatar-v1.png'
+  const bannerPath = pack.bannerVisualPath || (pack.worldDefaults?.home?.visualPath ? pack.worldDefaults.home.visualPath : 'visual/banner-v1.png')
+  return {
+    roleId: pack.id,
+    roleName: pack.name,
+    avatarDataUrl: getRoleVisualDataUrl(roleId, avatarPath, universeId),
+    bannerDataUrl: getRoleVisualDataUrl(roleId, bannerPath, universeId),
+    themeColor: pack.themeColor ?? null,
+  }
+}
+
 export function listProtagonists(universeId: string = DEFAULT_UNIVERSE): RoleSummary[] {
   const manifest = loadUniverseManifest(universeId)
   return manifest.protagonistIds.map((roleId) => {
     const pack = loadRolePack(roleId, universeId)
-    return { id: pack.id, name: pack.name, description: pack.description, firstContact: pack.firstContact }
+    const visuals = getRoleVisuals(roleId, universeId)
+    return {
+      id: pack.id,
+      name: pack.name,
+      description: pack.description,
+      firstContact: pack.firstContact,
+      avatarVisualPath: pack.avatarVisualPath,
+      bannerVisualPath: pack.bannerVisualPath,
+      themeColor: pack.themeColor,
+      avatarDataUrl: visuals.avatarDataUrl,
+      bannerDataUrl: visuals.bannerDataUrl,
+    } as RoleSummary
   })
 }
 
@@ -299,6 +361,9 @@ export function loadRolePack(roleId: string, universeId: string = DEFAULT_UNIVER
     asideStyle: manifest.asideStyle,
     characterKind: manifest.characterKind,
     firstContact: manifest.firstContact,
+    avatarVisualPath: manifest.avatarVisualPath,
+    bannerVisualPath: manifest.bannerVisualPath,
+    themeColor: manifest.themeColor,
     voice: assetExists(voiceRel) ? readText(voiceRel) : undefined,
     profile: loadRoleProfile(roleId, universeId),
     worldDefaults: loadRoleWorldDefaults(roleId, universeId),

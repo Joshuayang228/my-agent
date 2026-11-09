@@ -12,6 +12,7 @@ import {
   getActiveRole,
   getActiveRoleId,
   getActiveRoster,
+  getRoleVisuals,
   listActiveUniverseProtagonists,
   listAvailableUniverseIds,
   requestUniverseSwitch,
@@ -86,6 +87,10 @@ export function registerCompanionIPC(): void {
   })
 
   ipcMain.handle('companion:get-active', async () => getActiveRole())
+  ipcMain.handle('companion:get-role-visuals', async (_e, roleId?: unknown) => {
+    const target = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : undefined
+    return getRoleVisuals(target)
+  })
   ipcMain.handle('companion:claim-first-contact', async () => {
     try { return await claimFirstContact(await getActiveRoleId()) } catch { throw new Error('无法读取人物首次冷启状态') }
   })

@@ -127,6 +127,8 @@ Playground / Eval 使用明确实验配方与来源，生产模块禁止导入 E
 
 显式人物生图的数据流为 `RolePack.profile.appearance` → `formatRoleAppearanceForImagePrompt`，绑定人物穿搭时再由 `companion_assets` 的同角色槽位补充衣物名称 → `compileImageGenerationRequest` → 图片协议；只投影确认的外观与穿搭字段，保持用户图片描述为运行时资料，不建立第二份人物视觉真相，也不让视觉锚点改变权限或图片落盘边界。Role Pack loader 只将 json / md / txt 文本资产打入主进程，PNG 等视觉参考留在项目文件中，避免二进制被 raw glob 膨胀进 Electron bundle。
 
+角色专属视觉与空间氛围架构（2026-11-10）：角色包（Role Pack）在 `manifest.json` 中声明 `avatarVisualPath`、`bannerVisualPath` 与 `themeColor`；`electron/main/companion/identity/loader.ts` 通过 `resolveRoleAssetFilePath` 安全寻址二进制图片，并经 `getRoleVisuals` / `getRoleVisualDataUrl` 转化为带内存缓存的 base64 dataUrl，经 IPC `companion:get-role-visuals` 供前端消费。出厂为路飞及草帽海贼团卡司成员（索隆、娜美、山治、乌索普）配置 1:1 高清立绘头像资产（`avatar-v1.png`）及阳光号甲板/内舱/瞭望台等横幅壁纸。前端由统一封装的 `CompanionAvatar` 取代旧有的 `<Bot />` 机器人图标与单字方块，在 Chat 欢迎屏、消息流气泡、人物世界顶栏与主侧栏全线贯通；`WorldProfileHeader` 升级为宽幅生活场景封面 Banner，Chat 消息背景 `CompanionSceneBackdrop` 接入弱场景氛围壁纸（保留 9% 透光度与轻度高斯模糊），实现沉浸氛围感与文本高可读性的统一。
+
 `prompts/` 保存纯正文构造器、语义编译器、typed key 与注册索引；领域服务提供事实并拥有解析、回退与副作用。注册表的 `definitions` 指向真实代码符号，动态模板调用同一生产构造器生成；禁止在索引或 Debug 复制正文。四类伙伴行为的领域协议在输出模块最后编译，人物增量和运行时事实不能隐式覆盖稳定身份。
 
 人物 JSON 来源由纯 `companion/identity/source-assets.ts` 工厂投影，Prompt 追踪和伙伴目录共享 canonical key；高层 Debug 聚合去重。LLM 依赖 Prompt 目录时不反向导入 Agent 或生活存储，Role Pack 文本仍从实际 loader 读取。主对话 / Eval 使用 `prompts/compiler.ts`；旧生产组装适配层已移除。

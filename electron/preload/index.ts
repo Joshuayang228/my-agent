@@ -142,12 +142,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   companion: {
-    listProtagonists: (): Promise<{ id: string; name: string; description: string; firstContact?: { openingLine: string; quote?: string; followUpStyle?: string; repeatPolicy: string } }[]> =>
+    listProtagonists: (): Promise<Array<import('../../src/shared/types').RoleSummary>> =>
       ipcRenderer.invoke('companion:list-protagonists'),
+    getRoleVisuals: (roleId?: string): Promise<import('../../src/shared/types').CompanionRoleVisuals> =>
+      ipcRenderer.invoke('companion:get-role-visuals', roleId),
     listUniverses: (): Promise<Array<{ id: string; title: string; version: number; defaultProtagonistId: string; active: boolean }>> =>
       ipcRenderer.invoke('companion:list-universes'),
     switchUniverse: (universeId: string) => ipcRenderer.invoke('companion:switch-universe', universeId),
-    getActive: (): Promise<{ id: string; name: string; description: string; universeId: string; statusSummary?: string; statusMetrics?: { mood: number; energy: number; socialNeed: number; relationshipSignal: number | null; relationshipPhase: string | null }; firstContact?: { openingLine: string; quote?: string; followUpStyle?: string; repeatPolicy: string } }> =>
+    getActive: (): Promise<{ id: string; name: string; description: string; universeId: string; statusSummary?: string; statusMetrics?: { mood: number; energy: number; socialNeed: number; relationshipSignal: number | null; relationshipPhase: string | null }; firstContact?: { openingLine: string; quote?: string; followUpStyle?: string; repeatPolicy: string }; avatarDataUrl?: string | null; bannerDataUrl?: string | null; themeColor?: string | null }> =>
       ipcRenderer.invoke('companion:get-active'),
     claimFirstContact: (): Promise<boolean> => ipcRenderer.invoke('companion:claim-first-contact'),
     requestSwitch: (

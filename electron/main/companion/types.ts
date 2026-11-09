@@ -26,6 +26,9 @@ export interface RoleManifest {
   asideStyle?: string
   characterKind?: 'original' | 'canon' | 'adapted'
   firstContact?: RoleFirstContact
+  avatarVisualPath?: string
+  bannerVisualPath?: string
+  themeColor?: string
 }
 
 export interface RoleFirstContact {
@@ -43,6 +46,9 @@ export interface RoleSummary {
   statusSummary?: string
   statusMetrics?: { mood: number; energy: number; socialNeed: number; relationshipSignal: number | null; relationshipPhase: string | null }
   firstContact?: RoleFirstContact
+  avatarVisualPath?: string
+  bannerVisualPath?: string
+  themeColor?: string
 }
 
 /** 角色稳定表达基线；与 LLM temperature 无关，由本轮 tone-control 再做场景收放。 */
@@ -225,6 +231,9 @@ export interface RolePack {
   asideStyle?: string
   characterKind?: RoleManifest['characterKind']
   firstContact?: RoleFirstContact
+  avatarVisualPath?: string
+  bannerVisualPath?: string
+  themeColor?: string
   voice?: string
   profile?: RoleProfile
   worldDefaults?: RoleWorldDefaults

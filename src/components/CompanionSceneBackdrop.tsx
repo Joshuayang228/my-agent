@@ -11,9 +11,10 @@ import {
 
 interface CompanionSceneBackdropProps {
   roleId: string
+  bannerSrc?: string | null
 }
 
-export function CompanionSceneBackdrop({ roleId }: CompanionSceneBackdropProps) {
+export function CompanionSceneBackdrop({ roleId, bannerSrc }: CompanionSceneBackdropProps) {
   const [scene, setScene] = useState<CompanionSceneId>('default')
 
   const load = useCallback(async () => {
@@ -67,6 +68,15 @@ export function CompanionSceneBackdrop({ roleId }: CompanionSceneBackdropProps) 
       aria-hidden
       title={`场景氛围 · ${COMPANION_SCENE_LABEL[scene]}`}
     >
+      {bannerSrc && (
+        <div className="companion-scene-wallpaper pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+          <img
+            src={bannerSrc}
+            alt=""
+            className="h-full w-full object-cover object-center opacity-[0.09] filter blur-[1px] transition-opacity duration-700 select-none"
+          />
+        </div>
+      )}
       <div className="companion-scene-wash absolute inset-0" />
       <div className="companion-scene-glow absolute" />
       <div className="companion-scene-vignette absolute inset-0" />

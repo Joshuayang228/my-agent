@@ -48,6 +48,8 @@ Prompt 四层功能组合与关系标签收口（2026-11-08）：15 个核心功
 
 出厂静态视觉备份边界（2026-11-07）：`data:export` 在收集生活资产配图时排除未改动的 Role Pack `visualPath` 出厂静态图片，避免内置高清配图占用 16MB 生成媒体预算；`data:import` 对携带 `visualPath` 的资产自动物化本地图片引用，不改变 Agent Loop 或工具调用边界。
 
+角色视觉与空间氛围（2026-11-10）：`companion:get-role-visuals` 在主进程按当前世界与角色读取受控头像（avatar）与横幅（banner）并以 base64 形式返回；支持内存缓存，单图最大 5MB，失败安全回退。未破坏 Agent Loop、Prompt 编译、工具执行或权限边界。
+
 主进程类型门禁（2026-11-07）：运行时、LLM、工具和 Eval 共享源码纳入 `tsconfig.node.json`，`npm run typecheck` / `npm run build` 会在 Renderer 检查后执行主进程检查，当前诊断为 0。
 
 材料观察工具（2026-11-07）：新增 `companion_observe_material`，通过注册的视觉观察配方读取当前会话已有图片，返回 observation / inference / uncertainties 候选；工具只读、不接受路径或 URL、不直接写入人物资产。`companion_add_reading_note` 负责带来源、记录者、grounding 和 confirmation 的明确写回，模型失败不产生阅读事实；尝试状态由独立表提供 Debug 证据。

@@ -40,6 +40,25 @@ import { MEMORY_GROUPS } from '../../shared/memory-groups'
 import type { PlaygroundTabId } from './catalog'
 import { PLAYGROUND_PERSONAS, type PlaygroundPersona } from '../../shared/playground-journey-fixtures'
 import momentTeaByWindow from '../../assets/playground/moment-tea-by-window.jpg'
+import linAvatar from '../../assets/playground/contact-lin-avatar.png'
+import yaoAvatar from '../../assets/playground/contact-yao-avatar.png'
+import homeOverviewBanner from '../../assets/playground/home-overview.png'
+import travelCanalBanner from '../../assets/playground/travel-canal.png'
+import { CompanionAvatar } from '../CompanionAvatar'
+import { CompanionSceneBackdrop } from '../CompanionSceneBackdrop'
+
+const PERSONA_VISUALS: Record<string, { avatarSrc: string; bannerSrc: string; themeColor: string }> = {
+  lin: {
+    avatarSrc: linAvatar,
+    bannerSrc: homeOverviewBanner,
+    themeColor: '#D97706',
+  },
+  yao: {
+    avatarSrc: yaoAvatar,
+    bannerSrc: travelCanalBanner,
+    themeColor: '#0D9488',
+  },
+}
 import wardrobeJacket from '../../assets/playground/wardrobe-gray-blue-jacket.png'
 import wardrobeCasualOutfit from '../../assets/playground/wardrobe-lin-casual-outfit.png'
 import wardrobeCommuteOutfit from '../../assets/playground/wardrobe-lin-commute-outfit.png'
@@ -312,6 +331,7 @@ function ChatTaskJourney({ journey, onJourneyChange }: { journey: ChatJourney; o
 }
 
 function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: PlaygroundPersona; onNavigate?: (tab: PlaygroundTabId) => void; onOpenRoleShelf?: () => void }) {
+  const visuals = PERSONA_VISUALS[persona.id]
   const sessionFilterRef = useRef<HTMLInputElement>(null)
   const [viewport, setViewport] = useState<'standard' | 'split'>('standard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -405,6 +425,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                 <PrimarySidebar
                   personaName={persona.name}
                   personaBlurb={persona.blurb}
+                  avatarSrc={visuals?.avatarSrc}
                   activeView="chat"
                   activeSessionId={isWelcome ? null : 'surface-session-1'}
                   sessionGroups={[{ label: '今天', items: SAMPLE_SESSIONS }]}
@@ -436,7 +457,8 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                 />
               </div>
 
-            <div className="relative flex min-w-0 flex-1 flex-col" style={{ background: 'var(--bg-primary)' }} data-testid="chat-surface-main" data-persona-id={persona.id}>
+            <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden" style={{ background: 'var(--bg-primary)' }} data-testid="chat-surface-main" data-persona-id={persona.id}>
+                <CompanionSceneBackdrop roleId={persona.id} bannerSrc={visuals?.bannerSrc} />
                 <IconButton
                   ref={sidebarReopenRef}
                   size={32}
@@ -456,11 +478,16 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
               <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
                 <div className={`flex min-h-0 flex-1 overflow-y-auto ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`} data-testid="chat-surface-scroll">
                   {isWelcome ? (
-                    <ChatWelcome title={`嗨，我是${persona.name}`} subtitle={persona.blurb}
+                    <ChatWelcome
+                      title={`嗨，我是${persona.name}`}
+                      subtitle={persona.blurb}
+                      avatarSrc={visuals?.avatarSrc}
+                      roleName={persona.name}
                       onGreet={() => setJourney('conversation')}
                       onPlanDay={() => setJourney('conversation')}
                       onOpenWorld={() => onNavigate?.('world')}
-                      actionTestId="chat-journey-quick-action" />
+                      actionTestId="chat-journey-quick-action"
+                    />
                   ) : (
                     <div className={`mx-auto w-full ${LAYOUT_CLASSES.section} py-4`} style={{ maxWidth: 'var(--layout-width)' }} data-testid="chat-surface-message-flow">
                       <ChatMessageFrame role="user" showUserAvatar={false}>
@@ -474,7 +501,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                         presentation="stable"
                         className="mb-3"
                       />
-                      <ChatMessageFrame role="assistant" name={persona.name} previewTimeLabel="刚刚">
+                      <ChatMessageFrame role="assistant" name={persona.name} avatarSrc={visuals?.avatarSrc} previewTimeLabel="刚刚">
                           <p className="text-[14px] leading-7" data-testid={journey === 'completed' ? 'chat-surface-completed-reply' : undefined} style={{ color: 'var(--text-primary)' }}>{journey === 'completed' ? '已经整理好优先顺序。今天先处理最重要的三件事，剩下的我先放在会话里，之后可以继续接着排。' : '可以。我们先把今天必须完成的事情挑出来，再给剩下的留一点喘息的空间。'}</p>
                           <div className="mt-3 flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}><MessageCircle size={12} aria-hidden="true" />上下文会跟着当前会话保留</div>
                       </ChatMessageFrame>
@@ -540,6 +567,7 @@ function SidebarSurface() {
           <PrimarySidebar
             personaName="小林"
             personaBlurb="沉稳体贴的数字伙伴"
+            avatarSrc={PERSONA_VISUALS.lin.avatarSrc}
             activeView="chat"
             activeSessionId="surface-session-1"
             sessionGroups={[{ label: '今天', items: SAMPLE_SESSIONS }]}
@@ -581,20 +609,40 @@ function DockSurface() {
   return <WorkspaceExperienceCandidate />
 }
 function WorldOverviewHero({ persona }: { persona: PlaygroundPersona }) {
+  const visuals = PERSONA_VISUALS[persona.id]
+  const hasBanner = Boolean(visuals?.bannerSrc)
   return (
     <section
-      className="shrink-0 border-b px-5 pb-4 pt-4 sm:px-6"
+      className={`relative shrink-0 border-b px-5 pb-4 pt-4 sm:px-6 overflow-hidden ${hasBanner ? 'min-h-[7.5rem] flex items-end' : ''}`}
       data-testid="playground-moments-profile"
       style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}
     >
-      <div className="flex min-w-0 items-start gap-3">
-        <div
-          aria-hidden="true"
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-base font-semibold"
-          style={{ background: 'var(--accent-subtle)', color: 'var(--companion-accent-warm)' }}
-        >
-          {Array.from(persona.name)[0]}
+      {hasBanner && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+          <img
+            src={visuals!.bannerSrc}
+            alt=""
+            className="h-full w-full object-cover object-center"
+            style={{ filter: 'brightness(0.92)' }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(180deg, rgba(0,0,0,0.2) 0%, color-mix(in srgb, var(--bg-secondary) 85%, transparent) 45%, var(--bg-secondary) 100%)',
+            }}
+          />
         </div>
+      )}
+      <div className="relative z-10 flex min-w-0 w-full items-start gap-3">
+        <CompanionAvatar
+          src={visuals?.avatarSrc}
+          name={persona.name}
+          role="assistant"
+          size="lg"
+          shape="rounded"
+          themeColor={visuals?.themeColor}
+          className="ring-4 shadow-md !border-2"
+        />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <h2 className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{persona.name}</h2>
@@ -734,6 +782,13 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
             onTabChange={setTab}
             onClose={noop}
             onOpenSession={noop}
+            profile={{
+              name: persona.name,
+              description: persona.blurb,
+              avatarSrc: PERSONA_VISUALS[persona.id]?.avatarSrc,
+              bannerSrc: PERSONA_VISUALS[persona.id]?.bannerSrc,
+              themeColor: PERSONA_VISUALS[persona.id]?.themeColor,
+            }}
             recentByRole={{}}
             momentsPreview={momentsPreviewForPersona(persona)}
             momentsAppearance="alice-feed"

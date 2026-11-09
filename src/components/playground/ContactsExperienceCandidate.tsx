@@ -7,6 +7,7 @@ import { WorldCandidateControls } from './WorldCandidateControls'
 import { TRAVEL_PREVIEWS } from './FootprintsExperienceCandidate'
 import yaoAvatar from '../../assets/playground/contact-yao-avatar.png'
 import xuAvatar from '../../assets/playground/contact-xu-avatar.png'
+import linAvatar from '../../assets/playground/contact-lin-avatar.png'
 
 interface PersonPreview { id: string; name: string; introduction: string; city?: string; avatarSrc?: string }
 interface RelationPreview { ownerRoleId: string; personId: string; relationLabel: string; firstMetStory?: string; interactionSummary?: string }
@@ -15,7 +16,7 @@ interface ExperiencePreview { id: string; ownerRoleId: string; personId: string;
 export function contactFixtures(ownerRoleId: string) {
   const first = ownerRoleId === 'lin' ? { id: 'yao', name: '阿遥' } : { id: 'lin', name: '小林' }
   const people: PersonPreview[] = [
-    { ...first, introduction: '喜欢阅读，也喜欢不赶时间地散步。', city: '杭州', avatarSrc: first.id === 'yao' ? yaoAvatar : undefined },
+    { ...first, introduction: '喜欢阅读，也喜欢不赶时间地散步。', city: '杭州', avatarSrc: first.id === 'yao' ? yaoAvatar : linAvatar },
     { id: 'xu', name: '许叔', introduction: '经营一家小咖啡店，记得熟客偏好的口味。', city: '杭州', avatarSrc: xuAvatar },
   ]
   const relations: RelationPreview[] = people.map((person, index) => ({ ownerRoleId, personId: person.id,

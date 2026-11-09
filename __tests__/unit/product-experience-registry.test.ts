@@ -20,6 +20,7 @@ describe('product experience registry', () => {
     expect(PRODUCT_EXPERIENCE_REGISTRY['experience.world'].fixtureAssetPaths).toEqual([
       'src/assets/playground/contact-yao-avatar.png',
       'src/assets/playground/contact-xu-avatar.png',
+      'src/assets/playground/contact-lin-avatar.png',
       'src/assets/playground/moment-tea-by-window.jpg',
       'src/assets/playground/wardrobe-gray-blue-jacket.png',
       'src/assets/playground/wardrobe-lin-casual-outfit.png',

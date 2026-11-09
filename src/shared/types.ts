@@ -997,6 +997,17 @@ export interface RoleSummary {
   id: string
   name: string
   description: string
+  avatarDataUrl?: string | null
+  bannerDataUrl?: string | null
+  themeColor?: string | null
+}
+
+export interface CompanionRoleVisuals {
+  roleId: string
+  roleName: string
+  avatarDataUrl?: string | null
+  bannerDataUrl?: string | null
+  themeColor?: string | null
 }
 
 /** @deprecated 使用 RoleSummary */
