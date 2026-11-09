@@ -261,13 +261,13 @@ export function registerCompanionIPC(): void {
   ipcMain.handle('companion:trigger-nightly-reflection', async (_e, roleId?: string, force?: boolean) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { triggerNightlyReflection } = await import('../companion/life/nightly-reflection')
-    return triggerNightlyReflection(targetRoleId, Date.now(), { force: force ?? true })
+    return triggerNightlyReflection(targetRoleId, Date.now(), { force: force === true })
   })
 
   ipcMain.handle('companion:get-nostalgic-reminiscence', async (_e, roleId?: string) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { pickNostalgicReminiscence } = await import('../companion/life/nostalgia')
-    return pickNostalgicReminiscence(targetRoleId, Date.now(), { force: true })
+    return pickNostalgicReminiscence(targetRoleId, Date.now())
   })
 
   ipcMain.handle('companion:list-keepsakes', async (_e, roleId?: string) => {
