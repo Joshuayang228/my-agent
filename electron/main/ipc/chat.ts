@@ -83,7 +83,7 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
     if (!isValidChatMessage(userMessage)) {
       throw new Error('消息参数无效或内容过长')
     }
-    recordUserActivity(userMessage.timestamp)
+    recordUserActivity(Date.now())
     if (deletingSessions.has(sessionId)) throw new Error('该会话正在关闭')
     if (activeChatSenders.has(sessionId)) throw new Error('该会话正在处理中，请等待完成或先中断')
     let finishRun!: () => void
