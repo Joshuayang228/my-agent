@@ -169,6 +169,7 @@
 ### 安全与韧性
 
 - [ ] **WISH-044 · 当前锁定依赖安全更新** — 来源：2026-10-26 Debug 收工时的锁定依赖审计取证；全量结果：全量 npm audit 23 项（2 low / 5 moderate / 14 high / 2 critical），生产范围 15 项（2 low / 3 moderate / 8 high / 2 critical）；包含 MCP SDK、DOMPurify、fast-uri、js-yaml、zod 等锁定版本。此前 7 / 4 项是旧审计快照，数量不等于已证实可利用路径，未找到接受这些风险的 DEC。发布前须单独完成依赖升级、实际使用路径核验及 Unit / Eval / Electron / 打包回归。本次 Debug 批次未改 package / lock，未执行 audit fix，也未声称依赖风险清零。
+- WISH-044 当前审计更新（2026-11-10）：重新执行 `npm audit --registry=https://registry.npmjs.org` 得全量 29 项（2 low / 12 moderate / 13 high / 2 critical），`--omit=dev` 得生产范围 16 项（2 low / 4 moderate / 8 high / 2 critical）。本轮未改依赖锁文件，仍需单独完成升级、调用路径核验、Electron / 构建 / Unit / Eval 回归。
 
 - [ ] **WISH-001 · URL Fetch DNS rebinding 深度防护** — 当前已有 DNS 预解析、私网黑名单、重定向阻断和响应上限；若威胁模型需要对抗主动竞态攻击，再引入固定地址连接器或进程级网络策略。历史证据见 [`../_archive/audits/security-audit-2026-08.md`](../_archive/audits/security-audit-2026-08.md)。；来源：安全审计
 - [ ] **WISH-002 · Tool Result Injection 结构化分类器** — 当前已有中英文启发式探针和不受信任内容边界；后续可用离线分类器 / Eval 扩展。；来源：安全审计 / Gap Audit
