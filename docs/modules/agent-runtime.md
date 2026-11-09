@@ -591,3 +591,5 @@ Chat 内置工具注册现在包含 `companion_post_moment`、`companion_comment
 Chat IPC 在用户消息通过校验后记录宿主活动时间，供生活关怀服务计算连续专注时长。
 
 赠礼 IPC 在进入 companion service 前完成寄语长度和礼物标识边界校验。
+
+共同决策和脆弱心境 IPC 对用户输入执行长度与标识校验。

@@ -294,11 +294,13 @@ export function registerCompanionIPC(): void {
   })
 
   ipcMain.handle('companion:resolve-co-decision', async (_e, decisionId: string, optionId: string) => {
+    if (typeof decisionId !== 'string' || decisionId.length === 0 || decisionId.length > 160 || typeof optionId !== 'string' || optionId.length === 0 || optionId.length > 100) return null
     const { resolveCoDecision } = await import('../companion/life/co-decision')
     return resolveCoDecision(decisionId, optionId)
   })
 
   ipcMain.handle('companion:create-co-decision', async (_e, roleId?: string, dilemmaHint?: string) => {
+    if (typeof dilemmaHint !== 'undefined' && (typeof dilemmaHint !== 'string' || dilemmaHint.length > 500)) throw new Error('决策提示无效。')
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { createCoDecision } = await import('../companion/life/co-decision')
     return createCoDecision(targetRoleId, dilemmaHint)
@@ -317,11 +319,13 @@ export function registerCompanionIPC(): void {
   })
 
   ipcMain.handle('companion:comfort-vulnerability', async (_e, vulnerabilityId: string, comfortText?: string) => {
+    if (typeof vulnerabilityId !== 'string' || vulnerabilityId.length === 0 || vulnerabilityId.length > 160 || typeof comfortText !== 'undefined' && (typeof comfortText !== 'string' || comfortText.length > 500)) return { ok: false as const, error: '安慰内容无效。' }
     const { comfortVulnerability } = await import('../companion/life/vulnerability')
     return comfortVulnerability(vulnerabilityId, comfortText)
   })
 
   ipcMain.handle('companion:trigger-vulnerability', async (_e, roleId?: string, forceContext?: string) => {
+    if (typeof forceContext !== 'undefined' && (typeof forceContext !== 'string' || forceContext.length > 500)) throw new Error('心境上下文无效。')
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { triggerVulnerability } = await import('../companion/life/vulnerability')
     return triggerVulnerability(targetRoleId, forceContext)
