@@ -596,3 +596,5 @@ Renderer 通过 preload 调用宿主作息和计划重排通道，主进程 IPC 
 赠礼请求由 preload 进入 companion IPC，经主进程和生活服务双层校验后才写入 SQLite 与主会话。
 
 生活互动文本在 companion IPC 层完成边界校验后才进入 Prompt、SQLite 和主会话链路。
+
+旅行推进的用户文本在主进程校验后才进入生活资产持久化。

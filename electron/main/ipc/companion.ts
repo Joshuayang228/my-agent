@@ -363,6 +363,7 @@ export function registerCompanionIPC(): void {
   })
 
   ipcMain.handle('companion:trigger-travel-progression', async (_e, roleId?: string, customStop?: { name: string; story: string }) => {
+    if (typeof customStop !== 'undefined' && (!customStop || typeof customStop !== 'object' || typeof customStop.name !== 'string' || typeof customStop.story !== 'string' || customStop.name.length > 100 || customStop.story.length > 5000)) throw new Error('旅行站点内容无效。')
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { triggerTravelProgression } = await import('../companion/life/travel-progression')
     return triggerTravelProgression(targetRoleId, customStop)
