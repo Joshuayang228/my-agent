@@ -5,6 +5,7 @@ import { publishCharacterDraft, saveCharacterDraft } from '../../electron/main/c
 import { getCompanionAssetCatalog } from '../../electron/main/companion/asset-registry'
 
 const root = path.join(process.cwd(), '.agent-data', 'universes')
+const switchWorld = `switch-world-${process.pid}-${Date.now()}`
 let universeId = 'default'
 let roleId = 'luffy'
 
@@ -25,16 +26,16 @@ const { requestUniverseSwitch } = await import('../../electron/main/companion/or
 
 describe('用户世界观切换', () => {
   beforeEach(() => { universeId = 'default'; roleId = 'luffy' })
-  afterEach(async () => { await rm(path.join(root, 'switch-world'), { recursive: true, force: true }) })
+  afterEach(async () => { await rm(path.join(root, switchWorld), { recursive: true, force: true }) })
 
   it('切换到已发布用户世界并绑定其默认主角', async () => {
-    const draft = await saveCharacterDraft({ action: 'create', universeId: 'switch-world', title: '切换测试世界', roleId: 'hero', roleName: '测试主角', section: 'identity', content: '测试身份。' })
+    const draft = await saveCharacterDraft({ action: 'create', universeId: switchWorld, title: '切换测试世界', roleId: 'hero', roleName: '测试主角', section: 'identity', content: '测试身份。' })
     await saveCharacterDraft({ action: 'submit_for_review', draftId: draft.id })
     await publishCharacterDraft(draft.id)
-    const result = await requestUniverseSwitch('switch-world')
-    expect(result).toMatchObject({ ok: true, universeId: 'switch-world', roleId: 'switch-world-hero', name: '测试主角' })
-    expect(universeId).toBe('switch-world')
-    expect(roleId).toBe('switch-world-hero')
+    const result = await requestUniverseSwitch(switchWorld)
+    expect(result).toMatchObject({ ok: true, universeId: switchWorld, roleId: `${switchWorld}-hero`, name: '测试主角' })
+    expect(universeId).toBe(switchWorld)
+    expect(roleId).toBe(`${switchWorld}-hero`)
   })
 
   it('未知世界不改变当前组合', async () => {
@@ -45,18 +46,18 @@ describe('用户世界观切换', () => {
   })
 
   it('切换用户世界与恢复默认世界时，伙伴资产目录按当前 universeId 隔离聚合', async () => {
-    const draft = await saveCharacterDraft({ action: 'create', universeId: 'switch-world', title: '切换测试世界', roleId: 'hero', roleName: '测试主角', section: 'identity', content: '测试身份。' })
+    const draft = await saveCharacterDraft({ action: 'create', universeId: switchWorld, title: '切换测试世界', roleId: 'hero', roleName: '测试主角', section: 'identity', content: '测试身份。' })
     await saveCharacterDraft({ action: 'submit_for_review', draftId: draft.id })
     await publishCharacterDraft(draft.id)
 
-    await requestUniverseSwitch('switch-world')
+    await requestUniverseSwitch(switchWorld)
     const switchedCatalog = getCompanionAssetCatalog(universeId)
-    expect(switchedCatalog.some(asset => asset.key.includes('switch-world-hero'))).toBe(true)
+    expect(switchedCatalog.some(asset => asset.key.includes(`${switchWorld}-hero`))).toBe(true)
     expect(switchedCatalog.some(asset => asset.key.includes('luffy'))).toBe(false)
 
     await requestUniverseSwitch('default')
     const defaultCatalog = getCompanionAssetCatalog(universeId)
     expect(defaultCatalog.some(asset => asset.key.includes('luffy'))).toBe(true)
-    expect(defaultCatalog.some(asset => asset.key.includes('switch-world-hero'))).toBe(false)
+    expect(defaultCatalog.some(asset => asset.key.includes(`${switchWorld}-hero`))).toBe(false)
   })
 })
