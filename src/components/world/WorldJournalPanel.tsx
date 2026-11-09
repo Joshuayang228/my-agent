@@ -12,6 +12,13 @@ interface WorldJournalPanelProps {
   onTakeToChat?: (opts: { text: string }) => void
   refreshToken?: number
   onLoadingChange?: (loading: boolean) => void
+  /**
+   * Playground 离线样张注入数据：提供时完全跳过主进程 IPC 查询与广播订阅，
+   * 并在内存中响应增删改与筛选，用于无真实后端的纯前端设计审查。
+   */
+  previewThoughts?: CompanionInnerThoughtRecord[]
+  previewReadError?: string
+  onPreviewRetry?: () => void
 }
 
 function formatDate(timestamp: number): string {
@@ -35,8 +42,11 @@ export function WorldJournalPanel({
   onTakeToChat,
   refreshToken = 0,
   onLoadingChange,
+  previewThoughts,
+  previewReadError,
+  onPreviewRetry,
 }: WorldJournalPanelProps) {
-  const [thoughts, setThoughts] = useState<CompanionInnerThoughtRecord[]>([])
+  const [thoughts, setThoughts] = useState<CompanionInnerThoughtRecord[]>(previewThoughts ?? [])
   const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
   const [filterFavorite, setFilterFavorite] = useState(false)
@@ -47,7 +57,15 @@ export function WorldJournalPanel({
     ? '路飞在万里阳光号独处、看海或夜间放空时的真实心声与随笔。'
     : '角色在独处或夜间沉思时的私密心事，不公开发表，唯你可见。'
 
+  // 同步 Playground 样张输入
+  useEffect(() => {
+    if (previewThoughts !== undefined) {
+      setThoughts(previewThoughts)
+    }
+  }, [previewThoughts])
+
   const loadThoughts = useCallback(async () => {
+    if (previewThoughts !== undefined) return
     if (!window.electronAPI?.companion?.listInnerThoughts) return
     setLoading(true)
     onLoadingChange?.(true)
@@ -60,14 +78,15 @@ export function WorldJournalPanel({
       setLoading(false)
       onLoadingChange?.(false)
     }
-  }, [roleId, onLoadingChange])
+  }, [previewThoughts, roleId, onLoadingChange])
 
   useEffect(() => {
     void loadThoughts()
   }, [loadThoughts, refreshToken])
 
-  // 监听新独白实时广播
+  // 监听新独白实时广播（仅在真实 Electron 环境下激活）
   useEffect(() => {
+    if (previewThoughts !== undefined) return
     if (!window.electronAPI?.companion?.onInnerThoughtCreated) return
     const unsubscribe = window.electronAPI.companion.onInnerThoughtCreated((newThought) => {
       if (newThought.roleId === roleId) {
@@ -77,10 +96,29 @@ export function WorldJournalPanel({
     return () => {
       unsubscribe()
     }
-  }, [roleId])
+  }, [previewThoughts, roleId])
 
   const handleCreateThought = async () => {
-    if (creating || !window.electronAPI?.companion?.createInnerThought) return
+    if (creating) return
+    if (previewThoughts !== undefined) {
+      setCreating(true)
+      const mockThought: CompanionInnerThoughtRecord = {
+        id: `mock-thought-${Date.now()}`,
+        roleId,
+        title: '新写下的随笔灵感',
+        content: '这是在样张预览中轻声唤醒的随笔。虽然只是即兴的记录，但也是此刻最真实的心情。',
+        location: '甲板眺望台',
+        weather: '微风晴朗',
+        mood: '惬意放空',
+        activity: '看海吹风',
+        isFavorite: false,
+        createdAt: Date.now(),
+      }
+      setThoughts((prev) => [mockThought, ...prev])
+      setCreating(false)
+      return
+    }
+    if (!window.electronAPI?.companion?.createInnerThought) return
     setCreating(true)
     try {
       const created = await window.electronAPI.companion.createInnerThought(roleId, '用户在日记本中轻声唤醒的随笔灵感')
@@ -95,6 +133,12 @@ export function WorldJournalPanel({
   }
 
   const handleToggleFavorite = async (id: string) => {
+    if (previewThoughts !== undefined) {
+      setThoughts((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, isFavorite: !t.isFavorite } : t)),
+      )
+      return
+    }
     if (!window.electronAPI?.companion?.toggleInnerThoughtFavorite) return
     try {
       const updatedFav = await window.electronAPI.companion.toggleInnerThoughtFavorite(id)
@@ -107,6 +151,10 @@ export function WorldJournalPanel({
   }
 
   const handleDelete = async (id: string) => {
+    if (previewThoughts !== undefined) {
+      setThoughts((prev) => prev.filter((t) => t.id !== id))
+      return
+    }
     if (!window.electronAPI?.companion?.deleteInnerThought) return
     try {
       await window.electronAPI.companion.deleteInnerThought(id)
@@ -166,8 +214,19 @@ export function WorldJournalPanel({
         </div>
       </div>
 
-      {/* 列表流 */}
-      {displayedThoughts.length === 0 ? (
+      {/* 错误提示与列表流 */}
+      {previewReadError ? (
+        <div className="flex flex-1 flex-col items-center justify-center p-8 text-center" data-testid="journal-error-state">
+          <p className="text-sm font-medium" style={{ color: 'var(--danger, #ef4444)' }}>
+            {previewReadError}
+          </p>
+          {onPreviewRetry && (
+            <ActionButton size="sm" variant="plain" tone="accent" className="mt-3" onClick={onPreviewRetry}>
+              重新加载
+            </ActionButton>
+          )}
+        </div>
+      ) : displayedThoughts.length === 0 ? (
         <div className="flex flex-1 items-center justify-center p-8">
           <EmptyState
             title={filterFavorite ? '还没有收藏任何独白' : '日记本里还空着'}

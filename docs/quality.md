@@ -1,5 +1,7 @@
 # 质量总控
 
+人物世界「航海日记」与「专属信物」Playground 隔离候选样张门禁（2026-11-09）：`playground-world-candidates.test.ts` 3 项测试覆盖 UI 组件注册表显式登记 `layout.journal-experience-candidate` 与 `layout.keepsakes-experience-candidate` 样张组件及其支持的默认、长文本、精简与空态 stories、产品体验注册表（`experience.world`）纳管两个样张组件源文件并扩展 `experienceParts`（包含「航海日记 / 心事独白」与「专属信物」），以及样张组件函数导出契约；`WorldJournalPanel` 与 `WorldKeepsakesPanel` 覆盖 `previewThoughts` / `previewKeepsakes` 离线注入属性，在样张模式下规避主进程 IPC 依赖并支持内存自闭环交互。
+
 羁绊深度跃迁与专属信物馈赠门禁（2026-11-08）：`relationship-keepsake.test.ts` 3 项测试覆盖表初始化时为路飞自动播种首件信物「生命卡的一角」并记录 `keepsake_gifted` 关系里程碑、赠送下一件信物（梅利号小羊铃铛）并自动将赠言写入角色专属主会话与窗口广播、预设信物赠完后平滑定制高阶信物；`milestones.test.ts` 扩展支持 `keepsake_gifted` 里程碑解析与去重；`prompt-feature-contracts.test.ts` 扩展至 20 个核心功能合同（含 `keepsakeGift`）。
 
 私密内心独白与航海日记门禁（2026-11-08）：`inner-thoughts.test.ts` 3 项测试覆盖 `decideInnerThought` 规则门控（夜间/清晨沉思时段放行、下午非沉思时段拦截、每日上限 2 次与 6 小时冷却）、表初始化时为路飞自动播种 3 篇情感充沛的 starter 日记、日记列表按时间倒序查询、星标收藏状态切换、单篇删除、受控模型触发与人设规则平滑保底；`world-hub.test.ts` 覆盖 `journal` 视图判定与标签路由映射；`prompt-feature-contracts.test.ts` 同步扩展至 19 个核心功能合同（含 `innerThought`）。

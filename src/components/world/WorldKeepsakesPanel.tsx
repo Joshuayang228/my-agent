@@ -11,6 +11,13 @@ interface WorldKeepsakesPanelProps {
   onTakeToChat?: (opts: { text: string }) => void
   refreshToken?: number
   onLoadingChange?: (loading: boolean) => void
+  /**
+   * Playground 离线样张注入数据：提供时完全跳过主进程 IPC 查询与广播订阅，
+   * 并在内存中响应增改删与交互，用于无真实后端的纯前端设计审查。
+   */
+  previewKeepsakes?: CompanionKeepsakeRecord[]
+  previewReadError?: string
+  onPreviewRetry?: () => void
 }
 
 function formatDate(timestamp: number): string {
@@ -31,8 +38,11 @@ export function WorldKeepsakesPanel({
   onTakeToChat,
   refreshToken = 0,
   onLoadingChange,
+  previewKeepsakes,
+  previewReadError,
+  onPreviewRetry,
 }: WorldKeepsakesPanelProps) {
-  const [keepsakes, setKeepsakes] = useState<CompanionKeepsakeRecord[]>([])
+  const [keepsakes, setKeepsakes] = useState<CompanionKeepsakeRecord[]>(previewKeepsakes ?? [])
   const [loading, setLoading] = useState(false)
   const [gifting, setGifting] = useState(false)
 
@@ -42,7 +52,15 @@ export function WorldKeepsakesPanel({
     ? '路飞在关键羁绊时刻赠予你的珍贵信物，见证跨越千山万水的同伴情谊。'
     : '角色在相伴旅途中亲手赠予你的珍贵物件，是不可替代的羁绊见证。'
 
+  // 同步 Playground 样张输入
+  useEffect(() => {
+    if (previewKeepsakes !== undefined) {
+      setKeepsakes(previewKeepsakes)
+    }
+  }, [previewKeepsakes])
+
   const loadKeepsakes = useCallback(async () => {
+    if (previewKeepsakes !== undefined) return
     if (!window.electronAPI?.companion?.listKeepsakes) return
     setLoading(true)
     onLoadingChange?.(true)
@@ -55,14 +73,15 @@ export function WorldKeepsakesPanel({
       setLoading(false)
       onLoadingChange?.(false)
     }
-  }, [roleId, onLoadingChange])
+  }, [previewKeepsakes, roleId, onLoadingChange])
 
   useEffect(() => {
     void loadKeepsakes()
   }, [loadKeepsakes, refreshToken])
 
-  // 监听信物馈赠实时广播
+  // 监听信物馈赠实时广播（仅在真实 Electron 环境下激活）
   useEffect(() => {
+    if (previewKeepsakes !== undefined) return
     if (!window.electronAPI?.companion?.onKeepsakeGifted) return
     const unsubscribe = window.electronAPI.companion.onKeepsakeGifted((event) => {
       if (event.roleId === roleId) {
@@ -72,10 +91,28 @@ export function WorldKeepsakesPanel({
     return () => {
       unsubscribe()
     }
-  }, [roleId])
+  }, [previewKeepsakes, roleId])
 
   const handleTriggerGift = async () => {
-    if (gifting || !window.electronAPI?.companion?.giftKeepsake) return
+    if (gifting) return
+    if (previewKeepsakes !== undefined) {
+      setGifting(true)
+      const mockGift: CompanionKeepsakeRecord = {
+        id: `mock-keepsake-${Date.now()}`,
+        roleId,
+        name: '羁绊的晨曦星盘',
+        description: '在一次并肩跨越狂风骤雨后的黎明，由伙伴亲手雕刻并赠予你的专属星盘。',
+        lore: '「喂！看这个！只要指针还转动，无论我们在大海的哪一端，我们都是最牢固的伙伴！」',
+        giftMessage: '喂！看这个！这是我们一起冒险的证明！',
+        giftReason: '样张中的模拟羁绊赠礼',
+        iconName: 'gift',
+        acquiredAt: Date.now(),
+      }
+      setKeepsakes((prev) => [mockGift, ...prev])
+      setGifting(false)
+      return
+    }
+    if (!window.electronAPI?.companion?.giftKeepsake) return
     setGifting(true)
     try {
       const gifted = await window.electronAPI.companion.giftKeepsake(roleId)
@@ -122,8 +159,19 @@ export function WorldKeepsakesPanel({
         </ActionButton>
       </div>
 
-      {/* 信物卡片列表 */}
-      {keepsakes.length === 0 ? (
+      {/* 错误提示态与信物卡片列表 */}
+      {previewReadError ? (
+        <div className="flex flex-1 flex-col items-center justify-center p-8 text-center" data-testid="keepsakes-error-state">
+          <p className="text-sm font-medium" style={{ color: 'var(--danger, #ef4444)' }}>
+            {previewReadError}
+          </p>
+          {onPreviewRetry && (
+            <ActionButton size="sm" variant="plain" tone="accent" className="mt-3" onClick={onPreviewRetry}>
+              重新加载
+            </ActionButton>
+          )}
+        </div>
+      ) : keepsakes.length === 0 ? (
         <div className="flex flex-1 items-center justify-center p-8">
           <EmptyState
             title="还没有获赠专属信物"

@@ -11,6 +11,8 @@ import { PlaygroundStateSwitcher } from './PlaygroundLayout'
 import { PlaygroundCandidateControls, PlaygroundCandidateControlsTarget, WorldCandidateControls, WorldCandidateControlsTarget, WorldCandidateRefresh } from './WorldCandidateControls'
 import { LAYOUT_CLASSES, layoutProfileStyle } from '../../shared/content-layout'
 import { CultureExperienceCandidate } from './CultureExperienceCandidate'
+import { JournalExperienceCandidate } from './JournalExperienceCandidate'
+import { KeepsakesExperienceCandidate } from './KeepsakesExperienceCandidate'
 import { HomeExperienceCandidate } from './HomeExperienceCandidate'
 import { FootprintsExperienceCandidate } from './FootprintsExperienceCandidate'
 import { WardrobeIconOptions, wardrobePreviewIcons, type WardrobeIconStyle } from './WardrobeIconOptions'
@@ -692,6 +694,12 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
   const previewPanels: Partial<Record<WorldTab, ReactNode>> = {
     moments: (
       <MomentsExperienceCandidate previewData={momentsPreviewForPersona(persona)} />
+    ),
+    journal: (
+      <JournalExperienceCandidate key={persona.id} personaId={persona.id} />
+    ),
+    keepsakes: (
+      <KeepsakesExperienceCandidate key={persona.id} personaId={persona.id} />
     ),
     wardrobe: (
       <WardrobeCandidate assets={fixtures.wardrobe} personaId={persona.id} />
