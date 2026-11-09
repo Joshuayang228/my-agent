@@ -64,6 +64,7 @@ import { getHostPresenceStatus, checkAndTriggerHostCare } from '../companion/lif
 import { replanRemainingSlots } from '../companion/life/replan'
 
 const log = createLogger('CompanionIPC')
+const boundedLimit = (value: unknown, fallback = 50, maximum = 200): number => Number.isSafeInteger(value) ? Math.max(1, Math.min(maximum, value as number)) : fallback
 
 export function registerCompanionIPC(): void {
   ipcMain.handle('companion:proactive-greeting-receipt', (event, input: unknown) => acknowledgeProactiveGreeting(event, input))
@@ -317,7 +318,7 @@ export function registerCompanionIPC(): void {
   ipcMain.handle('companion:list-vulnerabilities', async (_e, roleId?: string, limit?: number) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { listVulnerabilities } = await import('../companion/life/vulnerability')
-    return listVulnerabilities(targetRoleId, limit)
+    return listVulnerabilities(targetRoleId, boundedLimit(limit, 20))
   })
 
   ipcMain.handle('companion:comfort-vulnerability', async (_e, vulnerabilityId: string, comfortText?: string) => {
@@ -342,7 +343,7 @@ export function registerCompanionIPC(): void {
   ipcMain.handle('companion:list-received-gifts', async (_e, roleId?: string, limit?: number) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { listReceivedGifts } = await import('../companion/life/gifting')
-    return listReceivedGifts(targetRoleId, limit)
+    return listReceivedGifts(targetRoleId, boundedLimit(limit))
   })
 
   ipcMain.handle('companion:send-gift', async (_e, roleId: string, giftKey: string, userNote?: string) => {
@@ -355,13 +356,13 @@ export function registerCompanionIPC(): void {
   ipcMain.handle('companion:list-autonomous-dressings', async (_e, roleId?: string, limit?: number) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { listAutonomousDressings } = await import('../companion/life/autonomous-dressing')
-    return listAutonomousDressings(targetRoleId, limit)
+    return listAutonomousDressings(targetRoleId, boundedLimit(limit))
   })
 
   ipcMain.handle('companion:list-travel-progressions', async (_e, roleId?: string, limit?: number) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { listTravelProgressions } = await import('../companion/life/travel-progression')
-    return listTravelProgressions(targetRoleId, limit)
+    return listTravelProgressions(targetRoleId, boundedLimit(limit))
   })
 
   ipcMain.handle('companion:trigger-travel-progression', async (_e, roleId?: string, customStop?: { name: string; story: string }) => {
