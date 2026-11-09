@@ -143,6 +143,24 @@ Chat 的内置工具注册链现在包含 `companion_post_moment`、`companion_c
   - 整合至人物世界手账日志面（`WorldJournalPanel`），在顶部突显当前伙伴的脆弱心境与求抚慰状态，抚慰后展现感谢暖流卡；
   - 同步落地 `VulnerabilityExperienceCandidate` 展厅候选与离线 fixtures，在 Playground 隔离验收路飞深夜思念、风暴后疲惫、抚慰完成态、林雨夜疲惫及空态，不依赖 Electron IPC。
 
+## 已落地能力：专属物品赠送与羁绊好感（Companion Gifting & Bond Progression）
+
+- **双向互赠情感连接（Gifting & Heartfelt Exchange）**：
+  - 同伴关系不仅包含角色主动赠予用户信物（`relationship-keepsake`），用户更能在日常相伴中主动向伙伴挑选、定制并馈赠心意礼物；
+  - 独立持久化于 SQLite `companion_received_gifts` 表，完整保存礼物名称、分类、用户留言、角色回声与赠送时间；
+  - 提供涵盖美食（特制带骨烤肉、山治风特制便当）、收藏（泛黄神秘海图）、实用（星光探险罗盘、随身急救草药包）与情感（手织温暖围巾、阳光号海景明信片）的多样礼物库，具备鲜明的角色偏好标记（如带骨大肉与神秘海图为路飞专属最爱）；
+- **第一人称鲜活回声与即刻主会话留痕**：
+  - 用户赠礼时可选择快捷祝福或输入自定义心里话寄语；
+  - 角色依据礼物偏好、人设口吻与用户留言，由受控 Prompt 配方 `compileGiftReactionRequest`（或高质量人设规则保底）生成充满活人感的第一人称即时致谢与喜悦回响（路飞收到大肉狂喜两眼放光迫不及待开动并大声宣告同伴情谊）；
+  - 角色致谢即刻写入主会话（`sessionKind: 'main'`）作为 `assistant` 消息留痕，促成主聊天上下文的顺畅接续；
+- **生命体征恢复与关系里程碑**：
+  - 礼物直接联动角色生命体征数值增益（饱腹度/心情/体力恢复提升），并通过 `companion:timeline-updated` 实时推移世界状态；
+  - 自动记录关系成长里程碑 `gift_received`，向全窗口广播 `companion:gift-received` 事件；
+- **生活面双模呈现与 Playground 展厅样张**：
+  - 人物世界信物面（`WorldKeepsakesPanel`）升级为双模视图：一键切换【伙伴信物】与【心意手账】，卡片完整展示曾经送出的礼物明细、寄语与角色当时的开箱回响，支持一键「与TA聊聊这份礼物」；
+  - 弹出式心意赠礼窗口（`GiftGivingModal`）提供礼物网格、体征恢复说明、寄语快捷选择器与开箱回声卡；
+  - 同步落地 `GiftingExperienceCandidate` 离线候选样张，在 Playground 隔离验收货架选择态、心意手账流、开箱回响与空手账态，完全零主进程 IPC 依赖。
+
 ## 已落地能力：朋友圈评论回复与人物/NPC 自主决策
 
 - **微信式评论区回复交互**：
