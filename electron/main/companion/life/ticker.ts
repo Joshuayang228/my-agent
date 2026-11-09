@@ -14,6 +14,7 @@ import { checkAndProgressAbsorbedResonances } from './chat-resonance'
 import { triggerSpontaneousImpulse } from './spontaneous-impulse'
 import { checkAndGenerateInnerThought } from './inner-thoughts'
 import { checkAndPerformContextualDressing } from './autonomous-dressing'
+import { checkAndProgressTravelJourney } from './travel-progression'
 import * as store from './store'
 
 const log = createLogger('LifeTicker')
@@ -76,6 +77,9 @@ export function startLifeTicker(defaultIntervalMs = DEFAULT_INTERVAL_MS): void {
         })
         await checkAndPerformContextualDressing(r.roleId, now).catch((err) => {
           log.warn('checkAndPerformContextualDressing failed', { error: String(err) })
+        })
+        await checkAndProgressTravelJourney(r.roleId, now).catch((err) => {
+          log.warn('checkAndProgressTravelJourney failed', { error: String(err) })
         })
       }
     } catch (err) {

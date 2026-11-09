@@ -28,8 +28,8 @@ import {
   changeWardrobe,
   ASSET_KIND_WARDROBE,
 } from './assets'
+import type { CompanionAsset } from '../types'
 import type {
-  CompanionAsset,
   CompanionAutonomousDressingRecord,
 } from '../../../../src/shared/types'
 

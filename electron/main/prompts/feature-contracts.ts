@@ -170,6 +170,12 @@ export const PROMPT_FEATURE_CONTRACTS = Object.freeze({
     overrideBoundary: ['角色赠礼口吻与称呼习惯'], output: '只输出 JSON 对象，包含 giftSpeech 赠送寄语与 celebrationTitle 桌面提醒标题。',
     fallback: '模型不可用或解析失败时使用基于角色人设与信物设定的确定性赠礼寄语，不阻塞流程。', consumers: ['electron/main/companion/growth/relationship-keepsake.ts'],
   }),
+  coDecisionReaction: contract({
+    key: 'feature:co-decision-reaction', name: '同伴抉择回响与即时反应', domain: 'life', purpose: '在用户对角色的重大生活或航行困境做出决策后，角色以极具人设活人感的第一人称做出即时欢呼、感谢或兴奋回响。',
+    staticInputs: ['安全规则', '同伴共同决策回响协议', 'JSON输出约束'], runtimeInputs: ['角色公开人设与说话风格', '求助困境标题与内容', '用户选中的决策选项'],
+    overrideBoundary: ['角色对该选择的性格反应与语气词'], output: '只输出 JSON 对象，包含 reactionText 角色第一人称即时回响、chatMessage 即将发给用户的会话内容。',
+    fallback: '模型不可用或解析失败时使用基于选项的确定性口语回响，不阻塞流程。', consumers: ['electron/main/companion/life/co-decision.ts'],
+  }),
 } as const)
 
 export type PromptFeatureContractKey = keyof typeof PROMPT_FEATURE_CONTRACTS

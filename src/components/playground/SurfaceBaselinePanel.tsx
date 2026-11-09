@@ -13,6 +13,7 @@ import { LAYOUT_CLASSES, layoutProfileStyle } from '../../shared/content-layout'
 import { CultureExperienceCandidate } from './CultureExperienceCandidate'
 import { JournalExperienceCandidate } from './JournalExperienceCandidate'
 import { KeepsakesExperienceCandidate } from './KeepsakesExperienceCandidate'
+import { CoDecisionExperienceCandidate } from './CoDecisionExperienceCandidate'
 import { HomeExperienceCandidate } from './HomeExperienceCandidate'
 import { FootprintsExperienceCandidate } from './FootprintsExperienceCandidate'
 import { WardrobeIconOptions, wardrobePreviewIcons, type WardrobeIconStyle } from './WardrobeIconOptions'
@@ -701,6 +702,9 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
     keepsakes: (
       <KeepsakesExperienceCandidate key={persona.id} personaId={persona.id} />
     ),
+    decisions: (
+      <CoDecisionExperienceCandidate key={persona.id} personaId={persona.id} />
+    ),
     wardrobe: (
       <WardrobeCandidate assets={fixtures.wardrobe} personaId={persona.id} />
     ),
@@ -717,7 +721,7 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
       <FootprintsExperienceCandidate key={persona.id} personaId={persona.id} />
     ),
   }
-  const refreshLabel = ({ moments: '刷新朋友圈', journal: '刷新日记', keepsakes: '刷新信物', assets: '刷新衣柜', wardrobe: '刷新衣柜', culture: '刷新文化角', home: '刷新家居', cast: '刷新通讯录', footprints: '刷新足迹' } as const)[tab]
+  const refreshLabel = ({ moments: '刷新朋友圈', journal: '刷新日记', keepsakes: '刷新信物', decisions: '刷新决策', assets: '刷新衣柜', wardrobe: '刷新衣柜', culture: '刷新文化角', home: '刷新家居', cast: '刷新通讯录', footprints: '刷新足迹' } as const)[tab]
   return (
     <WorldCandidateControlsTarget.Provider value={controlsTarget}>
       <div ref={setControlsTarget} className="mb-4 min-w-0" data-testid="world-candidate-controls" />

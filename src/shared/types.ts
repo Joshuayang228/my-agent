@@ -1420,5 +1420,58 @@ export interface CompanionAutonomousDressingRecord {
   createdAt: number
 }
 
+export interface CompanionTravelProgressionRecord {
+  id: string
+  roleId: string
+  tripId: string
+  stopId: string
+  stopName: string
+  stopDate: string
+  story: string
+  triggerReason: string
+  createdAt: number
+}
+
+export interface CompanionTravelProgressedEvent {
+  roleId: string
+  tripId: string
+  tripTitle: string
+  stop: {
+    id: string
+    name: string
+    date: string
+    story: string
+  }
+  toastTitle: string
+  timestamp: number
+}
+
+export interface CoDecisionOption {
+  id: string
+  label: string
+  desc?: string
+  impactHint?: string
+}
+
+export interface CompanionCoDecisionRecord {
+  id: string
+  roleId: string
+  title: string
+  dilemma: string
+  options: CoDecisionOption[]
+  status: 'pending' | 'resolved' | 'expired'
+  selectedOptionId?: string
+  selectedOptionLabel?: string
+  companionReaction?: string
+  createdAt: number
+  resolvedAt?: number
+  absorbedInScript?: boolean
+}
+
+export interface CompanionCoDecisionEvent {
+  roleId: string
+  decision: CompanionCoDecisionRecord
+}
+
 
 

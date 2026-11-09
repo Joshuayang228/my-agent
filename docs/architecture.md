@@ -1,5 +1,17 @@
 # 系统架构
 
+足迹与航海旅行自主演化架构（2026-11-09）：
+- 航程自主推进机制：`travel-progression.ts` 结合角色航行时间积累（24小时冷却）与主会话共鸣沉淀的 `travel_wish`，自动调度演化千里阳光号航线新经停站点；
+- 数据模型与持久化：站点写入 SQLite `companion_travel_progressions` 表，并向当前 active trip 资产（`sunny-current-route`）原子追加包含站点名、日期与第一人称见闻故事的 `TripStopRecord`；
+- 心愿与提示词感知联动：若存在对应的 `travel_wish` 心愿，自动更新为 `completed`；`formatLifeAssetsSliceForPrompt` 实时抓取最新到访站点注入主会话；
+- 广播与通知体系：`companion:travel-progressed` 全局广播，前端支持 Toast 提示航程拓进。
+
+同伴求助与生活共同决策架构（2026-11-09）：
+- 共同决策数据模型：`co-decision.ts` 管理 `companion_co_decisions` 表，每个角色同一时刻最多 1 个待决项（pending）；
+- 即时第一人称回响：用户决断后，由 `coDecisionReaction` 模型配方生成生动第一人称回应（或高质量预设保底），作为 assistant 消息直接存入主会话并触发 `companion:co-decision-resolved` 广播；
+- 次日剧本因果闭环：`getRecentResolvedCoDecision` 与 `markCoDecisionAbsorbed` 联动 `script-generator.ts`，将用户抉择深度注入次日剧本上下文，真实左右角色次日探险与生活轨迹；
+- UI 呈现：`WorldDecisionsPanel` 与 `CoDecisionCard` 接入人物世界「共同决策」Tab，支持实时投票、已决断回顾与历史因果追溯。
+
 衣柜与穿搭自主演化架构（2026-11-09）：
 - 生活时钟自主调度：`LifeTicker` 在定时推进生活时唤起 `checkAndPerformContextualDressing`（`autonomous-dressing.ts`），结合日剧本主题/活动槽位、清晨起床 routine 与衣柜资产匹配目标穿搭；
 - 原子换装与数据一致性：严格调用既有 `changeWardrobe` 事务，保证槽位校验、版本原子递增与配图同步沿用；

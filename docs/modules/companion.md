@@ -518,6 +518,8 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
 | Chat 侧栏会话搜索与收起动效 | 已落地 | Primary Sidebar 顶部搜索 / Ctrl+B | `PrimarySidebar` · `App` · `sidebar-transition` |
 | Chat 消息区大气化（Phase B 留白） | 已落地 | 消息流 `space-y-8`；工具卡见 agent-runtime | `frontend-alice-shell` Phase B |
 | 人物世界口袋（对齐 Alice `/moments`） | 已落地 | 侧栏一入口 + 内页 tab | `WorldHub` |
+| 足迹与航海旅行自主演化 | 已落地 | 人物世界 → 足迹 / 隐式 ticker | `travel-progression.ts` · `companion_travel_progressions` · 24h 冷却与 travel_wish 共鸣联动 |
+| 同伴求助与生活共同决策 | 已落地 | 人物世界 → 共同决策 / 主会话 | `co-decision.ts` · `companion_co_decisions` · 抉择回响写入主会话并因果注入次日剧本 |
 | 伴侣状态条（展厅故事格） | 已落地 | Playground UI · 状态条 | `CompanionStatusBar` · Chat 顶栏已撤 |
 | 自动生成朋友圈内容 / 多宇宙并行 | 缺口 | — | wishlist / 明确非本阶段 |
 | 人物世界视觉资产引用 | 已落地 | `image_generate` 可将真实生成结果绑定到当前角色生活资产或已发布朋友圈动态；Chat 与 WorldDetailsPanel 复用受控读取 / 定位预览；生成入口、媒体备份恢复和正式页面回流已完成。自动生成朋友圈内容仍不在本阶段 | `image-generation-product-integration-v1.md` |
@@ -650,3 +652,5 @@ published event（事件事实）
 - 2026-11-08：跨天因果日剧本、交谈冲动与主动问候入会话：日剧本提示词接入前日事件、当前足迹、体征与近 24 小时用户诉求；主对话提示词接入 `conversationImpulse`（槽位 31），闲聊时自然分享生活与思考；主动问候在角色主会话中落地为真实消息历史，Toast 点击一键直达会话。
 - 2026-11-08：今日生活轨迹、生活面双向连通与消息流生活卡片：新增 `timeline.ts` 与 `companion:get-today-timeline` 计算一日时段轨迹与当前进行中事项并在人物世界头栏展示 `WorldTodayTimeline`；朋友圈、文化角和旅行足迹全面接入「和TA聊聊」快捷直达主对话预填话题；Chat 消息流对自主发圈与资产创作工具展示行内生活卡片与一键反跳生活面。
 - 2026-11-08：朋友圈评论回复与人物/NPC 自主决策：支持针对动态、NPC 评论和回复发起针对性回复（携带 parentInteractionId 与 replyToActorName）；由人物与在场 NPC 自主决定是否回复、由谁回复以及延迟多长时间（delaySeconds 动态决策），到期后落库并广播更新。
+- 2026-11-09：足迹与航海旅行自主演化落地：新增 `travel-progression.ts` 与 `companion_travel_progressions` 表；角色在日常生活推进（life ticker）或受到主会话共鸣沉淀的 `travel_wish` 心愿驱动下，自主演化航海经停站点（包含站名、日期、第一人称见闻故事与触发原因），自动向 `companion_assets` 的 active trip 追加站点并联动完成对应共鸣心愿；主会话 Prompt 生活切片同步感知最新到访站点，并通过全局事件与 Toast 广播更新。
+- 2026-11-09：同伴求助与生活共同决策落地：新增 `co-decision.ts`、`companion_co_decisions` 表与 `WorldDecisionsPanel` 面板；角色在航向分歧、重大分岔或生活困境时，向用户发起求助抉择。用户决断后角色即时生成符合人设的第一人称回响（Prompt 配方 `coDecisionReaction`），存入主会话作为 assistant 消息，并作为因果线索通过 `collectDayScriptLifeContext` 注入次日剧本，真实影响明天的生活活动与足迹。

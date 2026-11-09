@@ -408,6 +408,21 @@ declare global {
           callback: (payload: import('./shared/types').CompanionKeepsakeGiftEvent) => void,
         ) => () => void
         listAutonomousDressings: (roleId?: string, limit?: number) => Promise<import('./shared/types').CompanionAutonomousDressingRecord[]>
+        listTravelProgressions: (roleId?: string, limit?: number) => Promise<import('./shared/types').CompanionTravelProgressionRecord[]>
+        triggerTravelProgression: (roleId?: string, customStop?: { name: string; story: string }) => Promise<import('./shared/types').CompanionTravelProgressionRecord | null>
+        onTravelProgressed: (
+          callback: (payload: import('./shared/types').CompanionTravelProgressedEvent) => void,
+        ) => () => void
+        getPendingCoDecision: (roleId?: string) => Promise<import('./shared/types').CompanionCoDecisionRecord | null>
+        listCoDecisions: (roleId?: string) => Promise<import('./shared/types').CompanionCoDecisionRecord[]>
+        resolveCoDecision: (decisionId: string, optionId: string) => Promise<import('./shared/types').CompanionCoDecisionRecord | null>
+        createCoDecision: (roleId?: string, dilemmaHint?: string) => Promise<import('./shared/types').CompanionCoDecisionRecord | null>
+        onCoDecisionCreated: (
+          callback: (payload: import('./shared/types').CompanionCoDecisionEvent) => void,
+        ) => () => void
+        onCoDecisionResolved: (
+          callback: (payload: import('./shared/types').CompanionCoDecisionEvent) => void,
+        ) => () => void
       }
       mcp: {
         connect: (config: import('./shared/types').McpServerConfig) => Promise<{ success: boolean; toolCount?: number; error?: string }>

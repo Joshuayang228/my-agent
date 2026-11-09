@@ -250,10 +250,45 @@ export function registerCompanionIPC(): void {
     return triggerGiftKeepsake(targetRoleId, keepsakeKey, customReason)
   })
 
+  ipcMain.handle('companion:get-pending-co-decision', async (_e, roleId?: string) => {
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const { getPendingCoDecision } = await import('../companion/life/co-decision')
+    return getPendingCoDecision(targetRoleId)
+  })
+
+  ipcMain.handle('companion:list-co-decisions', async (_e, roleId?: string) => {
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const { listCoDecisions } = await import('../companion/life/co-decision')
+    return listCoDecisions(targetRoleId)
+  })
+
+  ipcMain.handle('companion:resolve-co-decision', async (_e, decisionId: string, optionId: string) => {
+    const { resolveCoDecision } = await import('../companion/life/co-decision')
+    return resolveCoDecision(decisionId, optionId)
+  })
+
+  ipcMain.handle('companion:create-co-decision', async (_e, roleId?: string, dilemmaHint?: string) => {
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const { createCoDecision } = await import('../companion/life/co-decision')
+    return createCoDecision(targetRoleId, dilemmaHint)
+  })
+
   ipcMain.handle('companion:list-autonomous-dressings', async (_e, roleId?: string, limit?: number) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { listAutonomousDressings } = await import('../companion/life/autonomous-dressing')
     return listAutonomousDressings(targetRoleId, limit)
+  })
+
+  ipcMain.handle('companion:list-travel-progressions', async (_e, roleId?: string, limit?: number) => {
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const { listTravelProgressions } = await import('../companion/life/travel-progression')
+    return listTravelProgressions(targetRoleId, limit)
+  })
+
+  ipcMain.handle('companion:trigger-travel-progression', async (_e, roleId?: string, customStop?: { name: string; story: string }) => {
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const { triggerTravelProgression } = await import('../companion/life/travel-progression')
+    return triggerTravelProgression(targetRoleId, customStop)
   })
 
   ipcMain.handle('companion:catchup-status', async () => {

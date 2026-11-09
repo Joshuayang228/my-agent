@@ -6,6 +6,7 @@ import { buildCultureReviewPrompt } from './culture-review'
 import { buildSpontaneousImpulsePrompt } from './spontaneous-impulse'
 import { buildInnerThoughtPrompt } from './inner-thought'
 import { buildKeepsakeGiftPrompt } from './keepsake-gift'
+import { buildCoDecisionReactionPrompt } from './co-decision-reaction'
 import { buildProactiveGreetingPrompt } from './proactive-greeting'
 import { formatRoleAppearanceForImagePrompt } from '../companion/identity/profile'
 import { buildImageGenerationPrompt } from './image-generation'
@@ -334,6 +335,34 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
       { name: 'keepsakeName', source: '信物名称', lifecycle: '赠送信物时' },
       { name: 'keepsakeLore', source: '信物深层背景与设定', lifecycle: '赠送信物时' },
       { name: 'giftReason', source: '赠送契机与原因', lifecycle: '赠送信物时' },
+    ],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.companionCoDecisionReaction,
+    domain: 'life', name: '同伴抉择回响与即时反应', category: 'companion', role: 'companion-life',
+    featureKey: PROMPT_FEATURE_CONTRACTS.coDecisionReaction.key, adaptationStatus: 'adapted',
+    purpose: '用户做出关键生活/航行决策后，角色以第一人称口吻生成即时欢呼与执行回响',
+    desc: '当用户在两到三难选择中做出决断，角色生动即时回应，并作为assistant消息推入主会话。',
+    sourcePath: 'electron/main/prompts/co-decision-reaction.ts#buildCoDecisionReactionPrompt',
+    definitions: [
+      'electron/main/prompts/co-decision-reaction.ts#buildCoDecisionReactionPrompt',
+      'electron/main/prompts/registered-request.ts#compileCoDecisionReactionRequest',
+    ],
+    template: buildCoDecisionReactionPrompt({
+      protagonistName: '{{protagonistName}}',
+      protagonistBrief: '{{protagonistBrief}}',
+      decisionTitle: '{{decisionTitle}}',
+      dilemma: '{{dilemma}}',
+      selectedOptionLabel: '{{selectedOptionLabel}}',
+      selectedOptionDesc: '{{selectedOptionDesc}}',
+    }),
+    slots: [
+      { name: 'protagonistName', source: '当前主角姓名', lifecycle: '抉择回响时' },
+      { name: 'protagonistBrief', source: '当前主角公开人设与风格', lifecycle: '抉择回响时' },
+      { name: 'decisionTitle', source: '决策困境标题', lifecycle: '抉择回响时' },
+      { name: 'dilemma', source: '求助困境描述', lifecycle: '抉择回响时' },
+      { name: 'selectedOptionLabel', source: '用户选中的选项名', lifecycle: '抉择回响时' },
+      { name: 'selectedOptionDesc', source: '用户选中的选项说明', lifecycle: '抉择回响时' },
     ],
   }),
   dynamicAsset({

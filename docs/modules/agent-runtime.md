@@ -1,5 +1,15 @@
 # Agent 运行时
 
+足迹与航海旅行自主演化（2026-11-09）：
+- 新增 `companion:list-travel-progressions`、`companion:trigger-travel-progression` IPC 接口与 `companion:travel-progressed` 广播通道；
+- 角色生活推进（Life Ticker）调度 `checkAndProgressTravelJourney`，结合航程时间沉淀（24小时冷却）与主会话 `travel_wish` 心愿，自主演化航海经停站点（包含站名、日期、第一人称见闻故事与触发原因）；
+- 自动向 SQLite `companion_assets` 的 active trip 追加站点并联动完成对应共鸣心愿；主会话 Prompt 生活切片同步感知最新到访站点。
+
+同伴求助与生活共同决策（2026-11-09）：
+- 新增 `companion:get-pending-co-decision`、`companion:list-co-decisions`、`companion:resolve-co-decision`、`companion:create-co-decision` IPC 接口与 `companion:co-decision-created`、`companion:co-decision-resolved` 广播通道；
+- 新增 `coDecisionReaction` 功能合同与受控签发配方 `compileCoDecisionReactionRequest`，由 `co-decision.ts` 调度模型生成或预设保底；
+- 用户选定后角色即时生成第一人称回响写入主会话（assistant 消息）并广播通知，决断通过 `collectDayScriptLifeContext` 注入次日剧本，真实影响明日日程。
+
 衣柜与穿搭自主演化（2026-11-09）：
 - 新增 `companion:list-autonomous-dressings` IPC 接口与 `companion:wardrobe-changed` 广播通道；
 - 角色生活世界推进（Life Ticker）调度 `checkAndPerformContextualDressing`，结合日程情境、晨起时段与既有衣柜资产，调用原子事务 `changeWardrobe` 自主换装；

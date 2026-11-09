@@ -1,5 +1,9 @@
 # 项目进度
 
+足迹与航海旅行自主演化落地（2026-11-09）：角色航海足迹自主演化推进落地（`travel-progression.ts`）；角色在生活推进（Life Ticker）中结合航程时间沉淀（24 小时冷却）与主会话共鸣沉淀的 `travel_wish` 心愿，自主演化航海经停站点（包含站名、日期、第一人称见闻故事与触发原因）；自动向 SQLite `companion_assets` 的 active trip 追加站点并联动完成对应共鸣心愿；主会话 Prompt 生活切片同步感知最新到访站点（`- 进行中的旅程：...（最近到过：...）`）；新增 IPC `companion:list-travel-progressions`、`companion:trigger-travel-progression` 与 `companion:travel-progressed` 广播通道；资产目录登记 `companion:policy:travel-progression` 生产策略资产。新增 `travel-progression.test.ts` 4 项单测，门禁全绿。
+
+同伴求助与生活共同决策落地（2026-11-09）：同伴重大求助与生活共同决策落地（`co-decision.ts`）；角色在面临航向分歧、重大选择或生活困境时向用户发起求助（SQLite `companion_co_decisions`，同一角色同时最多 1 个待决困境）；用户决断后，角色即时生成第一人称回响（受控配方 `coDecisionReaction`），存入主会话作为 assistant 消息并广播 `companion:co-decision-resolved`；决断结果作为因果线索通过 `collectDayScriptLifeContext` 注入次日剧本，真实左右明天的生活活动与足迹；人物世界新增「共同决策」Tab（`WorldDecisionsPanel` 与 `CoDecisionCard`），Playground 对应接入 `CoDecisionExperienceCandidate`；资产目录登记 `companion:policy:co-decision` 生产策略资产，`prompt-feature-contracts.test.ts` 扩展至 21 个核心功能合同。新增 `co-decision.test.ts` 4 项单测，门禁全绿。
+
 衣柜与穿搭自主演化落地（2026-11-09）：角色衣柜与穿搭自主演化引擎落地（`autonomous-dressing.ts`）；角色在生活世界推进（Life Ticker）中结合日程活动（日剧本 theme/slots）、当日时段（清晨 06:00~10:00 起床 routine）以及当前衣柜资产，挑选适宜的套装或单品；冷启或初始无穿着状态时，角色自主穿戴好整齐的日常套装（例如路飞穿上经典的《草帽冒险日常装》），消除未穿着空白；严格调用既有 `changeWardrobe` 原子换装核心方法，保证槽位校验、穿搭版本递增以及受控图片同步继承；健全的门控防线：每日频次上限（2 次）、冷却时间（4 小时）以及用户手动换装保护（近 2 小时用户手动选择绝不覆盖）；换装成功后广播 `companion:timeline-updated` 与 `companion:wardrobe-changed`，前端人物世界衣柜画廊即时刷新，主会话提示词（`formatLifeAssetsSliceForPrompt`）自然感知当前穿着；资产目录新增 `companion:policy:autonomous-dressing` 生产策略资产。新增 `autonomous-dressing.test.ts` 4 项单测，门禁全绿。
 
 人物世界四大生活维度施工合同收口与冻结（2026-11-09）：将文化角四类生活内容（`culture-corner-v1.md`）、足迹旅行记录（`footprints-travel-v1.md`）、家居空间与物件（`home-spaces-v1.md`）和衣柜与穿搭系统（`wardrobe-clothing-system-v1.md`）四份已在生产环境完整落地（包含真实 SQLite 数据链、正式 UI 回流与生活面呈现、双向跳转及生活切片感知）的施工合同生命周期正式收口冻结为「已完成施工快照（冻结）」，当前能力事实源回归伙伴模块卡与架构/质量总控，更新施工合同索引，并通过 `npm run docs:validate` 门禁。

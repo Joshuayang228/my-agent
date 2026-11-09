@@ -7,6 +7,7 @@ import { buildCultureReviewPrompt, type CultureReviewInput } from './culture-rev
 import { buildSpontaneousImpulsePrompt, type SpontaneousImpulseInput } from './spontaneous-impulse'
 import { buildInnerThoughtPrompt, type InnerThoughtPromptInput } from './inner-thought'
 import { buildKeepsakeGiftPrompt, type KeepsakeGiftPromptInput } from './keepsake-gift'
+import { buildCoDecisionReactionPrompt, type CoDecisionReactionPromptInput } from './co-decision-reaction'
 import { buildImageGenerationPrompt } from './image-generation'
 /**
  * 背景：手填资产 key 无法证明正文来自登记的生产定义。
@@ -277,4 +278,8 @@ export function compileInnerThoughtRequest(input: InnerThoughtPromptInput): Regi
 
 export function compileKeepsakeGiftRequest(input: KeepsakeGiftPromptInput): RegisteredModelRequest {
   return signRequest([{ role: 'user', content: buildKeepsakeGiftPrompt(input) }], [PROMPT_KEYS.companionKeepsakeGift], ['keepsake-gift'])
+}
+
+export function compileCoDecisionReactionRequest(input: CoDecisionReactionPromptInput): RegisteredModelRequest {
+  return signRequest([{ role: 'user', content: buildCoDecisionReactionPrompt(input) }], [PROMPT_KEYS.companionCoDecisionReaction], ['co-decision-reaction'])
 }

@@ -15,6 +15,7 @@ import type { ModelContextAsset } from '../../../src/shared/types'
 import type { RolePack } from './types'
 import { getStarterAssetDefinitions } from './life/assets'
 import { AUTONOMOUS_DRESSING_POLICY } from './life/autonomous-dressing'
+import { TRAVEL_PROGRESSION_POLICY } from './life/travel-progression'
 import { CAST_SCENES, loadCastScenePrompt } from './cast/scene-prompts'
 import {
   listAvailableRoleIds,
@@ -289,6 +290,21 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     source: 'electron/main/companion/life/autonomous-dressing.ts#AUTONOMOUS_DRESSING_POLICY', version: 'dressing-v1',
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent(AUTONOMOUS_DRESSING_POLICY),
+  }), makeCompanionAsset({
+    key: 'companion:policy:travel-progression', name: '足迹与航海旅行自主演化策略',
+    purpose: '角色在生活推进中结合航程时间沉淀与用户旅行心愿自主演化航海站点',
+    role: 'platform', description: '为进行中旅行（active trip）追加经停站点与第一人称见闻故事；24小时冷却、上限8站、联动完成 travel_wish 心愿并广播提醒。',
+    source: 'electron/main/companion/life/travel-progression.ts#TRAVEL_PROGRESSION_POLICY', version: 'travel-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent(TRAVEL_PROGRESSION_POLICY),
+  }), makeCompanionAsset({
+    key: 'companion:policy:co-decision', name: '同伴求助与生活共同决策策略',
+    purpose: '角色在生活、探险与航向面临分歧困境时，向用户抛出抉择求助，并由用户的决定真实改变次日日剧本',
+    role: 'platform', description: '决策持久化于 companion_co_decisions；用户选定后角色即时生成第一人称回响写入主会话，并作为重大生活线索注入次日剧本规划。',
+    source: 'electron/main/companion/life/co-decision.ts#resolveCoDecision', version: 'co-decision-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ trigger: 'life-dilemma-branch', promptKey: PROMPT_KEYS.companionCoDecisionReaction }),
+    dependencies: [PROMPT_KEYS.companionCoDecisionReaction],
   })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {

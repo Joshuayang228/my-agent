@@ -69,3 +69,8 @@ var/asset-audit/
 
 # 本地临时审计与扫描产物
 .tmp/
+*.tsbuildinfo
+vite.dev.local.mts
+.agent-data/
+.workbuddy/
+var/

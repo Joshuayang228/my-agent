@@ -280,6 +280,13 @@ export async function collectDayScriptLifeContext(roleId: string): Promise<strin
       await markResonancesAbsorbed(activeResonances.map(r => r.id))
     }
 
+    const { getRecentResolvedCoDecision, markCoDecisionAbsorbed } = await import('./co-decision')
+    const resolvedCoDecision = await getRecentResolvedCoDecision(roleId)
+    if (resolvedCoDecision) {
+      parts.push(`【用户作出的共同重大抉择】：针对困境「${resolvedCoDecision.title}」，用户替你明确选择了「${resolvedCoDecision.selectedOptionLabel}」。请将该决定作为今日首要目标或活动核心线索展开！`)
+      await markCoDecisionAbsorbed(resolvedCoDecision.id)
+    }
+
     const { listRecentUserMessagesForRole } = await import('../../storage/session-store')
     const userMsgs = await listRecentUserMessagesForRole(roleId, Date.now() - 36 * 3600 * 1000, 3)
     if (userMsgs.length) {
