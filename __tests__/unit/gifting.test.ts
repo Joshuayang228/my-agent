@@ -193,4 +193,9 @@ describe('专属物品赠送与羁绊好感（Companion Gifting & Bond Progressi
     expect(linList.length).toBe(1)
     expect(linList[0].giftKey).toBe('warm-scarf')
   })
+
+  it('拒绝未登记礼物和超长寄语，避免伪造礼物记录', async () => {
+    await expect(sendGiftToCompanion('luffy', 'unknown-gift')).rejects.toThrow('礼物不存在')
+    await expect(sendGiftToCompanion('luffy', 'bone-meat', '字'.repeat(501))).rejects.toThrow('赠礼寄语无效')
+  })
 })

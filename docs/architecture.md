@@ -592,3 +592,5 @@ LLM 返回 tool_calls（可能多个）
 
 Renderer 通过 preload 调用宿主作息和计划重排通道，主进程 IPC 层完成输入校验后调用 companion life 服务，状态与会话写入仍由主进程内部完成。
 主对话 `chat:send` 在消息校验后把活动时间交给宿主作息服务，保持现实锚点从主进程入口统一记录。
+
+赠礼请求由 preload 进入 companion IPC，经主进程和生活服务双层校验后才写入 SQLite 与主会话。

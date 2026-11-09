@@ -214,18 +214,15 @@ export async function sendGiftToCompanion(
     now?: number
   },
 ): Promise<CompanionGiftRecord> {
+  if (typeof roleId !== 'string' || roleId.trim().length === 0 || roleId.length > 128) throw new Error('人物标识无效。')
+  if (typeof giftKey !== 'string' || giftKey.length === 0 || giftKey.length > 100) throw new Error('礼物标识无效。')
+  if (typeof userNote !== 'undefined' && (userNote.length > 500 || userNote.includes('\u0000'))) throw new Error('赠礼寄语无效。')
   await ensureGiftTable()
   const db = await getDatabase()
   const now = opts?.now ?? Date.now()
 
-  const giftDef = PRESET_GIFTS.find((g) => g.key === giftKey) || {
-    key: giftKey,
-    name: '神秘心意礼物',
-    category: 'emotional' as GiftCategory,
-    iconName: 'Gift',
-    description: '一份蕴含真挚心意的专属礼物。',
-    vitalsBuff: { mood: 15 },
-  }
+  const giftDef = PRESET_GIFTS.find((g) => g.key === giftKey)
+  if (!giftDef) throw new Error('礼物不存在，请从可用礼物中选择。')
 
   const affinity = (giftDef.roleAffinity && giftDef.roleAffinity[roleId]) || 'liked'
 

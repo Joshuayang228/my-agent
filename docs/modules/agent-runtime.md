@@ -589,3 +589,5 @@ Chat 内置工具注册现在包含 `companion_post_moment`、`companion_comment
 
 伙伴生活引擎新增的作息和计划能力由主进程 handler 统一校验后暴露给 Renderer，保持 preload 白名单和 shared 类型同步。
 Chat IPC 在用户消息通过校验后记录宿主活动时间，供生活关怀服务计算连续专注时长。
+
+赠礼 IPC 在进入 companion service 前完成寄语长度和礼物标识边界校验。

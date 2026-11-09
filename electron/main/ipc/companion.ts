@@ -340,6 +340,7 @@ export function registerCompanionIPC(): void {
   })
 
   ipcMain.handle('companion:send-gift', async (_e, roleId: string, giftKey: string, userNote?: string) => {
+    if (typeof giftKey !== 'string' || giftKey.length > 100 || typeof userNote === 'string' && userNote.length > 500) throw new Error('赠礼信息无效。')
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { sendGiftToCompanion } = await import('../companion/life/gifting')
     return sendGiftToCompanion(targetRoleId, giftKey, userNote)
