@@ -108,6 +108,25 @@ Chat 的内置工具注册链现在包含 `companion_post_moment`、`companion_c
   - 人物世界（`WorldHub`）新增 `decisions` 分区（路飞显示为「航向抉择」，其他角色显示为「共同决策」），组合活跃决策求助卡与历史决策时间流；
   - 同步落地 `CoDecisionExperienceCandidate` 展厅候选与离线 fixtures，在 Playground 隔离验收航向抉择、已裁决、双选项、长文本与空态，不依赖 Electron IPC。
 
+## 已落地能力：心境波动与突发小情绪（Mood Swings & Vulnerability Moments）
+
+- **角色多面真实情感自白（Vulnerability Moments）**：
+  - 角色不再只是永远 100% 元气的口号机器，在航海风暴过后、夜深独处或遇到挫折迷茫时，会流露出脆弱自白与真实心事；
+  - 心境分类覆盖 `melancholy`（忧郁）、`exhausted`（疲惫）、`anxious`（焦虑）、`nostalgic`（怀旧思念）、`doubt`（自我怀疑）；
+  - 出厂为路飞自动播种极具情感共鸣的深夜思念草帽与艾斯自白（Starter Vulnerability）；
+  - 配套多套人设模板库（草帽誓言、雨夜疲惫、风暴后脱力、前路迷茫等），支持 Life Ticker 动态调度与时钟扫描；
+- **严格的主动节奏与冷却机制**：
+  - 同一时刻最多 1 个未安抚的 active 脆弱心境，避免无休止的负面情绪宣泄；
+  - 具备 12 小时冷却时间限制，默认结合深夜时段（22:00–03:00）或严重精力透支时触发；
+- **温柔抚慰与第一人称回暖反馈**：
+  - 交互卡片（`VulnerabilityCard`）提供心境情绪胶囊、引语自白卡、快捷安抚预设句（「一直都在这里呢」「好好睡一觉吧」等）与自定义深情留言输入；
+  - 用户给予安慰后，由受控 Prompt 配方 `compileVulnerabilityReactionRequest`（或规则保底）生成第一人称真诚释怀与力量重燃的回暖反馈；
+  - 抚慰反馈即刻写入角色主会话（`sessionKind: 'main'`）作为 `assistant` 消息，促使主聊天上下文直接接续此段温情互动；
+  - 自动记录关系成长里程碑（`vulnerability_comforted`），全窗口广播 `companion:vulnerability-comforted`；
+- **人物世界无缝接入与 Playground 隔离候选**：
+  - 整合至人物世界手账日志面（`WorldJournalPanel`），在顶部突显当前伙伴的脆弱心境与求抚慰状态，抚慰后展现感谢暖流卡；
+  - 同步落地 `VulnerabilityExperienceCandidate` 展厅候选与离线 fixtures，在 Playground 隔离验收路飞深夜思念、风暴后疲惫、抚慰完成态、林雨夜疲惫及空态，不依赖 Electron IPC。
+
 ## 已落地能力：朋友圈评论回复与人物/NPC 自主决策
 
 - **微信式评论区回复交互**：

@@ -1,6 +1,6 @@
 # 质量总控
 
-角色脆弱时刻与情感共鸣门禁（2026-11-09）：`vulnerability.test.ts` 5 项测试覆盖表初始化时为路飞自动播种经典脆弱心境、用户安慰后状态流转为 comforted 并由受控配方 `compileVulnerabilityReactionRequest`（Prompt Key: `vulnerabilityReaction`）生成第一人称回响存入主会话、关系里程碑记录 `vulnerability_comforted` 并窗口广播、主动创建脆弱心境门控（同一时刻最多 1 个 active 心境），以及已慰藉心境供次日剧本吸收并防重；`asset-registry.ts` 登记 `companion:policy:vulnerability-moment` 生产策略资产，门禁全绿通过。
+角色脆弱时刻与情感共鸣门禁（2026-11-09）：`vulnerability.test.ts` 5 项测试覆盖表初始化时为路飞自动播种经典脆弱心境、用户安慰后状态流转为 comforted 并由受控配方 `compileVulnerabilityReactionRequest`（Prompt Key: `vulnerabilityReaction`）生成第一人称回响存入主会话、关系里程碑记录 `vulnerability_comforted` 并窗口广播、主动创建脆弱心境门控（同一时刻最多 1 个 active 心境），以及已慰藉心境供次日剧本吸收并防重；`asset-registry.ts` 登记 `companion:policy:vulnerability-moments` 生产策略资产，门禁全绿通过。
 
 工作区会话持久化与伙伴直通门禁（2026-11-09）：`workspace-session-persistence.test.ts` 3 项测试覆盖 `getOrCreateWorkspaceSession` 自动按 `parentSessionId` 绑定创建、后续调用复用已有会话并保留消息讨论历史、不同主会话之间工作区侧聊相互隔离、`listSessions` 严格排除 `workspace` 会话避免污染主会话列表，以及 `clearWorkspaceSession` 清空旧会话并重开全新工作区会话；`workspace-backend-contract.test.ts` 4 项测试覆盖五个正式工作区面板真实引用 project/session/terminal/browser/chat IPC 入口，门禁全绿通过。
 
