@@ -1,5 +1,7 @@
 # 质量总控
 
+专属物品赠送与羁绊好感门禁（2026-11-09）：`gifting.test.ts` 5 项测试覆盖礼物清单加载与角色专属最爱偏好（路飞对 bone-meat 与 treasure-map 为 favorite）、用户赠礼持久化落库至 SQLite `companion_received_gifts`、角色第一人称致谢喜悦回响存入主会话作为 assistant 消息、赠礼联动生命体征提升（mood/energy）与历史记录倒序查询、模型失败或缺省时的规则保底回响与全窗口广播；`asset-registry.ts` 登记 `companion:policy:gifting` 生产策略资产，`prompt-feature-contracts.test.ts` 扩展至 24 个核心功能合同（含 `giftReaction`），门禁全绿通过。
+
 深夜反思与高光回忆重温门禁（2026-11-09）：`nightly-reflection.test.ts` 3 项测试覆盖夜深时段（22:00～04:00）或 force 触发生成深夜反思日记并自动星标、白天非夜间时段自动略过、20 小时冷却门控拦截高频生成、心灵感悟（epiphany）提炼并调用 `addMemory('feedback', ...)` 同步写入长期记忆的“我们之间”分桶，以及 `companion:nightly-reflection-created` 窗口广播；`nostalgia.test.ts` 5 项测试覆盖从长期记忆（feedback）、专属信物（keepsakes）与深夜日记中提取高光回忆切片、4 小时冷却保护与重置机制、`formatConversationImpulseForPrompt` 正确注入【高光回忆羁绊】提示词插槽；`prompt-feature-contracts.test.ts` 扩展至 22 个核心功能合同（含 `nightlyReflection`）；`asset-registry.ts` 登记 `companion:policy:nightly-reflection` 与 `companion:policy:nostalgic-reminiscence`，门禁全绿通过。
 
 角色脆弱时刻与情感共鸣门禁（2026-11-09）：`vulnerability.test.ts` 5 项测试覆盖表初始化时为路飞自动播种经典脆弱心境、用户安慰后状态流转为 comforted 并由受控配方 `compileVulnerabilityReactionRequest`（Prompt Key: `vulnerabilityReaction`）生成第一人称回响存入主会话、关系里程碑记录 `vulnerability_comforted` 并窗口广播、主动创建脆弱心境门控（同一时刻最多 1 个 active 心境），以及已慰藉心境供次日剧本吸收并防重；`asset-registry.ts` 登记 `companion:policy:vulnerability-moments` 生产策略资产，门禁全绿通过。
