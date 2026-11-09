@@ -483,6 +483,25 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('companion:inner-thought-created', handler)
       return () => ipcRenderer.removeListener('companion:inner-thought-created', handler)
     },
+    triggerNightlyReflection: (
+      roleId?: string,
+      force?: boolean,
+    ): Promise<import('../../src/shared/types').CompanionInnerThoughtRecord | null> =>
+      ipcRenderer.invoke('companion:trigger-nightly-reflection', roleId, force),
+    getNostalgicReminiscence: (
+      roleId?: string,
+    ): Promise<import('../../src/shared/types').CompanionNostalgiaItem | null> =>
+      ipcRenderer.invoke('companion:get-nostalgic-reminiscence', roleId),
+    onNightlyReflectionCreated: (
+      callback: (payload: import('../../src/shared/types').CompanionInnerThoughtRecord) => void,
+    ) => {
+      const handler = (
+        _e: Electron.IpcRendererEvent,
+        payload: import('../../src/shared/types').CompanionInnerThoughtRecord,
+      ) => callback(payload)
+      ipcRenderer.on('companion:nightly-reflection-created', handler)
+      return () => ipcRenderer.removeListener('companion:nightly-reflection-created', handler)
+    },
     listKeepsakes: (
       roleId?: string,
     ): Promise<import('../../src/shared/types').CompanionKeepsakeRecord[]> =>
@@ -604,6 +623,31 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ) => callback(payload)
       ipcRenderer.on('companion:vulnerability-comforted', handler)
       return () => ipcRenderer.removeListener('companion:vulnerability-comforted', handler)
+    },
+    listAvailableGifts: (
+      roleId?: string,
+    ): Promise<import('../../src/shared/types').CompanionGiftItem[]> =>
+      ipcRenderer.invoke('companion:list-available-gifts', roleId),
+    listReceivedGifts: (
+      roleId?: string,
+      limit?: number,
+    ): Promise<import('../../src/shared/types').CompanionGiftRecord[]> =>
+      ipcRenderer.invoke('companion:list-received-gifts', roleId, limit),
+    sendGift: (
+      roleId: string,
+      giftKey: string,
+      userNote?: string,
+    ): Promise<import('../../src/shared/types').CompanionGiftRecord> =>
+      ipcRenderer.invoke('companion:send-gift', roleId, giftKey, userNote),
+    onGiftReceived: (
+      callback: (payload: import('../../src/shared/types').CompanionGiftEvent) => void,
+    ) => {
+      const handler = (
+        _e: Electron.IpcRendererEvent,
+        payload: import('../../src/shared/types').CompanionGiftEvent,
+      ) => callback(payload)
+      ipcRenderer.on('companion:gift-received', handler)
+      return () => ipcRenderer.removeListener('companion:gift-received', handler)
     },
   },
 

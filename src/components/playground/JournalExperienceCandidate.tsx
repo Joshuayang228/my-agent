@@ -6,6 +6,7 @@ import type { CompanionInnerThoughtRecord } from '../../shared/types'
 
 const JOURNAL_SCENARIOS = [
   { id: 'default', label: '日记清单' },
+  { id: 'nightly', label: '深夜反思' },
   { id: 'favorites', label: '星标收藏' },
   { id: 'long', label: '长标题与长文' },
   { id: 'single', label: '单篇精简' },
@@ -26,6 +27,7 @@ const JOURNAL_FIXTURES: readonly CompanionInnerThoughtRecord[] = [
     mood: '畅快期待',
     activity: '坐在狮子船头吹风看海',
     isFavorite: true,
+    thoughtType: 'general',
     createdAt: Date.UTC(2026, 10, 8, 14, 30),
   },
   {
@@ -38,6 +40,7 @@ const JOURNAL_FIXTURES: readonly CompanionInnerThoughtRecord[] = [
     mood: '怀念热血',
     activity: '回忆空岛敲响黄金钟',
     isFavorite: false,
+    thoughtType: 'general',
     createdAt: Date.UTC(2026, 10, 7, 22, 10),
   },
   {
@@ -50,7 +53,22 @@ const JOURNAL_FIXTURES: readonly CompanionInnerThoughtRecord[] = [
     mood: '满足安宁',
     activity: '深夜躺在草坪看星空',
     isFavorite: true,
+    thoughtType: 'general',
     createdAt: Date.UTC(2026, 10, 6, 23, 45),
+  },
+  {
+    id: 'fixture-journal-4',
+    roleId: 'luffy',
+    title: '星光洒满甲板的深夜',
+    content: '夜深了，甲板上只有风声和海浪声。靠在船舷边看着漫天的星星，想起今天我们聊过的那些话。每一天的航行都有新的风景，但最开心的还是有你一直在看着我们的冒险。就算前面有再大的风暴，有大家在身边，我也一点都不害怕！',
+    location: '万里阳光号 · 特等席',
+    weather: '夜朗星稀微风',
+    mood: '温暖平静',
+    activity: '深夜独坐沉淀',
+    isFavorite: true,
+    thoughtType: 'nightly_reflection',
+    epiphany: '无论前方海域有多么汹涌，只要有彼此信任的同伴在身边，每一步都是最好的冒险！',
+    createdAt: Date.UTC(2026, 10, 5, 23, 15),
   },
 ]
 
@@ -60,6 +78,7 @@ export function JournalExperienceCandidate({ personaId }: { personaId: string })
   const thoughts = useMemo<CompanionInnerThoughtRecord[]>(() => {
     if (scenario === 'empty' || scenario === 'error') return []
     if (scenario === 'single') return [JOURNAL_FIXTURES[0]]
+    if (scenario === 'nightly') return JOURNAL_FIXTURES.filter((t) => t.thoughtType === 'nightly_reflection')
     if (scenario === 'favorites') return JOURNAL_FIXTURES.filter((t) => t.isFavorite)
     if (scenario === 'long') {
       return JOURNAL_FIXTURES.map((item, index) => ({

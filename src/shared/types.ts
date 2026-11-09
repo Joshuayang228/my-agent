@@ -1389,6 +1389,14 @@ export interface CompanionInnerThoughtRecord {
   activity?: string
   isFavorite?: boolean
   createdAt: number
+  thoughtType?: 'general' | 'nightly_reflection'
+  epiphany?: string
+}
+
+export interface CompanionNostalgiaItem {
+  text: string
+  sourceKind: 'memory_feedback' | 'keepsake' | 'epiphany'
+  timestamp?: number
 }
 
 export interface CompanionKeepsakeRecord {
@@ -1495,6 +1503,43 @@ export interface CompanionVulnerabilityRecord {
 export interface CompanionVulnerabilityEvent {
   roleId: string
   vulnerability: CompanionVulnerabilityRecord
+}
+
+export type GiftCategory = 'food' | 'collectible' | 'practical' | 'emotional'
+
+export interface CompanionGiftItem {
+  key: string
+  name: string
+  category: GiftCategory
+  iconName: string
+  description: string
+  vitalsBuff?: {
+    satiety?: number
+    mood?: number
+    energy?: number
+  }
+  roleAffinity?: Record<string, 'favorite' | 'liked' | 'neutral'>
+}
+
+export interface CompanionGiftRecord {
+  id: string
+  roleId: string
+  giftKey: string
+  giftName: string
+  category: GiftCategory
+  userNote?: string
+  companionReaction: string
+  createdAt: number
+  vitalsBuff?: {
+    satiety?: number
+    mood?: number
+    energy?: number
+  }
+}
+
+export interface CompanionGiftEvent {
+  roleId: string
+  gift: CompanionGiftRecord
 }
 
 

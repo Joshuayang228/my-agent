@@ -238,6 +238,18 @@ export function registerCompanionIPC(): void {
     return deleteInnerThought(id)
   })
 
+  ipcMain.handle('companion:trigger-nightly-reflection', async (_e, roleId?: string, force?: boolean) => {
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const { triggerNightlyReflection } = await import('../companion/life/nightly-reflection')
+    return triggerNightlyReflection(targetRoleId, Date.now(), { force: force ?? true })
+  })
+
+  ipcMain.handle('companion:get-nostalgic-reminiscence', async (_e, roleId?: string) => {
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const { pickNostalgicReminiscence } = await import('../companion/life/nostalgia')
+    return pickNostalgicReminiscence(targetRoleId, Date.now(), { force: true })
+  })
+
   ipcMain.handle('companion:list-keepsakes', async (_e, roleId?: string) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { listKeepsakes } = await import('../companion/growth/relationship-keepsake')
@@ -294,6 +306,24 @@ export function registerCompanionIPC(): void {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { triggerVulnerability } = await import('../companion/life/vulnerability')
     return triggerVulnerability(targetRoleId, forceContext)
+  })
+
+  ipcMain.handle('companion:list-available-gifts', async (_e, roleId?: string) => {
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const { listAvailableGifts } = await import('../companion/life/gifting')
+    return listAvailableGifts(targetRoleId)
+  })
+
+  ipcMain.handle('companion:list-received-gifts', async (_e, roleId?: string, limit?: number) => {
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const { listReceivedGifts } = await import('../companion/life/gifting')
+    return listReceivedGifts(targetRoleId, limit)
+  })
+
+  ipcMain.handle('companion:send-gift', async (_e, roleId: string, giftKey: string, userNote?: string) => {
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const { sendGiftToCompanion } = await import('../companion/life/gifting')
+    return sendGiftToCompanion(targetRoleId, giftKey, userNote)
   })
 
   ipcMain.handle('companion:list-autonomous-dressings', async (_e, roleId?: string, limit?: number) => {

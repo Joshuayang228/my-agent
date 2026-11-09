@@ -96,10 +96,14 @@ export function formatConversationImpulseForPrompt(input: {
   currentActivity?: string
   latestMomentText?: string
   resonanceFeedback?: string
+  nostalgicReminiscence?: string
 }): string | undefined {
   const points: string[] = []
   if (input.resonanceFeedback) {
     points.push(`【重要回访心愿反馈】你之前根据用户的推荐去体验了并有了深刻感悟，心里一直惦记着向用户反馈：“${input.resonanceFeedback.slice(0, 100)}”`)
+  }
+  if (input.nostalgicReminiscence) {
+    points.push(`【高光回忆羁绊】你此刻忽然回想起过去的事：“${input.nostalgicReminiscence.slice(0, 100)}”`)
   }
   if (input.latestMomentText) {
     points.push(`你最近在朋友圈分享过：${input.latestMomentText.slice(0, 60)}`)
@@ -218,16 +222,19 @@ export async function loadRoleAssembleInput(
   const { collectBookshelfSlice, collectLifeAssetsSlice } = await import('./life/assets')
   const { listEvents, listRelationshipStates, listEmotionEvents } = await import('./life/store')
   const { getPendingResonanceFeedback } = await import('./life/chat-resonance')
+  const { pickNostalgicReminiscence } = await import('./life/nostalgia')
   const world = await ensureWorldState(roleId)
   const worldSlice = formatWorldSliceForPrompt(world) || undefined
   const { slice: recentMomentsSlice } = await collectRecentMomentsSlice(roleId)
   const { slice: bookshelfSlice } = await collectBookshelfSlice(roleId)
   const { slice: lifeAssetsSlice } = await collectLifeAssetsSlice(roleId)
   const pendingFeedback = await getPendingResonanceFeedback(roleId)
+  const nostalgicItem = await pickNostalgicReminiscence(roleId).catch(() => null)
   const conversationImpulse = formatConversationImpulseForPrompt({
     socialNeed: world.socialNeed,
     currentActivity: world.currentActivity,
     resonanceFeedback: pendingFeedback?.feedbackText || undefined,
+    nostalgicReminiscence: nostalgicItem?.text || undefined,
   })
   const relationshipStates = await listRelationshipStates(roleId)
   const relationshipEvents = (await listEvents(roleId, { status: 'published', order: 'desc', limit: 30 }))

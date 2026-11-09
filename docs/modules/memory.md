@@ -1,5 +1,7 @@
 # 记忆（memory）
 
+深夜反思与高光回忆重温（2026-11-09）：深夜反思引擎（`nightly-reflection.ts`）在角色深夜产生领悟时，将心灵感悟通过既有 `addMemory('feedback', ...)` 写入角色专属 feedback 桶（“我们之间”），并由高光回忆重温引擎（`nostalgia.ts`）在主对话装配前夕按 4 小时冷却检索并作为【高光回忆羁绊】注入提示词，不改变底层向量同步、语义去重或敏感词过滤规则。
+
 工作区侧聊会话持久化（2026-11-09）：会话存储与数据库升级至 schema 25，新增 `parent_session_id` 列并提供 `getOrCreateWorkspaceSession` / `clearWorkspaceSession`，隔离主会话列表与侧聊历史，不改变长期记忆存储、向量同步、画像提炼或角色分桶策略。
 
 主动问候会话归属与历史承接（2026-11-08）：会话存储新增 `getLatestMainSessionForRole` 与 `ensureMainSessionForRole`，使角色主动问候能够可靠持久化至角色的真实主会话历史，不影响长期记忆分桶与画像提取逻辑。

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Sparkles, Heart, Trash2, MapPin, CloudSun, MessageSquareShare, FileText } from 'lucide-react'
+import { Sparkles, Heart, Trash2, MapPin, CloudSun, MessageSquareShare, FileText, Moon } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
 import { Badge } from '../foundation/Badge'
@@ -98,8 +98,14 @@ export function WorldJournalPanel({
         setThoughts((prev) => [newThought, ...prev.filter((t) => t.id !== newThought.id)])
       }
     })
+    const unsubNightly = window.electronAPI.companion.onNightlyReflectionCreated?.((newThought) => {
+      if (newThought.roleId === roleId) {
+        setThoughts((prev) => [newThought, ...prev.filter((t) => t.id !== newThought.id)])
+      }
+    })
     return () => {
       unsubscribe()
+      unsubNightly?.()
     }
   }, [previewThoughts, roleId])
 
@@ -261,7 +267,7 @@ export function WorldJournalPanel({
               className="group relative flex flex-col gap-2 rounded-lg border p-4 transition-shadow hover:shadow-sm"
               style={{
                 backgroundColor: 'var(--bg-secondary)',
-                borderColor: 'var(--border-subtle)',
+                borderColor: thought.thoughtType === 'nightly_reflection' ? 'var(--accent, #3b82f6)' : 'var(--border-subtle)',
               }}
               data-testid={`journal-entry-${thought.id}`}
             >
@@ -271,6 +277,12 @@ export function WorldJournalPanel({
                   <span style={{ color: 'var(--text-muted)' }}>
                     {formatDate(thought.createdAt)}
                   </span>
+                  {thought.thoughtType === 'nightly_reflection' && (
+                    <Badge tone="accent">
+                      <Moon size={10} className="mr-0.5 inline" />
+                      深夜反思
+                    </Badge>
+                  )}
                   {thought.location && (
                     <Badge tone="neutral">
                       <MapPin size={10} className="mr-0.5 inline" />
@@ -324,6 +336,24 @@ export function WorldJournalPanel({
                 {thought.content}
               </p>
 
+              {/* 深夜反思心灵感悟一句话 */}
+              {thought.epiphany && (
+                <div
+                  className="my-1.5 rounded-md border-l-2 p-2.5 text-[12px] italic leading-relaxed"
+                  style={{
+                    backgroundColor: 'var(--bg-tertiary)',
+                    borderColor: 'var(--accent, #3b82f6)',
+                    color: 'var(--text-primary)',
+                  }}
+                  data-testid={`journal-epiphany-${thought.id}`}
+                >
+                  <span className="mr-1.5 not-italic text-[11px] font-semibold" style={{ color: 'var(--accent, #3b82f6)' }}>
+                    💡 心灵感悟：
+                  </span>
+                  “{thought.epiphany}”
+                </div>
+              )}
+
               {/* 底部动作与对话桥梁 */}
               <div className="mt-1 flex flex-wrap items-center justify-between gap-2 border-t pt-2" style={{ borderColor: 'var(--border-subtle)' }}>
                 {thought.activity ? (
@@ -338,15 +368,17 @@ export function WorldJournalPanel({
                   <ActionButton
                     size="sm"
                     variant="plain"
-                    tone="neutral"
+                    tone={thought.thoughtType === 'nightly_reflection' ? 'accent' : 'neutral'}
                     onClick={() => {
-                      onTakeToChat({
-                        text: `我刚刚偷看了你写的日记《${thought.title}》，原来你心里是这么想的啊！`,
-                      })
+                      const promptText =
+                        thought.thoughtType === 'nightly_reflection'
+                          ? `读了你昨晚写的深夜感悟《${thought.title}》，心里觉得特别温暖，想和你聊聊……`
+                          : `我刚刚偷看了你写的日记《${thought.title}》，原来你心里是这么想的啊！`
+                      onTakeToChat({ text: promptText })
                     }}
                   >
                     <MessageSquareShare size={12} className="mr-1" />
-                    与TA聊聊这篇日记
+                    {thought.thoughtType === 'nightly_reflection' ? '与TA聊聊这篇深夜感悟' : '与TA聊聊这篇日记'}
                   </ActionButton>
                 )}
               </div>

@@ -67,6 +67,22 @@ Chat 的内置工具注册链现在包含 `companion_post_moment`、`companion_c
   - 面板支持实时接收新日记广播、星标收藏筛选、删除、一键手动启发灵感撰写；
   - 每篇日记提供「与TA聊聊这篇日记」动作，点击将日记契机自然带入主聊天会话，成为开启深层情感交流与羁绊升温的自然桥梁。
 
+## 已落地能力：深夜反思与心灵领悟（Nightly Reflection & Heartfelt Epiphany）
+
+- **深夜静谧沉淀与第一人称独白**：
+  - 在夜深人静时段（22:00～04:00），角色回顾白天的生活事件、近期与用户的对话沟通，由生活调度器（`ticker.ts`）自主触发，经 20 小时冷却（每日上限 1 篇）门控；
+  - 由受控模型配方 `compileNightlyReflectionRequest` 生成深情私密的深夜反思，落盘至 `companion_inner_thoughts` 并标记 `thought_type: 'nightly_reflection'` 与自动星标收藏；
+  - 角色提炼出一句直击心灵的羁绊感悟（`epiphany`），展示在日记高光卡片中；
+  - 感悟同步写入长期记忆库的 `feedback` 分桶（“我们之间”），使角色的情感认知因与用户的真实相处而持久留存；
+  - 航海日记面板展示「🌙 深夜反思」专属高光徽章与感悟气泡框，提供「与TA聊聊这篇深夜感悟」一键直通主会话。
+
+## 已落地能力：高光回忆重温（Nostalgic Reminiscence in Main Chat）
+
+- **主动触景生情与老友回忆**：
+  - 长期记忆（`memories` 中带有 `[深夜感悟]` 或默契记录）、专属信物（`keepsakes`）与深夜反思日记不再是沉睡底层的死数据；
+  - 主会话提示词装配管线（`orchestrator.ts`）在对话前夕调用高光回忆引擎（`pickNostalgicReminiscence`），经 4 小时冷却保护，挑选一条历史沉淀回忆；
+  - 注入 `formatConversationImpulseForPrompt` 作为【高光回忆羁绊】生活切片话头，引导角色在闲聊开场或合适契机自然带出“对了，想起之前你说的……”或“前几天夜里我想起……”，展现老友般的长久陪伴感。
+
 ## 已落地能力：衣柜与穿搭自主演化（Autonomous Contextual Dressing）
 
 - **生活情境与晨起自主换装**：

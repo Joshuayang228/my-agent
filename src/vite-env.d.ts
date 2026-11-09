@@ -404,6 +404,11 @@ declare global {
         onInnerThoughtCreated: (
           callback: (payload: import('./shared/types').CompanionInnerThoughtRecord) => void,
         ) => () => void
+        triggerNightlyReflection: (roleId?: string, force?: boolean) => Promise<import('./shared/types').CompanionInnerThoughtRecord | null>
+        getNostalgicReminiscence: (roleId?: string) => Promise<import('./shared/types').CompanionNostalgiaItem | null>
+        onNightlyReflectionCreated: (
+          callback: (payload: import('./shared/types').CompanionInnerThoughtRecord) => void,
+        ) => () => void
         listKeepsakes: (roleId?: string) => Promise<import('./shared/types').CompanionKeepsakeRecord[]>
         giftKeepsake: (roleId?: string, keepsakeKey?: string, customReason?: string) => Promise<import('./shared/types').CompanionKeepsakeRecord | null>
         onKeepsakeGifted: (
@@ -434,6 +439,12 @@ declare global {
         ) => () => void
         onVulnerabilityComforted: (
           callback: (payload: import('./shared/types').CompanionVulnerabilityEvent) => void,
+        ) => () => void
+        listAvailableGifts: (roleId?: string) => Promise<import('./shared/types').CompanionGiftItem[]>
+        listReceivedGifts: (roleId?: string, limit?: number) => Promise<import('./shared/types').CompanionGiftRecord[]>
+        sendGift: (roleId: string, giftKey: string, userNote?: string) => Promise<import('./shared/types').CompanionGiftRecord>
+        onGiftReceived: (
+          callback: (payload: import('./shared/types').CompanionGiftEvent) => void,
         ) => () => void
       }
       mcp: {

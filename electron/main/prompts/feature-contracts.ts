@@ -182,6 +182,18 @@ export const PROMPT_FEATURE_CONTRACTS = Object.freeze({
     overrideBoundary: ['角色感到被温暖后的语气变化与真情流露'], output: '只输出 JSON 对象，包含 reactionText 角色第一人称释怀感激回响、comfortedMood 心情回暖状态。',
     fallback: '模型不可用或解析失败时使用基于人设的确定性温柔回响，不阻塞流程。', consumers: ['electron/main/companion/life/vulnerability.ts'],
   }),
+  nightlyReflection: contract({
+    key: 'feature:nightly-reflection', name: '深夜反思与心灵领悟', domain: 'life', purpose: '角色在深夜独处时回溯今日与用户的互动或经历，生成真挚深沉的第一人称深夜独白与心灵感悟，并沉淀到长期记忆。',
+    staticInputs: ['安全规则', '深夜反思叙事协议', 'JSON输出约束'], runtimeInputs: ['角色公开人设与口吻', '今日聊天线索与事件摘要', '当前时间与所处空间'],
+    overrideBoundary: ['角色深夜私密感触与心灵领悟口吻'], output: '只输出 JSON 对象，包含 title 标题、content 正文、epiphany 心灵感悟一句话、mood 心情、weather 天气、location 地点。',
+    fallback: '模型不可用或解析失败时使用基于角色人设的确定性深情反思与领悟，不阻塞流程。', consumers: ['electron/main/companion/life/nightly-reflection.ts'],
+  }),
+  giftReaction: contract({
+    key: 'feature:gift-reaction', name: '收到心意礼物与喜悦回响', domain: 'life', purpose: '在用户向角色赠送专属或心意礼物后，角色依据个人喜好、性格与口吻做出惊喜、感激与专属活人感的第一人称回响。',
+    staticInputs: ['安全规则', '收到礼物喜悦回响协议', 'JSON输出约束'], runtimeInputs: ['角色公开人设与口吻', '礼物名称与描述', '用户寄语', '角色对该礼物的喜爱偏好'],
+    overrideBoundary: ['角色收到不同礼物时的真实情绪与反应风格'], output: '只输出 JSON 对象，包含 reactionText 角色第一人称即时致谢与喜悦回响、emotion 表情与心情状态。',
+    fallback: '模型不可用或解析失败时使用基于角色人设与礼物类型的确定性回响，不阻塞流程。', consumers: ['electron/main/companion/life/gifting.ts'],
+  }),
 } as const)
 
 export type PromptFeatureContractKey = keyof typeof PROMPT_FEATURE_CONTRACTS

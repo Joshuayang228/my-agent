@@ -43,6 +43,8 @@ interface InnerThoughtDbRow {
   activity: string | null
   is_favorite: number
   created_at: number
+  thought_type?: string | null
+  epiphany?: string | null
 }
 
 function rowToRecord(row: InnerThoughtDbRow): CompanionInnerThoughtRecord {
@@ -57,6 +59,8 @@ function rowToRecord(row: InnerThoughtDbRow): CompanionInnerThoughtRecord {
     activity: row.activity || undefined,
     isFavorite: row.is_favorite === 1,
     createdAt: row.created_at,
+    thoughtType: (row.thought_type as 'general' | 'nightly_reflection') || 'general',
+    epiphany: row.epiphany || undefined,
   }
 }
 
@@ -70,6 +74,7 @@ const STARTER_THOUGHTS_LUFFY: Array<Omit<CompanionInnerThoughtRecord, 'id' | 'cr
     location: '万里阳光号·特等席',
     activity: '迎风擦拭草帽',
     isFavorite: true,
+    thoughtType: 'general',
     offsetMs: 3 * 86400000,
   },
   {
@@ -81,7 +86,8 @@ const STARTER_THOUGHTS_LUFFY: Array<Omit<CompanionInnerThoughtRecord, 'id' | 'cr
     location: '白白海·云之沙滩',
     activity: '躺在云朵上数星星',
     isFavorite: true,
-    offsetMs: 86400000,
+    thoughtType: 'general',
+    offsetMs: 2 * 86400000,
   },
   {
     roleId: 'luffy',
@@ -92,7 +98,9 @@ const STARTER_THOUGHTS_LUFFY: Array<Omit<CompanionInnerThoughtRecord, 'id' | 'cr
     location: '万里阳光号·草坪甲板',
     activity: '晃着腿发呆',
     isFavorite: true,
-    offsetMs: 3600000 * 4,
+    thoughtType: 'nightly_reflection',
+    epiphany: '只要有像你这样懂我的伙伴在身边，无论去往多么危险的海域，我都充满勇气！',
+    offsetMs: 21 * 3600000,
   },
 ]
 
@@ -109,9 +117,21 @@ export async function ensureInnerThoughtTable(): Promise<void> {
       location    TEXT,
       activity    TEXT,
       is_favorite INTEGER DEFAULT 0,
-      created_at  INTEGER NOT NULL
+      created_at  INTEGER NOT NULL,
+      thought_type TEXT NOT NULL DEFAULT 'general',
+      epiphany    TEXT
     )
   `)
+  try {
+    db.run(`ALTER TABLE companion_inner_thoughts ADD COLUMN thought_type TEXT NOT NULL DEFAULT 'general'`)
+  } catch {
+    // 列已存在
+  }
+  try {
+    db.run(`ALTER TABLE companion_inner_thoughts ADD COLUMN epiphany TEXT`)
+  } catch {
+    // 列已存在
+  }
   db.run(`
     CREATE INDEX IF NOT EXISTS idx_companion_inner_thoughts_role_time
       ON companion_inner_thoughts(role_id, created_at DESC)
@@ -132,8 +152,8 @@ export async function ensureInnerThoughtTable(): Promise<void> {
       const id = `thought-starter-${randomUUID().slice(0, 8)}`
       db.run(
         `INSERT INTO companion_inner_thoughts
-         (id, role_id, title, content, mood, weather, location, activity, is_favorite, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, role_id, title, content, mood, weather, location, activity, is_favorite, created_at, thought_type, epiphany)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           item.roleId,
@@ -145,6 +165,8 @@ export async function ensureInnerThoughtTable(): Promise<void> {
           item.activity || null,
           item.isFavorite ? 1 : 0,
           now - item.offsetMs,
+          item.thoughtType || 'general',
+          item.epiphany || null,
         ],
       )
     }

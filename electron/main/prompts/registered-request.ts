@@ -9,6 +9,8 @@ import { buildInnerThoughtPrompt, type InnerThoughtPromptInput } from './inner-t
 import { buildKeepsakeGiftPrompt, type KeepsakeGiftPromptInput } from './keepsake-gift'
 import { buildCoDecisionReactionPrompt, type CoDecisionReactionPromptInput } from './co-decision-reaction'
 import { buildVulnerabilityReactionPrompt, type VulnerabilityReactionPromptInput } from './vulnerability-reaction'
+import { buildGiftReactionPrompt, type GiftReactionPromptInput } from './gift-reaction'
+import { buildNightlyReflectionUserPrompt, type NightlyReflectionPromptInput } from './nightly-reflection'
 import { buildImageGenerationPrompt } from './image-generation'
 /**
  * 背景：手填资产 key 无法证明正文来自登记的生产定义。
@@ -287,4 +289,12 @@ export function compileCoDecisionReactionRequest(input: CoDecisionReactionPrompt
 
 export function compileVulnerabilityReactionRequest(input: VulnerabilityReactionPromptInput): RegisteredModelRequest {
   return signRequest([{ role: 'user', content: buildVulnerabilityReactionPrompt(input) }], [PROMPT_KEYS.companionVulnerabilityReaction], ['vulnerability-reaction'])
+}
+
+export function compileNightlyReflectionRequest(input: NightlyReflectionPromptInput): RegisteredModelRequest {
+  return signRequest([{ role: 'user', content: buildNightlyReflectionUserPrompt(input) }], [PROMPT_KEYS.companionNightlyReflection], ['nightly-reflection'])
+}
+
+export function compileGiftReactionRequest(input: GiftReactionPromptInput): RegisteredModelRequest {
+  return signRequest([{ role: 'user', content: buildGiftReactionPrompt(input) }], [PROMPT_KEYS.companionGiftReaction], ['gift-reaction'])
 }

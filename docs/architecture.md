@@ -1,5 +1,11 @@
 # 系统架构
 
+深夜反思与高光回忆重温架构（2026-11-09）：
+- 深夜反思与心灵领悟流：`nightly-reflection.ts` 在深夜时段（22:00～04:00）结合今日生活事件与近期用户对话线索，经 20 小时冷却（每日上限 1 次）由受控配方 `compileNightlyReflectionRequest` 生成第一人称深夜反思；
+- 数据模型与记忆闭环：随笔写入 SQLite `companion_inner_thoughts`（`thought_type: 'nightly_reflection'`），提炼出的心灵感悟（`epiphany`）同步调用 `addMemory('feedback', ...)` 存入长期记忆的“我们之间”分桶；广播 `companion:nightly-reflection-created`；
+- 高光回忆重温引擎：`nostalgia.ts` 在主会话提示词装配前夕（`orchestrator.ts`）检索沉淀记忆（feedback 深度默契、专属信物、深夜领悟），经 4 小时冷却保护挑选一条高光切片，注入 `formatConversationImpulseForPrompt` 作为【高光回忆羁绊】生活切片话头，引导角色在闲聊时像真人老友一样自然带出过去共同经历；
+- 前端呈现与双向连通：`WorldJournalPanel` 为深夜反思提供「🌙 深夜反思」专属高光徽章与感悟气泡框，支持一键「与TA聊聊这篇深夜感悟」预填话题直达主会话；Playground 对应接入 `nightly` 隔离样张。
+
 工作区持久化与跨会话协同架构（2026-11-09）：
 - 工作区会话持久模型：`sessions` 表扩充 `parent_session_id` 列（schema 25），`getOrCreateWorkspaceSession` 将工作区侧聊与宿主主会话一对一绑定并建立索引；组件折叠、隐藏或视图切换时不销毁会话，保留工程讨论全过程；
 - 会话生命周期与隔离：切换主会话时，工作区右坞根据新的 `activeSessionId` 自动无缝切换对应侧聊上下文与变更审阅；主会话列表（`listSessions`）过滤排除 `session_kind = 'workspace'` 避免侧聊混淆；

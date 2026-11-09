@@ -15,6 +15,7 @@ export type MilestoneKind =
   | 'first_rapport'
   | 'keepsake_gifted'
   | 'vulnerability_comforted'
+  | 'gift_received'
 
 export interface RelationshipMilestone {
   kind: MilestoneKind
@@ -60,6 +61,11 @@ const META: Record<
     promptHint:
       '里程碑·脆弱抚慰：曾接纳并温柔抚慰过角色的脆弱与心事，彼此多了一份深层信赖。',
   },
+  gift_received: {
+    toast: (name) => `向${name}赠送了心意礼物——伙伴的笑容就是最好的回礼`,
+    promptHint:
+      '里程碑·收到心意礼物：用户曾主动赠送过贴心礼物，角色心存感激与温暖，相处更显亲昵。',
+  },
 }
 
 type Store = Record<string, MilestoneKind[]>
@@ -78,7 +84,8 @@ function parseStore(raw: string): Store {
           k === 'first_reflection' ||
           k === 'first_rapport' ||
           k === 'keepsake_gifted' ||
-          k === 'vulnerability_comforted',
+          k === 'vulnerability_comforted' ||
+          k === 'gift_received',
       )
     }
     return out

@@ -16,6 +16,7 @@ import { checkAndGenerateInnerThought } from './inner-thoughts'
 import { checkAndPerformContextualDressing } from './autonomous-dressing'
 import { checkAndProgressTravelJourney } from './travel-progression'
 import { checkAndTriggerVulnerability } from './vulnerability'
+import { checkAndTriggerNightlyReflection } from './nightly-reflection'
 import * as store from './store'
 
 const log = createLogger('LifeTicker')
@@ -84,6 +85,9 @@ export function startLifeTicker(defaultIntervalMs = DEFAULT_INTERVAL_MS): void {
         })
         await checkAndTriggerVulnerability(r.roleId, now).catch((err) => {
           log.warn('checkAndTriggerVulnerability failed', { error: String(err) })
+        })
+        await checkAndTriggerNightlyReflection(r.roleId, now).catch((err) => {
+          log.warn('checkAndTriggerNightlyReflection failed', { error: String(err) })
         })
       }
     } catch (err) {

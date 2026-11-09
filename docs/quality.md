@@ -1,5 +1,7 @@
 # 质量总控
 
+深夜反思与高光回忆重温门禁（2026-11-09）：`nightly-reflection.test.ts` 3 项测试覆盖夜深时段（22:00～04:00）或 force 触发生成深夜反思日记并自动星标、白天非夜间时段自动略过、20 小时冷却门控拦截高频生成、心灵感悟（epiphany）提炼并调用 `addMemory('feedback', ...)` 同步写入长期记忆的“我们之间”分桶，以及 `companion:nightly-reflection-created` 窗口广播；`nostalgia.test.ts` 5 项测试覆盖从长期记忆（feedback）、专属信物（keepsakes）与深夜日记中提取高光回忆切片、4 小时冷却保护与重置机制、`formatConversationImpulseForPrompt` 正确注入【高光回忆羁绊】提示词插槽；`prompt-feature-contracts.test.ts` 扩展至 22 个核心功能合同（含 `nightlyReflection`）；`asset-registry.ts` 登记 `companion:policy:nightly-reflection` 与 `companion:policy:nostalgic-reminiscence`，门禁全绿通过。
+
 角色脆弱时刻与情感共鸣门禁（2026-11-09）：`vulnerability.test.ts` 5 项测试覆盖表初始化时为路飞自动播种经典脆弱心境、用户安慰后状态流转为 comforted 并由受控配方 `compileVulnerabilityReactionRequest`（Prompt Key: `vulnerabilityReaction`）生成第一人称回响存入主会话、关系里程碑记录 `vulnerability_comforted` 并窗口广播、主动创建脆弱心境门控（同一时刻最多 1 个 active 心境），以及已慰藉心境供次日剧本吸收并防重；`asset-registry.ts` 登记 `companion:policy:vulnerability-moments` 生产策略资产，门禁全绿通过。
 
 工作区会话持久化与伙伴直通门禁（2026-11-09）：`workspace-session-persistence.test.ts` 3 项测试覆盖 `getOrCreateWorkspaceSession` 自动按 `parentSessionId` 绑定创建、后续调用复用已有会话并保留消息讨论历史、不同主会话之间工作区侧聊相互隔离、`listSessions` 严格排除 `workspace` 会话避免污染主会话列表，以及 `clearWorkspaceSession` 清空旧会话并重开全新工作区会话；`workspace-backend-contract.test.ts` 4 项测试覆盖五个正式工作区面板真实引用 project/session/terminal/browser/chat IPC 入口，门禁全绿通过。

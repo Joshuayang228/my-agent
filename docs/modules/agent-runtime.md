@@ -1,5 +1,10 @@
 # Agent 运行时
 
+深夜反思与高光回忆重温（2026-11-09）：
+- 新增 `companion:trigger-nightly-reflection`、`companion:get-nostalgic-reminiscence` IPC 接口与 `companion:nightly-reflection-created` 广播通道；
+- `nightly-reflection.ts` 由生活推进（Life Ticker）在深夜（22:00～04:00）或触发时生成第一人称深夜自省独白，存入 `companion_inner_thoughts` 并将心灵感悟（`epiphany`）同步写入长期记忆 feedback 分桶；
+- `nostalgia.ts` 在主会话提示词装配前夕（`orchestrator.ts`）检索深度记忆，经 4 小时冷却保护注入 `formatConversationImpulseForPrompt` 作为【高光回忆羁绊】生活切片话头，引导角色在闲聊时像老友一样自然带出共同回忆。
+
 工作区会话持久化与伙伴协同直通（2026-11-09）：
 - 新增 `session:getOrCreateWorkspace` 与 `session:clearWorkspace` IPC 接口；
 - `sessions` 表升级至 schema 25 并引入 `parent_session_id` 列与复合索引 `idx_sessions_parent_kind`；

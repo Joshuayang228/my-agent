@@ -313,6 +313,29 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent({ trigger: 'vulnerability-comfort-loop', promptKey: PROMPT_KEYS.companionVulnerabilityReaction }),
     dependencies: [PROMPT_KEYS.companionVulnerabilityReaction],
+  }), makeCompanionAsset({
+    key: 'companion:policy:gifting', name: '专属物品赠送与羁绊好感策略',
+    purpose: '用户向角色赠送心意礼物，角色依据人设喜好产生第一人称致谢并恢复体征',
+    role: 'platform', description: '礼物持久化于 companion_received_gifts；角色真情喜悦回响入主会话，提升 mood 与 energy，并记录 gift_received 关系里程碑。',
+    source: 'electron/main/companion/life/gifting.ts#sendGiftToCompanion', version: 'gifting-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ trigger: 'user-gift-giving-loop', promptKey: PROMPT_KEYS.companionGiftReaction }),
+    dependencies: [PROMPT_KEYS.companionGiftReaction],
+  }), makeCompanionAsset({
+    key: 'companion:policy:nightly-reflection', name: '深夜反思与心灵领悟策略',
+    purpose: '夜深人静时角色的第一人称自省随笔与心灵领悟，并沉淀到长期记忆',
+    role: 'platform', description: '结合今日生活事件与近期用户对话线索，20小时冷却；生成深夜独白落入 companion_inner_thoughts，心灵感悟同步写入长期记忆 feedback 桶。',
+    source: 'electron/main/companion/life/nightly-reflection.ts#triggerNightlyReflection', version: 'nightly-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ trigger: 'nightly-reflection-loop', promptKey: PROMPT_KEYS.companionNightlyReflection }),
+    dependencies: [PROMPT_KEYS.companionNightlyReflection],
+  }), makeCompanionAsset({
+    key: 'companion:policy:nostalgic-reminiscence', name: '高光回忆重温策略',
+    purpose: '周期性从长期记忆、专属信物与深夜感悟中提取回忆切片，在主会话中自然忆及',
+    role: 'platform', description: '4小时冷却；结合长期记忆 feedback、信物与深夜领悟，注入 formatConversationImpulseForPrompt，引导角色在闲聊时像老朋友一样自然提及。',
+    source: 'electron/main/companion/life/nostalgia.ts#pickNostalgicReminiscence', version: 'nostalgia-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ trigger: 'chat-impulse-nostalgia', cooldownMs: 14_400_000 }),
   })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {

@@ -8,6 +8,8 @@ import { buildInnerThoughtPrompt } from './inner-thought'
 import { buildKeepsakeGiftPrompt } from './keepsake-gift'
 import { buildCoDecisionReactionPrompt } from './co-decision-reaction'
 import { buildVulnerabilityReactionPrompt } from './vulnerability-reaction'
+import { buildGiftReactionPrompt } from './gift-reaction'
+import { buildNightlyReflectionUserPrompt } from './nightly-reflection'
 import { buildProactiveGreetingPrompt } from './proactive-greeting'
 import { formatRoleAppearanceForImagePrompt } from '../companion/identity/profile'
 import { buildImageGenerationPrompt } from './image-generation'
@@ -390,6 +392,65 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
       { name: 'vulnerabilityTitle', source: '脆弱自白标题', lifecycle: '抚慰回响时' },
       { name: 'vulnerabilityText', source: '脆弱心声正文', lifecycle: '抚慰回响时' },
       { name: 'comfortText', source: '用户安慰话语', lifecycle: '抚慰回响时' },
+    ],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.companionNightlyReflection,
+    domain: 'life', name: '深夜反思与心灵领悟', category: 'companion', role: 'companion-life',
+    featureKey: PROMPT_FEATURE_CONTRACTS.nightlyReflection.key, adaptationStatus: 'adapted',
+    purpose: '夜深人静时角色的第一人称自省随笔与心灵领悟，并沉淀到长期记忆',
+    desc: '角色在深夜独处时，回味白天与用户的互动和经历，生成真诚感人的独白与epiphany感悟。',
+    sourcePath: 'electron/main/prompts/nightly-reflection.ts#buildNightlyReflectionUserPrompt',
+    definitions: [
+      'electron/main/prompts/nightly-reflection.ts#NIGHTLY_REFLECTION_SYSTEM_PROMPT',
+      'electron/main/prompts/nightly-reflection.ts#buildNightlyReflectionUserPrompt',
+      'electron/main/prompts/registered-request.ts#compileNightlyReflectionRequest',
+    ],
+    template: buildNightlyReflectionUserPrompt({
+      protagonistName: '{{protagonistName}}',
+      protagonistBrief: '{{protagonistBrief}}',
+      currentLocation: '{{currentLocation}}',
+      currentActivity: '{{currentActivity}}',
+      weather: '{{weather}}',
+      todayEventsSummary: '{{todayEventsSummary}}',
+      recentUserChatSummary: '{{recentUserChatSummary}}',
+    }),
+    slots: [
+      { name: 'protagonistName', source: '当前主角姓名', lifecycle: '深夜反思时' },
+      { name: 'protagonistBrief', source: '当前主角公开人设与风格', lifecycle: '深夜反思时' },
+      { name: 'currentLocation', source: '当前所处空间', lifecycle: '深夜反思时' },
+      { name: 'currentActivity', source: '当前静坐独处动作', lifecycle: '深夜反思时' },
+      { name: 'weather', source: '夜色与天气', lifecycle: '深夜反思时' },
+      { name: 'todayEventsSummary', source: '今日生活经历摘要', lifecycle: '深夜反思时' },
+      { name: 'recentUserChatSummary', source: '今日与用户互动摘要', lifecycle: '深夜反思时' },
+    ],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.companionGiftReaction,
+    domain: 'life', name: '收到心意礼物与喜悦回响', category: 'companion', role: 'companion-life',
+    featureKey: PROMPT_FEATURE_CONTRACTS.giftReaction.key, adaptationStatus: 'adapted',
+    purpose: '用户向角色赠送专属或心意礼物后，角色依据个人喜好和性格生成第一人称致谢与喜悦回响',
+    desc: '当用户送出心意礼物，角色做出鲜活的收到礼物反馈，直接推入主会话并恢复体征。',
+    sourcePath: 'electron/main/prompts/gift-reaction.ts#buildGiftReactionPrompt',
+    definitions: [
+      'electron/main/prompts/gift-reaction.ts#buildGiftReactionPrompt',
+      'electron/main/prompts/registered-request.ts#compileGiftReactionRequest',
+    ],
+    template: buildGiftReactionPrompt({
+      protagonistName: '{{protagonistName}}',
+      protagonistBrief: '{{protagonistBrief}}',
+      giftName: '{{giftName}}',
+      giftDescription: '{{giftDescription}}',
+      userNote: '{{userNote}}',
+      affinity: 'favorite',
+    }),
+    slots: [
+      { name: 'protagonistName', source: '当前主角姓名', lifecycle: '收到礼物时' },
+      { name: 'protagonistBrief', source: '当前主角公开人设与风格', lifecycle: '收到礼物时' },
+      { name: 'giftName', source: '礼物名称', lifecycle: '收到礼物时' },
+      { name: 'giftDescription', source: '礼物说明', lifecycle: '收到礼物时' },
+      { name: 'userNote', source: '用户附带寄语', lifecycle: '收到礼物时' },
+      { name: 'affinity', source: '角色对礼物的喜好程度', lifecycle: '收到礼物时' },
     ],
   }),
   dynamicAsset({
