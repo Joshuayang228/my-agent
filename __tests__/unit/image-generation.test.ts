@@ -84,7 +84,7 @@ describe('真实生图协议适配器（本地协议，不代表外部模型验�
     const { config, calls } = await fixture(() => ({ delay: 150, body: { data: [{ b64_json: png }] } }))
     const controller = new AbortController()
     const promise = requestGeneratedImage(config, compileImageGenerationRequest('测试'), controller.signal)
-    await new Promise(resolve => setTimeout(resolve, 40))
+    await expect.poll(() => calls.length).toBe(1)
     controller.abort()
     await expect(promise).rejects.toThrow('已取消')
     expect(calls).toHaveLength(1)
