@@ -198,6 +198,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }> => ipcRenderer.invoke('companion:catchup-status'),
     getTodayTimeline: (roleId?: string): Promise<import('../../src/shared/types').CompanionTodayTimeline> =>
       ipcRenderer.invoke('companion:get-today-timeline', roleId),
+    getHostPresenceStatus: (): Promise<import('../../src/shared/types').HostPresenceStatus> => ipcRenderer.invoke('companion:get-host-presence-status'),
+    triggerHostCareCheck: (roleId?: string, kind?: import('../../src/shared/types').HostCareKind): Promise<{ ok: boolean; care?: import('../../src/shared/types').HostCareEvent | null; error?: string }> => ipcRenderer.invoke('companion:trigger-host-care-check', roleId, kind),
+    replanTodaySlots: (roleId: string | undefined, reason: string): Promise<import('../../src/shared/types').ReplanResult | { ok: false; error: string }> => ipcRenderer.invoke('companion:replan-today-slots', roleId, reason),
     getAssets: (opts?: { kind?: string }): Promise<{
       roleId: string
       items: Array<{

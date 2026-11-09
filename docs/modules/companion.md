@@ -755,3 +755,6 @@ published event（事件事实）
 - 2026-11-09：足迹与航海旅行自主演化落地：新增 `travel-progression.ts` 与 `companion_travel_progressions` 表；角色在日常生活推进（life ticker）或受到主会话共鸣沉淀的 `travel_wish` 心愿驱动下，自主演化航海经停站点（包含站名、日期、第一人称见闻故事与触发原因），自动向 `companion_assets` 的 active trip 追加站点并联动完成对应共鸣心愿；主会话 Prompt 生活切片同步感知最新到访站点，并通过全局事件与 Toast 广播更新。
 - 2026-11-09：同伴求助与生活共同决策落地：新增 `co-decision.ts`、`companion_co_decisions` 表与 `WorldDecisionsPanel` 面板；角色在航向分歧、重大分岔或生活困境时，向用户发起求助抉择。用户决断后角色即时生成符合人设的第一人称回响（Prompt 配方 `coDecisionReaction`），存入主会话作为 assistant 消息，并作为因果线索通过 `collectDayScriptLifeContext` 注入次日剧本，真实影响明天的生活活动与足迹。
 - 2026-11-09：角色脆弱时刻与情感共鸣落地：新增 `vulnerability.ts`、`companion_vulnerability_moments` 表与 `VulnerabilityCard` 组件；角色在夜间独处、航程疲惫或生活受挫时向用户流露深层心声（同一角色同时最多 1 个 active 脆弱心境；出厂为路飞播种关于同伴誓言与草帽寄托的经典脆弱心境）；用户给予安慰与回应后，角色由受控模型配方 `compileVulnerabilityReactionRequest` 生成第一人称回响存入主会话，记录 `vulnerability_comforted` 关系里程碑并广播通知；因果沉淀为次日剧本情绪线索。
+### 2026-11-10 运行时入口复核
+
+宿主作息查询、关怀触发和日内计划重排已通过 `companion` IPC 暴露，主进程校验关怀类型与重排原因，生活引擎仍负责实际状态与持久化。

@@ -7,8 +7,9 @@ import { getCompanionAssetCatalog } from '../../electron/main/companion/asset-re
 
 const draftRoot = path.join(process.cwd(), '.agent-data', 'character-drafts')
 const universeRoot = path.join(process.cwd(), '.agent-data', 'universes')
+const continuityWorld = `continuity-world-${process.pid}-${Date.now()}`
 
-afterEach(async () => { await rm(draftRoot, { recursive: true, force: true }); await rm(path.join(universeRoot, 'test-world'), { recursive: true, force: true }); await rm(path.join(universeRoot, 'draft-world'), { recursive: true, force: true }); await rm(path.join(universeRoot, 'continuity-world'), { recursive: true, force: true }) })
+afterEach(async () => { await rm(draftRoot, { recursive: true, force: true }); await rm(path.join(universeRoot, 'test-world'), { recursive: true, force: true }); await rm(path.join(universeRoot, 'draft-world'), { recursive: true, force: true }); await rm(path.join(universeRoot, continuityWorld), { recursive: true, force: true }) })
 
 describe('人物体系草稿存储', () => {
   it('支持创建、补充分区和提交审阅，不直接发布生产人物', async () => {
@@ -38,14 +39,14 @@ describe('人物体系草稿存储', () => {
   })
 
   it('发布人物草稿会保留首次冷启与连续性分区', async () => {
-    const created = await saveCharacterDraft({ action: 'create', universeId: 'continuity-world', title: '连续性测试', roleId: 'hero', roleName: '测试主角' })
+    const created = await saveCharacterDraft({ action: 'create', universeId: continuityWorld, title: '连续性测试', roleId: 'hero', roleName: '测试主角' })
     await saveCharacterDraft({ action: 'update', draftId: created.id, section: 'firstContact', content: '首次见面：我是测试主角！' })
     await saveCharacterDraft({ action: 'update', draftId: created.id, section: 'continuity', content: '既有经历 / 当前状态 / 用户共同经历分开记录。' })
     await saveCharacterDraft({ action: 'submit_for_review', draftId: created.id })
     const published = await publishCharacterDraft(created.id)
-    const assets = getCompanionAssetCatalog('continuity-world')
+    const assets = getCompanionAssetCatalog(continuityWorld)
     expect(assets.some(asset => asset.sourcePath.endsWith('/scenes/first-contact.md'))).toBe(true)
     expect(assets.some(asset => asset.sourcePath.endsWith('/timeline/continuity.md'))).toBe(true)
-    expect(loadRolePack(published.roleId, 'continuity-world').protected).toContain('测试主角')
+    expect(loadRolePack(published.roleId, continuityWorld).protected).toContain('测试主角')
   })
 })

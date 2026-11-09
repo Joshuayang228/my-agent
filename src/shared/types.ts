@@ -1593,3 +1593,5 @@ export interface ReplanResult {
     location?: string
   }>
 }
+
+export type HostCareTriggerInput = 'fatigue_break' | 'late_night_sleep' | 'welcome_back'

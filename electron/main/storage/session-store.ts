@@ -25,6 +25,29 @@ function readSessionKind(raw: unknown): SessionKind {
   return 'main'
 }
 
+/**
+ * 保证旧数据库和轻量测试数据库具备会话层新增字段。
+ *
+ * 背景：工作区侧聊和召唤会话新增了父会话归属，旧用户库以及只创建最小 sessions 表的恢复路径可能还没有该列。
+ * 设计意图：在会话写入入口做幂等补列，避免把迁移时序要求泄漏给每个调用方，也不回退为丢失父子关系的旧 INSERT。
+ * 关键约束：只允许补充 nullable / 有默认值的结构字段，不能删除或重写已有会话数据。
+ */
+async function ensureSessionColumns(): Promise<void> {
+  const db = await getDatabase()
+  const stmt = db.prepare('PRAGMA table_info(sessions)')
+  const columns = new Set<string>()
+  try {
+    while (stmt.step()) {
+      const row = stmt.getAsObject() as { name?: unknown }
+      if (typeof row.name === 'string') columns.add(row.name)
+    }
+  } finally {
+    stmt.free()
+  }
+  if (!columns.has('parent_session_id')) db.run('ALTER TABLE sessions ADD COLUMN parent_session_id TEXT')
+  if (!columns.has('session_kind')) db.run("ALTER TABLE sessions ADD COLUMN session_kind TEXT NOT NULL DEFAULT 'main'")
+}
+
 // ── 会话 CRUD ──
 
 export async function createSession(
@@ -32,6 +55,7 @@ export async function createSession(
   opts?: { title?: string; sessionKind?: SessionKind; parentSessionId?: string },
 ): Promise<ChatSession> {
   const db = await getDatabase()
+  await ensureSessionColumns()
   const id = randomUUID()
   const now = Date.now()
   const resolvedRoleId = roleId || (await getSetting('activeRoleId'))

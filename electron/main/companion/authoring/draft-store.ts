@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { setTimeout as delay } from 'node:timers/promises'
 
 export type CharacterDraftStatus = 'draft' | 'review'
 export type CharacterDraftSection =
@@ -121,7 +122,21 @@ export async function publishCharacterDraft(id: string): Promise<{ universeId: s
     await writeFile(join(roleRoot, 'timeline', 'continuity.md'), continuity, 'utf8')
     await writeFile(join(roleRoot, 'timeline', 'canon.md'), canon, 'utf8')
     await writeFile(join(roleRoot, 'timeline', 'external-evidence.md'), externalEvidence, 'utf8')
-    await rename(temporaryRoot, root)
+    // 背景：Windows 文件索引或 Defender 可能短暂占用刚写入的目录，导致原子提升偶发 EPERM。
+    // 设计意图：只重试同一个目录 rename，保留临时目录发布的原子性，不退化成逐文件复制。
+    // 关键约束：仅对 EPERM 做有限重试，其他错误立即上抛，避免把权限或路径错误伪装成暂态问题。
+    let promoted = false
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await rename(temporaryRoot, root)
+        promoted = true
+        break
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'EPERM' || attempt === 2) throw error
+        await delay(40)
+      }
+    }
+    if (!promoted) throw new Error('人物草稿发布失败。')
   } catch (error) {
     await rm(temporaryRoot, { recursive: true, force: true }).catch(() => undefined)
     throw error

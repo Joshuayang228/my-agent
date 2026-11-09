@@ -204,6 +204,9 @@ declare global {
           presence: string
         }>
         getTodayTimeline: (roleId?: string) => Promise<import('./shared/types').CompanionTodayTimeline>
+        getHostPresenceStatus: () => Promise<import('./shared/types').HostPresenceStatus>
+        triggerHostCareCheck: (roleId?: string, kind?: import('./shared/types').HostCareKind) => Promise<{ ok: boolean; care?: import('./shared/types').HostCareEvent | null; error?: string }>
+        replanTodaySlots: (roleId: string | undefined, reason: string) => Promise<import('./shared/types').ReplanResult | { ok: false; error: string }>
         getAssets: (opts?: { kind?: string }) => Promise<{
           roleId: string
           items: Array<{

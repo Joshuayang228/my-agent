@@ -60,6 +60,8 @@ import * as settings from '../storage/settings-store'
 import { loadAuxLLMConfig } from '../llm/aux-config'
 import { createLogger } from '../utils/logger'
 import { readGeneratedImageReference, loadGeneratedImageReference } from '../storage/generated-images'
+import { getHostPresenceStatus, checkAndTriggerHostCare } from '../companion/life/host-presence'
+import { replanRemainingSlots } from '../companion/life/replan'
 
 const log = createLogger('CompanionIPC')
 
@@ -214,6 +216,18 @@ export function registerCompanionIPC(): void {
   ipcMain.handle('companion:get-today-timeline', async (_e, roleId?: string) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     return getTodayTimelineForRole(targetRoleId)
+  })
+
+  ipcMain.handle('companion:get-host-presence-status', async () => getHostPresenceStatus())
+  ipcMain.handle('companion:trigger-host-care-check', async (_e, roleId?: unknown, kind?: unknown) => {
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    if (typeof kind !== 'undefined' && kind !== 'fatigue_break' && kind !== 'late_night_sleep' && kind !== 'welcome_back') return { ok: false as const, error: '关怀类型无效。' }
+    return { ok: true as const, care: await checkAndTriggerHostCare(targetRoleId, Date.now(), kind as import('../../../src/shared/types').HostCareKind | undefined) }
+  })
+  ipcMain.handle('companion:replan-today-slots', async (_e, roleId?: unknown, reason?: unknown) => {
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    if (typeof reason !== 'string' || reason.trim().length === 0 || reason.length > 500) return { ok: false as const, error: '重排原因无效。' }
+    return replanRemainingSlots(targetRoleId, { trigger: 'manual', reason: reason.trim(), now: Date.now(), preferLlm: true })
   })
 
   ipcMain.handle('companion:list-life-resonances', async (_e, roleId?: string) => {

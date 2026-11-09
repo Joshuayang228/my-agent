@@ -588,3 +588,6 @@ LLM 返回 tool_calls（可能多个）
 - 2026-11-05：新增 `companion_event_executions` 诊断表，记录自动生活事件的分享决策；事件事实与朋友圈投影保持分离。
 <!-- 2026-11-06：生活自动配图读取设置预算并写入 companion media，数据流不穿过 memory 层。 -->
 <!-- 2026-11-06：阅读笔记确认工具沿 ipc/agent/tools → companion/life/assets 写入，不绕过角色归属校验。 -->
+### 2026-11-10 伙伴生活 IPC 数据流
+
+Renderer 通过 preload 调用宿主作息和计划重排通道，主进程 IPC 层完成输入校验后调用 companion life 服务，状态与会话写入仍由主进程内部完成。
