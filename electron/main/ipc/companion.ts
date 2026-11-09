@@ -242,6 +242,7 @@ export function registerCompanionIPC(): void {
   })
 
   ipcMain.handle('companion:create-inner-thought', async (_e, roleId?: string, trigger?: string) => {
+    if (typeof trigger !== 'undefined' && (typeof trigger !== 'string' || trigger.length > 300)) throw new Error('思绪触发原因无效。')
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { triggerInnerThought } = await import('../companion/life/inner-thoughts')
     return triggerInnerThought(targetRoleId, trigger, Date.now())
@@ -276,6 +277,7 @@ export function registerCompanionIPC(): void {
   })
 
   ipcMain.handle('companion:gift-keepsake', async (_e, roleId?: string, keepsakeKey?: string, customReason?: string) => {
+    if (typeof keepsakeKey !== 'undefined' && (typeof keepsakeKey !== 'string' || keepsakeKey.length > 100) || typeof customReason !== 'undefined' && (typeof customReason !== 'string' || customReason.length > 500)) throw new Error('信物信息无效。')
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { triggerGiftKeepsake } = await import('../companion/growth/relationship-keepsake')
     return triggerGiftKeepsake(targetRoleId, keepsakeKey, customReason)
