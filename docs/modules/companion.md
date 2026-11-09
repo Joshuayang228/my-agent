@@ -92,6 +92,22 @@ Chat 的内置工具注册链现在包含 `companion_post_moment`、`companion_c
   - 采用温暖高光视觉呈现，展示信物名称、获赠时间、誓约契机胶囊、全篇独家剧情背景设定与第一人称赠礼回声；
   - 底部提供「触摸信物·与TA聊聊」快捷动作，一键带入主会话开启关于信物的深情交流。
 
+## 已落地能力：同伴求助与生活共同决策（Co-Decisions & Shared Choices）
+
+- **双向求助与两难决策困境（Dilemmas）**：
+  - 角色不再仅仅单向展示生活，当面临航海航向（东边神秘图书馆 vs 西边超级大肉宴会 vs 北边海港酒馆）、饮食便当或日常探险活动两难时，主动向用户发起求助卡片（存储于 `companion_co_decisions` 表）；
+  - 出厂为路飞自动播种初始航向抉择《明天的航向大抉择！》，并储备《山治的特制便当对决》《午后的冒险提案》等生动模板；
+- **用户互动裁决与第一人称即时回响**：
+  - 交互卡片（`CoDecisionCard`）直观呈现求助困境、各选项描述与预估影响（`impactHint`）；
+  - 用户做出投票裁决后，由受控 Prompt 配方 `compileCoDecisionReactionRequest`（或规则保底）生成角色充满生命感的第一人称反馈；
+  - 反应即刻写入角色主会话（`sessionKind: 'main'`）作为 `assistant` 消息，同时向全窗口广播 `companion:co-decision-resolved` 与 `companion:timeline-updated`；
+- **因果跨天闭环与生活日程反哺**：
+  - 用户的裁决直接接入次日日剧本生成管线（`collectDayScriptLifeContext`），将所选决策融入明日生活主题与活动安排；
+  - 脚本生成后标记 `absorbed_in_script = 1`，建立“同伴求助 -> 用户裁决 -> 即时主会话反馈 -> 次日生活日程落地”的双向因果闭环；
+- **人物世界独立生活面与 Playground 隔离候选**：
+  - 人物世界（`WorldHub`）新增 `decisions` 分区（路飞显示为「航向抉择」，其他角色显示为「共同决策」），组合活跃决策求助卡与历史决策时间流；
+  - 同步落地 `CoDecisionExperienceCandidate` 展厅候选与离线 fixtures，在 Playground 隔离验收航向抉择、已裁决、双选项、长文本与空态，不依赖 Electron IPC。
+
 ## 已落地能力：朋友圈评论回复与人物/NPC 自主决策
 
 - **微信式评论区回复交互**：

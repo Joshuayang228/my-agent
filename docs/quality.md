@@ -2,7 +2,7 @@
 
 足迹与航海旅行自主演化门禁（2026-11-09）：`travel-progression.test.ts` 4 项测试覆盖自动航海拓进与主会话生活切片感知（`- 进行中的旅程：...（最近到过：...）`）、24小时推进冷却门控、优先联动主会话中已沉淀的 `travel_wish` 心愿并自动完成心愿、手动触发接口与 `companion_travel_progressions` 表持久化；`asset-registry.ts` 登记 `companion:policy:travel-progression` 生产策略资产，门禁全绿通过。
 
-同伴求助与生活共同决策门禁（2026-11-09）：`co-decision.test.ts` 4 项测试覆盖出厂自动播种待决困境（路飞的航向大抉择）、用户决断后状态转为 resolved 并生成第一人称回响存入主会话、幂等性拦截重复决断、待决项未完成时防重复创建及决断后轮换创建下一项求助、已解决决策供次日剧本（`script-generator.ts`）因果吸收与吸收后标记防重；`asset-registry.ts` 登记 `companion:policy:co-decision` 生产策略资产，`prompt-feature-contracts.test.ts` 扩展至 21 个核心功能合同（含 `coDecisionReaction`）。
+同伴求助与生活共同决策门禁（2026-11-09）：`co-decision.test.ts` 5 项测试覆盖出厂自动播种待决困境（路飞的航向大抉择）、用户决断后状态转为 resolved 并生成第一人称回响存入主会话、幂等性拦截重复决断、待决项未完成时防重复创建及自定义创建求助项、已解决决策供次日剧本（`script-generator.ts`）因果吸收与吸收后标记防重；`asset-registry.ts` 登记 `companion:policy:co-decision` 生产策略资产，`prompt-feature-contracts.test.ts` 扩展至 21 个核心功能合同（含 `coDecisionReaction`）。
 
 衣柜与穿搭自主演化门禁（2026-11-09）：`autonomous-dressing.test.ts` 4 项测试覆盖角色穿搭槽位与情境打分算法、冷启无穿着状态时自动穿上日常套装（`草帽冒险日常装`）且主会话提示词切片（`formatLifeAssetsSliceForPrompt`）自然感知当前穿着、冷却期（4小时）与每日上限（2次）门控严格拦截高频换装、用户近2小时手动换装享有保护权不被自主演化覆盖；`asset-registry.ts` 登记 `companion:policy:autonomous-dressing` 生产策略资产，`npm run assets:check` 与全套门禁全绿通过。
 

@@ -47,7 +47,7 @@ vi.mock('../../electron/main/storage/database', () => ({
 }))
 
 const saveMessageMock = vi.fn()
-const ensureMainSessionForRoleMock = vi.fn(async (roleId: string) => `session-${roleId}-main`)
+const ensureMainSessionForRoleMock = vi.fn(async (roleId: string) => ({ id: `session-${roleId}-main` } as any))
 
 vi.mock('../../electron/main/storage/session-store', () => ({
   ensureMainSessionForRole: ensureMainSessionForRoleMock,

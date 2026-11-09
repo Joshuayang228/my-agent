@@ -320,9 +320,9 @@ export async function resolveCoDecision(
   try {
     const auxConfig = await loadAuxLLMConfig()
     if (hasLLMAuthentication(auxConfig)) {
-      const rolePack = await loadRolePack(roleId)
-      const protagonistName = rolePack?.manifest?.name || (roleId === 'luffy' ? '路飞' : '伙伴')
-      const protagonistBrief = rolePack?.manifest?.description || '充满活力与冒险精神的热血海贼'
+      const rolePack = loadRolePack(roleId)
+      const protagonistName = rolePack?.name || (roleId === 'luffy' ? '路飞' : '伙伴')
+      const protagonistBrief = rolePack?.description || '充满活力与冒险精神的热血海贼'
 
       const request = compileCoDecisionReactionRequest({
         protagonistName,
@@ -410,14 +410,14 @@ export async function resolveCoDecision(
 
   // 3. 将角色反应写入主会话
   try {
-    const mainSessionId = await ensureMainSessionForRole(roleId)
-    await saveMessage(mainSessionId, {
+    const mainSession = await ensureMainSessionForRole(roleId)
+    await saveMessage(mainSession.id, {
       id: randomUUID(),
       role: 'assistant',
       content: reactionText,
       timestamp: Date.now(),
     })
-    log.info('Co-decision reaction saved to main chat session', { roleId, mainSessionId })
+    log.info('Co-decision reaction saved to main chat session', { roleId, mainSessionId: mainSession.id })
   } catch (err) {
     log.warn('Failed to save co-decision reaction to chat session', { error: String(err) })
   }
