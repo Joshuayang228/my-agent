@@ -499,6 +499,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('companion:keepsake-gifted', handler)
       return () => ipcRenderer.removeListener('companion:keepsake-gifted', handler)
     },
+    listAutonomousDressings: (
+      roleId?: string,
+      limit?: number,
+    ): Promise<import('../../src/shared/types').CompanionAutonomousDressingRecord[]> =>
+      ipcRenderer.invoke('companion:list-autonomous-dressings', roleId, limit),
   },
 
   mcp: {

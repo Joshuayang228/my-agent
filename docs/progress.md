@@ -1,5 +1,7 @@
 # 项目进度
 
+衣柜与穿搭自主演化落地（2026-11-09）：角色衣柜与穿搭自主演化引擎落地（`autonomous-dressing.ts`）；角色在生活世界推进（Life Ticker）中结合日程活动（日剧本 theme/slots）、当日时段（清晨 06:00~10:00 起床 routine）以及当前衣柜资产，挑选适宜的套装或单品；冷启或初始无穿着状态时，角色自主穿戴好整齐的日常套装（例如路飞穿上经典的《草帽冒险日常装》），消除未穿着空白；严格调用既有 `changeWardrobe` 原子换装核心方法，保证槽位校验、穿搭版本递增以及受控图片同步继承；健全的门控防线：每日频次上限（2 次）、冷却时间（4 小时）以及用户手动换装保护（近 2 小时用户手动选择绝不覆盖）；换装成功后广播 `companion:timeline-updated` 与 `companion:wardrobe-changed`，前端人物世界衣柜画廊即时刷新，主会话提示词（`formatLifeAssetsSliceForPrompt`）自然感知当前穿着；资产目录新增 `companion:policy:autonomous-dressing` 生产策略资产。新增 `autonomous-dressing.test.ts` 4 项单测，门禁全绿。
+
 人物世界四大生活维度施工合同收口与冻结（2026-11-09）：将文化角四类生活内容（`culture-corner-v1.md`）、足迹旅行记录（`footprints-travel-v1.md`）、家居空间与物件（`home-spaces-v1.md`）和衣柜与穿搭系统（`wardrobe-clothing-system-v1.md`）四份已在生产环境完整落地（包含真实 SQLite 数据链、正式 UI 回流与生活面呈现、双向跳转及生活切片感知）的施工合同生命周期正式收口冻结为「已完成施工快照（冻结）」，当前能力事实源回归伙伴模块卡与架构/质量总控，更新施工合同索引，并通过 `npm run docs:validate` 门禁。
 
 人物世界「航海日记」与「专属信物」Playground 隔离候选样张落地（2026-11-09）：为新增的「航海日记 / 心事独白」与「专属信物」板块补齐标准的 Playground 隔离候选（`JournalExperienceCandidate.tsx` 与 `KeepsakesExperienceCandidate.tsx`）；两候选均具备完整离线 Mock 夹具与 `PlaygroundStateSwitcher` 状态机（支持默认清单、星标/精简、长正文排版伸缩、空态与读取失败重试）；生产面板（`WorldJournalPanel` 与 `WorldKeepsakesPanel`）扩展 `previewThoughts` / `previewKeepsakes` 属性，在纯前端预览下跳过真实 IPC 与广播，在内存中自闭环响应增删改与筛选；在 `SurfaceBaselinePanel` 的 `previewPanels` 中完成无缝挂载。新增 `playground-world-candidates.test.ts`（3 项用例），UI 组件注册表、产品体验注册表与资产治理门禁全绿通过。

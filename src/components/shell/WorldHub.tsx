@@ -2,7 +2,7 @@
  * 人物世界口袋 — 对齐 Alice `/moments`：一页多 tab，侧栏只留一个入口。
  */
 
-import { useState, type ReactNode } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { TabStrip } from '../foundation/TabStrip'
 import { IconButton } from '../foundation/IconButton'
 import { Newspaper, Shirt, Users, BookOpen, Home, MapPin, RefreshCw, X, FileText, Gift } from 'lucide-react'
@@ -114,6 +114,14 @@ export function WorldHub({
   const labelFor = (item: WorldTabDefinition) => tabLabels?.[item.id] ?? (item.id === 'journal' && roleId && roleId !== 'luffy' ? '心事独白' : item.label)
   const [worldRefreshToken, setWorldRefreshToken] = useState(0)
   const [worldRefreshing, setWorldRefreshing] = useState(false)
+
+  useEffect(() => {
+    const unsub = window.electronAPI?.companion?.onTimelineUpdated?.((payload) => {
+      if (roleId && payload?.roleId && payload.roleId !== roleId) return
+      setWorldRefreshToken(current => current + 1)
+    })
+    return () => unsub?.()
+  }, [roleId])
 
   const refreshLabel = ({ moments: '刷新朋友圈', journal: '刷新日记', keepsakes: '刷新信物', assets: '刷新衣柜', wardrobe: '刷新衣柜', culture: '刷新文化角', home: '刷新家居', cast: '刷新通讯录', footprints: '刷新足迹' } as const)[tab]
   const defaultToolbarAction = !toolbarAction ? (

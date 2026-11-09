@@ -407,6 +407,7 @@ declare global {
         onKeepsakeGifted: (
           callback: (payload: import('./shared/types').CompanionKeepsakeGiftEvent) => void,
         ) => () => void
+        listAutonomousDressings: (roleId?: string, limit?: number) => Promise<import('./shared/types').CompanionAutonomousDressingRecord[]>
       }
       mcp: {
         connect: (config: import('./shared/types').McpServerConfig) => Promise<{ success: boolean; toolCount?: number; error?: string }>

@@ -1,5 +1,7 @@
 # 质量总控
 
+衣柜与穿搭自主演化门禁（2026-11-09）：`autonomous-dressing.test.ts` 4 项测试覆盖角色穿搭槽位与情境打分算法、冷启无穿着状态时自动穿上日常套装（`草帽冒险日常装`）且主会话提示词切片（`formatLifeAssetsSliceForPrompt`）自然感知当前穿着、冷却期（4小时）与每日上限（2次）门控严格拦截高频换装、用户近2小时手动换装享有保护权不被自主演化覆盖；`asset-registry.ts` 登记 `companion:policy:autonomous-dressing` 生产策略资产，`npm run assets:check` 与全套门禁全绿通过。
+
 人物世界「航海日记」与「专属信物」Playground 隔离候选样张门禁（2026-11-09）：`playground-world-candidates.test.ts` 3 项测试覆盖 UI 组件注册表显式登记 `layout.journal-experience-candidate` 与 `layout.keepsakes-experience-candidate` 样张组件及其支持的默认、长文本、精简与空态 stories、产品体验注册表（`experience.world`）纳管两个样张组件源文件并扩展 `experienceParts`（包含「航海日记 / 心事独白」与「专属信物」），以及样张组件函数导出契约；`WorldJournalPanel` 与 `WorldKeepsakesPanel` 覆盖 `previewThoughts` / `previewKeepsakes` 离线注入属性，在样张模式下规避主进程 IPC 依赖并支持内存自闭环交互。
 
 羁绊深度跃迁与专属信物馈赠门禁（2026-11-08）：`relationship-keepsake.test.ts` 3 项测试覆盖表初始化时为路飞自动播种首件信物「生命卡的一角」并记录 `keepsake_gifted` 关系里程碑、赠送下一件信物（梅利号小羊铃铛）并自动将赠言写入角色专属主会话与窗口广播、预设信物赠完后平滑定制高阶信物；`milestones.test.ts` 扩展支持 `keepsake_gifted` 里程碑解析与去重；`prompt-feature-contracts.test.ts` 扩展至 20 个核心功能合同（含 `keepsakeGift`）。

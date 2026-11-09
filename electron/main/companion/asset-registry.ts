@@ -14,6 +14,7 @@ import { PROMPT_KEYS } from '../prompts/keys'
 import type { ModelContextAsset } from '../../../src/shared/types'
 import type { RolePack } from './types'
 import { getStarterAssetDefinitions } from './life/assets'
+import { AUTONOMOUS_DRESSING_POLICY } from './life/autonomous-dressing'
 import { CAST_SCENES, loadCastScenePrompt } from './cast/scene-prompts'
 import {
   listAvailableRoleIds,
@@ -281,6 +282,13 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent({ trigger: 'relationship-milestone', promptKey: PROMPT_KEYS.companionKeepsakeGift }),
     dependencies: [PROMPT_KEYS.companionKeepsakeGift],
+  }), makeCompanionAsset({
+    key: 'companion:policy:autonomous-dressing', name: '衣柜与穿搭自主演化策略',
+    purpose: '角色根据每日晨起与生活情境自主挑选换装，维持真实伙伴的日常生活感',
+    role: 'platform', description: '调用既有 changeWardrobe 原子换装；每日上限2次、4小时冷却、尊重用户近2小时手动换装优先权。',
+    source: 'electron/main/companion/life/autonomous-dressing.ts#AUTONOMOUS_DRESSING_POLICY', version: 'dressing-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent(AUTONOMOUS_DRESSING_POLICY),
   })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {

@@ -13,6 +13,7 @@ import { maybeProactiveGreeting } from './proactive-greeting'
 import { checkAndProgressAbsorbedResonances } from './chat-resonance'
 import { triggerSpontaneousImpulse } from './spontaneous-impulse'
 import { checkAndGenerateInnerThought } from './inner-thoughts'
+import { checkAndPerformContextualDressing } from './autonomous-dressing'
 import * as store from './store'
 
 const log = createLogger('LifeTicker')
@@ -72,6 +73,9 @@ export function startLifeTicker(defaultIntervalMs = DEFAULT_INTERVAL_MS): void {
         })
         await checkAndGenerateInnerThought(r.roleId, now).catch((err) => {
           log.warn('checkAndGenerateInnerThought failed', { error: String(err) })
+        })
+        await checkAndPerformContextualDressing(r.roleId, now).catch((err) => {
+          log.warn('checkAndPerformContextualDressing failed', { error: String(err) })
         })
       }
     } catch (err) {

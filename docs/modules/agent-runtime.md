@@ -1,5 +1,10 @@
 # Agent 运行时
 
+衣柜与穿搭自主演化（2026-11-09）：
+- 新增 `companion:list-autonomous-dressings` IPC 接口与 `companion:wardrobe-changed` 广播通道；
+- 角色生活世界推进（Life Ticker）调度 `checkAndPerformContextualDressing`，结合日程情境、晨起时段与既有衣柜资产，调用原子事务 `changeWardrobe` 自主换装；
+- 换装结果与版本写入 `companion_autonomous_dressings` 表，由 `formatLifeAssetsSliceForPrompt` 将最新穿着自然同步至主对话生活事实切片（`situation.lifeAssetsSlice`）。
+
 突发生活意图与私密内心独白（2026-11-08）：
 - 新增 `companion:list-inner-thoughts`、`companion:create-inner-thought`、`companion:toggle-inner-thought-favorite`、`companion:delete-inner-thought` IPC 接口与 `companion:inner-thought-created` 广播通道；
 - 新增 `companionInnerThought` 受控签发配方 `compileInnerThoughtRequest` 与功能合同 `innerThought`，由 `inner-thoughts.ts` 调度小模型生成或平滑回退；

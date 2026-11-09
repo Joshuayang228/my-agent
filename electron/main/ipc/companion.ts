@@ -250,6 +250,12 @@ export function registerCompanionIPC(): void {
     return triggerGiftKeepsake(targetRoleId, keepsakeKey, customReason)
   })
 
+  ipcMain.handle('companion:list-autonomous-dressings', async (_e, roleId?: string, limit?: number) => {
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const { listAutonomousDressings } = await import('../companion/life/autonomous-dressing')
+    return listAutonomousDressings(targetRoleId, limit)
+  })
+
   ipcMain.handle('companion:catchup-status', async () => {
     const roleId = await getActiveRoleId()
     const state = await getRoleState(roleId)

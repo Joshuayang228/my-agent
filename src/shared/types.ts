@@ -1410,5 +1410,15 @@ export interface CompanionKeepsakeGiftEvent {
   timestamp: number
 }
 
+export interface CompanionAutonomousDressingRecord {
+  id: string
+  roleId: string
+  assetId: string
+  outfitName: string
+  triggerReason: string
+  outfitVersion: number
+  createdAt: number
+}
+
 
 

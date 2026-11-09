@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-09：衣柜与穿搭自主演化（Autonomous Contextual Dressing）落地：角色衣柜与穿搭自主演化引擎落地（`autonomous-dressing.ts`）；在生活推进调度（Life Ticker）中结合日程活动（日剧本 theme/slots）、当日时段（清晨 06:00~10:00 起床 routine）以及当前衣柜资产，挑选适宜的套装或单品；冷启或初始无穿着状态时，角色自主穿戴好整齐的日常套装（例如路飞穿上经典的《草帽冒险日常装》），消除未穿着空白；严格调用既有 `changeWardrobe` 原子换装核心方法，保证槽位校验、穿搭版本递增以及受控图片同步继承；健全的门控防线：每日频次上限（2 次）、冷却时间（4 小时）以及用户手动换装保护（近 2 小时用户手动选择绝不覆盖）；换装成功后广播 `companion:timeline-updated` 与 `companion:wardrobe-changed`，前端人物世界衣柜画廊即时刷新，主会话提示词（`formatLifeAssetsSliceForPrompt`）自然体现当前穿着；资产目录新增 `companion:policy:autonomous-dressing` 生产策略资产。
+
 2026-11-09：人物世界四大生活维度施工合同收口与冻结：将文化角四类生活（`culture-corner-v1.md`）、足迹旅行记录（`footprints-travel-v1.md`）、家居空间与物件（`home-spaces-v1.md`）及衣柜与穿搭系统（`wardrobe-clothing-system-v1.md`）四份施工合同生命周期正式转为「已完成施工快照（冻结）」，明确其在人物世界生活面、双向跳转、生活切片感知及真实生产数据链的落地闭环，同步更新施工合同索引并跑通文档一致性门禁。
 
 2026-11-09：补齐人物世界「航海日记」与「专属信物」Playground 隔离候选样张（ExperienceCandidate）：创建 `JournalExperienceCandidate` 与 `KeepsakesExperienceCandidate`，提供多状态离线样张（默认清单、星标/精简、长正文排版伸缩、空日记/空信物架、读取失败重试）；生产面板（`WorldJournalPanel`、`WorldKeepsakesPanel`）扩展 `previewThoughts` / `previewKeepsakes` 属性，在离线样张模式下跳过主进程 IPC 查询与广播订阅，支持纯前端内存增删改与筛选；在 `SurfaceBaselinePanel` 的 `previewPanels` 中完成挂载，并通过 UI 组件注册表、产品体验注册表与资产治理全套门禁。

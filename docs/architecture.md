@@ -1,5 +1,11 @@
 # 系统架构
 
+衣柜与穿搭自主演化架构（2026-11-09）：
+- 生活时钟自主调度：`LifeTicker` 在定时推进生活时唤起 `checkAndPerformContextualDressing`（`autonomous-dressing.ts`），结合日剧本主题/活动槽位、清晨起床 routine 与衣柜资产匹配目标穿搭；
+- 原子换装与数据一致性：严格调用既有 `changeWardrobe` 事务，保证槽位校验、版本原子递增与配图同步沿用；
+- 门控与优先权保障：每日上限 2 次、冷却 4 小时、近 2 小时用户手动换装绝对保护；换装写入 `companion_autonomous_dressings`；
+- 事实感知与多端广播：通过 `companion:timeline-updated` 与 `companion:wardrobe-changed` 广播驱动前端衣柜画廊静默刷新，`formatLifeAssetsSliceForPrompt` 保证主会话实时感知当前穿着。
+
 会话到生活因果反哺架构（Chat to Life Resonance，2026-11-08）：
 - 主对话结束钩子：`AgentRuntime` 在主会话（`sessionKind === 'main'`）结束后异步调用 `settleChatResonance`，分析近期对话中的具体文化推荐、美食或生活向往；
 - 意向抽取与自动播种：由 `compileChatResonanceRequest` 签名签发并由辅助模型分析提取，文化类意向自动调用 `createAsset` 在文化角创建 `planned`/`queued` 状态的待体验物什，意向全量存入 SQLite `companion_life_resonances`；
