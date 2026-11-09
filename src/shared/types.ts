@@ -1213,6 +1213,8 @@ export interface ChatSession {
   roleId: string
   /** 缺省视为 main（旧数据迁移后默认 main） */
   sessionKind?: SessionKind
+  /** 依附的主会话 id（例如 workspace 会话绑定的 parentSessionId） */
+  parentSessionId?: string
 }
 
 // ── Skill 系统 ──
@@ -1471,6 +1473,28 @@ export interface CompanionCoDecisionRecord {
 export interface CompanionCoDecisionEvent {
   roleId: string
   decision: CompanionCoDecisionRecord
+}
+
+export type VulnerabilityMoodState = 'melancholy' | 'exhausted' | 'anxious' | 'nostalgic' | 'doubt'
+
+export interface CompanionVulnerabilityRecord {
+  id: string
+  roleId: string
+  title: string
+  moodState: VulnerabilityMoodState
+  triggerContext: string
+  vulnerabilityText: string
+  comfortPromptHint?: string
+  status: 'active' | 'comforted' | 'faded'
+  comfortText?: string
+  companionReaction?: string
+  createdAt: number
+  comfortedAt?: number
+}
+
+export interface CompanionVulnerabilityEvent {
+  roleId: string
+  vulnerability: CompanionVulnerabilityRecord
 }
 
 

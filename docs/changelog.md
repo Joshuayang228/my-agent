@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-09：任务工作区会话持久化与伙伴直通协同（Workspace Session Continuity & Companion Integration）落地：升级 SQLite 会话存储至 schema 25，新增 `parent_session_id` 列并索引；新增 `session:getOrCreateWorkspace` 与 `session:clearWorkspace` IPC，工作区侧聊由临时销毁型会话转变为与主会话深度绑定的持久会话，收起折叠右坞、隐藏或切换视图不再销毁工程讨论记录；切换主会话时自动切换对应讨论上下文；侧聊顶栏提供快捷「新起侧聊」清空入口；审阅面板（`ReviewPanel`）与终端面板（`TerminalPanel`）全面接入 `onTakeToChat`，支持一键将代码改动与终端成功结果直达主会话并自动聚焦，打破冰冷工程工具与热血伙伴陪伴之间的隔阂。
+
 2026-11-09：足迹与航海旅行自主演化（Travel Journey Progression）落地：新增 `travel-progression.ts` 与 `companion_travel_progressions` 表；角色在日常生活推进（Life Ticker）中结合航程时间沉淀（24 小时冷却）与主会话共鸣沉淀的 `travel_wish` 心愿，自主演化航海经停站点（包含站名、日期、第一人称见闻故事与触发原因）；自动向 SQLite `companion_assets` 的 active trip 追加站点并联动完成对应共鸣心愿；主会话 Prompt 生活切片同步感知最新到访站点；新增 IPC `companion:list-travel-progressions`、`companion:trigger-travel-progression` 与 `companion:travel-progressed` 广播通道；资产目录登记 `companion:policy:travel-progression` 生产策略资产。
 
 2026-11-09：同伴求助与生活共同决策（Co-Decisions & Shared Choices）落地：新增 `co-decision.ts`、`companion_co_decisions` 表与 `WorldDecisionsPanel` 面板；角色在面临航向分歧、重大选择或生活困境时向用户发起求助（SQLite `companion_co_decisions`，同一角色同时最多 1 个待决困境）；用户决断后，角色即时生成第一人称回响（受控配方 `coDecisionReaction`），存入主会话作为 assistant 消息并广播 `companion:co-decision-resolved` 与 `companion:timeline-updated`；决断结果作为因果线索通过 `collectDayScriptLifeContext` 注入次日剧本，真实左右明天的生活活动与足迹；人物世界新增「共同决策」Tab（`WorldDecisionsPanel` 与 `CoDecisionCard`），Playground 对应接入 `CoDecisionExperienceCandidate`；资产目录登记 `companion:policy:co-decision` 生产策略资产，`prompt-feature-contracts.test.ts` 扩展至 21 个核心功能合同。新增 `co-decision.test.ts` 5 项单测，门禁全绿。

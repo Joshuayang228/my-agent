@@ -20,6 +20,7 @@ interface ChatRightDockProps {
   collapsed?: boolean
   width?: number
   onCloseFiles: () => void
+  onTakeToChat?: (opts: { text: string }) => void
 }
 
 const TABS = [
@@ -30,7 +31,7 @@ const TABS = [
   { id: 'chat', label: '侧边聊天', icon: MessageCircle },
 ] as const
 
-export function ChatRightDock({ projectPath, sessionId, showFiles, width = 380, collapsed = false, onCloseFiles }: ChatRightDockProps) {
+export function ChatRightDock({ projectPath, sessionId, showFiles, width = 380, collapsed = false, onCloseFiles, onTakeToChat }: ChatRightDockProps) {
   const nextInstance = useRef(2)
   const [activeTabId, setActiveTabId] = useState('files-1')
   const [openTabs, setOpenTabs] = useState<RightDockTabInstance[]>([{ instanceId: 'files-1', kind: 'files', ordinal: 1 }])
@@ -83,8 +84,8 @@ export function ChatRightDock({ projectPath, sessionId, showFiles, width = 380, 
     {visibleTabs.map(({ instance, label }) => <div key={instance.instanceId} id={'dock-panel-' + instance.instanceId} role="tabpanel" aria-label={label}
       hidden={activeTabId !== instance.instanceId} className={activeTabId === instance.instanceId ? 'flex min-h-0 min-w-0 flex-1 flex-col' : 'hidden'}>
       {instance.kind === 'files' && <WorkspaceFilesPanel projectPath={projectPath} onContextChange={contextCallbacks[instance.instanceId]} />}
-      {instance.kind === 'review' && <ReviewPanel key={sessionId} sessionId={sessionId} onContextChange={contextCallbacks[instance.instanceId]} />}
-      {instance.kind === 'terminal' && <TerminalPanel projectPath={projectPath} />}
+      {instance.kind === 'review' && <ReviewPanel key={sessionId} sessionId={sessionId} onContextChange={contextCallbacks[instance.instanceId]} onTakeToChat={onTakeToChat} />}
+      {instance.kind === 'terminal' && <TerminalPanel projectPath={projectPath} onTakeToChat={onTakeToChat} />}
       {instance.kind === 'browser' && <BrowserPanel />}
       {/* 侧聊依附主会话：与审阅一样整体重建，避免只换后端 ID 却留下旧正文/确认；同会话隐藏不重建。 */}
       {instance.kind === 'chat' && <SideChatPanel key={sessionId} parentSessionId={sessionId} projectPath={projectPath} workspaceFocus={workspaceFocus} />}

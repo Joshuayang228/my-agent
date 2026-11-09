@@ -7,6 +7,7 @@ import { buildSpontaneousImpulsePrompt } from './spontaneous-impulse'
 import { buildInnerThoughtPrompt } from './inner-thought'
 import { buildKeepsakeGiftPrompt } from './keepsake-gift'
 import { buildCoDecisionReactionPrompt } from './co-decision-reaction'
+import { buildVulnerabilityReactionPrompt } from './vulnerability-reaction'
 import { buildProactiveGreetingPrompt } from './proactive-greeting'
 import { formatRoleAppearanceForImagePrompt } from '../companion/identity/profile'
 import { buildImageGenerationPrompt } from './image-generation'
@@ -363,6 +364,32 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
       { name: 'dilemma', source: '求助困境描述', lifecycle: '抉择回响时' },
       { name: 'selectedOptionLabel', source: '用户选中的选项名', lifecycle: '抉择回响时' },
       { name: 'selectedOptionDesc', source: '用户选中的选项说明', lifecycle: '抉择回响时' },
+    ],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.companionVulnerabilityReaction,
+    domain: 'life', name: '脆弱心境抚慰与真情回响', category: 'companion', role: 'companion-life',
+    featureKey: PROMPT_FEATURE_CONTRACTS.vulnerabilityReaction.key, adaptationStatus: 'adapted',
+    purpose: '用户抚慰角色的脆弱、失落或疲惫后，角色以第一人称口吻生成释怀与回暖回响',
+    desc: '当用户送来温暖安慰，角色真诚回应感激与释怀，并作为assistant消息推入主会话。',
+    sourcePath: 'electron/main/prompts/vulnerability-reaction.ts#buildVulnerabilityReactionPrompt',
+    definitions: [
+      'electron/main/prompts/vulnerability-reaction.ts#buildVulnerabilityReactionPrompt',
+      'electron/main/prompts/registered-request.ts#compileVulnerabilityReactionRequest',
+    ],
+    template: buildVulnerabilityReactionPrompt({
+      protagonistName: '{{protagonistName}}',
+      protagonistBrief: '{{protagonistBrief}}',
+      vulnerabilityTitle: '{{vulnerabilityTitle}}',
+      vulnerabilityText: '{{vulnerabilityText}}',
+      comfortText: '{{comfortText}}',
+    }),
+    slots: [
+      { name: 'protagonistName', source: '当前主角姓名', lifecycle: '抚慰回响时' },
+      { name: 'protagonistBrief', source: '当前主角公开人设与风格', lifecycle: '抚慰回响时' },
+      { name: 'vulnerabilityTitle', source: '脆弱自白标题', lifecycle: '抚慰回响时' },
+      { name: 'vulnerabilityText', source: '脆弱心声正文', lifecycle: '抚慰回响时' },
+      { name: 'comfortText', source: '用户安慰话语', lifecycle: '抚慰回响时' },
     ],
   }),
   dynamicAsset({

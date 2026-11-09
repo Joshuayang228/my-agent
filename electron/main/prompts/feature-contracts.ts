@@ -176,6 +176,12 @@ export const PROMPT_FEATURE_CONTRACTS = Object.freeze({
     overrideBoundary: ['角色对该选择的性格反应与语气词'], output: '只输出 JSON 对象，包含 reactionText 角色第一人称即时回响、chatMessage 即将发给用户的会话内容。',
     fallback: '模型不可用或解析失败时使用基于选项的确定性口语回响，不阻塞流程。', consumers: ['electron/main/companion/life/co-decision.ts'],
   }),
+  vulnerabilityReaction: contract({
+    key: 'feature:vulnerability-reaction', name: '脆弱心境抚慰与真情回响', domain: 'life', purpose: '在用户对角色的脆弱心境、疲惫或失落给予温柔安慰后，角色以充满活人感的第一人称做出释怀、感激与回暖的真情回响。',
+    staticInputs: ['安全规则', '脆弱心境抚慰回响协议', 'JSON输出约束'], runtimeInputs: ['角色公开人设与说话风格', '展露的脆弱自白', '用户给予的安慰话语'],
+    overrideBoundary: ['角色感到被温暖后的语气变化与真情流露'], output: '只输出 JSON 对象，包含 reactionText 角色第一人称释怀感激回响、comfortedMood 心情回暖状态。',
+    fallback: '模型不可用或解析失败时使用基于人设的确定性温柔回响，不阻塞流程。', consumers: ['electron/main/companion/life/vulnerability.ts'],
+  }),
 } as const)
 
 export type PromptFeatureContractKey = keyof typeof PROMPT_FEATURE_CONTRACTS

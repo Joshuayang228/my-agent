@@ -1,5 +1,11 @@
 # Agent 运行时
 
+工作区会话持久化与伙伴协同直通（2026-11-09）：
+- 新增 `session:getOrCreateWorkspace` 与 `session:clearWorkspace` IPC 接口；
+- `sessions` 表升级至 schema 25 并引入 `parent_session_id` 列与复合索引 `idx_sessions_parent_kind`；
+- 工作区侧聊由临时会话升级为与主会话绑定的持久会话，收起折叠右坞或切换视图不再销毁工程讨论记录；切换主会话时自动切换对应讨论上下文；
+- 审阅面板（`ReviewPanel`）与终端面板（`TerminalPanel`）接入 `onTakeToChat`，实现「和TA聊聊改动」与「告诉TA构建成功」直通主会话。
+
 足迹与航海旅行自主演化（2026-11-09）：
 - 新增 `companion:list-travel-progressions`、`companion:trigger-travel-progression` IPC 接口与 `companion:travel-progressed` 广播通道；
 - 角色生活推进（Life Ticker）调度 `checkAndProgressTravelJourney`，结合航程时间沉淀（24小时冷却）与主会话 `travel_wish` 心愿，自主演化航海经停站点（包含站名、日期、第一人称见闻故事与触发原因）；

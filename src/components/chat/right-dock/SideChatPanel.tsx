@@ -1,4 +1,4 @@
-import { ArrowUp, LoaderCircle, MessageCircle, Square } from 'lucide-react'
+import { ArrowUp, Eraser, LoaderCircle, MessageCircle, Square } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import type { AgentStreamEvent, ChatMessage, WorkspaceChatFocus } from '../../../shared/types'
@@ -38,11 +38,20 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
     let cleanup: (() => void) | undefined
     const start = async () => {
       try {
-        const session = await window.electronAPI.session.createWorkspace()
-        if (disposed) { await window.electronAPI.session.delete(session.id); return }
+        const session = window.electronAPI?.session?.getOrCreateWorkspace
+          ? await window.electronAPI.session.getOrCreateWorkspace(parentSessionId || undefined)
+          : await window.electronAPI.session.createWorkspace()
+
+        if (disposed) return
         sessionRef.current = session.id
         setSessionId(session.id)
+        if (Array.isArray(session.messages) && session.messages.length > 0) {
+          setMessages(session.messages)
+        } else {
+          setMessages([])
+        }
         setLoading(false)
+
         cleanup = window.electronAPI.chat.onEvent((event) => {
           const streamEvent = event as AgentStreamEvent & { sessionId?: string }
           if (disposed || streamEvent.sessionId !== session.id) return
@@ -57,24 +66,25 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
           }
           if (streamEvent.type === 'done') setSending(false)
         })
+
         const cleanupConfirm = window.electronAPI.chat.onConfirmRequest((data) => {
           if (!disposed && data.sessionId === session.id) setConfirmRequest({ requestId: data.requestId, name: data.name, args: data.args })
         })
         const eventCleanup = cleanup
         cleanup = () => { eventCleanup?.(); cleanupConfirm() }
-      } catch { if (!disposed) { setLoading(false); setError('侧边聊天暂时无法打开，请重试') } }
+      } catch {
+        if (!disposed) {
+          setLoading(false)
+          setError('侧边聊天暂时无法打开，请重试')
+        }
+      }
     }
     void start()
     return () => {
       disposed = true
       cleanup?.()
-      const id = sessionRef.current
       sessionRef.current = null
-      // 卸载不能等待 React 回调；由主进程负责取消并等候完整收尾，再删除临时会话。
-      // 删除失败保留存储记录并记录诊断，不冒险在仍有写盘时强删。
-      if (id) void window.electronAPI.session.delete(id).catch(() => {
-        console.warn('侧边聊天清理失败，临时会话已保留')
-      })
+      // 背景：工作区侧聊依附于主会话并持久化留存；组件折叠或隐藏时不销毁会话，保留用户的工程讨论记录。
     }
   }, [parentSessionId, initializationAttempt])
 
@@ -106,6 +116,25 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
     } else void send(retryMessage ?? undefined)
   }
 
+  const handleClear = async () => {
+    if (!parentSessionId || loading || sending) return
+    try {
+      setLoading(true)
+      const newSession = window.electronAPI?.session?.clearWorkspace
+        ? await window.electronAPI.session.clearWorkspace(parentSessionId)
+        : await window.electronAPI.session.createWorkspace()
+      sessionRef.current = newSession.id
+      setSessionId(newSession.id)
+      setMessages([])
+      setActiveTools([])
+      setError(null)
+    } catch {
+      setError('清空侧聊失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const liveHostId = findLiveToolHostId(messages, activeTools, sending)
   const renderTools = (tools: ToolCallbackItem[]) => {
     const displayed = tools.map(tool => Object.prototype.hasOwnProperty.call(toolCollapse, tool.callId) ? { ...tool, collapsed: toolCollapse[tool.callId] } : tool)
@@ -116,8 +145,15 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
   }
 
   return <div className="relative flex h-full min-h-0 flex-col" data-testid="workspace-sidechat-panel">
-    <div className="flex shrink-0 items-center gap-2 border-b px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
-      <MessageCircle size={14} style={{ color: 'var(--text-muted)' }} /><span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>关于当前工作区</span>
+    <div className="flex shrink-0 items-center justify-between border-b px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
+      <div className="flex items-center gap-2">
+        <MessageCircle size={14} style={{ color: 'var(--text-muted)' }} /><span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>关于当前工作区</span>
+      </div>
+      {parentSessionId && (
+        <IconButton label="新起侧聊" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => { void handleClear() }} disabled={loading || sending}>
+          <Eraser size={13} />
+        </IconButton>
+      )}
     </div>
     <div className="min-h-0 flex-1 space-y-3 overflow-auto p-3" data-testid="workspace-sidechat-messages">
       {loading && <div className="flex items-center gap-2 text-[11px]" role="status"><LoaderCircle size={13} className="animate-spin" />正在打开侧边聊天</div>}

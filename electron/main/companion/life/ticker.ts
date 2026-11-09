@@ -15,6 +15,7 @@ import { triggerSpontaneousImpulse } from './spontaneous-impulse'
 import { checkAndGenerateInnerThought } from './inner-thoughts'
 import { checkAndPerformContextualDressing } from './autonomous-dressing'
 import { checkAndProgressTravelJourney } from './travel-progression'
+import { checkAndTriggerVulnerability } from './vulnerability'
 import * as store from './store'
 
 const log = createLogger('LifeTicker')
@@ -80,6 +81,9 @@ export function startLifeTicker(defaultIntervalMs = DEFAULT_INTERVAL_MS): void {
         })
         await checkAndProgressTravelJourney(r.roleId, now).catch((err) => {
           log.warn('checkAndProgressTravelJourney failed', { error: String(err) })
+        })
+        await checkAndTriggerVulnerability(r.roleId, now).catch((err) => {
+          log.warn('checkAndTriggerVulnerability failed', { error: String(err) })
         })
       }
     } catch (err) {

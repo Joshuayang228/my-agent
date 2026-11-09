@@ -305,6 +305,14 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent({ trigger: 'life-dilemma-branch', promptKey: PROMPT_KEYS.companionCoDecisionReaction }),
     dependencies: [PROMPT_KEYS.companionCoDecisionReaction],
+  }), makeCompanionAsset({
+    key: 'companion:policy:vulnerability-moments', name: '伙伴心境波动与突发小情绪策略',
+    purpose: '夜深、风暴过后或疲惫时角色自主展露脆弱自白，由用户温柔抚慰后升温羁绊',
+    role: 'platform', description: '心境持久化于 companion_vulnerability_moments；12小时冷却、最多1个active；用户抚慰后角色真情回响入主会话，并记录 vulnerability_comforted 关系里程碑。',
+    source: 'electron/main/companion/life/vulnerability.ts#comfortVulnerability', version: 'vulnerability-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ trigger: 'vulnerability-comfort-loop', promptKey: PROMPT_KEYS.companionVulnerabilityReaction }),
+    dependencies: [PROMPT_KEYS.companionVulnerabilityReaction],
   })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {

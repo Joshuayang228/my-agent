@@ -14,6 +14,7 @@ export type MilestoneKind =
   | 'first_reflection'
   | 'first_rapport'
   | 'keepsake_gifted'
+  | 'vulnerability_comforted'
 
 export interface RelationshipMilestone {
   kind: MilestoneKind
@@ -54,6 +55,11 @@ const META: Record<
     promptHint:
       '里程碑·已收到专属信物：双方建立了深厚的伙伴羁绊，可自然提及信物回忆。',
   },
+  vulnerability_comforted: {
+    toast: (name) => `给予了${name}温柔的安慰与鼓励——彼此的心更靠近了`,
+    promptHint:
+      '里程碑·脆弱抚慰：曾接纳并温柔抚慰过角色的脆弱与心事，彼此多了一份深层信赖。',
+  },
 }
 
 type Store = Record<string, MilestoneKind[]>
@@ -71,7 +77,8 @@ function parseStore(raw: string): Store {
           k === 'first_role_switch' ||
           k === 'first_reflection' ||
           k === 'first_rapport' ||
-          k === 'keepsake_gifted',
+          k === 'keepsake_gifted' ||
+          k === 'vulnerability_comforted',
       )
     }
     return out

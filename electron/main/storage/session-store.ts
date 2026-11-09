@@ -17,6 +17,7 @@ export interface SessionSummary {
   messageCount: number
   roleId: string
   sessionKind: SessionKind
+  parentSessionId?: string
 }
 
 function readSessionKind(raw: unknown): SessionKind {
@@ -28,7 +29,7 @@ function readSessionKind(raw: unknown): SessionKind {
 
 export async function createSession(
   roleId?: string,
-  opts?: { title?: string; sessionKind?: SessionKind },
+  opts?: { title?: string; sessionKind?: SessionKind; parentSessionId?: string },
 ): Promise<ChatSession> {
   const db = await getDatabase()
   const id = randomUUID()
@@ -38,22 +39,93 @@ export async function createSession(
     ? opts.sessionKind
     : 'main'
   const title = (opts?.title?.trim() || '新对话')
+  const parentSessionId = opts?.parentSessionId || null
 
   db.run(
-    `INSERT INTO sessions (id, title, created_at, updated_at, role_id, session_kind)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [id, title, now, now, resolvedRoleId, sessionKind],
+    `INSERT INTO sessions (id, title, created_at, updated_at, role_id, session_kind, parent_session_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [id, title, now, now, resolvedRoleId, sessionKind, parentSessionId],
   )
   persist()
 
-  log.info('Session created', { id, roleId: resolvedRoleId, sessionKind })
-  return { id, messages: [], createdAt: now, roleId: resolvedRoleId, sessionKind }
+  log.info('Session created', { id, roleId: resolvedRoleId, sessionKind, parentSessionId })
+  return { id, messages: [], createdAt: now, roleId: resolvedRoleId, sessionKind, parentSessionId: parentSessionId || undefined }
+}
+
+/**
+ * 获取或创建特定主会话绑定的工作区侧聊会话
+ * 1. 同一主会话下的工作区讨论持久留存，关闭/折叠或切换时不销毁；
+ * 2. 若已有历史消息直接复用返回；
+ * 3. 若无历史则自动创建并建立 parentSessionId 绑定。
+ */
+export async function getOrCreateWorkspaceSession(
+  parentSessionId?: string,
+  roleId?: string,
+): Promise<ChatSession> {
+  const db = await getDatabase()
+  if (parentSessionId) {
+    const stmt = db.prepare(`
+      SELECT id FROM sessions
+      WHERE session_kind = 'workspace' AND parent_session_id = ?
+      ORDER BY updated_at DESC LIMIT 1
+    `)
+    let existingId: string | null = null
+    try {
+      stmt.bind([parentSessionId])
+      if (stmt.step()) {
+        const row = stmt.getAsObject()
+        existingId = (row && typeof row.id === 'string') ? row.id : null
+      }
+    } finally {
+      stmt.free()
+    }
+
+    if (existingId) {
+      const session = await getSession(existingId)
+      if (session) return session
+    }
+  }
+
+  return createSession(roleId, {
+    title: '工作区对话',
+    sessionKind: 'workspace',
+    parentSessionId: parentSessionId || undefined,
+  })
+}
+
+/** 清空并重建特定主会话绑定的工作区会话 */
+export async function clearWorkspaceSession(parentSessionId: string): Promise<ChatSession> {
+  const db = await getDatabase()
+  const stmt = db.prepare(`
+    SELECT id FROM sessions
+    WHERE session_kind = 'workspace' AND parent_session_id = ?
+  `)
+  const sessionIds = []
+  try {
+    stmt.bind([parentSessionId])
+    while (stmt.step()) {
+      const row = stmt.getAsObject()
+      if (row && typeof row.id === 'string') sessionIds.push(row.id)
+    }
+  } finally {
+    stmt.free()
+  }
+
+  for (const id of sessionIds) {
+    await deleteSession(id)
+  }
+
+  return createSession(undefined, {
+    title: '工作区对话',
+    sessionKind: 'workspace',
+    parentSessionId,
+  })
 }
 
 export async function listSessions(): Promise<SessionSummary[]> {
   const db = await getDatabase()
   const stmt = db.prepare(`
-    SELECT s.id, s.title, s.created_at, s.updated_at, s.role_id, s.session_kind,
+    SELECT s.id, s.title, s.created_at, s.updated_at, s.role_id, s.session_kind, s.parent_session_id,
            (SELECT COUNT(*) FROM messages m WHERE m.session_id = s.id) as message_count
     FROM sessions s
     WHERE s.session_kind != 'workspace'
@@ -71,6 +143,7 @@ export async function listSessions(): Promise<SessionSummary[]> {
       messageCount: row.message_count as number,
       roleId: (row.role_id as string) || '',
       sessionKind: readSessionKind(row.session_kind),
+      parentSessionId: (row.parent_session_id as string) || undefined,
     })
   }
   stmt.free()
@@ -115,6 +188,7 @@ export async function getSession(sessionId: string): Promise<ChatSession | null>
     createdAt: session.created_at as number,
     roleId: (session.role_id as string) || '',
     sessionKind: readSessionKind(session.session_kind),
+    parentSessionId: (session.parent_session_id as string) || undefined,
   }
 }
 

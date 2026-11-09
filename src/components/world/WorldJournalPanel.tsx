@@ -5,7 +5,8 @@ import { IconButton } from '../foundation/IconButton'
 import { Badge } from '../foundation/Badge'
 import { EmptyState } from '../foundation/EmptyState'
 import { contentGutterStyle } from '../../shared/content-layout'
-import type { CompanionInnerThoughtRecord } from '../../shared/types'
+import { VulnerabilityCard } from './VulnerabilityCard'
+import type { CompanionInnerThoughtRecord, CompanionVulnerabilityRecord } from '../../shared/types'
 
 interface WorldJournalPanelProps {
   roleId?: string
@@ -17,6 +18,8 @@ interface WorldJournalPanelProps {
    * 并在内存中响应增删改与筛选，用于无真实后端的纯前端设计审查。
    */
   previewThoughts?: CompanionInnerThoughtRecord[]
+  previewVulnerability?: CompanionVulnerabilityRecord | null
+  showVulnerabilityCard?: boolean
   previewReadError?: string
   onPreviewRetry?: () => void
 }
@@ -43,6 +46,8 @@ export function WorldJournalPanel({
   refreshToken = 0,
   onLoadingChange,
   previewThoughts,
+  previewVulnerability,
+  showVulnerabilityCard = true,
   previewReadError,
   onPreviewRetry,
 }: WorldJournalPanelProps) {
@@ -213,6 +218,17 @@ export function WorldJournalPanel({
           </ActionButton>
         </div>
       </div>
+
+      {/* 伙伴实时心境波动与脆弱时刻 */}
+      {showVulnerabilityCard && (
+        <div className="mb-4">
+          <VulnerabilityCard
+            roleId={roleId}
+            previewVulnerability={previewVulnerability}
+            onTakeToChat={onTakeToChat}
+          />
+        </div>
+      )}
 
       {/* 错误提示与列表流 */}
       {previewReadError ? (

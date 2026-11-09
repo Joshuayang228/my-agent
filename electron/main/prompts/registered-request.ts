@@ -8,6 +8,7 @@ import { buildSpontaneousImpulsePrompt, type SpontaneousImpulseInput } from './s
 import { buildInnerThoughtPrompt, type InnerThoughtPromptInput } from './inner-thought'
 import { buildKeepsakeGiftPrompt, type KeepsakeGiftPromptInput } from './keepsake-gift'
 import { buildCoDecisionReactionPrompt, type CoDecisionReactionPromptInput } from './co-decision-reaction'
+import { buildVulnerabilityReactionPrompt, type VulnerabilityReactionPromptInput } from './vulnerability-reaction'
 import { buildImageGenerationPrompt } from './image-generation'
 /**
  * 背景：手填资产 key 无法证明正文来自登记的生产定义。
@@ -282,4 +283,8 @@ export function compileKeepsakeGiftRequest(input: KeepsakeGiftPromptInput): Regi
 
 export function compileCoDecisionReactionRequest(input: CoDecisionReactionPromptInput): RegisteredModelRequest {
   return signRequest([{ role: 'user', content: buildCoDecisionReactionPrompt(input) }], [PROMPT_KEYS.companionCoDecisionReaction], ['co-decision-reaction'])
+}
+
+export function compileVulnerabilityReactionRequest(input: VulnerabilityReactionPromptInput): RegisteredModelRequest {
+  return signRequest([{ role: 'user', content: buildVulnerabilityReactionPrompt(input) }], [PROMPT_KEYS.companionVulnerabilityReaction], ['vulnerability-reaction'])
 }

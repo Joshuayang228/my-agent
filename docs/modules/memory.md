@@ -1,5 +1,7 @@
 # 记忆（memory）
 
+工作区侧聊会话持久化（2026-11-09）：会话存储与数据库升级至 schema 25，新增 `parent_session_id` 列并提供 `getOrCreateWorkspaceSession` / `clearWorkspaceSession`，隔离主会话列表与侧聊历史，不改变长期记忆存储、向量同步、画像提炼或角色分桶策略。
+
 主动问候会话归属与历史承接（2026-11-08）：会话存储新增 `getLatestMainSessionForRole` 与 `ensureMainSessionForRole`，使角色主动问候能够可靠持久化至角色的真实主会话历史，不影响长期记忆分桶与画像提取逻辑。
 
 主进程类型门禁（2026-11-07）：会话存储的类型收窄只保证消息复制参数符合 SQLite 契约，不改变记忆存储、召回、画像提炼或角色分桶行为。

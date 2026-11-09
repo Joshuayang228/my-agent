@@ -4,12 +4,13 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, KeyboardEvent } from 'react'
-import { Play, Square } from 'lucide-react'
+import { MessageSquareShare, Play, Square } from 'lucide-react'
 import { IconButton } from '../../foundation/IconButton'
 import { TextField } from '../../foundation/TextField'
 
 interface TerminalPanelProps {
   projectPath: string | null
+  onTakeToChat?: (opts: { text: string }) => void
 }
 
 interface RunAttempt {
@@ -19,7 +20,7 @@ interface RunAttempt {
   disposed: boolean
 }
 
-export function TerminalPanel({ projectPath }: TerminalPanelProps) {
+export function TerminalPanel({ projectPath, onTakeToChat }: TerminalPanelProps) {
   const [lines, setLines] = useState<string[]>([
     '命令控制台（非完整终端）。在当前工作区执行命令；受对话页审批/沙箱约束。',
     '',

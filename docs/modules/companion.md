@@ -536,6 +536,7 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
 | 人物世界口袋（对齐 Alice `/moments`） | 已落地 | 侧栏一入口 + 内页 tab | `WorldHub` |
 | 足迹与航海旅行自主演化 | 已落地 | 人物世界 → 足迹 / 隐式 ticker | `travel-progression.ts` · `companion_travel_progressions` · 24h 冷却与 travel_wish 共鸣联动 |
 | 同伴求助与生活共同决策 | 已落地 | 人物世界 → 共同决策 / 主会话 | `co-decision.ts` · `companion_co_decisions` · 抉择回响写入主会话并因果注入次日剧本 |
+| 角色脆弱时刻与情感共鸣 | 已落地 | 航海日记 / 心事独白 / 主会话 | `vulnerability.ts` · `companion_vulnerability_moments` · 安慰回响直写主会话并记录关系里程碑 |
 | 伴侣状态条（展厅故事格） | 已落地 | Playground UI · 状态条 | `CompanionStatusBar` · Chat 顶栏已撤 |
 | 自动生成朋友圈内容 / 多宇宙并行 | 缺口 | — | wishlist / 明确非本阶段 |
 | 人物世界视觉资产引用 | 已落地 | `image_generate` 可将真实生成结果绑定到当前角色生活资产或已发布朋友圈动态；Chat 与 WorldDetailsPanel 复用受控读取 / 定位预览；生成入口、媒体备份恢复和正式页面回流已完成。自动生成朋友圈内容仍不在本阶段 | `image-generation-product-integration-v1.md` |
@@ -670,3 +671,4 @@ published event（事件事实）
 - 2026-11-08：朋友圈评论回复与人物/NPC 自主决策：支持针对动态、NPC 评论和回复发起针对性回复（携带 parentInteractionId 与 replyToActorName）；由人物与在场 NPC 自主决定是否回复、由谁回复以及延迟多长时间（delaySeconds 动态决策），到期后落库并广播更新。
 - 2026-11-09：足迹与航海旅行自主演化落地：新增 `travel-progression.ts` 与 `companion_travel_progressions` 表；角色在日常生活推进（life ticker）或受到主会话共鸣沉淀的 `travel_wish` 心愿驱动下，自主演化航海经停站点（包含站名、日期、第一人称见闻故事与触发原因），自动向 `companion_assets` 的 active trip 追加站点并联动完成对应共鸣心愿；主会话 Prompt 生活切片同步感知最新到访站点，并通过全局事件与 Toast 广播更新。
 - 2026-11-09：同伴求助与生活共同决策落地：新增 `co-decision.ts`、`companion_co_decisions` 表与 `WorldDecisionsPanel` 面板；角色在航向分歧、重大分岔或生活困境时，向用户发起求助抉择。用户决断后角色即时生成符合人设的第一人称回响（Prompt 配方 `coDecisionReaction`），存入主会话作为 assistant 消息，并作为因果线索通过 `collectDayScriptLifeContext` 注入次日剧本，真实影响明天的生活活动与足迹。
+- 2026-11-09：角色脆弱时刻与情感共鸣落地：新增 `vulnerability.ts`、`companion_vulnerability_moments` 表与 `VulnerabilityCard` 组件；角色在夜间独处、航程疲惫或生活受挫时向用户流露深层心声（同一角色同时最多 1 个 active 脆弱心境；出厂为路飞播种关于同伴誓言与草帽寄托的经典脆弱心境）；用户给予安慰与回应后，角色由受控模型配方 `compileVulnerabilityReactionRequest` 生成第一人称回响存入主会话，记录 `vulnerability_comforted` 关系里程碑并广播通知；因果沉淀为次日剧本情绪线索。

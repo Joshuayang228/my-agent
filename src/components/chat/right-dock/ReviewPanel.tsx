@@ -3,7 +3,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Eraser, FileCode2, RefreshCw } from 'lucide-react'
+import { Eraser, FileCode2, MessageSquareShare, RefreshCw } from 'lucide-react'
 import { ResizeHandle } from '../../shell/ResizeHandle'
 import { DiffViewer, DiffViewControls, type DiffViewMode } from '../../foundation/DiffViewer'
 import { IconButton } from '../../foundation/IconButton'
@@ -22,9 +22,10 @@ type ChangeItem = {
 interface ReviewPanelProps {
   sessionId: string | null
   onContextChange?: (focus: WorkspaceChatFocus | undefined) => void
+  onTakeToChat?: (opts: { text: string }) => void
 }
 
-export function ReviewPanel({ sessionId, onContextChange }: ReviewPanelProps) {
+export function ReviewPanel({ sessionId, onContextChange, onTakeToChat }: ReviewPanelProps) {
   const [items, setItems] = useState<ChangeItem[]>([])
   const [selected, setSelected] = useState<string | null>(null)
   const [diffText, setDiffText] = useState<string | null>(null)
@@ -153,6 +154,19 @@ export function ReviewPanel({ sessionId, onContextChange }: ReviewPanelProps) {
         <IconButton label="清空列表" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => { void clearAll() }}>
           <Eraser size={12} />
         </IconButton>
+        {selected && onTakeToChat && (
+          <IconButton
+            label="和TA聊聊改动"
+            size={24}
+            style={{ color: 'var(--accent-fg)' }}
+            onClick={() => {
+              const name = selected.replace(/\\/g, '/').split('/').pop() || selected
+              onTakeToChat({ text: `帮我看看当前改动：${name}` })
+            }}
+          >
+            <MessageSquareShare size={12} />
+          </IconButton>
+        )}
         <DiffViewControls mode={viewMode} canSplit={beforeText != null && afterText != null} onChange={setViewMode} />
       </div>
 

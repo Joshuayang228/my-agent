@@ -82,6 +82,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     list: (): Promise<SessionSummary[]> => ipcRenderer.invoke('session:list'),
     create: (): Promise<ChatSession> => ipcRenderer.invoke('session:create'),
     createWorkspace: (): Promise<ChatSession> => ipcRenderer.invoke('session:createWorkspace'),
+    getOrCreateWorkspace: (parentSessionId?: string): Promise<ChatSession> =>
+      ipcRenderer.invoke('session:getOrCreateWorkspace', parentSessionId),
+    clearWorkspace: (parentSessionId: string): Promise<ChatSession> =>
+      ipcRenderer.invoke('session:clearWorkspace', parentSessionId),
     get: (id: string): Promise<ChatSession | null> => ipcRenderer.invoke('session:get', id),
     delete: (id: string): Promise<void> => ipcRenderer.invoke('session:delete', id),
     rename: (id: string, title: string): Promise<void> => ipcRenderer.invoke('session:rename', id, title),
@@ -561,6 +565,45 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ) => callback(payload)
       ipcRenderer.on('companion:co-decision-resolved', handler)
       return () => ipcRenderer.removeListener('companion:co-decision-resolved', handler)
+    },
+    getActiveVulnerability: (
+      roleId?: string,
+    ): Promise<import('../../src/shared/types').CompanionVulnerabilityRecord | null> =>
+      ipcRenderer.invoke('companion:get-active-vulnerability', roleId),
+    listVulnerabilities: (
+      roleId?: string,
+      limit?: number,
+    ): Promise<import('../../src/shared/types').CompanionVulnerabilityRecord[]> =>
+      ipcRenderer.invoke('companion:list-vulnerabilities', roleId, limit),
+    comfortVulnerability: (
+      vulnerabilityId: string,
+      comfortText?: string,
+    ): Promise<{ ok: boolean; vulnerability?: import('../../src/shared/types').CompanionVulnerabilityRecord; reaction?: string }> =>
+      ipcRenderer.invoke('companion:comfort-vulnerability', vulnerabilityId, comfortText),
+    triggerVulnerability: (
+      roleId?: string,
+      forceContext?: string,
+    ): Promise<import('../../src/shared/types').CompanionVulnerabilityRecord | null> =>
+      ipcRenderer.invoke('companion:trigger-vulnerability', roleId, forceContext),
+    onVulnerabilityCreated: (
+      callback: (payload: import('../../src/shared/types').CompanionVulnerabilityEvent) => void,
+    ) => {
+      const handler = (
+        _e: Electron.IpcRendererEvent,
+        payload: import('../../src/shared/types').CompanionVulnerabilityEvent,
+      ) => callback(payload)
+      ipcRenderer.on('companion:vulnerability-created', handler)
+      return () => ipcRenderer.removeListener('companion:vulnerability-created', handler)
+    },
+    onVulnerabilityComforted: (
+      callback: (payload: import('../../src/shared/types').CompanionVulnerabilityEvent) => void,
+    ) => {
+      const handler = (
+        _e: Electron.IpcRendererEvent,
+        payload: import('../../src/shared/types').CompanionVulnerabilityEvent,
+      ) => callback(payload)
+      ipcRenderer.on('companion:vulnerability-comforted', handler)
+      return () => ipcRenderer.removeListener('companion:vulnerability-comforted', handler)
     },
   },
 

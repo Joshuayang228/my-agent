@@ -1836,6 +1836,11 @@ function App() {
             width={rightDockWidth}
 
             onCloseFiles={() => { setRightDockCollapsed(false); setShowFileBrowser(false) }}
+            onTakeToChat={({ text }) => {
+              setActiveView('chat')
+              setInput(text)
+              setTimeout(() => inputRef.current?.focus(), 0)
+            }}
           />
         </>
       )}

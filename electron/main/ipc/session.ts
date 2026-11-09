@@ -34,7 +34,13 @@ export function registerSessionIPC(): void {
   ipcMain.handle('session:list', async () => store.listSessions())
 
   ipcMain.handle('session:create', async () => store.createSession())
-  ipcMain.handle('session:createWorkspace', async () => store.createSession(undefined, { title: '工作区对话', sessionKind: 'workspace' }))
+    ipcMain.handle('session:createWorkspace', async () => store.createSession(undefined, { title: '工作区对话', sessionKind: 'workspace' }))
+  ipcMain.handle('session:getOrCreateWorkspace', async (_event, parentSessionId: unknown) =>
+    store.getOrCreateWorkspaceSession(validId(parentSessionId) ? parentSessionId : undefined))
+  ipcMain.handle('session:clearWorkspace', async (_event, parentSessionId: unknown) => {
+    if (!validId(parentSessionId)) throw new Error('主会话 ID 无效')
+    return store.clearWorkspaceSession(parentSessionId)
+  })
 
   ipcMain.handle('session:get', async (_event, sessionId: unknown) =>
     validId(sessionId) ? store.getSession(sessionId) : null)

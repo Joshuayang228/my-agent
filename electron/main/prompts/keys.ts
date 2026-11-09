@@ -68,6 +68,7 @@ export const PROMPT_KEYS = {
   companionInnerThought: promptKey('companion-inner-thought'),
   companionKeepsakeGift: promptKey('companion-keepsake-gift'),
   companionCoDecisionReaction: promptKey('companion-co-decision-reaction'),
+  companionVulnerabilityReaction: promptKey('companion-vulnerability-reaction'),
 } as const
 
 export type CorePromptAssetKey = typeof PROMPT_KEYS[keyof typeof PROMPT_KEYS]

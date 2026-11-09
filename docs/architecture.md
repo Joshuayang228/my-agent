@@ -1,5 +1,10 @@
 # 系统架构
 
+工作区持久化与跨会话协同架构（2026-11-09）：
+- 工作区会话持久模型：`sessions` 表扩充 `parent_session_id` 列（schema 25），`getOrCreateWorkspaceSession` 将工作区侧聊与宿主主会话一对一绑定并建立索引；组件折叠、隐藏或视图切换时不销毁会话，保留工程讨论全过程；
+- 会话生命周期与隔离：切换主会话时，工作区右坞根据新的 `activeSessionId` 自动无缝切换对应侧聊上下文与变更审阅；主会话列表（`listSessions`）过滤排除 `session_kind = 'workspace'` 避免侧聊混淆；
+- 工作区到伙伴直通连通：`ChatRightDock` 接入统一 `onTakeToChat` 动作链并下发至 `ReviewPanel`（审阅代码变更一键与伙伴聊聊改动）与 `TerminalPanel`（构建成功一键与伙伴分享好消息），打通工程任务与伙伴人设陪伴。
+
 足迹与航海旅行自主演化架构（2026-11-09）：
 - 航程自主推进机制：`travel-progression.ts` 结合角色航行时间积累（24小时冷却）与主会话共鸣沉淀的 `travel_wish`，自动调度演化千里阳光号航线新经停站点；
 - 数据模型与持久化：站点写入 SQLite `companion_travel_progressions` 表，并向当前 active trip 资产（`sunny-current-route`）原子追加包含站点名、日期与第一人称见闻故事的 `TripStopRecord`；

@@ -93,6 +93,7 @@ export function JournalExperienceCandidate({ personaId }: { personaId: string })
         key={`${personaId}-${scenario}`}
         roleId={personaId}
         previewThoughts={thoughts}
+        showVulnerabilityCard={false}
         previewReadError={scenario === 'error' ? '日记记录暂时无法读取，请检查网络或点击重试。' : undefined}
         onPreviewRetry={() => setScenario('default')}
       />

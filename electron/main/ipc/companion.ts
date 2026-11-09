@@ -273,6 +273,29 @@ export function registerCompanionIPC(): void {
     return createCoDecision(targetRoleId, dilemmaHint)
   })
 
+  ipcMain.handle('companion:get-active-vulnerability', async (_e, roleId?: string) => {
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const { getActiveVulnerability } = await import('../companion/life/vulnerability')
+    return getActiveVulnerability(targetRoleId)
+  })
+
+  ipcMain.handle('companion:list-vulnerabilities', async (_e, roleId?: string, limit?: number) => {
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const { listVulnerabilities } = await import('../companion/life/vulnerability')
+    return listVulnerabilities(targetRoleId, limit)
+  })
+
+  ipcMain.handle('companion:comfort-vulnerability', async (_e, vulnerabilityId: string, comfortText?: string) => {
+    const { comfortVulnerability } = await import('../companion/life/vulnerability')
+    return comfortVulnerability(vulnerabilityId, comfortText)
+  })
+
+  ipcMain.handle('companion:trigger-vulnerability', async (_e, roleId?: string, forceContext?: string) => {
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const { triggerVulnerability } = await import('../companion/life/vulnerability')
+    return triggerVulnerability(targetRoleId, forceContext)
+  })
+
   ipcMain.handle('companion:list-autonomous-dressings', async (_e, roleId?: string, limit?: number) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { listAutonomousDressings } = await import('../companion/life/autonomous-dressing')

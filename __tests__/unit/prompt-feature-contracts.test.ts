@@ -24,7 +24,7 @@ import type { RolePack } from '../../electron/main/companion/types'
 
 describe('功能 Prompt 合同', () => {
   it('四个首批功能合同具备完整输入、覆盖边界、输出、回退和消费者', () => {
-    expect(Object.keys(PROMPT_FEATURE_CONTRACTS)).toEqual(['momentReply', 'momentComment', 'proactiveGreeting', 'imageGeneration', 'profileExtraction', 'momentPolish', 'dayScript', 'catchup', 'reflection', 'mainChat', 'compact', 'summon', 'subagent', 'skill', 'toolContext', 'chatResonance', 'cultureReview', 'spontaneousImpulse', 'innerThought', 'keepsakeGift', 'coDecisionReaction'])
+    expect(Object.keys(PROMPT_FEATURE_CONTRACTS)).toEqual(['momentReply', 'momentComment', 'proactiveGreeting', 'imageGeneration', 'profileExtraction', 'momentPolish', 'dayScript', 'catchup', 'reflection', 'mainChat', 'compact', 'summon', 'subagent', 'skill', 'toolContext', 'chatResonance', 'cultureReview', 'spontaneousImpulse', 'innerThought', 'keepsakeGift', 'coDecisionReaction', 'vulnerabilityReaction'])
     for (const item of listPromptFeatureContracts()) {
       expect(item.key).toMatch(/^feature:/)
       expect(item.purpose).not.toBe('')

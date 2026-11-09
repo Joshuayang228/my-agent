@@ -81,7 +81,7 @@
 | 审阅前后稿与差异 | `session:listFileChanges` / `session:getFileChangeDiff`，before/after、错误和过期响应已有回归 | 已有后端 | 差异算法不在 UI 层重算；补长期文件上限时继续沿主进程契约 |
 | 终端命令控制台 | 真实 terminal IPC、权限/沙箱/cwd、Windows 进程树回收已有证据 | 已有后端但能力受限 | Unix 实机证据与完整 PTY 不在当前合同；不得把命令控制台宣传为 PTY |
 | 受限网页查看 | `browser:load` / `browser:cancel` 主进程 URL/DNS 校验、拒绝重定向、响应/超时上限和请求归属，Renderer sandbox+CSP | 已有后端但能力受限 | 脚本、登录、表单、站内导航和任意网页交互明确不做；若要支持需另建安全施工合同 |
-| workspace 侧边聊天 | `session:createWorkspace` + 真实 Runtime 流式事件，主列表/长期记忆隔离，Electron 关闭与切换清理已覆盖 | 已有后端 | 继续补模型配置/工具确认等边界回归；不是静态样张 |
+| workspace 侧边聊天 | `session:getOrCreateWorkspace` + `session:clearWorkspace` + 真实 Runtime 流式事件，主列表/长期记忆隔离，schema 25 会话持久化与 parentSessionId 绑定已落地 | 已有后端 | 已闭环跨切换/折叠历史连续性与清空新建能力，并打通 Review 与 Terminal 的 onTakeToChat 伙伴协同 |
 | 完整终端 PTY | 正式界面没有可声称的 PTY 契约，当前实现是受权限控制的命令控制台 | 暂缓 | 见 `terminal-pty-v1.md`；只有出现明确交互式终端需求后重新确认，不作为当前工作区回流阻塞项 |
 | 浏览器登录与脚本交互 | 当前主进程只返回受限 HTML/文本，Renderer 明确无脚本 | 未实现且明确排除 | 不在本合同内，不得从 Playground 浏览器样张回流 |
 | Unix 进程树实证 | 当前真实 Electron 证据为 Windows | 未完成验证 | 在 Unix 环境补实机验证，不用 Renderer 替身宣称跨平台完成 |

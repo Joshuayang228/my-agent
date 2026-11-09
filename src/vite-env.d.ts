@@ -75,6 +75,8 @@ declare global {
         list: () => Promise<SessionSummary[]>
         create: () => Promise<ChatSession>
         createWorkspace: () => Promise<ChatSession>
+        getOrCreateWorkspace: (parentSessionId?: string) => Promise<ChatSession>
+        clearWorkspace: (parentSessionId: string) => Promise<ChatSession>
         get: (id: string) => Promise<ChatSession | null>
         delete: (id: string) => Promise<void>
         rename: (id: string, title: string) => Promise<void>
@@ -422,6 +424,16 @@ declare global {
         ) => () => void
         onCoDecisionResolved: (
           callback: (payload: import('./shared/types').CompanionCoDecisionEvent) => void,
+        ) => () => void
+        getActiveVulnerability: (roleId?: string) => Promise<import('./shared/types').CompanionVulnerabilityRecord | null>
+        listVulnerabilities: (roleId?: string, limit?: number) => Promise<import('./shared/types').CompanionVulnerabilityRecord[]>
+        comfortVulnerability: (vulnerabilityId: string, comfortText?: string) => Promise<{ ok: boolean; vulnerability?: import('./shared/types').CompanionVulnerabilityRecord; reaction?: string }>
+        triggerVulnerability: (roleId?: string, forceContext?: string) => Promise<import('./shared/types').CompanionVulnerabilityRecord | null>
+        onVulnerabilityCreated: (
+          callback: (payload: import('./shared/types').CompanionVulnerabilityEvent) => void,
+        ) => () => void
+        onVulnerabilityComforted: (
+          callback: (payload: import('./shared/types').CompanionVulnerabilityEvent) => void,
         ) => () => void
       }
       mcp: {
