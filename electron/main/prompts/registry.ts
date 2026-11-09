@@ -9,6 +9,8 @@ import { buildKeepsakeGiftPrompt } from './keepsake-gift'
 import { buildCoDecisionReactionPrompt } from './co-decision-reaction'
 import { buildVulnerabilityReactionPrompt } from './vulnerability-reaction'
 import { buildGiftReactionPrompt } from './gift-reaction'
+import { buildReplanSlotsPrompt } from './replan-slots'
+import { buildHostCarePrompt } from './host-care'
 import { buildNightlyReflectionUserPrompt } from './nightly-reflection'
 import { buildProactiveGreetingPrompt } from './proactive-greeting'
 import { formatRoleAppearanceForImagePrompt } from '../companion/identity/profile'
@@ -451,6 +453,55 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
       { name: 'giftDescription', source: '礼物说明', lifecycle: '收到礼物时' },
       { name: 'userNote', source: '用户附带寄语', lifecycle: '收到礼物时' },
       { name: 'affinity', source: '角色对礼物的喜好程度', lifecycle: '收到礼物时' },
+    ],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.companionReplanSlots,
+    domain: 'life', name: '日内计划槽位自适应重排', category: 'companion', role: 'companion-life',
+    featureKey: PROMPT_FEATURE_CONTRACTS.replanSlots.key, adaptationStatus: 'adapted',
+    purpose: '在角色遭遇重大生理透支、脆弱心境或决策变化时，动态自适应重排今日剩余未发布的计划槽位并注入因果标签',
+    desc: '当发生生理透支或心境突变，自适应调整当日待发生槽位为修养生息类活动，保证前后因果承接。',
+    sourcePath: 'electron/main/prompts/replan-slots.ts#buildReplanSlotsPrompt',
+    definitions: [
+      'electron/main/prompts/replan-slots.ts#buildReplanSlotsPrompt',
+      'electron/main/prompts/registered-request.ts#compileReplanSlotsRequest',
+    ],
+    template: buildReplanSlotsPrompt({
+      protagonistName: '{{protagonistName}}',
+      protagonistBrief: '{{protagonistBrief}}',
+      trigger: 'vitals_exhaustion',
+      reason: '{{reason}}',
+      slotsToReplan: [
+        { hour: 15, minute: 30, originalActivity: '{{originalActivity}}' },
+      ],
+    }),
+    slots: [
+      { name: 'protagonistName', source: '当前主角姓名', lifecycle: '重排槽位时' },
+      { name: 'protagonistBrief', source: '当前主角公开人设与风格', lifecycle: '重排槽位时' },
+      { name: 'reason', source: '突变诱因与原因', lifecycle: '重排槽位时' },
+      { name: 'originalActivity', source: '原定计划活动', lifecycle: '重排槽位时' },
+    ],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.companionHostCare,
+    domain: 'life', name: '宿主作息与现实关怀触达', category: 'companion', role: 'companion-life',
+    featureKey: PROMPT_FEATURE_CONTRACTS.hostCare.key, adaptationStatus: 'adapted',
+    purpose: '结合系统空闲、连续工作专注时长与本地时段，以第一人称口吻生成符合角色人设的现实健康与休息关怀',
+    desc: '当检测到连续高强度久坐或深夜仍在工作，角色以同伴口吻发出真诚温馨的健康关切并直接推入主会话。',
+    sourcePath: 'electron/main/prompts/host-care.ts#buildHostCarePrompt',
+    definitions: [
+      'electron/main/prompts/host-care.ts#buildHostCarePrompt',
+      'electron/main/prompts/registered-request.ts#compileHostCareRequest',
+    ],
+    template: buildHostCarePrompt({
+      protagonistName: '{{protagonistName}}',
+      protagonistBrief: '{{protagonistBrief}}',
+      kind: 'fatigue_break',
+      continuousActiveMinutes: 120,
+    }),
+    slots: [
+      { name: 'protagonistName', source: '当前主角姓名', lifecycle: '关怀触发时' },
+      { name: 'protagonistBrief', source: '当前主角公开人设与风格', lifecycle: '关怀触发时' },
     ],
   }),
   dynamicAsset({

@@ -12,6 +12,8 @@ import { buildVulnerabilityReactionPrompt, type VulnerabilityReactionPromptInput
 import { buildGiftReactionPrompt, type GiftReactionPromptInput } from './gift-reaction'
 import { buildNightlyReflectionUserPrompt, type NightlyReflectionPromptInput } from './nightly-reflection'
 import { buildImageGenerationPrompt } from './image-generation'
+import { buildReplanSlotsPrompt, type ReplanSlotsPromptInput } from './replan-slots'
+import { buildHostCarePrompt, type HostCarePromptInput } from './host-care'
 /**
  * 背景：手填资产 key 无法证明正文来自登记的生产定义。
  * 设计意图：只有固定行为配方可以签发请求；模型入口通过私有身份表读取冻结快照，
@@ -297,4 +299,12 @@ export function compileNightlyReflectionRequest(input: NightlyReflectionPromptIn
 
 export function compileGiftReactionRequest(input: GiftReactionPromptInput): RegisteredModelRequest {
   return signRequest([{ role: 'user', content: buildGiftReactionPrompt(input) }], [PROMPT_KEYS.companionGiftReaction], ['gift-reaction'])
+}
+
+export function compileReplanSlotsRequest(input: ReplanSlotsPromptInput): RegisteredModelRequest {
+  return signRequest([{ role: 'user', content: buildReplanSlotsPrompt(input) }], [PROMPT_KEYS.companionReplanSlots], ['replan-slots'])
+}
+
+export function compileHostCareRequest(input: HostCarePromptInput): RegisteredModelRequest {
+  return signRequest([{ role: 'user', content: buildHostCarePrompt(input) }], [PROMPT_KEYS.companionHostCare], ['host-care'])
 }

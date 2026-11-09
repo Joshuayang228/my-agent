@@ -129,6 +129,11 @@ Playground / Eval 使用明确实验配方与来源，生产模块禁止导入 E
 
 角色专属视觉与空间氛围架构（2026-11-10）：角色包（Role Pack）在 `manifest.json` 中声明 `avatarVisualPath`、`bannerVisualPath` 与 `themeColor`；`electron/main/companion/identity/loader.ts` 通过 `resolveRoleAssetFilePath` 安全寻址二进制图片，并经 `getRoleVisuals` / `getRoleVisualDataUrl` 转化为带内存缓存的 base64 dataUrl，经 IPC `companion:get-role-visuals` 供前端消费。出厂为路飞及草帽海贼团卡司成员（索隆、娜美、山治、乌索普）配置 1:1 高清立绘头像资产（`avatar-v1.png`）及阳光号甲板/内舱/瞭望台等横幅壁纸。前端由统一封装的 `CompanionAvatar` 取代旧有的 `<Bot />` 机器人图标与单字方块，在 Chat 欢迎屏、消息流气泡、人物世界顶栏与主侧栏全线贯通；`WorldProfileHeader` 升级为宽幅生活场景封面 Banner，Chat 消息背景 `CompanionSceneBackdrop` 接入弱场景氛围壁纸（保留 9% 透光度与轻度高斯模糊），实现沉浸氛围感与文本高可读性的统一。
 
+日内因果状态机与宿主现实作息感知架构（2026-11-10）：
+- 日内因果重编排引擎（Intra-day Causality & Dynamic Re-planning）：`replan.ts` 在角色出现体征耗竭（`energy <= 25` 或 `mood <= 20`）、突发脆弱（vulnerability）或重大共同决断时触发；提取今日尚未执行的 `planned` 事件，通过受控配方 `compileReplanSlotsRequest`（或规则保底）将后续日程重编排为休养、平复或静息活动；`updateEventPayload` 向事件 payload 原子注入 `causedBy` 因果追溯元数据，广播 `companion:slots-replanned` 与 `companion:timeline-updated`；
+- 宿主现实作息感知与双向关怀锚点（Host Presence Perception & Real-world Care Anchor）：`host-presence.ts` 通过 `powerMonitor.getSystemIdleTime()` 结合主会话交互时序无感追踪宿主专注时长与空闲状态；当连续专注工作 >= 120 分钟（疲劳关怀，3小时冷却）或深夜 23:30~05:00 仍持续活跃（深夜休息关怀，6小时冷却）时，通过受控配方 `compileHostCareRequest` 生成伙伴关怀私语，作为 `assistant` 角色消息直接持久化写入角色主会话（`sessionKind: 'main'`），并广播 `companion:host-care-triggered`；
+- 虚实双向因果闭环（Reality-to-Script Resonance）：宿主深夜加班被关怀的记录被标记为 `yesterdayNightWorkRecorded`，次日清晨 `script-generator.ts#collectDayScriptLifeContext` 自动吸收此现实线索，使伙伴在次日日程与朋友圈中自然流露“昨晚看到你熬夜工作，今天早上给你准备了特制肉汤”的真实活人感，实现生活引擎对现实世界的双向锚定。
+
 `prompts/` 保存纯正文构造器、语义编译器、typed key 与注册索引；领域服务提供事实并拥有解析、回退与副作用。注册表的 `definitions` 指向真实代码符号，动态模板调用同一生产构造器生成；禁止在索引或 Debug 复制正文。四类伙伴行为的领域协议在输出模块最后编译，人物增量和运行时事实不能隐式覆盖稳定身份。
 
 人物 JSON 来源由纯 `companion/identity/source-assets.ts` 工厂投影，Prompt 追踪和伙伴目录共享 canonical key；高层 Debug 聚合去重。LLM 依赖 Prompt 目录时不反向导入 Agent 或生活存储，Role Pack 文本仍从实际 loader 读取。主对话 / Eval 使用 `prompts/compiler.ts`；旧生产组装适配层已移除。

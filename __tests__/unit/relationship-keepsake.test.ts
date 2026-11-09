@@ -72,7 +72,8 @@ describe('羁绊深度跃迁与专属信物馈赠（Relationship Keepsake Gifts�
         total_prompt_tokens      INTEGER NOT NULL DEFAULT 0,
         total_completion_tokens  INTEGER NOT NULL DEFAULT 0,
         role_id                  TEXT NOT NULL DEFAULT '',
-        session_kind             TEXT NOT NULL DEFAULT 'main'
+        session_kind             TEXT NOT NULL DEFAULT 'main',
+        parent_session_id        TEXT
       );
       CREATE TABLE IF NOT EXISTS messages (
         id               TEXT PRIMARY KEY,

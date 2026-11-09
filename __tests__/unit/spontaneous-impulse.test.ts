@@ -66,7 +66,8 @@ describe('突发生活意图与主动找聊（Spontaneous Impulse）', () => {
         total_prompt_tokens      INTEGER NOT NULL DEFAULT 0,
         total_completion_tokens  INTEGER NOT NULL DEFAULT 0,
         role_id                  TEXT NOT NULL DEFAULT '',
-        session_kind             TEXT NOT NULL DEFAULT 'main'
+        session_kind             TEXT NOT NULL DEFAULT 'main',
+        parent_session_id        TEXT
       );
       CREATE TABLE IF NOT EXISTS messages (
         id               TEXT PRIMARY KEY,

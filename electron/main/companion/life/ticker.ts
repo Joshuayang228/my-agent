@@ -17,6 +17,8 @@ import { checkAndPerformContextualDressing } from './autonomous-dressing'
 import { checkAndProgressTravelJourney } from './travel-progression'
 import { checkAndTriggerVulnerability } from './vulnerability'
 import { checkAndTriggerNightlyReflection } from './nightly-reflection'
+import { checkAndReplanIfExhausted } from './replan'
+import { checkAndTriggerHostCare } from './host-presence'
 import * as store from './store'
 
 const log = createLogger('LifeTicker')
@@ -88,6 +90,12 @@ export function startLifeTicker(defaultIntervalMs = DEFAULT_INTERVAL_MS): void {
         })
         await checkAndTriggerNightlyReflection(r.roleId, now).catch((err) => {
           log.warn('checkAndTriggerNightlyReflection failed', { error: String(err) })
+        })
+        await checkAndReplanIfExhausted(r.roleId, now).catch((err) => {
+          log.warn('checkAndReplanIfExhausted failed', { error: String(err) })
+        })
+        await checkAndTriggerHostCare(r.roleId, now).catch((err) => {
+          log.warn('checkAndTriggerHostCare failed', { error: String(err) })
         })
       }
     } catch (err) {

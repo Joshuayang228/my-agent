@@ -14,6 +14,22 @@
 - **Chat 会话区弱场景氛围壁纸（Ambient Chat Scene Wallpaper）**：`CompanionSceneBackdrop` 支持弱场景壁纸层（透光度 ~9%、轻度微模糊与暗角），在不干扰气泡对比度与文本可读性的前提下营造伙伴所在场景的陪伴空间感。
 - **IPC 同步与单测覆盖**：`companion:get-role-visuals` 通道四处同步；新增 `companion-role-visuals.test.ts` 5 项单测，门禁全绿。
 
+## 已落地能力：日内因果状态机与动态重编排（Intra-day Causality & Dynamic Re-planning）
+
+- **因果驱动日内重编排**：当角色遭遇体力/心境耗竭（`energy <= 25` 或 `mood <= 20`）、突发脆弱（vulnerability）或重大共同抉择（co-decision）时，打破预设日剧本的静态按部就班推进；
+- **剩余计划槽位弹性调整**：`replanRemainingSlots` 提取今日尚未开始的 `planned` 事件，通过 Prompt 合同 `replanSlots` 与 `compileReplanSlotsRequest`（或规则兜底）将其调整为休息、骨头肉汤调养、深呼吸放空等疗愈性活动；
+- **因果可追溯性**：`updateEventPayload` 向重编排后的事件 payload 写入 `causedBy: { causeType, reason, timestamp }` 元数据，让每个生活变化具备明确的前因后果；
+- **多端实时同步**：重排后触发 `companion:slots-replanned` 与 `companion:timeline-updated` 广播，驱动生活时间线与人物世界无缝刷新。单测覆盖见 `life-replan.test.ts`（5 项）。
+
+## 已落地能力：宿主现实作息感知与双向关怀锚点（Host Presence Perception & Real-world Care Anchor）
+
+- **无感宿主作息与专注感知**：`host-presence.ts` 结合系统原生 `powerMonitor.getSystemIdleTime()` 与会话收发事件，精细化识别用户的专注工作时长与空闲状态；
+- **长专注疲劳与深夜作息触发**：
+  1. 连续专注工作 >= 120 分钟触发疲劳关怀（`fatigue_break`，3 小时冷却保护）；
+  2. 深夜（23:30~05:00）仍处于高频活跃工作触发深夜睡眠关怀（`late_night_sleep`，6 小时冷却保护）；
+- **伙伴温情关怀直达主会话**：通过 Prompt 合同 `hostCare` 与 `compileHostCareRequest` 签发，以 `assistant` 角色消息直接持久化写入角色主会话（`sessionKind: 'main'`），并广播 `companion:host-care-triggered`；
+- **虚实双向锚定闭环（Reality-to-Script Resonance）**：记录用户昨夜加班事实并在状态中打标，次日清晨生成剧本时由 `collectDayScriptLifeContext` 吸收进日剧本 Prompt，使伙伴次日能自然关心“昨晚熬夜很辛苦吧，今天特地给你留了补给”，彻底打破虚拟与现实之间的单向割裂。单测覆盖见 `host-presence.test.ts`（5 项）。
+
 ## 已落地能力：世界观主角与卡司边界
 
 默认世界观 manifest 显式区分 `protagonistIds` 与 `castIds`：路飞是当前唯一主角，索隆、娜美、乌索普、山治是朋友角色。朋友角色可以进入名册、关系、召唤和 Debug 资产目录，但不能因此自动成为 `activeRoleId`。背景与当时决策保留在已冻结的 [世界观套装与人物生成施工合同](../requirements/world-and-character-authoring-v1.md)。

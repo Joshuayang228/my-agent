@@ -68,6 +68,7 @@ describe('角色深夜反思与心灵领悟（Nightly Reflection & Epiphany）',
     memDb = new SQL.Database()
     sendMock.mockClear()
     await ensureInnerThoughtTable()
+    memDb.run(`UPDATE companion_inner_thoughts SET created_at = 1000`)
   })
 
   it('白天非深夜时段且未开启 force 时，不触发反思', async () => {

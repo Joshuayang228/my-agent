@@ -1,5 +1,7 @@
 # 质量总控
 
+日内因果重编排与宿主现实作息感知门禁（2026-11-10）：`life-replan.test.ts` 5 项测试覆盖无计划槽位安全返回、体征耗竭（`energy <= 25` 或 `mood <= 20`）触发后续槽位重编排为休养活动并向事件 payload 原子写入 `causedBy` 因果追溯元数据及全窗口广播、突发脆弱（vulnerability）触发重编排、耗竭日内重排幂等性防护、体征正常时无操作；`host-presence.test.ts` 5 项测试覆盖宿主专注时长与空闲状态计算（`getHostPresenceStatus`）、连续专注 >= 120 分钟触发疲劳关怀并直接向角色主会话持久化写入 assistant 消息及窗口广播、3 小时冷却拦截高频关怀、深夜时段（23:30~05:00）触发深夜关怀并同步标记 `yesterdayNightWorkRecorded` 供次日剧本上下文吸收、带 `forceKind` 时强行触发；UI 组件注册表登记 `layout.life-causality-candidate`；产品体验注册表纳管 `LifeCausalityCandidate.tsx`，门禁全绿通过。
+
 多角色专属头像体系与空间氛围横幅门禁（2026-11-10）：`companion-role-visuals.test.ts` 5 项测试覆盖路飞出厂角色包专属头像（`avatar-v1.png`）、主横幅（`banner-v1.png`）与人设主题色（`#E65100`）转换 base64 dataUrl、草帽海贼团卡司成员（索隆、娜美、山治、乌索普）头像与专属主题色校验、缺失路径与路径穿越安全防御（防跳出角色目录）、内存缓存避免重复 IO、`listProtagonists` 自动预热主角视觉资产；UI 组件注册表登记 `companion.companion-avatar` 并通过 `ui-component-registry.test.ts` 47 项门禁；`npm run assets:check`（12 套件 112 项测试）、`npx tsc --noEmit`、`npx vite build` 生产打包全绿通过。
 
 专属物品赠送与羁绊好感门禁（2026-11-09）：`gifting.test.ts` 5 项测试覆盖礼物清单加载与角色专属最爱偏好（路飞对 bone-meat 与 treasure-map 为 favorite）、用户赠礼持久化落库至 SQLite `companion_received_gifts`、角色第一人称致谢喜悦回响存入主会话作为 assistant 消息、赠礼联动生命体征提升（mood/energy）与历史记录倒序查询、模型失败或缺省时的规则保底回响与全窗口广播；`asset-registry.ts` 登记 `companion:policy:gifting` 生产策略资产，`prompt-feature-contracts.test.ts` 扩展至 24 个核心功能合同（含 `giftReaction`），门禁全绿通过。

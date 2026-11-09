@@ -194,6 +194,18 @@ export const PROMPT_FEATURE_CONTRACTS = Object.freeze({
     overrideBoundary: ['角色收到不同礼物时的真实情绪与反应风格'], output: '只输出 JSON 对象，包含 reactionText 角色第一人称即时致谢与喜悦回响、emotion 表情与心情状态。',
     fallback: '模型不可用或解析失败时使用基于角色人设与礼物类型的确定性回响，不阻塞流程。', consumers: ['electron/main/companion/life/gifting.ts'],
   }),
+  replanSlots: contract({
+    key: 'feature:replan-slots', name: '日内计划槽位自适应重排', domain: 'life', purpose: '在角色遭遇重大生理透支、脆弱心境或决策变化时，动态自适应重排今日剩余未发布的计划槽位，并注入因果溯源标签。',
+    staticInputs: ['安全规则', '槽位重编排叙事协议', 'JSON输出约束'], runtimeInputs: ['角色公开人设与口吻', '突变原因与诱因', '待重排槽位清单'],
+    overrideBoundary: ['角色在不同生理/心理状态下的自愈活动调整风格'], output: '只输出 JSON 数组，包含调整后的槽位 activity、mood、location。',
+    fallback: '模型不可用或解析失败时使用基于诱因与角色特性的确定性修养槽位，不阻塞流程。', consumers: ['electron/main/companion/life/replan.ts'],
+  }),
+  hostCare: contract({
+    key: 'feature:host-care', name: '宿主作息与现实关怀触达', domain: 'life', purpose: '结合系统空闲、连续工作专注时长与本地时段，以第一人称口吻生成符合角色人设的现实健康与休息关怀。',
+    staticInputs: ['安全规则', '现实关切叙事协议', 'JSON输出约束'], runtimeInputs: ['角色公开人设与口吻', '关怀类型（久坐/深夜/归来）', '连续工作分钟数'],
+    overrideBoundary: ['角色关心同伴时的口吻与互动风格'], output: '只输出 JSON 对象，包含 careMessage 关怀发言、suggestedAction 建议小动作。',
+    fallback: '模型不可用或解析失败时使用基于角色人设与关切类型的确定性关怀文本，不阻塞流程。', consumers: ['electron/main/companion/life/host-presence.ts'],
+  }),
 } as const)
 
 export type PromptFeatureContractKey = keyof typeof PROMPT_FEATURE_CONTRACTS

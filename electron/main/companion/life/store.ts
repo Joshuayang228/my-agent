@@ -683,6 +683,14 @@ export async function markEventPublished(eventId: string): Promise<void> {
   persist()
 }
 
+/** 更新指定事件的 payload_json */
+export async function updateEventPayload(eventId: string, payload: Record<string, unknown>): Promise<void> {
+  await ensureTables()
+  const db = await getDatabase()
+  db.run(`UPDATE companion_events SET payload_json = ? WHERE id = ?`, [JSON.stringify(payload), eventId])
+  persist()
+}
+
 export async function getEventById(eventId: string): Promise<CompanionEvent | null> {
   await ensureTables()
   const db = await getDatabase()

@@ -336,6 +336,22 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     source: 'electron/main/companion/life/nostalgia.ts#pickNostalgicReminiscence', version: 'nostalgia-v1',
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent({ trigger: 'chat-impulse-nostalgia', cooldownMs: 14_400_000 }),
+  }), makeCompanionAsset({
+    key: 'companion:policy:intraday-replan', name: '日内因果重编排策略',
+    purpose: '体征耗竭或脆弱时刻后，把今日剩余计划槽位改编为休养活动并记录因果来源',
+    role: 'platform', description: 'energy <= 25 或 mood <= 20 触发，当日幂等；仅改写 planned 事件，payload 写入 causedBy，广播 slots-replanned 与 timeline-updated。',
+    source: 'electron/main/companion/life/replan.ts#replanRemainingSlots', version: 'replan-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ trigger: 'life-ticker-exhaustion', promptKey: PROMPT_KEYS.companionReplanSlots }),
+    dependencies: [PROMPT_KEYS.companionReplanSlots],
+  }), makeCompanionAsset({
+    key: 'companion:policy:host-care', name: '宿主作息感知与关怀策略',
+    purpose: '感知用户长时间专注或深夜仍在工作，由角色在主会话主动关怀，并反哺次日剧本',
+    role: 'platform', description: '连续专注 120 分钟（冷却 3 小时）或 23:30–05:00 活跃（冷却 6 小时）触发；关怀写入主会话并广播 host-care-triggered；深夜记录供次日剧本吸收。',
+    source: 'electron/main/companion/life/host-presence.ts#checkAndTriggerHostCare', version: 'host-care-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ trigger: 'host-presence-care', promptKey: PROMPT_KEYS.companionHostCare }),
+    dependencies: [PROMPT_KEYS.companionHostCare],
   })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {

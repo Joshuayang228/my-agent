@@ -95,6 +95,7 @@ describe('ensureMainSessionForRole & proactive greeting delivery', () => {
         updated_at INTEGER,
         role_id TEXT,
         session_kind TEXT,
+        parent_session_id TEXT,
         total_prompt_tokens INTEGER DEFAULT 0,
         total_completion_tokens INTEGER DEFAULT 0
       );

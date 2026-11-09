@@ -1553,5 +1553,43 @@ export interface CompanionGiftEvent {
   gift: CompanionGiftRecord
 }
 
+export interface EventCausalityLink {
+  trigger: 'vitals_exhaustion' | 'vulnerability' | 'co_decision' | 'manual'
+  reason: string
+  previousActivity?: string
+  at: number
+}
 
+export type HostCareKind = 'fatigue_break' | 'late_night_sleep' | 'welcome_back'
 
+export interface HostCareEvent {
+  kind: HostCareKind
+  title: string
+  message: string
+  suggestedAction?: string
+  continuousActiveMinutes: number
+  triggeredAt: number
+}
+
+export interface HostPresenceStatus {
+  continuousActiveMinutes: number
+  idleSeconds: number
+  isLateNight: boolean
+  isFocusSession: boolean
+}
+
+export interface ReplanResult {
+  ok: boolean
+  roleId: string
+  replannedCount: number
+  trigger: string
+  reason: string
+  adjustedSlots: Array<{
+    eventId: string
+    hour: number
+    minute: number
+    activity: string
+    mood: string
+    location?: string
+  }>
+}
