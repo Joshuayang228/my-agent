@@ -5222,6 +5222,7 @@ test.describe('My Agent UI', () => {
     const journalDetail = journal.getByTestId('journal-detail-fixture-journal-1')
     await expect(journalDetail).toContainText('在千里阳光号的狮子船头上')
     await expect(journalDetail.locator('h3')).toHaveCount(1)
+    await expect(journalDetail.getByRole('img', { name: /心情：/ })).toHaveCount(1)
     await expect(journalDetail).not.toContainText('写给此刻的你')
     await expect(journalDetail).not.toContainText('当时在做：')
     await expect(journalDetail.getByRole('button', { name: /收藏日记|取消收藏/ })).toHaveCount(0)

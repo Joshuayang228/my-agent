@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Trash2, MessageSquareShare, Moon, ArrowLeft, MailOpen } from 'lucide-react'
+import { Trash2, MessageSquareShare, Moon, ArrowLeft, MailOpen, Smile } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
 import { Badge } from '../foundation/Badge'
@@ -173,7 +173,11 @@ export function WorldJournalPanel({
             <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
               <span>{formatDate(selectedThought.createdAt)}</span>
               {selectedThought.location && <span>· {selectedThought.location}</span>}
-              {selectedThought.mood && <Badge tone="accent">{selectedThought.mood}</Badge>}
+              {selectedThought.mood && (
+                <span role="img" aria-label={`心情：${selectedThought.mood}`} title={`心情：${selectedThought.mood}`} style={{ color: 'var(--accent-fg)' }}>
+                  <Smile size={14} />
+                </span>
+              )}
             </div>
             <p className="mt-5 whitespace-pre-wrap font-display text-[15px] leading-8" style={{ color: 'var(--text-primary)' }}>{selectedThought.content}</p>
             {selectedThought.epiphany && (
@@ -208,7 +212,11 @@ export function WorldJournalPanel({
               <span className="flex flex-1 flex-col justify-between gap-3 p-4">
                 <span className="line-clamp-3 text-[12px] leading-6" style={{ color: 'var(--text-secondary)' }}>{thought.content}</span>
                 <span className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                  {thought.mood && <span>{thought.mood}</span>}
+                  {thought.mood && (
+                    <span role="img" aria-label={`心情：${thought.mood}`} title={`心情：${thought.mood}`} style={{ color: 'var(--accent-fg)' }}>
+                      <Smile size={13} />
+                    </span>
+                  )}
                   {thought.thoughtType === 'nightly_reflection' && <Badge tone="accent"><Moon size={10} className="mr-1 inline" />深夜反思</Badge>}
                 </span>
               </span>
