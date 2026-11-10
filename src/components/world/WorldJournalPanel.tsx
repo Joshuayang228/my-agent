@@ -261,10 +261,10 @@ export function WorldJournalPanel({
           {displayedThoughts.map((thought) => (
             <div
               key={thought.id}
-              className="group relative flex flex-col gap-2 rounded-lg border p-4 transition-shadow hover:shadow-sm"
+              className="group relative flex flex-col gap-2 rounded-[var(--radius-lg)] border p-4 transition-shadow hover:shadow-sm"
               style={{
                 backgroundColor: 'var(--bg-secondary)',
-                borderColor: thought.thoughtType === 'nightly_reflection' ? 'var(--accent, #3b82f6)' : 'var(--border-subtle)',
+                borderColor: thought.thoughtType === 'nightly_reflection' ? 'var(--accent)' : 'var(--border-subtle)',
               }}
               data-testid={`journal-entry-${thought.id}`}
             >
@@ -305,7 +305,7 @@ export function WorldJournalPanel({
                     size={24}
                     label={thought.isFavorite ? '取消收藏' : '收藏日记'}
                     onClick={() => handleToggleFavorite(thought.id)}
-                    style={{ color: thought.isFavorite ? 'var(--danger, #ef4444)' : 'var(--text-muted)' }}
+                    style={{ color: thought.isFavorite ? 'var(--danger)' : 'var(--text-muted)' }}
                   >
                     <Heart size={13} className={thought.isFavorite ? 'fill-current' : ''} />
                   </IconButton>
@@ -336,15 +336,15 @@ export function WorldJournalPanel({
               {/* 深夜反思心灵感悟一句话 */}
               {thought.epiphany && (
                 <div
-                  className="my-1.5 rounded-md border-l-2 p-2.5 text-[12px] italic leading-relaxed"
+                  className="my-1.5 rounded-[var(--radius-md)] border-l-2 p-2.5 text-[12px] italic leading-relaxed"
                   style={{
                     backgroundColor: 'var(--bg-tertiary)',
-                    borderColor: 'var(--accent, #3b82f6)',
+                    borderColor: 'var(--accent)',
                     color: 'var(--text-primary)',
                   }}
                   data-testid={`journal-epiphany-${thought.id}`}
                 >
-                  <span className="mr-1.5 not-italic text-[11px] font-semibold" style={{ color: 'var(--accent, #3b82f6)' }}>
+                  <span className="mr-1.5 not-italic text-[11px] font-semibold" style={{ color: 'var(--accent)' }}>
                     💡 心灵感悟：
                   </span>
                   “{thought.epiphany}”

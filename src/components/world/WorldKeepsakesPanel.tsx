@@ -208,7 +208,7 @@ export function WorldKeepsakesPanel({
       >
         <div>
           <div className="flex items-center gap-2">
-            <Gift size={16} style={{ color: 'var(--companion-accent-warm, #f59e0b)' }} />
+            <Gift size={16} style={{ color: 'var(--companion-accent-warm)' }} />
             <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
               {title}
             </h2>
@@ -252,11 +252,11 @@ export function WorldKeepsakesPanel({
         <button
           type="button"
           onClick={() => setActiveTab('keepsakes')}
-          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+            className={`rounded-[var(--radius-lg)] px-3 py-1.5 text-xs font-medium transition ${
             activeTab === 'keepsakes' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'hover:bg-black/5 dark:hover:bg-white/5'
           }`}
           style={{
-            color: activeTab === 'keepsakes' ? 'var(--companion-accent-warm, #f59e0b)' : 'var(--text-secondary)',
+            color: activeTab === 'keepsakes' ? 'var(--companion-accent-warm)' : 'var(--text-secondary)',
           }}
           data-testid="tab-keepsakes"
         >
@@ -265,11 +265,11 @@ export function WorldKeepsakesPanel({
         <button
           type="button"
           onClick={() => setActiveTab('gifts')}
-          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+            className={`rounded-[var(--radius-lg)] px-3 py-1.5 text-xs font-medium transition ${
             activeTab === 'gifts' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'hover:bg-black/5 dark:hover:bg-white/5'
           }`}
           style={{
-            color: activeTab === 'gifts' ? 'var(--companion-accent-warm, #f59e0b)' : 'var(--text-secondary)',
+            color: activeTab === 'gifts' ? 'var(--companion-accent-warm)' : 'var(--text-secondary)',
           }}
           data-testid="tab-gifts"
         >
@@ -304,10 +304,10 @@ export function WorldKeepsakesPanel({
             {keepsakes.map((item) => (
               <div
                 key={item.id}
-                className="flex flex-col justify-between rounded-xl border p-4 shadow-sm transition hover:shadow-md"
+                className="flex flex-col justify-between rounded-[var(--radius-xl)] border p-4 shadow-sm transition hover:shadow-md"
                 style={{
                   backgroundColor: 'var(--bg-secondary)',
-                  borderColor: 'color-mix(in srgb, var(--companion-accent-warm, #f59e0b) 30%, var(--border-subtle))',
+                  borderColor: 'color-mix(in srgb, var(--companion-accent-warm) 30%, var(--border-subtle))',
                 }}
                 data-testid={`keepsake-card-${item.id}`}
               >
@@ -315,10 +315,10 @@ export function WorldKeepsakesPanel({
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5">
                       <div
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg shadow-sm"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-lg)] shadow-sm"
                         style={{
-                          background: 'color-mix(in srgb, var(--companion-accent-warm, #f59e0b) 15%, transparent)',
-                          color: 'var(--companion-accent-warm, #f59e0b)',
+                          background: 'color-mix(in srgb, var(--companion-accent-warm) 15%, transparent)',
+                          color: 'var(--companion-accent-warm)',
                         }}
                       >
                         <Gift size={18} />
@@ -345,10 +345,10 @@ export function WorldKeepsakesPanel({
 
                   {item.lore && (
                     <div
-                      className="mt-3 rounded-lg border-l-2 p-2.5 text-[11px] leading-relaxed italic"
+                      className="mt-3 rounded-[var(--radius-lg)] border-l-2 p-2.5 text-[11px] leading-relaxed italic"
                       style={{
                         backgroundColor: 'var(--bg-tertiary)',
-                        borderLeftColor: 'var(--companion-accent-warm, #f59e0b)',
+                        borderLeftColor: 'var(--companion-accent-warm)',
                         color: 'var(--text-primary)',
                       }}
                     >
@@ -398,10 +398,10 @@ export function WorldKeepsakesPanel({
             {gifts.map((gift) => (
               <div
                 key={gift.id}
-                className="flex flex-col justify-between rounded-xl border p-4 shadow-sm transition hover:shadow-md"
+                className="flex flex-col justify-between rounded-[var(--radius-xl)] border p-4 shadow-sm transition hover:shadow-md"
                 style={{
                   backgroundColor: 'var(--bg-secondary)',
-                  borderColor: 'color-mix(in srgb, var(--companion-accent-warm, #f59e0b) 25%, var(--border-subtle))',
+                  borderColor: 'color-mix(in srgb, var(--companion-accent-warm) 25%, var(--border-subtle))',
                 }}
                 data-testid={`received-gift-card-${gift.id}`}
               >
@@ -409,10 +409,10 @@ export function WorldKeepsakesPanel({
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5">
                       <div
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg shadow-sm"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-lg)] shadow-sm"
                         style={{
-                          background: 'color-mix(in srgb, var(--companion-accent-warm, #f59e0b) 15%, transparent)',
-                          color: 'var(--companion-accent-warm, #f59e0b)',
+                          background: 'color-mix(in srgb, var(--companion-accent-warm) 15%, transparent)',
+                          color: 'var(--companion-accent-warm)',
                         }}
                       >
                         {renderGiftCategoryIcon(gift.category)}
@@ -439,7 +439,7 @@ export function WorldKeepsakesPanel({
                   {/* 用户留言 */}
                   {gift.userNote && (
                     <div
-                      className="mt-3 rounded-lg border px-3 py-2 text-[11px] leading-relaxed"
+                    className="mt-3 rounded-[var(--radius-lg)] border px-3 py-2 text-[11px] leading-relaxed"
                       style={{
                         backgroundColor: 'var(--bg-primary)',
                         borderColor: 'var(--border-subtle)',
@@ -453,14 +453,14 @@ export function WorldKeepsakesPanel({
 
                   {/* 角色欢呼回响 */}
                   <div
-                    className="mt-3 rounded-lg border-l-2 p-2.5 text-[11px] leading-relaxed italic"
+                    className="mt-3 rounded-[var(--radius-lg)] border-l-2 p-2.5 text-[11px] leading-relaxed italic"
                     style={{
                       backgroundColor: 'var(--bg-tertiary)',
-                      borderLeftColor: 'var(--companion-accent-warm, #f59e0b)',
+                      borderLeftColor: 'var(--companion-accent-warm)',
                       color: 'var(--text-primary)',
                     }}
                   >
-                    <span className="font-semibold not-italic" style={{ color: 'var(--companion-accent-warm, #f59e0b)' }}>
+                    <span className="font-semibold not-italic" style={{ color: 'var(--companion-accent-warm)' }}>
                       伙伴回响：
                     </span>
                     “{gift.companionReaction}”

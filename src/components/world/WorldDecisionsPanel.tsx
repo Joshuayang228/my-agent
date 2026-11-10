@@ -132,7 +132,7 @@ export function WorldDecisionsPanel({
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b pb-3" style={{ borderColor: 'var(--border-subtle)' }}>
         <div>
           <div className="flex items-center gap-2">
-            <Compass size={16} style={{ color: 'var(--companion-accent-warm, #f59e0b)' }} />
+            <Compass size={16} style={{ color: 'var(--companion-accent-warm)' }} />
             <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
               {title}
             </h2>
@@ -202,7 +202,7 @@ export function WorldDecisionsPanel({
                 {pastDecisions.map((item) => (
                   <div
                     key={item.id}
-                    className="flex flex-col gap-2 rounded-xl border p-3.5"
+                    className="flex flex-col gap-2 rounded-[var(--radius-xl)] border p-3.5"
                     style={{
                       backgroundColor: 'var(--bg-secondary)',
                       borderColor: 'var(--border-subtle)',
@@ -228,7 +228,7 @@ export function WorldDecisionsPanel({
                     </div>
 
                     {item.companionReaction && (
-                      <p className="rounded-lg p-2.5 text-[11px] leading-relaxed italic" style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                      <p className="rounded-[var(--radius-lg)] p-2.5 text-[11px] leading-relaxed italic" style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
                         “{item.companionReaction}”
                       </p>
                     )}
