@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Trash2, MessageSquareShare, Moon, ArrowLeft, MailOpen, Smile } from 'lucide-react'
+import { Trash2, MessageSquareShare, ArrowLeft, Smile } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
 import { Badge } from '../foundation/Badge'
@@ -205,20 +205,17 @@ export function WorldJournalPanel({
             <button key={thought.id} type="button" className="group flex min-h-56 flex-col overflow-hidden rounded-[var(--radius-card)] border text-left transition-colors hover:bg-[var(--hover-overlay)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} onClick={() => setSelectedThoughtId(thought.id)} aria-label={`打开日记：${thought.title}`} data-testid={`journal-entry-${thought.id}`}>
               <span className="flex min-h-28 flex-col justify-between p-4" style={{ background: 'var(--accent-subtle)' }}>
                 <span className="flex items-center justify-between text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                  <span>{formatDate(thought.createdAt)}</span><MailOpen size={15} style={{ color: 'var(--accent-fg)' }} />
-                </span>
-                <span className="font-display text-lg font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>{thought.title}</span>
-              </span>
-              <span className="flex flex-1 flex-col justify-between gap-3 p-4">
-                <span className="line-clamp-3 text-[12px] leading-6" style={{ color: 'var(--text-secondary)' }}>{thought.content}</span>
-                <span className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  <span>{formatDate(thought.createdAt)}</span>
                   {thought.mood && (
                     <span role="img" aria-label={`心情：${thought.mood}`} title={`心情：${thought.mood}`} style={{ color: 'var(--accent-fg)' }}>
                       <Smile size={13} />
                     </span>
                   )}
-                  {thought.thoughtType === 'nightly_reflection' && <Badge tone="accent"><Moon size={10} className="mr-1 inline" />深夜反思</Badge>}
                 </span>
+                <span className="font-display text-lg font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>{thought.title}</span>
+              </span>
+              <span className="flex flex-1 flex-col p-4">
+                <span className="line-clamp-3 text-[12px] leading-6" style={{ color: 'var(--text-secondary)' }}>{thought.content}</span>
               </span>
             </button>
           ))}
