@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Heart, Trash2, MessageSquareShare, Moon, ArrowLeft, MailOpen } from 'lucide-react'
+import { Trash2, MessageSquareShare, Moon, ArrowLeft, MailOpen } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
 import { Badge } from '../foundation/Badge'
@@ -109,24 +109,6 @@ export function WorldJournalPanel({
     }
   }, [previewThoughts, roleId])
 
-  const handleToggleFavorite = async (id: string) => {
-    if (previewThoughts !== undefined) {
-      setThoughts((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, isFavorite: !t.isFavorite } : t)),
-      )
-      return
-    }
-    if (!window.electronAPI?.companion?.toggleInnerThoughtFavorite) return
-    try {
-      const updatedFav = await window.electronAPI.companion.toggleInnerThoughtFavorite(id)
-      setThoughts((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, isFavorite: updatedFav } : t)),
-      )
-    } catch (err) {
-      console.warn('Failed to toggle inner thought favorite:', err)
-    }
-  }
-
   const handleDelete = async (id: string) => {
     if (previewThoughts !== undefined) {
       setThoughts((prev) => prev.filter((t) => t.id !== id))
@@ -159,14 +141,9 @@ export function WorldJournalPanel({
             <ArrowLeft size={14} className="mr-1" />
             返回日记册
           </ActionButton>
-          <div className="flex items-center gap-1">
-            <IconButton size={24} label={selectedThought.isFavorite ? '取消收藏' : '收藏日记'} onClick={() => handleToggleFavorite(selectedThought.id)} style={{ color: selectedThought.isFavorite ? 'var(--danger)' : 'var(--text-muted)' }}>
-              <Heart size={13} className={selectedThought.isFavorite ? 'fill-current' : ''} />
-            </IconButton>
-            <IconButton size={24} label="删除记录" onClick={() => handleDelete(selectedThought.id)} style={{ color: 'var(--text-muted)' }}>
-              <Trash2 size={13} />
-            </IconButton>
-          </div>
+          <IconButton size={24} label="删除记录" onClick={() => handleDelete(selectedThought.id)} style={{ color: 'var(--text-muted)' }}>
+            <Trash2 size={13} />
+          </IconButton>
         </div>
       )}
 
@@ -191,13 +168,13 @@ export function WorldJournalPanel({
         />
       ) : selectedThought ? (
         <article className="flex min-h-0 flex-1 flex-col gap-4" data-testid={`journal-detail-${selectedThought.id}`}>
-          <div className="flex flex-wrap items-center gap-2 border-b pb-3 text-[11px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
-            <span>{formatDate(selectedThought.createdAt)}</span>
-            {selectedThought.location && <span>· {selectedThought.location}</span>}
-            {selectedThought.mood && <Badge tone="accent">{selectedThought.mood}</Badge>}
-          </div>
           <div className="w-full max-w-3xl rounded-[var(--radius-card)] border p-6 sm:p-8" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
             <h3 className="font-display text-xl font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>{selectedThought.title}</h3>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+              <span>{formatDate(selectedThought.createdAt)}</span>
+              {selectedThought.location && <span>· {selectedThought.location}</span>}
+              {selectedThought.mood && <Badge tone="accent">{selectedThought.mood}</Badge>}
+            </div>
             <p className="mt-5 whitespace-pre-wrap font-display text-[15px] leading-8" style={{ color: 'var(--text-primary)' }}>{selectedThought.content}</p>
             {selectedThought.epiphany && (
               <div className="mt-6 border-t pt-4" style={{ borderColor: 'var(--border-subtle)' }} data-testid={`journal-epiphany-${selectedThought.id}`}>

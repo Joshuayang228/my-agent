@@ -5224,6 +5224,7 @@ test.describe('My Agent UI', () => {
     await expect(journalDetail.locator('h3')).toHaveCount(1)
     await expect(journalDetail).not.toContainText('写给此刻的你')
     await expect(journalDetail).not.toContainText('当时在做：')
+    await expect(journalDetail.getByRole('button', { name: /收藏日记|取消收藏/ })).toHaveCount(0)
     await journal.getByRole('button', { name: '返回日记册', exact: true }).click()
     await expect(journal.getByTestId('journal-shelf')).toBeVisible()
     await page.getByTestId('world-tab-wardrobe').click()
