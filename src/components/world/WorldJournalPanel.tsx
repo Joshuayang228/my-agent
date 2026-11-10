@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Sparkles, Heart, Trash2, MapPin, CloudSun, MessageSquareShare, FileText, Moon } from 'lucide-react'
+import { Sparkles, Heart, Trash2, MapPin, CloudSun, MessageSquareShare, FileText, Moon, ArrowLeft, MailOpen } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
 import { Badge } from '../foundation/Badge'
@@ -23,6 +23,8 @@ interface WorldJournalPanelProps {
   showVulnerabilityCard?: boolean
   previewReadError?: string
   onPreviewRetry?: () => void
+  /** 日记册样式先显示封面摘要，再进入信件式正文阅读。 */
+  presentation?: 'stream' | 'shelf'
 }
 
 function formatDate(timestamp: number): string {
@@ -51,12 +53,13 @@ export function WorldJournalPanel({
   showVulnerabilityCard = true,
   previewReadError,
   onPreviewRetry,
+  presentation = 'shelf',
 }: WorldJournalPanelProps) {
   const [thoughts, setThoughts] = useState<CompanionInnerThoughtRecord[]>(previewThoughts ?? [])
   const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [filterFavorite, setFilterFavorite] = useState(false)
   const [loadError, setLoadError] = useState('')
+  const [selectedThoughtId, setSelectedThoughtId] = useState<string | null>(null)
 
   const journalTitle = '日记'
   const journalDesc = '角色在独处、回忆或夜间沉思时留下的私密心声与随笔，不公开发表，唯你可见。'
@@ -165,20 +168,20 @@ export function WorldJournalPanel({
   const handleDelete = async (id: string) => {
     if (previewThoughts !== undefined) {
       setThoughts((prev) => prev.filter((t) => t.id !== id))
+      setSelectedThoughtId((current) => current === id ? null : current)
       return
     }
     if (!window.electronAPI?.companion?.deleteInnerThought) return
     try {
       await window.electronAPI.companion.deleteInnerThought(id)
       setThoughts((prev) => prev.filter((t) => t.id !== id))
+      setSelectedThoughtId((current) => current === id ? null : current)
     } catch (err) {
       console.warn('Failed to delete inner thought:', err)
     }
   }
 
-  const displayedThoughts = filterFavorite
-    ? thoughts.filter((t) => t.isFavorite)
-    : thoughts
+  const selectedThought = thoughts.find((thought) => thought.id === selectedThoughtId) ?? null
 
   return (
     <div
@@ -187,47 +190,35 @@ export function WorldJournalPanel({
       data-testid="world-journal-panel"
       data-world-content="journal"
     >
-      {/* 顶部标题与操作 */}
+      {/* 日记册页头只保留范围和一个主要动作，正文信息进入封面或详情。 */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b pb-3" style={{ borderColor: 'var(--border-subtle)' }}>
-        <div>
-          <div className="flex items-center gap-2">
-            <FileText size={16} style={{ color: 'var(--accent-fg)' }} />
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {journalTitle}
-            </h2>
-            <Badge tone="accent">{thoughts.length} 篇随笔</Badge>
+        <div className="flex min-w-0 items-center gap-2">
+          {selectedThought ? (
+            <IconButton size={28} label="返回日记册" onClick={() => setSelectedThoughtId(null)}>
+              <ArrowLeft size={15} />
+            </IconButton>
+          ) : <FileText size={16} style={{ color: 'var(--accent-fg)' }} />}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h2 className="truncate text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {selectedThought ? selectedThought.title : journalTitle}
+              </h2>
+              {!selectedThought && <Badge tone="accent">{thoughts.length} 篇</Badge>}
+            </div>
+            {!selectedThought && <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>{journalDesc}</p>}
           </div>
-          <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            {journalDesc}
-          </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <ActionButton
-            size="sm"
-            variant={filterFavorite ? 'default' : 'plain'}
-            tone={filterFavorite ? 'accent' : 'neutral'}
-            onClick={() => setFilterFavorite((prev) => !prev)}
-            aria-pressed={filterFavorite}
-          >
-            <Heart size={12} className={`mr-1 ${filterFavorite ? 'fill-current' : ''}`} />
-            {filterFavorite ? '只看星标' : '全部'}
-          </ActionButton>
-
-          <ActionButton
-            size="sm"
-            tone="accent"
-            disabled={creating}
-            onClick={handleCreateThought}
-          >
+        {!selectedThought && (
+          <ActionButton size="sm" tone="accent" disabled={creating} onClick={handleCreateThought}>
             <Sparkles size={12} className={`mr-1 ${creating ? 'animate-spin' : ''}`} />
             {creating ? '正在思考记录...' : '写一篇日记'}
           </ActionButton>
-        </div>
+        )}
       </div>
 
       {/* 伙伴实时心境波动与脆弱时刻 */}
-      {showVulnerabilityCard && (
+      {showVulnerabilityCard && !selectedThought && (
         <div className="mb-4">
           <VulnerabilityCard
             roleId={roleId}
@@ -237,7 +228,7 @@ export function WorldJournalPanel({
         </div>
       )}
 
-      {/* 错误提示与列表流 */}
+      {/* 日记册或信件详情。列表层只保留封面摘要，正文在详情层阅读。 */}
       {previewReadError || loadError ? (
         <ErrorState
           title="日记暂时无法读取"
@@ -245,140 +236,70 @@ export function WorldJournalPanel({
           action={<ActionButton size="sm" variant="plain" tone="accent" onClick={previewReadError ? onPreviewRetry : () => { void loadThoughts() }}>重新加载</ActionButton>}
           className="flex-1"
         />
-      ) : displayedThoughts.length === 0 ? (
+      ) : selectedThought ? (
+        <article className="flex min-h-0 flex-1 flex-col gap-4" data-testid={`journal-detail-${selectedThought.id}`}>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div className="flex flex-wrap items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+              <span>{formatDate(selectedThought.createdAt)}</span>
+              {selectedThought.location && <span>· {selectedThought.location}</span>}
+              {selectedThought.mood && <Badge tone="accent">{selectedThought.mood}</Badge>}
+            </div>
+            <div className="flex items-center gap-1">
+              <IconButton size={24} label={selectedThought.isFavorite ? '取消收藏' : '收藏日记'} onClick={() => handleToggleFavorite(selectedThought.id)} style={{ color: selectedThought.isFavorite ? 'var(--danger)' : 'var(--text-muted)' }}>
+                <Heart size={13} className={selectedThought.isFavorite ? 'fill-current' : ''} />
+              </IconButton>
+              <IconButton size={24} label="删除记录" onClick={() => handleDelete(selectedThought.id)} style={{ color: 'var(--text-muted)' }}>
+                <Trash2 size={13} />
+              </IconButton>
+            </div>
+          </div>
+          <div className="w-full max-w-3xl rounded-[var(--radius-card)] border p-6 sm:p-8" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+            <div className="mb-6 flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+              <MailOpen size={14} style={{ color: 'var(--accent-fg)' }} />
+              <span>写给此刻的你</span>
+            </div>
+            <h3 className="font-display text-xl font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>{selectedThought.title}</h3>
+            <p className="mt-6 whitespace-pre-wrap font-display text-[15px] leading-8" style={{ color: 'var(--text-primary)' }}>{selectedThought.content}</p>
+            {selectedThought.epiphany && (
+              <div className="mt-6 border-t pt-4" style={{ borderColor: 'var(--border-subtle)' }} data-testid={`journal-epiphany-${selectedThought.id}`}>
+                <p className="text-[11px] font-semibold" style={{ color: 'var(--accent-fg)' }}>写在页边的一句领悟</p>
+                <p className="mt-2 font-display text-[14px] italic leading-7" style={{ color: 'var(--text-secondary)' }}>“{selectedThought.epiphany}”</p>
+              </div>
+            )}
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-2 border-t pt-3 text-[11px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
+              <span>{selectedThought.activity ? `当时在做：${selectedThought.activity}` : '这一页只留给你阅读'}</span>
+              {onTakeToChat && (
+                <ActionButton size="sm" variant="plain" tone="neutral" onClick={() => onTakeToChat({ text: `我读了你写的日记《${selectedThought.title}》，想和你聊聊这页内容。` })}>
+                  <MessageSquareShare size={12} className="mr-1" />与TA聊聊
+                </ActionButton>
+              )}
+            </div>
+          </div>
+        </article>
+      ) : thoughts.length === 0 ? (
         <div className="flex flex-1 items-center justify-center p-8">
-          <EmptyState
-            title={filterFavorite ? '还没有收藏任何日记' : '日记本里还空着'}
-            description={
-              filterFavorite
-                ? '点击卡片右上角的心形图标，把触动内心的日记收藏起来吧。'
-                : '当角色独处、回忆或整理心情时，会自主写下真情实感。'
-            }
-          />
+          <EmptyState title="日记本里还空着" description="当角色独处、回忆或整理心情时，会自主写下真情实感。" />
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {displayedThoughts.map((thought) => (
-            <div
-              key={thought.id}
-              className="group relative flex flex-col gap-2 border-b pb-4 transition-colors hover:bg-[var(--hover-overlay)]"
-              style={{ borderColor: 'var(--border-subtle)' }}
-              data-testid={`journal-entry-${thought.id}`}
-            >
-              {/* 卡片顶部元数据 */}
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-                  <span style={{ color: 'var(--text-muted)' }}>
-                    {formatDate(thought.createdAt)}
-                  </span>
-                  {thought.thoughtType === 'nightly_reflection' && (
-                    <Badge tone="accent">
-                      <Moon size={10} className="mr-0.5 inline" />
-                      深夜反思
-                    </Badge>
-                  )}
-                  {thought.location && (
-                    <Badge tone="neutral">
-                      <MapPin size={10} className="mr-0.5 inline" />
-                      {thought.location}
-                    </Badge>
-                  )}
-                  {thought.weather && (
-                    <Badge tone="neutral">
-                      <CloudSun size={10} className="mr-0.5 inline" />
-                      {thought.weather}
-                    </Badge>
-                  )}
-                  {thought.mood && (
-                    <Badge tone="accent">
-                      <Heart size={10} className="mr-0.5 inline" />
-                      {thought.mood}
-                    </Badge>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <IconButton
-                    size={24}
-                    label={thought.isFavorite ? '取消收藏' : '收藏日记'}
-                    onClick={() => handleToggleFavorite(thought.id)}
-                    style={{ color: thought.isFavorite ? 'var(--danger)' : 'var(--text-muted)' }}
-                  >
-                    <Heart size={13} className={thought.isFavorite ? 'fill-current' : ''} />
-                  </IconButton>
-                  <IconButton
-                    size={24}
-                    label="删除记录"
-                    onClick={() => handleDelete(thought.id)}
-                    style={{ color: 'var(--text-muted)' }}
-                  >
-                    <Trash2 size={13} />
-                  </IconButton>
-                </div>
-              </div>
-
-              {/* 标题 */}
-              <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {thought.title}
-              </h3>
-
-              {/* 正文 */}
-              <p
-                className="whitespace-pre-wrap text-[12px] leading-relaxed"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                {thought.content}
-              </p>
-
-              {/* 深夜反思心灵感悟一句话 */}
-              {thought.epiphany && (
-                <div
-                  className="my-1.5 rounded-[var(--radius-md)] p-2.5 text-[12px] italic leading-relaxed"
-                  style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    color: 'var(--text-primary)',
-                  }}
-                  data-testid={`journal-epiphany-${thought.id}`}
-                >
-                  <span className="mr-1.5 not-italic text-[11px] font-semibold" style={{ color: 'var(--accent)' }}>
-                    💡 心灵感悟：
-                  </span>
-                  “{thought.epiphany}”
-                </div>
-              )}
-
-              {/* 底部动作与对话桥梁 */}
-              <div className="mt-1 flex flex-wrap items-center justify-between gap-2 border-t pt-2" style={{ borderColor: 'var(--border-subtle)' }}>
-                {thought.activity ? (
-                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                    动作：{thought.activity}
-                  </span>
-                ) : (
-                  <span />
-                )}
-
-                {onTakeToChat && (
-                  <ActionButton
-                    size="sm"
-                    variant="plain"
-                    tone={thought.thoughtType === 'nightly_reflection' ? 'accent' : 'neutral'}
-                    onClick={() => {
-                      const promptText =
-                        thought.thoughtType === 'nightly_reflection'
-                          ? `读了你昨晚写的深夜感悟《${thought.title}》，心里觉得特别温暖，想和你聊聊……`
-                          : `我刚刚偷看了你写的日记《${thought.title}》，原来你心里是这么想的啊！`
-                      onTakeToChat({ text: promptText })
-                    }}
-                  >
-                    <MessageSquareShare size={12} className="mr-1" />
-                    {thought.thoughtType === 'nightly_reflection' ? '与TA聊聊这篇深夜感悟' : '与TA聊聊这篇日记'}
-                  </ActionButton>
-                )}
-              </div>
-            </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="journal-shelf">
+          {thoughts.map((thought) => (
+            <button key={thought.id} type="button" className="group flex min-h-56 flex-col overflow-hidden rounded-[var(--radius-card)] border text-left transition-colors hover:bg-[var(--hover-overlay)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} onClick={() => setSelectedThoughtId(thought.id)} aria-label={`打开日记：${thought.title}`} data-testid={`journal-entry-${thought.id}`}>
+              <span className="flex min-h-28 flex-col justify-between p-4" style={{ background: 'var(--accent-subtle)' }}>
+                <span className="flex items-center justify-between text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  <span>{formatDate(thought.createdAt)}</span><MailOpen size={15} style={{ color: 'var(--accent-fg)' }} />
+                </span>
+                <span className="font-display text-lg font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>{thought.title}</span>
+              </span>
+              <span className="flex flex-1 flex-col justify-between gap-3 p-4">
+                <span className="line-clamp-3 text-[12px] leading-6" style={{ color: 'var(--text-secondary)' }}>{thought.content}</span>
+                <span className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  {thought.mood && <span>{thought.mood}</span>}
+                  {thought.thoughtType === 'nightly_reflection' && <Badge tone="accent"><Moon size={10} className="mr-1 inline" />深夜反思</Badge>}
+                </span>
+              </span>
+            </button>
           ))}
         </div>
-      )}
-    </div>
+      )}    </div>
   )
 }
