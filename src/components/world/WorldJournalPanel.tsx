@@ -261,11 +261,8 @@ export function WorldJournalPanel({
           {displayedThoughts.map((thought) => (
             <div
               key={thought.id}
-              className="group relative flex flex-col gap-2 rounded-[var(--radius-lg)] border p-4 transition-shadow hover:shadow-sm"
-              style={{
-                backgroundColor: 'var(--bg-secondary)',
-                borderColor: thought.thoughtType === 'nightly_reflection' ? 'var(--accent)' : 'var(--border-subtle)',
-              }}
+              className="group relative flex flex-col gap-2 border-b pb-4 transition-colors hover:bg-[var(--hover-overlay)]"
+              style={{ borderColor: 'var(--border-subtle)' }}
               data-testid={`journal-entry-${thought.id}`}
             >
               {/* 卡片顶部元数据 */}
@@ -336,10 +333,9 @@ export function WorldJournalPanel({
               {/* 深夜反思心灵感悟一句话 */}
               {thought.epiphany && (
                 <div
-                  className="my-1.5 rounded-[var(--radius-md)] border p-2.5 text-[12px] italic leading-relaxed"
+                  className="my-1.5 rounded-[var(--radius-md)] p-2.5 text-[12px] italic leading-relaxed"
                   style={{
-                    backgroundColor: 'var(--bg-tertiary)',
-                    borderColor: 'color-mix(in srgb, var(--accent) 35%, var(--border-subtle))',
+                    backgroundColor: 'var(--bg-secondary)',
                     color: 'var(--text-primary)',
                   }}
                   data-testid={`journal-epiphany-${thought.id}`}

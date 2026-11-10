@@ -287,18 +287,15 @@ export function WorldKeepsakesPanel({
             {keepsakes.map((item) => (
               <div
                 key={item.id}
-                className="flex flex-col justify-between rounded-[var(--radius-card)] border p-4 transition"
-                style={{
-                  backgroundColor: 'var(--bg-secondary)',
-                  borderColor: 'color-mix(in srgb, var(--companion-accent-warm) 30%, var(--border-subtle))',
-                }}
+                className="flex flex-col justify-between border-b pb-4 transition-colors hover:bg-[var(--hover-overlay)]"
+                style={{ borderColor: 'var(--border-subtle)' }}
                 data-testid={`keepsake-card-${item.id}`}
               >
                 <div>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5">
                       <div
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-lg)] shadow-sm"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-lg)]"
                         style={{
                           background: 'color-mix(in srgb, var(--companion-accent-warm) 15%, transparent)',
                           color: 'var(--companion-accent-warm)',
@@ -328,10 +325,9 @@ export function WorldKeepsakesPanel({
 
                   {item.lore && (
                     <div
-                      className="mt-3 rounded-[var(--radius-lg)] border p-2.5 text-[11px] leading-relaxed italic"
+                      className="mt-3 rounded-[var(--radius-lg)] p-2.5 text-[11px] leading-relaxed italic"
                       style={{
-                        backgroundColor: 'var(--bg-tertiary)',
-                        borderColor: 'color-mix(in srgb, var(--companion-accent-warm) 35%, var(--border-subtle))',
+                        backgroundColor: 'var(--bg-secondary)',
                         color: 'var(--text-primary)',
                       }}
                     >
@@ -381,18 +377,15 @@ export function WorldKeepsakesPanel({
             {gifts.map((gift) => (
               <div
                 key={gift.id}
-                className="flex flex-col justify-between rounded-[var(--radius-card)] border p-4 transition"
-                style={{
-                  backgroundColor: 'var(--bg-secondary)',
-                  borderColor: 'color-mix(in srgb, var(--companion-accent-warm) 25%, var(--border-subtle))',
-                }}
+                className="flex flex-col justify-between border-b pb-4 transition-colors hover:bg-[var(--hover-overlay)]"
+                style={{ borderColor: 'var(--border-subtle)' }}
                 data-testid={`received-gift-card-${gift.id}`}
               >
                 <div>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5">
                       <div
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-lg)] shadow-sm"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-lg)]"
                         style={{
                           background: 'color-mix(in srgb, var(--companion-accent-warm) 15%, transparent)',
                           color: 'var(--companion-accent-warm)',
@@ -422,10 +415,9 @@ export function WorldKeepsakesPanel({
                   {/* 用户留言 */}
                   {gift.userNote && (
                     <div
-                    className="mt-3 rounded-[var(--radius-lg)] border px-3 py-2 text-[11px] leading-relaxed"
+                      className="mt-3 rounded-[var(--radius-lg)] px-3 py-2 text-[11px] leading-relaxed"
                       style={{
                         backgroundColor: 'var(--bg-primary)',
-                        borderColor: 'var(--border-subtle)',
                         color: 'var(--text-secondary)',
                       }}
                     >
@@ -436,10 +428,9 @@ export function WorldKeepsakesPanel({
 
                   {/* 角色欢呼回响 */}
                   <div
-                    className="mt-3 rounded-[var(--radius-lg)] border p-2.5 text-[11px] leading-relaxed italic"
+                    className="mt-3 rounded-[var(--radius-lg)] p-2.5 text-[11px] leading-relaxed italic"
                     style={{
-                      backgroundColor: 'var(--bg-tertiary)',
-                      borderColor: 'color-mix(in srgb, var(--companion-accent-warm) 35%, var(--border-subtle))',
+                      backgroundColor: 'var(--bg-secondary)',
                       color: 'var(--text-primary)',
                     }}
                   >
