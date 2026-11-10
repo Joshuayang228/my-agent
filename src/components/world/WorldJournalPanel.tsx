@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Sparkles, Heart, Trash2, MapPin, CloudSun, MessageSquareShare, FileText, Moon, ArrowLeft, MailOpen } from 'lucide-react'
+import { Heart, Trash2, MessageSquareShare, FileText, Moon, ArrowLeft, MailOpen } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
 import { Badge } from '../foundation/Badge'
@@ -57,7 +57,6 @@ export function WorldJournalPanel({
 }: WorldJournalPanelProps) {
   const [thoughts, setThoughts] = useState<CompanionInnerThoughtRecord[]>(previewThoughts ?? [])
   const [loading, setLoading] = useState(false)
-  const [creating, setCreating] = useState(false)
   const [loadError, setLoadError] = useState('')
   const [selectedThoughtId, setSelectedThoughtId] = useState<string | null>(null)
 
@@ -111,40 +110,6 @@ export function WorldJournalPanel({
       unsubNightly?.()
     }
   }, [previewThoughts, roleId])
-
-  const handleCreateThought = async () => {
-    if (creating) return
-    if (previewThoughts !== undefined) {
-      setCreating(true)
-      const mockThought: CompanionInnerThoughtRecord = {
-        id: `mock-thought-${Date.now()}`,
-        roleId,
-        title: '新写下的随笔灵感',
-        content: '这是在样张预览中轻声唤醒的随笔。虽然只是即兴的记录，但也是此刻最真实的心情。',
-        location: '甲板眺望台',
-        weather: '微风晴朗',
-        mood: '惬意放空',
-        activity: '看海吹风',
-        isFavorite: false,
-        createdAt: Date.now(),
-      }
-      setThoughts((prev) => [mockThought, ...prev])
-      setCreating(false)
-      return
-    }
-    if (!window.electronAPI?.companion?.createInnerThought) return
-    setCreating(true)
-    try {
-      const created = await window.electronAPI.companion.createInnerThought(roleId, '用户在日记本中轻声唤醒的随笔灵感')
-      if (created) {
-        setThoughts((prev) => [created, ...prev.filter((t) => t.id !== created.id)])
-      }
-    } catch (err) {
-      console.warn('Failed to create inner thought:', err)
-    } finally {
-      setCreating(false)
-    }
-  }
 
   const handleToggleFavorite = async (id: string) => {
     if (previewThoughts !== undefined) {
@@ -208,12 +173,6 @@ export function WorldJournalPanel({
           </div>
         </div>
 
-        {!selectedThought && (
-          <ActionButton size="sm" tone="accent" disabled={creating} onClick={handleCreateThought}>
-            <Sparkles size={12} className={`mr-1 ${creating ? 'animate-spin' : ''}`} />
-            {creating ? '正在思考记录...' : '写一篇日记'}
-          </ActionButton>
-        )}
       </div>
 
       {/* 伙伴实时心境波动与脆弱时刻 */}
