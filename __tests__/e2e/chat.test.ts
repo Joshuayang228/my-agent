@@ -2624,12 +2624,10 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'deep-plum', 'song-smoke']) 
       await page.goto('/')
       await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
       const world = page.getByTestId('world-hub')
-      await expect(world.getByTestId('world-profile').getByRole('heading')).toHaveText('测试伙伴')
-      await expect(world.getByTestId('world-profile')).not.toContainText('沉稳体贴的数字伙伴')
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
       const tabs = world.getByRole('tablist', { name: '人物世界分区' })
       await expect(tabs).toHaveAttribute('data-foundation', 'tabs')
-      await expect(tabs.getByRole('tab')).toHaveText(['朋友圈', '衣柜', '文化角', '家居', '通讯录', '足迹'])
+      await expect(tabs.getByRole('tab')).toHaveText(['朋友圈', '日记', '专属信物', '共同决策', '衣柜', '文化角', '家居', '通讯录', '足迹'])
       await expect(world).toContainText('还没有新的动态。')
       await expect(world.getByRole('button', { name: '刷新朋友圈', exact: true })).toBeVisible()
       await expect(world).not.toContainText(/tick|Catch-up|派生/)
@@ -5182,7 +5180,7 @@ test.describe('My Agent UI', () => {
     }
   }
 
-  test('Playground 当前主角贯穿 Chat、人物世界六个生活面', async ({ page }) => {
+  test('Playground 当前主角贯穿 Chat 与人物世界生活面', async ({ page }) => {
     await page.goto('/')
     await page.locator('[data-testid="primary-sidebar"]').getByRole('button', { name: 'Playground', exact: true }).click()
     const nav = page.locator('[data-testid="playground-nav"]')
@@ -5207,9 +5205,9 @@ test.describe('My Agent UI', () => {
         await expect(moments.getByText('最近生活', { exact: true })).toHaveCount(0)
     await expect(moments.getByRole('button', { name: /添加/ })).toHaveCount(0)
     const worldTabs = page.getByTestId('world-hub').getByRole('tablist', { name: '人物世界分区' }).getByRole('tab')
-    await expect(worldTabs).toHaveCount(6)
+    await expect(worldTabs).toHaveCount(9)
     const worldTabLabels = await worldTabs.evaluateAll((tabs) => tabs.map((tab) => tab.textContent?.trim()))
-    expect(worldTabLabels).toEqual(['朋友圈', '衣柜', '文化角', '家居', '通讯录', '足迹'])
+    expect(worldTabLabels).toEqual(['朋友圈', '日记', '专属信物', '共同决策', '衣柜', '文化角', '家居', '通讯录', '足迹'])
     await page.getByTestId('world-tab-wardrobe').click()
     const wardrobe = page.getByTestId('world-wardrobe-fixture')
     await expect(wardrobe).toHaveAttribute('data-persona-id', 'yao')

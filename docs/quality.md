@@ -38,11 +38,11 @@ Companion 列表资源上限复核（2026-11-10）：脆弱心境、收到礼物
 
 衣柜与穿搭自主演化门禁（2026-11-09）：`autonomous-dressing.test.ts` 4 项测试覆盖角色穿搭槽位与情境打分算法、冷启无穿着状态时自动穿上日常套装（`草帽冒险日常装`）且主会话提示词切片（`formatLifeAssetsSliceForPrompt`）自然感知当前穿着、冷却期（4小时）与每日上限（2次）门控严格拦截高频换装、用户近2小时手动换装享有保护权不被自主演化覆盖；`asset-registry.ts` 登记 `companion:policy:autonomous-dressing` 生产策略资产，`npm run assets:check` 与全套门禁全绿通过。
 
-人物世界「航海日记」与「专属信物」Playground 隔离候选样张门禁（2026-11-09）：`playground-world-candidates.test.ts` 3 项测试覆盖 UI 组件注册表显式登记 `layout.journal-experience-candidate` 与 `layout.keepsakes-experience-candidate` 样张组件及其支持的默认、长文本、精简与空态 stories、产品体验注册表（`experience.world`）纳管两个样张组件源文件并扩展 `experienceParts`（包含「航海日记 / 心事独白」与「专属信物」），以及样张组件函数导出契约；`WorldJournalPanel` 与 `WorldKeepsakesPanel` 覆盖 `previewThoughts` / `previewKeepsakes` 离线注入属性，在样张模式下规避主进程 IPC 依赖并支持内存自闭环交互。
+人物世界「日记」与「专属信物」Playground 隔离候选样张门禁（2026-11-09）：`playground-world-candidates.test.ts` 3 项测试覆盖 UI 组件注册表显式登记 `layout.journal-experience-candidate` 与 `layout.keepsakes-experience-candidate` 样张组件及其支持的默认、长文本、精简与空态 stories、产品体验注册表（`experience.world`）纳管两个样张组件源文件并扩展 `experienceParts`（包含「日记」与「专属信物」），以及样张组件函数导出契约；`WorldJournalPanel` 与 `WorldKeepsakesPanel` 覆盖 `previewThoughts` / `previewKeepsakes` 离线注入属性，在样张模式下规避主进程 IPC 依赖并支持内存自闭环交互。
 
 羁绊深度跃迁与专属信物馈赠门禁（2026-11-08）：`relationship-keepsake.test.ts` 3 项测试覆盖表初始化时为路飞自动播种首件信物「生命卡的一角」并记录 `keepsake_gifted` 关系里程碑、赠送下一件信物（梅利号小羊铃铛）并自动将赠言写入角色专属主会话与窗口广播、预设信物赠完后平滑定制高阶信物；`milestones.test.ts` 扩展支持 `keepsake_gifted` 里程碑解析与去重；`prompt-feature-contracts.test.ts` 扩展至 20 个核心功能合同（含 `keepsakeGift`）。
 
-私密内心独白与航海日记门禁（2026-11-08）：`inner-thoughts.test.ts` 3 项测试覆盖 `decideInnerThought` 规则门控（夜间/清晨沉思时段放行、下午非沉思时段拦截、每日上限 2 次与 6 小时冷却）、表初始化时为路飞自动播种 3 篇情感充沛的 starter 日记、日记列表按时间倒序查询、星标收藏状态切换、单篇删除、受控模型触发与人设规则平滑保底；`world-hub.test.ts` 覆盖 `journal` 视图判定与标签路由映射；`prompt-feature-contracts.test.ts` 同步扩展至 19 个核心功能合同（含 `innerThought`）。
+私密内心独白与日记门禁（2026-11-08）：`inner-thoughts.test.ts` 3 项测试覆盖 `decideInnerThought` 规则门控（夜间/清晨沉思时段放行、下午非沉思时段拦截、每日上限 2 次与 6 小时冷却）、表初始化时为路飞自动播种 3 篇情感充沛的 starter 日记、日记列表按时间倒序查询、星标收藏状态切换、单篇删除、受控模型触发与人设规则平滑保底；`world-hub.test.ts` 覆盖 `journal` 视图判定与标签路由映射；`prompt-feature-contracts.test.ts` 同步扩展至 19 个核心功能合同（含 `innerThought`）。
 
 突发生活意图与主动找聊门禁（2026-11-08）：`spontaneous-impulse.test.ts` 2 项测试覆盖 `decideSpontaneousImpulse` 规则门控（夜间勿扰、每日上限 2 次、冷却 3 小时、低表达欲拦截与高表达欲放行）、消息直接落盘进角色主会话、`companion:spontaneous-impulse` 事件窗口广播以及历史查询；`prompt-feature-contracts.test.ts` 同步扩展至 18 个核心功能合同（含 `spontaneousImpulse`）。
 
@@ -1061,3 +1061,7 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 人物世界切换测试隔离修复（2026-11-10）：用户世界单测使用唯一 universeId，避免并行运行共享固定目录导致 Windows 原子发布 EPERM。
 
 生图取消测试稳定性修复（2026-11-10）：取消前等待本地 fixture 确认请求已发出，避免并发变换导致测试在请求启动前就中止。
+
+日记通用性文案复核（2026-11-10）：WorldHub、正式日记面板、Playground 样张和体验 / 组件注册表统一使用「日记」，路飞的航海内容保留在样张正文与人物世界资料中，不再由通用入口标签决定产品语义。
+
+日记通用性回归（2026-11-10）：Unit 通过，Playground 当前主角贯穿 E2E 通过；正式人物世界旧导航用例仍使用过期的 profile / 六 Tab 夹具契约，归入下一批 UI 回归收口。

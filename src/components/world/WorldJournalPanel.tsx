@@ -56,11 +56,8 @@ export function WorldJournalPanel({
   const [creating, setCreating] = useState(false)
   const [filterFavorite, setFilterFavorite] = useState(false)
 
-  const isLuffy = roleId === 'luffy'
-  const journalTitle = isLuffy ? '路飞的航海日记' : '内心独白与随笔'
-  const journalDesc = isLuffy
-    ? '路飞在万里阳光号独处、看海或夜间放空时的真实心声与随笔。'
-    : '角色在独处或夜间沉思时的私密心事，不公开发表，唯你可见。'
+  const journalTitle = '日记'
+  const journalDesc = '角色在独处、回忆或夜间沉思时留下的私密心声与随笔，不公开发表，唯你可见。'
 
   // 同步 Playground 样张输入
   useEffect(() => {

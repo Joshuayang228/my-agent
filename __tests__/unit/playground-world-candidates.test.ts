@@ -4,7 +4,7 @@ import { PRODUCT_EXPERIENCE_REGISTRY } from '../../src/shared/product-experience
 import { JournalExperienceCandidate } from '../../src/components/playground/JournalExperienceCandidate'
 import { KeepsakesExperienceCandidate } from '../../src/components/playground/KeepsakesExperienceCandidate'
 
-describe('Playground World Candidates (航海日记与专属信物)', () => {
+describe('Playground World Candidates (日记与专属信物)', () => {
   it('UI 组件注册表登记了日记与信物的隔离样张组件', () => {
     const journalComp = UI_COMPONENT_REGISTRY['layout.journal-experience-candidate']
     expect(journalComp).toBeDefined()
@@ -30,7 +30,7 @@ describe('Playground World Candidates (航海日记与专属信物)', () => {
     expect(worldExperience).toBeDefined()
     expect(worldExperience.sourcePaths).toContain('src/components/playground/JournalExperienceCandidate.tsx')
     expect(worldExperience.sourcePaths).toContain('src/components/playground/KeepsakesExperienceCandidate.tsx')
-    expect(worldExperience.experienceParts).toContain('航海日记 / 心事独白')
+    expect(worldExperience.experienceParts).toContain('日记')
     expect(worldExperience.experienceParts).toContain('专属信物')
   })
 

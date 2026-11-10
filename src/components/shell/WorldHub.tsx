@@ -24,7 +24,7 @@ export type WorldTabDefinition = { id: WorldTab; label: string; icon: ReactNode 
 
 const WORLD_TABS: WorldTabDefinition[] = [
   { id: 'moments', label: '朋友圈', icon: <Newspaper size={14} strokeWidth={1.5} /> },
-  { id: 'journal', label: '航海日记', icon: <FileText size={14} strokeWidth={1.5} /> },
+  { id: 'journal', label: '日记', icon: <FileText size={14} strokeWidth={1.5} /> },
   { id: 'keepsakes', label: '专属信物', icon: <Gift size={14} strokeWidth={1.5} /> },
   { id: 'decisions', label: '共同决策', icon: <Compass size={14} strokeWidth={1.5} /> },
   { id: 'wardrobe', label: '衣柜', icon: <Shirt size={14} strokeWidth={1.5} /> },
@@ -113,7 +113,7 @@ export function WorldHub({
 }) {
   const canEditAssets = allowAssetEditing
   const visibleTabs = (tabs ?? WORLD_TABS).filter((item) => !hiddenTabs.includes(item.id))
-  const labelFor = (item: WorldTabDefinition) => tabLabels?.[item.id] ?? (item.id === 'journal' && roleId && roleId !== 'luffy' ? '心事独白' : item.id === 'decisions' && roleId === 'luffy' ? '航向抉择' : item.label)
+  const labelFor = (item: WorldTabDefinition) => tabLabels?.[item.id] ?? (item.id === 'decisions' && roleId === 'luffy' ? '航向抉择' : item.label)
   const [worldRefreshToken, setWorldRefreshToken] = useState(0)
   const [worldRefreshing, setWorldRefreshing] = useState(false)
 

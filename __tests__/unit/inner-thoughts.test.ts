@@ -1,5 +1,5 @@
 /**
- * 私密内心独白与航海日记（Inner Thoughts & Private Journal Stream）门禁测试
+ * 私密内心独白与日记（Inner Thoughts & Private Journal Stream）门禁测试
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
@@ -58,7 +58,7 @@ const {
   INNER_THOUGHT_DAILY_LIMIT,
 } = await import('../../electron/main/companion/life/inner-thoughts')
 
-describe('私密内心独白与航海日记（Inner Thoughts & Private Journal Stream）', () => {
+describe('私密内心独白与日记（Inner Thoughts & Private Journal Stream）', () => {
   beforeEach(async () => {
     memDb = new SQL.Database()
     memDb.run(`

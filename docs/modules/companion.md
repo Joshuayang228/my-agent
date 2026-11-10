@@ -84,7 +84,7 @@ Chat 的内置工具注册链现在包含 `companion_post_moment`、`companion_c
   - 角色主动发起的消息直接写入该角色的专属主会话（`sessionKind: 'main'`），并广播 `companion:spontaneous-impulse`；
   - 桌面端 Toast 提醒点击可一键切换至该会话并聚焦输入框；若用户当前正处于该聊天页面，新消息无感平滑推入，让用户真切体验到“伙伴忽然发来了一条消息”的真人伙伴陪伴感。
 
-## 已落地能力：私密内心独白与航海日记（Inner Thoughts & Private Journal Stream）
+## 已落地能力：私密内心独白与日记（Inner Thoughts & Private Journal Stream）
 
 - **私密内心世界与情感沉淀**：
   - 角色活人感不仅有公开展览的朋友圈和面对面的即时聊天，更有属于个人独处时的私密内心独白与随笔（存储于 `companion_inner_thoughts` 表）；
@@ -93,7 +93,7 @@ Chat 的内置工具注册链现在包含 `companion_post_moment`、`companion_c
 - **出厂温度播种（Starter Journal）**：
   - 为路飞预先播种 3 篇极具角色特色与情感羁绊的 starter 日记（关于香克斯借给他的草帽、空岛敲响黄金钟的夜晚、昨晚和你在甲板上聊起海贼王），保证首次打开即具备充沛生命感与共同回忆。
 - **人物世界独立分区与羁绊回引**：
-  - 人物世界（`WorldHub`）新增 `journal` 分区（路飞显示为「航海日记」，通用/其他角色显示为「心事独白」）；
+  - 人物世界（`WorldHub`）新增 `journal` 分区，统一显示为「日记」，具体人物世界观只出现在日记内容中；
   - 面板支持实时接收新日记广播、星标收藏筛选、删除、一键手动启发灵感撰写；
   - 每篇日记提供「与TA聊聊这篇日记」动作，点击将日记契机自然带入主聊天会话，成为开启深层情感交流与羁绊升温的自然桥梁。
 
@@ -104,7 +104,7 @@ Chat 的内置工具注册链现在包含 `companion_post_moment`、`companion_c
   - 由受控模型配方 `compileNightlyReflectionRequest` 生成深情私密的深夜反思，落盘至 `companion_inner_thoughts` 并标记 `thought_type: 'nightly_reflection'` 与自动星标收藏；
   - 角色提炼出一句直击心灵的羁绊感悟（`epiphany`），展示在日记高光卡片中；
   - 感悟同步写入长期记忆库的 `feedback` 分桶（“我们之间”），使角色的情感认知因与用户的真实相处而持久留存；
-  - 航海日记面板展示「🌙 深夜反思」专属高光徽章与感悟气泡框，提供「与TA聊聊这篇深夜感悟」一键直通主会话。
+  - 日记面板展示「🌙 深夜反思」专属高光徽章与感悟气泡框，提供「与TA聊聊这篇深夜感悟」一键直通主会话。
 
 ## 已落地能力：高光回忆重温（Nostalgic Reminiscence in Main Chat）
 
@@ -619,7 +619,7 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
 | 人物世界口袋（对齐 Alice `/moments`） | 已落地 | 侧栏一入口 + 内页 tab | `WorldHub` |
 | 足迹与航海旅行自主演化 | 已落地 | 人物世界 → 足迹 / 隐式 ticker | `travel-progression.ts` · `companion_travel_progressions` · 24h 冷却与 travel_wish 共鸣联动 |
 | 同伴求助与生活共同决策 | 已落地 | 人物世界 → 共同决策 / 主会话 | `co-decision.ts` · `companion_co_decisions` · 抉择回响写入主会话并因果注入次日剧本 |
-| 角色脆弱时刻与情感共鸣 | 已落地 | 航海日记 / 心事独白 / 主会话 | `vulnerability.ts` · `companion_vulnerability_moments` · 安慰回响直写主会话并记录关系里程碑 |
+| 角色脆弱时刻与情感共鸣 | 已落地 | 日记 / 主会话 | `vulnerability.ts` · `companion_vulnerability_moments` · 安慰回响直写主会话并记录关系里程碑 |
 | 伴侣状态条（展厅故事格） | 已落地 | Playground UI · 状态条 | `CompanionStatusBar` · Chat 顶栏已撤 |
 | 自动生成朋友圈内容 / 多宇宙并行 | 缺口 | — | wishlist / 明确非本阶段 |
 | 人物世界视觉资产引用 | 已落地 | `image_generate` 可将真实生成结果绑定到当前角色生活资产或已发布朋友圈动态；Chat 与 WorldDetailsPanel 复用受控读取 / 定位预览；生成入口、媒体备份恢复和正式页面回流已完成。自动生成朋友圈内容仍不在本阶段 | `image-generation-product-integration-v1.md` |
@@ -772,3 +772,5 @@ published event（事件事实）
 宿主活动记录使用主进程接收时间，不信任 Renderer 消息时间戳。
 
 生活历史列表的 limit 由主进程统一限制。
+
+日记是通用人物世界入口，人物专属世界观只由日记内容与人物资产表达。

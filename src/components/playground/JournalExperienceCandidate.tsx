@@ -105,7 +105,7 @@ export function JournalExperienceCandidate({ personaId }: { personaId: string })
           items={JOURNAL_SCENARIOS}
           value={scenario}
           onChange={setScenario}
-          ariaLabel="航海日记状态样张"
+          ariaLabel="日记状态样张"
         />
       </WorldCandidateControls>
       <WorldJournalPanel
