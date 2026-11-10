@@ -138,21 +138,9 @@ Chat 的内置工具注册链现在包含 `companion_post_moment`、`companion_c
   - 采用温暖高光视觉呈现，展示信物名称、获赠时间、誓约契机胶囊、全篇独家剧情背景设定与第一人称赠礼回声；
   - 底部提供「触摸信物·与TA聊聊」快捷动作，一键带入主会话开启关于信物的深情交流。
 
-## 已落地能力：同伴求助与生活共同决策（Co-Decisions & Shared Choices）
+## 已落地能力：共同决策引擎（内部因果能力）
 
-- **双向求助与两难决策困境（Dilemmas）**：
-  - 角色不再仅仅单向展示生活，当面临航海航向（东边神秘图书馆 vs 西边超级大肉宴会 vs 北边海港酒馆）、饮食便当或日常探险活动两难时，主动向用户发起求助卡片（存储于 `companion_co_decisions` 表）；
-  - 出厂为路飞自动播种初始航向抉择《明天的航向大抉择！》，并储备《山治的特制便当对决》《午后的冒险提案》等生动模板；
-- **用户互动裁决与第一人称即时回响**：
-  - 交互卡片（`CoDecisionCard`）直观呈现求助困境、各选项描述与预估影响（`impactHint`）；
-  - 用户做出投票裁决后，由受控 Prompt 配方 `compileCoDecisionReactionRequest`（或规则保底）生成角色充满生命感的第一人称反馈；
-  - 反应即刻写入角色主会话（`sessionKind: 'main'`）作为 `assistant` 消息，同时向全窗口广播 `companion:co-decision-resolved` 与 `companion:timeline-updated`；
-- **因果跨天闭环与生活日程反哺**：
-  - 用户的裁决直接接入次日日剧本生成管线（`collectDayScriptLifeContext`），将所选决策融入明日生活主题与活动安排；
-  - 脚本生成后标记 `absorbed_in_script = 1`，建立“同伴求助 -> 用户裁决 -> 即时主会话反馈 -> 次日生活日程落地”的双向因果闭环；
-- **人物世界独立生活面与 Playground 隔离候选**：
-  - 人物世界（`WorldHub`）新增 `decisions` 分区，统一显示为「共同决策」，组合活跃决策求助卡与历史决策时间流；角色专属世界观只进入决策内容和选项，不改变通用入口名称；
-  - 同步落地 `CoDecisionExperienceCandidate` 展厅候选与离线 fixtures，在 Playground 隔离验收航向抉择、已裁决、双选项、长文本与空态，不依赖 Electron IPC。
+共同决策不再作为人物世界或 Playground 的独立产品模块展示。现存 `co-decision.ts` 与相关数据仍作为生活因果链的内部能力，供已有的次日日剧本吸收逻辑读取，不新增用户可见入口。日记与专属信物继续作为独立的人物世界生活面保留。
 
 ## 已落地能力：心境波动与突发小情绪（Mood Swings & Vulnerability Moments）
 
@@ -618,7 +606,7 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
 | Chat 消息区大气化（Phase B 留白） | 已落地 | 消息流 `space-y-8`；工具卡见 agent-runtime | `frontend-alice-shell` Phase B |
 | 人物世界口袋（对齐 Alice `/moments`） | 已落地 | 侧栏一入口 + 内页 tab | `WorldHub` |
 | 足迹与航海旅行自主演化 | 已落地 | 人物世界 → 足迹 / 隐式 ticker | `travel-progression.ts` · `companion_travel_progressions` · 24h 冷却与 travel_wish 共鸣联动 |
-| 同伴求助与生活共同决策 | 已落地 | 人物世界 → 共同决策 / 主会话 | `co-decision.ts` · `companion_co_decisions` · 抉择回响写入主会话并因果注入次日剧本 |
+| 共同决策引擎 | 内部保留 | 生活引擎 / 次日日剧本 | `co-decision.ts` · `companion_co_decisions` · 不提供人物世界或 Playground 独立入口 |
 | 角色脆弱时刻与情感共鸣 | 已落地 | 日记 / 主会话 | `vulnerability.ts` · `companion_vulnerability_moments` · 安慰回响直写主会话并记录关系里程碑 |
 | 伴侣状态条（展厅故事格） | 已落地 | Playground UI · 状态条 | `CompanionStatusBar` · Chat 顶栏已撤 |
 | 自动生成朋友圈内容 / 多宇宙并行 | 缺口 | — | wishlist / 明确非本阶段 |

@@ -7,7 +7,6 @@ export type ShellView =
   | 'moments'
   | 'journal'
   | 'keepsakes'
-  | 'decisions'
   | 'assets'
   | 'cast'
   | 'wardrobe'

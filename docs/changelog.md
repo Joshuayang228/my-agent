@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-10：人物世界信息架构收敛：移除“共同决策”正式 Tab、Playground 候选和对应展示组件；共同决策后端引擎暂保留为生活因果链内部能力。日记与专属信物继续作为独立生活面，不并入文化角或家居。
+
 2026-11-10：人物世界模块一致性收口：日记、专属信物与共同决策统一使用通用入口名称，角色专属世界观不再改变产品导航标签；三个面板的正式读取失败均提供统一错误提示与重试入口；补齐人物世界导航 E2E 夹具的今日轨迹 IPC，并校正九分区键盘导航断言；面板视觉样式改用共享圆角与颜色令牌，信物筛选复用 Foundation TabStrip，卡片信息密度向朋友圈与衣柜收拢。
 
 2026-11-10：日内因果重编排与宿主现实作息感知（Intra-day Causality & Real-world Care Anchor）落地：新增 `replan.ts`、`host-presence.ts` 与 `LifeCausalityCandidate.tsx`；解决日内体征剧烈耗竭（`energy <= 25` 或 `mood <= 20`）、突发脆弱（vulnerability）或重大共同决断后的生活脱节问题，`replanRemainingSlots` 提取今日未开始的 `planned` 事件，通过受控配方 `compileReplanSlotsRequest`（Prompt Key: `companionReplanSlots`）将后续计划重编排为休养、平复活动，并将因果追溯元数据 `causedBy` 写入事件 payload，触发 `companion:slots-replanned` 与 `companion:timeline-updated` 广播；新增宿主现实作息感知（`host-presence.ts`），利用 `powerMonitor.getSystemIdleTime()` 与会话交互时序无感监测专注工作时长，连续专注 >= 120 分钟触发疲劳关怀（`fatigue_break`，3 小时冷却），深夜 23:30~05:00 仍持续活跃触发深夜睡眠关怀（`late_night_sleep`，6 小时冷却）；关怀私语通过受控配方 `compileHostCareRequest`（Prompt Key: `companionHostCare`）生成并直接写入角色主会话（`sessionKind: 'main'`），并广播 `companion:host-care-triggered`；宿主深夜加班线索在次日由 `script-generator.ts#collectDayScriptLifeContext` 吸收为日剧本上下文，实现生活引擎对现实世界的双向锚定；新增 Playground 隔离展厅候选 `LifeCausalityCandidate.tsx` 具备 4 种离线因果与作息交互形态；IPC 4 处同步新增 `getHostPresenceStatus`、`triggerHostCareCheck`、`replanTodaySlots` 通道；`prompt-feature-contracts.test.ts` 扩展至 26 个核心功能合同。新增 `life-replan.test.ts`（5 项）与 `host-presence.test.ts`（5 项）单测，门禁全绿。
