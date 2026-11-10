@@ -154,12 +154,19 @@ export function WorldJournalPanel({
     >
       {/* 详情页保留返回入口，列表页直接进入日记册内容。 */}
       {selectedThought && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 border-b pb-3" style={{ borderColor: 'var(--border-subtle)' }}>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b pb-3" style={{ borderColor: 'var(--border-subtle)' }}>
           <ActionButton variant="plain" tone="neutral" onClick={() => setSelectedThoughtId(null)} aria-label="返回日记册">
             <ArrowLeft size={14} className="mr-1" />
             返回日记册
           </ActionButton>
-          <h2 className="truncate text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{selectedThought.title}</h2>
+          <div className="flex items-center gap-1">
+            <IconButton size={24} label={selectedThought.isFavorite ? '取消收藏' : '收藏日记'} onClick={() => handleToggleFavorite(selectedThought.id)} style={{ color: selectedThought.isFavorite ? 'var(--danger)' : 'var(--text-muted)' }}>
+              <Heart size={13} className={selectedThought.isFavorite ? 'fill-current' : ''} />
+            </IconButton>
+            <IconButton size={24} label="删除记录" onClick={() => handleDelete(selectedThought.id)} style={{ color: 'var(--text-muted)' }}>
+              <Trash2 size={13} />
+            </IconButton>
+          </div>
         </div>
       )}
 
@@ -184,42 +191,27 @@ export function WorldJournalPanel({
         />
       ) : selectedThought ? (
         <article className="flex min-h-0 flex-1 flex-col gap-4" data-testid={`journal-detail-${selectedThought.id}`}>
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3" style={{ borderColor: 'var(--border-subtle)' }}>
-            <div className="flex flex-wrap items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              <span>{formatDate(selectedThought.createdAt)}</span>
-              {selectedThought.location && <span>· {selectedThought.location}</span>}
-              {selectedThought.mood && <Badge tone="accent">{selectedThought.mood}</Badge>}
-            </div>
-            <div className="flex items-center gap-1">
-              <IconButton size={24} label={selectedThought.isFavorite ? '取消收藏' : '收藏日记'} onClick={() => handleToggleFavorite(selectedThought.id)} style={{ color: selectedThought.isFavorite ? 'var(--danger)' : 'var(--text-muted)' }}>
-                <Heart size={13} className={selectedThought.isFavorite ? 'fill-current' : ''} />
-              </IconButton>
-              <IconButton size={24} label="删除记录" onClick={() => handleDelete(selectedThought.id)} style={{ color: 'var(--text-muted)' }}>
-                <Trash2 size={13} />
-              </IconButton>
-            </div>
+          <div className="flex flex-wrap items-center gap-2 border-b pb-3 text-[11px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
+            <span>{formatDate(selectedThought.createdAt)}</span>
+            {selectedThought.location && <span>· {selectedThought.location}</span>}
+            {selectedThought.mood && <Badge tone="accent">{selectedThought.mood}</Badge>}
           </div>
           <div className="w-full max-w-3xl rounded-[var(--radius-card)] border p-6 sm:p-8" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
-            <div className="mb-6 flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              <MailOpen size={14} style={{ color: 'var(--accent-fg)' }} />
-              <span>写给此刻的你</span>
-            </div>
             <h3 className="font-display text-xl font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>{selectedThought.title}</h3>
-            <p className="mt-6 whitespace-pre-wrap font-display text-[15px] leading-8" style={{ color: 'var(--text-primary)' }}>{selectedThought.content}</p>
+            <p className="mt-5 whitespace-pre-wrap font-display text-[15px] leading-8" style={{ color: 'var(--text-primary)' }}>{selectedThought.content}</p>
             {selectedThought.epiphany && (
               <div className="mt-6 border-t pt-4" style={{ borderColor: 'var(--border-subtle)' }} data-testid={`journal-epiphany-${selectedThought.id}`}>
                 <p className="text-[11px] font-semibold" style={{ color: 'var(--accent-fg)' }}>写在页边的一句领悟</p>
                 <p className="mt-2 font-display text-[14px] italic leading-7" style={{ color: 'var(--text-secondary)' }}>“{selectedThought.epiphany}”</p>
               </div>
             )}
-            <div className="mt-8 flex flex-wrap items-center justify-between gap-2 border-t pt-3 text-[11px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
-              <span>{selectedThought.activity ? `当时在做：${selectedThought.activity}` : '这一页只留给你阅读'}</span>
-              {onTakeToChat && (
+            {onTakeToChat && (
+              <div className="mt-8 flex justify-end border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
                 <ActionButton size="sm" variant="plain" tone="neutral" onClick={() => onTakeToChat({ text: `我读了你写的日记《${selectedThought.title}》，想和你聊聊这页内容。` })}>
                   <MessageSquareShare size={12} className="mr-1" />与TA聊聊
                 </ActionButton>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </article>
       ) : thoughts.length === 0 ? (
