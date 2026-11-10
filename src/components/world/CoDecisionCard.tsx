@@ -128,7 +128,7 @@ export function CoDecisionCard({
 
   if (loading) {
     return (
-      <div className="flex h-32 items-center justify-center rounded-xl border p-4" style={{ borderColor: 'var(--border-subtle)' }}>
+      <div className="flex h-32 items-center justify-center rounded-[var(--radius-card)] border p-4" style={{ borderColor: 'var(--border-subtle)' }}>
         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>正在同步伙伴的未决事项...</span>
       </div>
     )
@@ -137,13 +137,13 @@ export function CoDecisionCard({
   if (!decision) {
     return (
       <div
-        className="flex flex-col items-center justify-between rounded-xl border border-dashed p-6 text-center"
+        className="flex flex-col items-center justify-between rounded-[var(--radius-card)] border border-dashed p-6 text-center"
         style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--bg-secondary)' }}
         data-testid="co-decision-empty"
       >
         <EmptyState
           title="当前暂无需要共同决定的事项"
-          description="当角色在航行探索或日常生活中面临分歧抉择时，会主动向你抛出求助。"
+        description="当角色在日常生活中面临分歧抉择时，会主动向你发起求助。"
         />
         {allowManualTrigger && (
           <ActionButton size="sm" tone="accent" className="mt-4" onClick={handleCreateNewDecision} disabled={creating}>
@@ -156,16 +156,14 @@ export function CoDecisionCard({
   }
 
   const isResolved = decision.status === 'resolved'
-  const isLuffy = roleId === 'luffy'
-
   return (
     <div
-      className="relative flex flex-col gap-3 rounded-xl border p-4 shadow-sm transition-all"
+      className="relative flex flex-col gap-3 rounded-[var(--radius-card)] border p-4 transition-all"
       style={{
         backgroundColor: 'var(--bg-secondary)',
         borderColor: isResolved
           ? 'color-mix(in srgb, var(--accent) 30%, var(--border-subtle))'
-          : 'color-mix(in srgb, var(--companion-accent-warm, #f59e0b) 45%, var(--border-subtle))',
+          : 'color-mix(in srgb, var(--companion-accent-warm) 45%, var(--border-subtle))',
       }}
       data-testid="co-decision-card"
       data-decision-status={decision.status}
@@ -174,12 +172,12 @@ export function CoDecisionCard({
       <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2.5" style={{ borderColor: 'var(--border-subtle)' }}>
         <div className="flex items-center gap-2">
           <div
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg shadow-sm"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-control)]"
             style={{
               background: isResolved
                 ? 'color-mix(in srgb, var(--accent) 15%, transparent)'
-                : 'color-mix(in srgb, var(--companion-accent-warm, #f59e0b) 15%, transparent)',
-              color: isResolved ? 'var(--accent)' : 'var(--companion-accent-warm, #f59e0b)',
+                : 'color-mix(in srgb, var(--companion-accent-warm) 15%, transparent)',
+              color: isResolved ? 'var(--accent)' : 'var(--companion-accent-warm)',
             }}
           >
             {isResolved ? <CheckCircle2 size={15} /> : <Compass size={15} className="animate-pulse" />}
@@ -190,7 +188,7 @@ export function CoDecisionCard({
                 {decision.title}
               </h3>
               <Badge tone={isResolved ? 'neutral' : 'accent'}>
-                {isResolved ? '已确定航向' : '同伴共同抉择'}
+                {isResolved ? '已完成' : '待你决定'}
               </Badge>
             </div>
           </div>
@@ -215,15 +213,15 @@ export function CoDecisionCard({
 
       {/* 角色求助困境正文 */}
       <div
-        className="rounded-lg p-3 text-[12px] leading-relaxed"
+        className="rounded-[var(--radius-card)] p-3 text-[12px] leading-relaxed"
         style={{
           backgroundColor: 'var(--bg-tertiary)',
           color: 'var(--text-secondary)',
         }}
       >
         <div className="mb-1 flex items-center gap-1 text-[11px] font-medium" style={{ color: 'var(--text-primary)' }}>
-          <HelpCircle size={12} style={{ color: 'var(--companion-accent-warm, #f59e0b)' }} />
-          <span>{isLuffy ? '路飞的求助：' : '伙伴的心声困惑：'}</span>
+          <HelpCircle size={12} style={{ color: 'var(--companion-accent-warm)' }} />
+          <span>伙伴的求助：</span>
         </div>
         <p className="whitespace-pre-wrap">{decision.dilemma}</p>
       </div>
@@ -240,7 +238,7 @@ export function CoDecisionCard({
               return (
                 <div
                   key={option.id}
-                  className="group relative flex flex-col justify-between rounded-lg border p-3 transition-all hover:border-[var(--accent)] hover:shadow-sm"
+                  className="group relative flex flex-col justify-between rounded-[var(--radius-card)] border p-3 transition-all hover:border-[var(--accent)]"
                   style={{
                     backgroundColor: 'var(--bg-primary)',
                     borderColor: 'var(--border-subtle)',
@@ -285,7 +283,7 @@ export function CoDecisionCard({
         /* 已决态展示：选中的方案与角色第一人称回响 */
         <div className="flex flex-col gap-2.5 pt-1">
           <div
-            className="flex items-center justify-between rounded-lg border px-3 py-2 text-[12px]"
+            className="flex items-center justify-between rounded-[var(--radius-card)] border px-3 py-2 text-[12px]"
             style={{
               backgroundColor: 'color-mix(in srgb, var(--accent) 8%, var(--bg-primary))',
               borderColor: 'color-mix(in srgb, var(--accent) 30%, var(--border-subtle))',
@@ -302,15 +300,15 @@ export function CoDecisionCard({
 
           {decision.companionReaction && (
             <div
-              className="rounded-lg border-l-2 p-3 text-[12px] leading-relaxed italic"
+            className="rounded-[var(--radius-card)] border p-3 text-[12px] leading-relaxed italic"
               style={{
                 backgroundColor: 'var(--bg-tertiary)',
-                borderLeftColor: 'var(--accent)',
+                borderColor: 'color-mix(in srgb, var(--accent) 35%, var(--border-subtle))',
                 color: 'var(--text-primary)',
               }}
             >
               <div className="mb-0.5 text-[10px] font-medium not-italic" style={{ color: 'var(--text-muted)' }}>
-                {isLuffy ? '路飞的即时欢呼：' : '角色的即时回响：'}
+                伙伴的即时回响：
               </div>
               <p>“{decision.companionReaction}”</p>
             </div>

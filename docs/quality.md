@@ -1,6 +1,6 @@
 # 质量总控
 
-人物世界模块一致性门禁（2026-11-10）：`chat.test.ts` 正式人物世界基础导航覆盖四套主题与 1166 / 600 两种宽度，验证九个通用分区、Tab 键盘移动、响应式无横向溢出与关闭回聊天；面板圆角与颜色令牌检查通过；全量 `npm run test` 为 1731 passed、1 skipped，`npx tsc --noEmit`、`npx vite build`、`npm run assets:check` 与 `npm run docs:validate` 通过。
+人物世界模块一致性门禁（2026-11-10）：`chat.test.ts` 正式人物世界基础导航覆盖四套主题与 1166 / 600 两种宽度，验证九个通用分区、Tab 键盘移动、响应式无横向溢出与关闭回聊天；面板圆角与颜色令牌、无左侧状态色条、信物 TabStrip 语义检查通过；最近一次完整门禁曾为 `npm run test` 1731 passed、1 skipped，当前改动的类型检查、人物世界导航 E2E、`npm run assets:check` 与 `npm run docs:validate` 通过。
 
 依赖审计更新（2026-11-10）：全量 `npm audit` 当前为 29 项（2 low / 12 moderate / 13 high / 2 critical），生产范围为 16 项（2 low / 4 moderate / 8 high / 2 critical）。未执行自动升级，依赖风险继续由 WISH-044 管理。
 

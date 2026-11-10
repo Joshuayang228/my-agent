@@ -1,6 +1,6 @@
 # 项目进度
 
-人物世界模块一致性收口（2026-11-10）：统一日记、专属信物与共同决策的通用入口文案，角色专属世界观保留在内容数据中；三类面板统一接入可恢复的读取错误态；补齐正式人物世界 E2E 夹具的今日轨迹 IPC，并按当前九个分区校正键盘导航验收；面板卡片圆角与强调色改用设计令牌。全量单测 1731 项通过，类型检查、构建、资产审计与文档门禁通过。
+人物世界模块一致性收口（2026-11-10）：统一日记、专属信物与共同决策的通用入口文案，角色专属世界观保留在内容数据中；三类面板统一接入可恢复的读取错误态；补齐正式人物世界 E2E 夹具的今日轨迹 IPC，并按当前九个分区校正键盘导航验收；面板卡片圆角与强调色改用设计令牌；移除左侧强调色条，信物筛选改用 Foundation TabStrip，收窄信物列表的信息密度。全量单测 1731 项通过，类型检查、构建、资产审计与文档门禁通过。
 
 日内因果重编排与宿主现实作息感知落地（2026-11-10）：角色生活引擎因果状态机与现实作息锚点落地；解决日内体征剧烈耗竭（`energy <= 25` 或 `mood <= 20`）、突发脆弱（vulnerability）或重大共同决断后的生活脱节问题，`replanRemainingSlots`（`replan.ts`）提取今日未开始的 `planned` 事件，通过受控配方 `compileReplanSlotsRequest`（Prompt Key: `companionReplanSlots`）将后续计划重编排为休养、平复活动，并将因果追溯元数据 `causedBy` 写入事件 payload，触发 `companion:slots-replanned` 与 `companion:timeline-updated` 广播；新增宿主现实作息感知（`host-presence.ts`），利用 `powerMonitor.getSystemIdleTime()` 与会话交互时序无感监测专注工作时长，连续专注 >= 120 分钟触发疲劳关怀（`fatigue_break`，3 小时冷却），深夜 23:30~05:00 仍持续活跃触发深夜睡眠关怀（`late_night_sleep`，6 小时冷却）；关怀私语通过受控配方 `compileHostCareRequest`（Prompt Key: `companionHostCare`）生成并直接写入角色主会话（`sessionKind: 'main'`），并广播 `companion:host-care-triggered`；宿主深夜加班线索在次日由 `script-generator.ts#collectDayScriptLifeContext` 吸收为日剧本上下文，实现生活引擎对现实世界的双向锚定；新增 Playground 隔离展厅候选 `LifeCausalityCandidate.tsx` 具备 4 种离线因果与作息交互形态；IPC 4 处同步新增 `getHostPresenceStatus`、`triggerHostCareCheck`、`replanTodaySlots` 通道；`prompt-feature-contracts.test.ts` 扩展至 26 个核心功能合同。新增 `life-replan.test.ts`（5 项）与 `host-presence.test.ts`（5 项）单测，门禁全绿。
 

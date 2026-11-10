@@ -14,6 +14,7 @@ import { ActionButton } from '../foundation/ActionButton'
 import { Badge } from '../foundation/Badge'
 import { EmptyState } from '../foundation/EmptyState'
 import { ErrorState } from '../foundation/ErrorState'
+import { TabStrip } from '../foundation/TabStrip'
 import { contentGutterStyle } from '../../shared/content-layout'
 import { GiftGivingModal } from './GiftGivingModal'
 import type {
@@ -248,34 +249,16 @@ export function WorldKeepsakesPanel({
       </div>
 
       {/* 标签栏：伙伴信物 vs 赠礼心意 */}
-      <div className="mb-4 flex gap-1 border-b pb-2" style={{ borderColor: 'var(--border-subtle)' }}>
-        <button
-          type="button"
-          onClick={() => setActiveTab('keepsakes')}
-            className={`rounded-[var(--radius-lg)] px-3 py-1.5 text-xs font-medium transition ${
-            activeTab === 'keepsakes' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'hover:bg-black/5 dark:hover:bg-white/5'
-          }`}
-          style={{
-            color: activeTab === 'keepsakes' ? 'var(--companion-accent-warm)' : 'var(--text-secondary)',
-          }}
-          data-testid="tab-keepsakes"
-        >
-          伙伴信物 ({keepsakes.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('gifts')}
-            className={`rounded-[var(--radius-lg)] px-3 py-1.5 text-xs font-medium transition ${
-            activeTab === 'gifts' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'hover:bg-black/5 dark:hover:bg-white/5'
-          }`}
-          style={{
-            color: activeTab === 'gifts' ? 'var(--companion-accent-warm)' : 'var(--text-secondary)',
-          }}
-          data-testid="tab-gifts"
-        >
-          心意手账 ({gifts.length})
-        </button>
-      </div>
+      <TabStrip
+        label="信物内容"
+        variant="surface"
+        activeId={activeTab}
+        onSelect={(id) => setActiveTab(id as 'keepsakes' | 'gifts')}
+        items={[
+          { id: 'keepsakes', label: `伙伴信物 (${keepsakes.length})`, testId: 'tab-keepsakes' },
+          { id: 'gifts', label: `心意手账 (${gifts.length})`, testId: 'tab-gifts' },
+        ]}
+      />
 
       {/* 内容展示区 */}
       {previewReadError || loadError ? (
@@ -300,11 +283,11 @@ export function WorldKeepsakesPanel({
             />
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="flex flex-col gap-3">
             {keepsakes.map((item) => (
               <div
                 key={item.id}
-                className="flex flex-col justify-between rounded-[var(--radius-xl)] border p-4 shadow-sm transition hover:shadow-md"
+                className="flex flex-col justify-between rounded-[var(--radius-card)] border p-4 transition"
                 style={{
                   backgroundColor: 'var(--bg-secondary)',
                   borderColor: 'color-mix(in srgb, var(--companion-accent-warm) 30%, var(--border-subtle))',
@@ -345,10 +328,10 @@ export function WorldKeepsakesPanel({
 
                   {item.lore && (
                     <div
-                      className="mt-3 rounded-[var(--radius-lg)] border-l-2 p-2.5 text-[11px] leading-relaxed italic"
+                      className="mt-3 rounded-[var(--radius-lg)] border p-2.5 text-[11px] leading-relaxed italic"
                       style={{
                         backgroundColor: 'var(--bg-tertiary)',
-                        borderLeftColor: 'var(--companion-accent-warm)',
+                        borderColor: 'color-mix(in srgb, var(--companion-accent-warm) 35%, var(--border-subtle))',
                         color: 'var(--text-primary)',
                       }}
                     >
@@ -384,7 +367,7 @@ export function WorldKeepsakesPanel({
           <div className="flex flex-1 items-center justify-center p-8">
             <EmptyState
               title="还没有赠送过心意礼物"
-              description="挑选一份美味的大肉或珍贵礼物送给伙伴，TA会感到无比开心并充满活力！"
+              description="挑选一份合适的礼物送给伙伴，TA会感受到你的心意。"
               action={
                 <ActionButton size="sm" tone="accent" onClick={() => setShowGiftModal(true)}>
                   <Heart size={12} className="mr-1" />
@@ -394,11 +377,11 @@ export function WorldKeepsakesPanel({
             />
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="flex flex-col gap-3">
             {gifts.map((gift) => (
               <div
                 key={gift.id}
-                className="flex flex-col justify-between rounded-[var(--radius-xl)] border p-4 shadow-sm transition hover:shadow-md"
+                className="flex flex-col justify-between rounded-[var(--radius-card)] border p-4 transition"
                 style={{
                   backgroundColor: 'var(--bg-secondary)',
                   borderColor: 'color-mix(in srgb, var(--companion-accent-warm) 25%, var(--border-subtle))',
@@ -453,10 +436,10 @@ export function WorldKeepsakesPanel({
 
                   {/* 角色欢呼回响 */}
                   <div
-                    className="mt-3 rounded-[var(--radius-lg)] border-l-2 p-2.5 text-[11px] leading-relaxed italic"
+                    className="mt-3 rounded-[var(--radius-lg)] border p-2.5 text-[11px] leading-relaxed italic"
                     style={{
                       backgroundColor: 'var(--bg-tertiary)',
-                      borderLeftColor: 'var(--companion-accent-warm)',
+                      borderColor: 'color-mix(in srgb, var(--companion-accent-warm) 35%, var(--border-subtle))',
                       color: 'var(--text-primary)',
                     }}
                   >

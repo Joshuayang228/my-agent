@@ -221,7 +221,7 @@ export function WorldJournalPanel({
             onClick={handleCreateThought}
           >
             <Sparkles size={12} className={`mr-1 ${creating ? 'animate-spin' : ''}`} />
-            {creating ? '正在思考记录...' : '写一篇独白'}
+            {creating ? '正在思考记录...' : '写一篇日记'}
           </ActionButton>
         </div>
       </div>
@@ -248,7 +248,7 @@ export function WorldJournalPanel({
       ) : displayedThoughts.length === 0 ? (
         <div className="flex flex-1 items-center justify-center p-8">
           <EmptyState
-            title={filterFavorite ? '还没有收藏任何独白' : '日记本里还空着'}
+            title={filterFavorite ? '还没有收藏任何日记' : '日记本里还空着'}
             description={
               filterFavorite
                 ? '点击卡片右上角的心形图标，把触动内心的日记收藏起来吧。'
@@ -336,10 +336,10 @@ export function WorldJournalPanel({
               {/* 深夜反思心灵感悟一句话 */}
               {thought.epiphany && (
                 <div
-                  className="my-1.5 rounded-[var(--radius-md)] border-l-2 p-2.5 text-[12px] italic leading-relaxed"
+                  className="my-1.5 rounded-[var(--radius-md)] border p-2.5 text-[12px] italic leading-relaxed"
                   style={{
                     backgroundColor: 'var(--bg-tertiary)',
-                    borderColor: 'var(--accent)',
+                    borderColor: 'color-mix(in srgb, var(--accent) 35%, var(--border-subtle))',
                     color: 'var(--text-primary)',
                   }}
                   data-testid={`journal-epiphany-${thought.id}`}
