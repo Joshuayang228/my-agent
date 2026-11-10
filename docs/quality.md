@@ -1,5 +1,7 @@
 # 质量总控
 
+人物世界模块一致性门禁（2026-11-10）：`chat.test.ts` 正式人物世界基础导航覆盖四套主题与 1166 / 600 两种宽度，验证九个通用分区、Tab 键盘移动、响应式无横向溢出与关闭回聊天；全量 `npm run test` 为 1731 passed、1 skipped，`npx tsc --noEmit`、`npx vite build`、`npm run assets:check` 与 `npm run docs:validate` 通过。
+
 依赖审计更新（2026-11-10）：全量 `npm audit` 当前为 29 项（2 low / 12 moderate / 13 high / 2 critical），生产范围为 16 项（2 low / 4 moderate / 8 high / 2 critical）。未执行自动升级，依赖风险继续由 WISH-044 管理。
 
 宿主作息与日内重排 IPC 契约复核（2026-11-10）：补齐 `getHostPresenceStatus`、`triggerHostCareCheck`、`replanTodaySlots` 的 shared type、preload、主进程 handler 与 `vite-env` 四处契约，主进程对关怀类型和重排原因做运行时校验；`life-replan.test.ts` 与 `host-presence.test.ts` 共 10 项通过，类型检查通过。

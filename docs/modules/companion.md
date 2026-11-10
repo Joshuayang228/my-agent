@@ -151,7 +151,7 @@ Chat 的内置工具注册链现在包含 `companion_post_moment`、`companion_c
   - 用户的裁决直接接入次日日剧本生成管线（`collectDayScriptLifeContext`），将所选决策融入明日生活主题与活动安排；
   - 脚本生成后标记 `absorbed_in_script = 1`，建立“同伴求助 -> 用户裁决 -> 即时主会话反馈 -> 次日生活日程落地”的双向因果闭环；
 - **人物世界独立生活面与 Playground 隔离候选**：
-  - 人物世界（`WorldHub`）新增 `decisions` 分区（路飞显示为「航向抉择」，其他角色显示为「共同决策」），组合活跃决策求助卡与历史决策时间流；
+  - 人物世界（`WorldHub`）新增 `decisions` 分区，统一显示为「共同决策」，组合活跃决策求助卡与历史决策时间流；角色专属世界观只进入决策内容和选项，不改变通用入口名称；
   - 同步落地 `CoDecisionExperienceCandidate` 展厅候选与离线 fixtures，在 Playground 隔离验收航向抉择、已裁决、双选项、长文本与空态，不依赖 Electron IPC。
 
 ## 已落地能力：心境波动与突发小情绪（Mood Swings & Vulnerability Moments）

@@ -113,7 +113,7 @@ export function WorldHub({
 }) {
   const canEditAssets = allowAssetEditing
   const visibleTabs = (tabs ?? WORLD_TABS).filter((item) => !hiddenTabs.includes(item.id))
-  const labelFor = (item: WorldTabDefinition) => tabLabels?.[item.id] ?? (item.id === 'decisions' && roleId === 'luffy' ? '航向抉择' : item.label)
+  const labelFor = (item: WorldTabDefinition) => tabLabels?.[item.id] ?? item.label
   const [worldRefreshToken, setWorldRefreshToken] = useState(0)
   const [worldRefreshing, setWorldRefreshing] = useState(false)
 

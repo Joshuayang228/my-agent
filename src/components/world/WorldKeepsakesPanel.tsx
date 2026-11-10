@@ -13,6 +13,7 @@ import {
 import { ActionButton } from '../foundation/ActionButton'
 import { Badge } from '../foundation/Badge'
 import { EmptyState } from '../foundation/EmptyState'
+import { ErrorState } from '../foundation/ErrorState'
 import { contentGutterStyle } from '../../shared/content-layout'
 import { GiftGivingModal } from './GiftGivingModal'
 import type {
@@ -82,12 +83,10 @@ export function WorldKeepsakesPanel({
   const [loading, setLoading] = useState(false)
   const [gifting, setGifting] = useState(false)
   const [showGiftModal, setShowGiftModal] = useState(false)
+  const [loadError, setLoadError] = useState('')
 
-  const isLuffy = roleId === 'luffy'
-  const title = isLuffy ? '草帽一伙的专属信物与羁绊' : '专属信物与同伴羁绊'
-  const description = isLuffy
-    ? '路飞在关键时刻赠予你的誓约信物，以及你送给路飞的心意礼物手账。'
-    : '角色赠予你的珍贵物件，以及你送给角色的心意礼物手账。'
+  const title = '专属信物与关系纪念'
+  const description = '角色赠予你的珍贵物件，以及你送给角色的心意礼物记录。'
 
   // 同步 Playground 样张输入
   useEffect(() => {
@@ -105,6 +104,7 @@ export function WorldKeepsakesPanel({
   const loadData = useCallback(async () => {
     if (previewKeepsakes !== undefined || previewGifts !== undefined) return
     setLoading(true)
+    setLoadError('')
     onLoadingChange?.(true)
     try {
       if (window.electronAPI?.companion?.listKeepsakes) {
@@ -116,6 +116,7 @@ export function WorldKeepsakesPanel({
         setGifts(giftRecords)
       }
     } catch (err) {
+      setLoadError('信物与礼物读取失败，请重试。')
       console.warn('Failed to load keepsakes or gifts:', err)
     } finally {
       setLoading(false)
@@ -277,19 +278,16 @@ export function WorldKeepsakesPanel({
       </div>
 
       {/* 内容展示区 */}
-      {previewReadError ? (
+      {previewReadError || loadError ? (
         <div
           className="flex flex-1 flex-col items-center justify-center p-8 text-center"
           data-testid="keepsakes-error-state"
         >
-          <p className="text-sm font-medium" style={{ color: 'var(--danger, #ef4444)' }}>
-            {previewReadError}
-          </p>
-          {onPreviewRetry && (
-            <ActionButton size="sm" variant="plain" tone="accent" className="mt-3" onClick={onPreviewRetry}>
-              重新加载
-            </ActionButton>
-          )}
+          <ErrorState
+            title="信物与礼物暂时无法读取"
+            description={previewReadError ?? loadError}
+            action={<ActionButton size="sm" variant="plain" tone="accent" onClick={previewReadError ? onPreviewRetry : () => { void loadData() }}>重新加载</ActionButton>}
+          />
         </div>
       ) : activeTab === 'keepsakes' ? (
         /* 信物列表 */
@@ -463,7 +461,7 @@ export function WorldKeepsakesPanel({
                     }}
                   >
                     <span className="font-semibold not-italic" style={{ color: 'var(--companion-accent-warm, #f59e0b)' }}>
-                      {isLuffy ? '路飞的回响：' : '伙伴回响：'}
+                      伙伴回响：
                     </span>
                     “{gift.companionReaction}”
                   </div>

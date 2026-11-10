@@ -4,6 +4,7 @@ import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
 import { Badge } from '../foundation/Badge'
 import { EmptyState } from '../foundation/EmptyState'
+import { ErrorState } from '../foundation/ErrorState'
 import { contentGutterStyle } from '../../shared/content-layout'
 import { VulnerabilityCard } from './VulnerabilityCard'
 import type { CompanionInnerThoughtRecord, CompanionVulnerabilityRecord } from '../../shared/types'
@@ -55,6 +56,7 @@ export function WorldJournalPanel({
   const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
   const [filterFavorite, setFilterFavorite] = useState(false)
+  const [loadError, setLoadError] = useState('')
 
   const journalTitle = '日记'
   const journalDesc = '角色在独处、回忆或夜间沉思时留下的私密心声与随笔，不公开发表，唯你可见。'
@@ -70,11 +72,13 @@ export function WorldJournalPanel({
     if (previewThoughts !== undefined) return
     if (!window.electronAPI?.companion?.listInnerThoughts) return
     setLoading(true)
+    setLoadError('')
     onLoadingChange?.(true)
     try {
       const records = await window.electronAPI.companion.listInnerThoughts(roleId)
       setThoughts(records)
     } catch (err) {
+      setLoadError('日记读取失败，请重试。')
       console.warn('Failed to load inner thoughts:', err)
     } finally {
       setLoading(false)
@@ -234,17 +238,13 @@ export function WorldJournalPanel({
       )}
 
       {/* 错误提示与列表流 */}
-      {previewReadError ? (
-        <div className="flex flex-1 flex-col items-center justify-center p-8 text-center" data-testid="journal-error-state">
-          <p className="text-sm font-medium" style={{ color: 'var(--danger, #ef4444)' }}>
-            {previewReadError}
-          </p>
-          {onPreviewRetry && (
-            <ActionButton size="sm" variant="plain" tone="accent" className="mt-3" onClick={onPreviewRetry}>
-              重新加载
-            </ActionButton>
-          )}
-        </div>
+      {previewReadError || loadError ? (
+        <ErrorState
+          title="日记暂时无法读取"
+          description={previewReadError ?? loadError}
+          action={<ActionButton size="sm" variant="plain" tone="accent" onClick={previewReadError ? onPreviewRetry : () => { void loadThoughts() }}>重新加载</ActionButton>}
+          className="flex-1"
+        />
       ) : displayedThoughts.length === 0 ? (
         <div className="flex flex-1 items-center justify-center p-8">
           <EmptyState
@@ -252,7 +252,7 @@ export function WorldJournalPanel({
             description={
               filterFavorite
                 ? '点击卡片右上角的心形图标，把触动内心的日记收藏起来吧。'
-                : '当角色在深夜甲板看星星、独处或航行放空时，会自主写下真情实感。'
+                : '当角色独处、回忆或整理心情时，会自主写下真情实感。'
             }
           />
         </div>

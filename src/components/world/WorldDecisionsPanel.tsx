@@ -3,6 +3,7 @@ import { Compass, CheckCircle2, Sparkles, MessageSquareShare, History } from 'lu
 import { ActionButton } from '../foundation/ActionButton'
 import { Badge } from '../foundation/Badge'
 import { EmptyState } from '../foundation/EmptyState'
+import { ErrorState } from '../foundation/ErrorState'
 import { contentGutterStyle } from '../../shared/content-layout'
 import { CoDecisionCard } from './CoDecisionCard'
 import type { CompanionCoDecisionRecord } from '../../shared/types'
@@ -46,12 +47,10 @@ export function WorldDecisionsPanel({
   const [decisions, setDecisions] = useState<CompanionCoDecisionRecord[]>(previewDecisions ?? [])
   const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [loadError, setLoadError] = useState('')
 
-  const isLuffy = roleId === 'luffy'
-  const title = isLuffy ? '与路飞的航向抉择' : '同伴生活共同决策'
-  const description = isLuffy
-    ? '路飞在航行关键节点与生活分歧时向你发起的求助，你的决断将直接改变明天的航程与冒险。'
-    : '角色在生活面临分歧时向你发起的抉择求助，你的选择将直接改变角色明天的日程与动态。'
+  const title = '共同决策'
+  const description = '角色在生活面临分歧时向你发起的求助，你的选择会影响后续的日程与动态。'
 
   // 同步 Playground 样张输入
   useEffect(() => {
@@ -64,11 +63,13 @@ export function WorldDecisionsPanel({
     if (previewDecisions !== undefined) return
     if (!window.electronAPI?.companion?.listCoDecisions) return
     setLoading(true)
+    setLoadError('')
     onLoadingChange?.(true)
     try {
       const records = await window.electronAPI.companion.listCoDecisions(roleId)
       setDecisions(records)
     } catch (err) {
+      setLoadError('共同决策读取失败，请重试。')
       console.warn('Failed to load co-decisions:', err)
     } finally {
       setLoading(false)
@@ -149,27 +150,23 @@ export function WorldDecisionsPanel({
           onClick={handleCreateDecision}
         >
           <Sparkles size={12} className={`mr-1 ${creating ? 'animate-spin' : ''}`} />
-          {creating ? '正在思考新抉择...' : '发起航行新抉择'}
+          {creating ? '正在准备新决策...' : '发起新决策'}
         </ActionButton>
       </div>
 
       {/* 错误提示态 */}
-      {previewReadError ? (
-        <div className="flex flex-1 flex-col items-center justify-center p-8 text-center" data-testid="decisions-error-state">
-          <p className="text-sm font-medium" style={{ color: 'var(--danger, #ef4444)' }}>
-            {previewReadError}
-          </p>
-          {onPreviewRetry && (
-            <ActionButton size="sm" variant="plain" tone="accent" className="mt-3" onClick={onPreviewRetry}>
-              重新加载
-            </ActionButton>
-          )}
-        </div>
+      {previewReadError || loadError ? (
+        <ErrorState
+          title="共同决策暂时无法读取"
+          description={previewReadError ?? loadError}
+          action={<ActionButton size="sm" variant="plain" tone="accent" onClick={previewReadError ? onPreviewRetry : () => { void loadDecisions() }}>重新加载</ActionButton>}
+          className="flex-1"
+        />
       ) : decisions.length === 0 ? (
         <div className="flex flex-1 items-center justify-center p-8">
           <EmptyState
             title="当前暂无需要共同决定的事项"
-            description="当角色在航行探索或日常生活中面临分歧抉择时，会主动向你抛出求助。"
+            description="当角色在日常生活中面临分歧抉择时，会主动向你发起求助。"
           />
         </div>
       ) : (
@@ -179,7 +176,7 @@ export function WorldDecisionsPanel({
             <div>
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  {activeDecision.status === 'pending' ? '当前正等待你的关键决断：' : '最近敲定的航程：'}
+                  {activeDecision.status === 'pending' ? '当前正等待你的决定：' : '最近完成的决定：'}
                 </span>
               </div>
               <CoDecisionCard
@@ -249,7 +246,7 @@ export function WorldDecisionsPanel({
                           }}
                         >
                           <MessageSquareShare size={11} className="mr-1" />
-                          回顾这趟冒险
+                          回顾这次决定
                         </ActionButton>
                       </div>
                     )}

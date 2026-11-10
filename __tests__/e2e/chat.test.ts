@@ -1082,6 +1082,8 @@ async function installProductionElectronStub(page: import('@playwright/test').Pa
         getContacts: async () => ({ roleId: 'lin', people: [], relations: [], experiences: [] }),
         getAssets: async () => ({ roleId: 'lin', items: [] }),
         getMoments: async () => ({ roleId: 'lin', items: [] }),
+        getTodayTimeline: async () => ({ roleId: 'lin', theme: '', currentSlotIndex: 0, slots: [] }),
+        onTimelineUpdated: () => noopCleanup,
         catchupStatus: async () => ({ roleId: 'lin', presence: '' }),
       },
       project: {
@@ -2634,8 +2636,9 @@ for (const theme of ['porcelain-blue', 'yao-stone', 'deep-plum', 'song-smoke']) 
       const first = tabs.getByRole('tab', { name: '朋友圈', exact: true })
       await first.focus()
       await page.keyboard.press('ArrowRight')
-      await expect(tabs.getByRole('tab', { name: '衣柜', exact: true })).toBeFocused()
-      await expect(tabs.getByRole('tab', { name: '衣柜', exact: true })).toHaveAttribute('aria-selected', 'true')
+      await expect(tabs.getByRole('tab', { name: '日记', exact: true })).toBeFocused()
+      await expect(tabs.getByRole('tab', { name: '日记', exact: true })).toHaveAttribute('aria-selected', 'true')
+      await tabs.getByRole('tab', { name: '衣柜', exact: true }).click()
       await expect(page.getByTestId('world-assets-panel')).toBeVisible()
       await expect(world.getByRole('button', { name: '刷新衣柜', exact: true })).toHaveCount(1)
       await expect(page.getByTestId('world-wardrobe-wearing-empty')).toHaveText('还没有当前穿搭。')
