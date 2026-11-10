@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Heart, Trash2, MessageSquareShare, FileText, Moon, ArrowLeft, MailOpen } from 'lucide-react'
+import { Heart, Trash2, MessageSquareShare, Moon, ArrowLeft, MailOpen } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
 import { Badge } from '../foundation/Badge'
@@ -59,8 +59,6 @@ export function WorldJournalPanel({
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState('')
   const [selectedThoughtId, setSelectedThoughtId] = useState<string | null>(null)
-
-  const journalTitle = '日记'
 
   // 同步 Playground 样张输入
   useEffect(() => {
@@ -154,26 +152,16 @@ export function WorldJournalPanel({
       data-testid="world-journal-panel"
       data-world-content="journal"
     >
-      {/* 日记册页头只保留范围和一个主要动作，正文信息进入封面或详情。 */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b pb-3" style={{ borderColor: 'var(--border-subtle)' }}>
-        <div className="flex min-w-0 items-center gap-2">
-          {selectedThought ? (
-            <ActionButton variant="plain" tone="neutral" onClick={() => setSelectedThoughtId(null)} aria-label="返回日记册">
-              <ArrowLeft size={14} className="mr-1" />
-              返回日记册
-            </ActionButton>
-          ) : <FileText size={16} style={{ color: 'var(--accent-fg)' }} />}
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="truncate text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {selectedThought ? selectedThought.title : journalTitle}
-              </h2>
-              {!selectedThought && <Badge tone="accent">{thoughts.length} 篇</Badge>}
-            </div>
-          </div>
+      {/* 详情页保留返回入口，列表页直接进入日记册内容。 */}
+      {selectedThought && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 border-b pb-3" style={{ borderColor: 'var(--border-subtle)' }}>
+          <ActionButton variant="plain" tone="neutral" onClick={() => setSelectedThoughtId(null)} aria-label="返回日记册">
+            <ArrowLeft size={14} className="mr-1" />
+            返回日记册
+          </ActionButton>
+          <h2 className="truncate text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{selectedThought.title}</h2>
         </div>
-
-      </div>
+      )}
 
       {/* 伙伴实时心境波动与脆弱时刻 */}
       {showVulnerabilityCard && !selectedThought && (
