@@ -62,7 +62,6 @@ export function WorldJournalPanel({
   const [selectedThoughtId, setSelectedThoughtId] = useState<string | null>(null)
 
   const journalTitle = '日记'
-  const journalDesc = '角色在独处、回忆或夜间沉思时留下的私密心声与随笔，不公开发表，唯你可见。'
 
   // 同步 Playground 样张输入
   useEffect(() => {
@@ -205,7 +204,6 @@ export function WorldJournalPanel({
               </h2>
               {!selectedThought && <Badge tone="accent">{thoughts.length} 篇</Badge>}
             </div>
-            {!selectedThought && <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>{journalDesc}</p>}
           </div>
         </div>
 

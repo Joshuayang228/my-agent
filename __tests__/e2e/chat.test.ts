@@ -5214,6 +5214,7 @@ test.describe('My Agent UI', () => {
     await page.getByTestId('world-tab-journal').click()
     const journal = page.getByTestId('world-journal-fixture')
     await expect(journal).toHaveAttribute('data-persona-id', 'yao')
+    await expect(journal).not.toContainText('角色在独处、回忆或夜间沉思时留下的私密心声与随笔')
     await journal.getByTestId('journal-entry-fixture-journal-1').click()
     await expect(journal.getByTestId('journal-detail-fixture-journal-1')).toContainText('在千里阳光号的狮子船头上')
     await journal.getByRole('button', { name: '返回日记册', exact: true }).click()
