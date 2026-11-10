@@ -193,9 +193,10 @@ export function WorldJournalPanel({
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b pb-3" style={{ borderColor: 'var(--border-subtle)' }}>
         <div className="flex min-w-0 items-center gap-2">
           {selectedThought ? (
-            <IconButton size={28} label="返回日记册" onClick={() => setSelectedThoughtId(null)}>
-              <ArrowLeft size={15} />
-            </IconButton>
+            <ActionButton variant="plain" tone="neutral" onClick={() => setSelectedThoughtId(null)} aria-label="返回日记册">
+              <ArrowLeft size={14} className="mr-1" />
+              返回日记册
+            </ActionButton>
           ) : <FileText size={16} style={{ color: 'var(--accent-fg)' }} />}
           <div className="min-w-0">
             <div className="flex items-center gap-2">
