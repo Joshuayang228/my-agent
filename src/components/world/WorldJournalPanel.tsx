@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Trash2, MessageSquareShare, ArrowLeft, Smile } from 'lucide-react'
+import { Trash2, MessageSquareShare, ArrowLeft, Smile, Sun, Heart, CloudRain, type LucideIcon } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
 import { Badge } from '../foundation/Badge'
@@ -41,6 +41,18 @@ function formatDate(timestamp: number): string {
   } catch {
     return new Date(timestamp).toLocaleString()
   }
+}
+
+function moodIconFor(mood: string): LucideIcon {
+  if (/[热血兴奋开心雀跃来劲明亮期待]/u.test(mood)) return Sun
+  if (/[平静安宁安详温暖安心信赖]/u.test(mood)) return Heart
+  if (/[疲惫困倦低落迷茫]/u.test(mood)) return CloudRain
+  return Smile
+}
+
+function MoodIcon({ mood, size }: { mood: string; size: number }) {
+  const Icon = moodIconFor(mood)
+  return <Icon size={size} />
 }
 
 export function WorldJournalPanel({
@@ -175,7 +187,7 @@ export function WorldJournalPanel({
               {selectedThought.location && <span>· {selectedThought.location}</span>}
               {selectedThought.mood && (
                 <span role="img" aria-label={`心情：${selectedThought.mood}`} title={`心情：${selectedThought.mood}`} style={{ color: 'var(--accent-fg)' }}>
-                  <Smile size={14} />
+                  <MoodIcon mood={selectedThought.mood} size={14} />
                 </span>
               )}
             </div>
@@ -208,7 +220,7 @@ export function WorldJournalPanel({
                   <span>{formatDate(thought.createdAt)}</span>
                   {thought.mood && (
                     <span role="img" aria-label={`心情：${thought.mood}`} title={`心情：${thought.mood}`} style={{ color: 'var(--accent-fg)' }}>
-                      <Smile size={13} />
+                      <MoodIcon mood={thought.mood} size={13} />
                     </span>
                   )}
                 </span>
