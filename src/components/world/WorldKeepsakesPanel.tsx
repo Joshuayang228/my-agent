@@ -3,12 +3,11 @@ import {
   Gift,
   MessageSquareShare,
   Sparkles,
-  HeartHandshake,
   Heart,
   Utensils,
   Map as MapIcon,
   Compass,
-  Coffee,
+  ArrowLeft,
 } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { Badge } from '../foundation/Badge'
@@ -86,8 +85,8 @@ export function WorldKeepsakesPanel({
   const [showGiftModal, setShowGiftModal] = useState(false)
   const [loadError, setLoadError] = useState('')
 
-  const title = '专属信物与关系纪念'
-  const description = '角色赠予你的珍贵物件，以及你送给角色的心意礼物记录。'
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selected = keepsakes.find(item => item.id === selectedId)
 
   // 同步 Playground 样张输入
   useEffect(() => {
@@ -192,6 +191,7 @@ export function WorldKeepsakesPanel({
 
   const handleGiftSent = (gift: CompanionGiftRecord) => {
     setGifts((prev) => [gift, ...prev.filter((g) => g.id !== gift.id)])
+    setSelectedId(null)
     setActiveTab('gifts')
   }
 
@@ -202,63 +202,31 @@ export function WorldKeepsakesPanel({
       data-testid="world-keepsakes-panel"
       data-world-content="keepsakes"
     >
-      {/* 头部标题与操作 */}
-      <div
-        className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b pb-3"
-        style={{ borderColor: 'var(--border-subtle)' }}
-      >
-        <div>
-          <div className="flex items-center gap-2">
-            <Gift size={16} style={{ color: 'var(--companion-accent-warm)' }} />
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {title}
-            </h2>
-            <Badge tone="accent">
-              {activeTab === 'keepsakes' ? `${keepsakes.length} 件信物` : `${gifts.length} 份心意`}
-            </Badge>
-          </div>
-          <p className="mt-0.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            {description}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <ActionButton
-            size="sm"
-            tone="accent"
-            onClick={() => setShowGiftModal(true)}
-            data-testid="open-gift-modal-btn"
-          >
-            <Heart size={12} className="mr-1" />
-            赠送礼物 · 共筑羁绊
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        {selected ? (
+          <ActionButton variant="plain" onClick={() => setSelectedId(null)}>
+            <ArrowLeft size={14} className="mr-1" />返回信物
           </ActionButton>
-
-          {activeTab === 'keepsakes' && (
-            <ActionButton
-              size="sm"
-              variant="plain"
-              tone="neutral"
-              disabled={gifting}
-              onClick={handleTriggerGift}
-            >
-              <Sparkles size={12} className={`mr-1 ${gifting ? 'animate-spin' : ''}`} />
-              {gifting ? '正在准备...' : '索取信物'}
+        ) : (
+          <TabStrip label="信物内容" activeId={activeTab}
+            onSelect={id => { setActiveTab(id as 'keepsakes' | 'gifts'); setSelectedId(null) }}
+            items={[
+              { id: 'keepsakes', label: '收到的信物', testId: 'tab-keepsakes' },
+              { id: 'gifts', label: '送出的礼物', testId: 'tab-gifts' },
+            ]}
+          />
+        )}
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <ActionButton onClick={() => setShowGiftModal(true)} data-testid="open-gift-modal-btn">
+            <Heart size={14} className="mr-1" />赠送礼物
+          </ActionButton>
+          {activeTab === 'keepsakes' && !selected && (
+            <ActionButton variant="plain" disabled={gifting} onClick={handleTriggerGift}>
+              <Sparkles size={14} className="mr-1" />{gifting ? '正在准备…' : '索取信物'}
             </ActionButton>
           )}
         </div>
       </div>
-
-      {/* 标签栏：伙伴信物 vs 赠礼心意 */}
-      <TabStrip
-        label="信物内容"
-        variant="surface"
-        activeId={activeTab}
-        onSelect={(id) => setActiveTab(id as 'keepsakes' | 'gifts')}
-        items={[
-          { id: 'keepsakes', label: `伙伴信物 (${keepsakes.length})`, testId: 'tab-keepsakes' },
-          { id: 'gifts', label: `心意手账 (${gifts.length})`, testId: 'tab-gifts' },
-        ]}
-      />
 
       {/* 内容展示区 */}
       {previewReadError || loadError ? (
@@ -277,85 +245,44 @@ export function WorldKeepsakesPanel({
         keepsakes.length === 0 ? (
           <div className="flex flex-1 items-center justify-center p-8">
             <EmptyState
-              title="还没有获赠专属信物"
-              description="与角色共同完成心愿、持续深入交谈或跨越相处里程碑时，角色会主动向你赠予专属信物。"
+              title="还没有获赠信物"
+              description="与角色共同完成心愿、持续深入交谈或跨越相处里程碑时，角色会主动向你赠予信物。"
               centerWithoutAction
             />
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            {keepsakes.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-col justify-between border-b pb-4 transition-colors hover:bg-[var(--hover-overlay)]"
-                style={{ borderColor: 'var(--border-subtle)' }}
-                data-testid={`keepsake-card-${item.id}`}
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-lg)]"
-                        style={{
-                          background: 'color-mix(in srgb, var(--companion-accent-warm) 15%, transparent)',
-                          color: 'var(--companion-accent-warm)',
-                        }}
-                      >
-                        <Gift size={18} />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                          {item.name}
-                        </h3>
-                        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                          获赠于 {formatDate(item.acquiredAt)}
-                        </span>
-                      </div>
-                    </div>
-
-                    <Badge tone="accent">
-                      <HeartHandshake size={10} className="mr-0.5 inline" />
-                      {item.giftReason}
-                    </Badge>
-                  </div>
-
-                  <p className="mt-3 text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                    {item.description}
-                  </p>
-
-                  {item.lore && (
-                    <div
-                      className="mt-3 rounded-[var(--radius-lg)] p-2.5 text-[11px] leading-relaxed italic"
-                      style={{
-                        backgroundColor: 'var(--bg-secondary)',
-                        color: 'var(--text-primary)',
-                      }}
-                    >
-                      {item.lore}
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-4 flex items-center justify-end border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
-                  {onTakeToChat && (
-                    <ActionButton
-                      size="sm"
-                      variant="plain"
-                      tone="accent"
-                      onClick={() => {
-                        onTakeToChat({
-                          text: `我正看着你送给我的《${item.name}》，心里感觉特别温暖...`,
-                        })
-                      }}
-                    >
-                      <MessageSquareShare size={12} className="mr-1" />
-                      触摸信物 · 与TA聊聊
-                    </ActionButton>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          selected ? (
+            <article className="w-full max-w-3xl rounded-[var(--radius-card)] border p-6 sm:p-8"
+              style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
+              data-testid={`keepsake-detail-${selected.id}`}>
+              <h2 className="break-words font-display text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>{selected.name}</h2>
+              <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>获赠于 {formatDate(selected.acquiredAt)}</p>
+              <p className="mt-5 whitespace-pre-wrap break-words text-sm leading-7" style={{ color: 'var(--text-secondary)' }}>{selected.description}</p>
+              {selected.lore && <p className="mt-4 whitespace-pre-wrap break-words font-display text-sm leading-7" style={{ color: 'var(--text-secondary)' }}>{selected.lore}</p>}
+              {selected.giftMessage && <blockquote className="mt-5 whitespace-pre-wrap break-words font-display text-base leading-8" style={{ color: 'var(--text-primary)' }}>{selected.giftMessage}</blockquote>}
+              {selected.giftReason && <p className="mt-4 text-xs" style={{ color: 'var(--text-muted)' }}>{selected.giftReason}</p>}
+              {onTakeToChat && <div className="mt-6 flex justify-end">
+                <ActionButton variant="plain" onClick={() => onTakeToChat({ text: `我想和你聊聊你送我的《${selected.name}》。` })}>
+                  <MessageSquareShare size={14} className="mr-1" />聊聊这件信物
+                </ActionButton>
+              </div>}
+            </article>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="keepsake-shelf">
+              {keepsakes.map(item => (
+                <button key={item.id} type="button" onClick={() => setSelectedId(item.id)}
+                  aria-label={`查看信物：${item.name}`} data-testid={`keepsake-card-${item.id}`}
+                  className="flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-card)] border text-left transition-colors hover:bg-[var(--hover-overlay)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
+                  style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+                  <span className="flex min-h-28 flex-col justify-between gap-4 p-4" style={{ background: 'var(--accent-subtle)' }}>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatDate(item.acquiredAt)}</span>
+                    <span className="break-words font-display text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{item.name}</span>
+                  </span>
+                  <span className="p-4"><span className="line-clamp-3 break-words text-xs leading-6" style={{ color: 'var(--text-secondary)' }}>{item.description}</span></span>
+                </button>
+              ))}
+            </div>
+          )
         )
       ) : (
         /* 心意手账（用户送礼历史） */

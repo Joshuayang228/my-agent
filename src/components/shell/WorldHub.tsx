@@ -24,7 +24,7 @@ export type WorldTabDefinition = { id: WorldTab; label: string; icon: ReactNode 
 const WORLD_TABS: WorldTabDefinition[] = [
   { id: 'moments', label: '朋友圈', icon: <Newspaper size={14} strokeWidth={1.5} /> },
   { id: 'journal', label: '日记', icon: <FileText size={14} strokeWidth={1.5} /> },
-  { id: 'keepsakes', label: '专属信物', icon: <Gift size={14} strokeWidth={1.5} /> },
+  { id: 'keepsakes', label: '信物', icon: <Gift size={14} strokeWidth={1.5} /> },
   { id: 'wardrobe', label: '衣柜', icon: <Shirt size={14} strokeWidth={1.5} /> },
   { id: 'culture', label: '文化角', icon: <BookOpen size={14} strokeWidth={1.5} /> },
   { id: 'home', label: '家居', icon: <Home size={14} strokeWidth={1.5} /> },

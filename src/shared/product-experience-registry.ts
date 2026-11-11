@@ -82,7 +82,7 @@ export const PRODUCT_EXPERIENCE_ASSETS = [
       'src/assets/playground/wardrobe-icons/iconpark-boots.svg',
       'src/assets/playground/travel-canal.png',
     ],
-    experienceParts: ['朋友圈', '衣柜', '文化角', '家居', '通讯录', '足迹', '日记', '专属信物', '心境波动与脆弱抚慰', '专属物品赠送与羁绊好感', '因果重编排与现实作息锚点'],
+    experienceParts: ['朋友圈', '衣柜', '文化角', '家居', '通讯录', '足迹', '日记', '信物', '心境波动与脆弱抚慰', '专属物品赠送与羁绊好感', '因果重编排与现实作息锚点'],
     playgroundUsesFoundation: ['behavior.badge'],
     usesFoundation: ['behavior.tabs', 'state.empty', 'state.error', 'behavior.action-button', 'behavior.icon-button', 'behavior.button', 'behavior.input', 'behavior.select', 'state.confirm-panel', 'behavior.image-viewer'],
   }),

@@ -31,7 +31,7 @@ describe('Playground World Candidates (日记与专属信物)', () => {
     expect(worldExperience.sourcePaths).toContain('src/components/playground/JournalExperienceCandidate.tsx')
     expect(worldExperience.sourcePaths).toContain('src/components/playground/KeepsakesExperienceCandidate.tsx')
     expect(worldExperience.experienceParts).toContain('日记')
-    expect(worldExperience.experienceParts).toContain('专属信物')
+    expect(worldExperience.experienceParts).toContain('信物')
   })
 
   it('组件函数导出真实可用且符合 React 函数组件约定', () => {

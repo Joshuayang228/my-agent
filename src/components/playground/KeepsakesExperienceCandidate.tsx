@@ -100,7 +100,7 @@ export function KeepsakesExperienceCandidate({ personaId }: { personaId: string 
           items={KEEPSAKE_SCENARIOS}
           value={scenario}
           onChange={setScenario}
-          ariaLabel="专属信物状态样张"
+          ariaLabel="信物状态样张"
         />
       </WorldCandidateControls>
       <WorldKeepsakesPanel
