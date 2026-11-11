@@ -153,6 +153,7 @@ export async function tickActiveRole(now: number): Promise<{
   roleId: string | null
   published: number
   scriptsCreated: number
+  paused: boolean
 }> {
   const roleId = await resolveActiveRoleId()
   const state = await store.getRoleState(roleId)

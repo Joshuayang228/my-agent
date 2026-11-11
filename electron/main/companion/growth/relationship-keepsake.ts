@@ -13,7 +13,6 @@
  */
 
 import { randomUUID } from 'crypto'
-import { BrowserWindow } from 'electron'
 import { getDatabase, persist } from '../../storage/database'
 import { createLogger } from '../../utils/logger'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
@@ -24,6 +23,9 @@ import { loadRolePack } from '../identity/loader'
 import { ensureMainSessionForRole, saveMessage } from '../../storage/session-store'
 import { tryRecordMilestone } from './milestones'
 import { isActiveRole } from '../../storage/settings-store'
+import { appendCompanionDomainEvent } from '../core/events/domain-events'
+import { enqueueCompanionOutbox } from '../core/outbox/outbox'
+import { dispatchCompanionWindowOutbox } from '../core/outbox/dispatcher'
 import type { CompanionKeepsakeRecord, CompanionKeepsakeGiftEvent, LLMConfig } from '../../../../src/shared/types'
 
 const log = createLogger('RelationshipKeepsake')
@@ -326,10 +328,30 @@ export async function triggerGiftKeepsake(
     timestamp: now,
   }
 
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (!win.isDestroyed()) {
-      win.webContents.send('companion:keepsake-gifted', event)
-    }
+  try {
+    const domainEvent = await appendCompanionDomainEvent({
+      roleId,
+      universeId: 'default',
+      type: 'keepsake_gifted',
+      sourceType: 'relationship_keepsake',
+      sourceId: keepsakeRecord.id,
+      causationId: keepsakeRecord.id,
+      correlationId: keepsakeRecord.id,
+      idempotencyKey: `keepsake-gifted:${keepsakeRecord.id}`,
+      occurredAt: now,
+      payload: event as unknown as Record<string, unknown>,
+      schemaVersion: 1,
+    })
+    await enqueueCompanionOutbox({
+      roleId,
+      eventId: domainEvent.id,
+      kind: 'keepsake-gifted',
+      dedupeKey: `keepsake-gifted:${keepsakeRecord.id}`,
+      payload: event as unknown as Record<string, unknown>,
+    })
+    await dispatchCompanionWindowOutbox()
+  } catch (err) {
+    log.warn('Keepsake notification ledger failed; record remains readable', { roleId, keepsakeId: keepsakeRecord.id, error: String(err) })
   }
 
   log.info('Keepsake gifted successfully', { roleId, keepsakeId: keepsakeRecord.id, name: keepsakeRecord.name })

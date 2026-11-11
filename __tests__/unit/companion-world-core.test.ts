@@ -42,6 +42,7 @@ const {
 const { appendCompanionDomainEvent } = await import('../../electron/main/companion/core/events/domain-events')
 const { startCompanionExecution, finishCompanionExecution } = await import('../../electron/main/companion/core/execution/ledger')
 const { enqueueCompanionOutbox } = await import('../../electron/main/companion/core/outbox/outbox')
+const { dispatchCompanionOutbox } = await import('../../electron/main/companion/core/outbox/outbox')
 const { executeCompanionCommand } = await import('../../electron/main/companion/core/commands/gateway')
 
 describe('人物世界核心层', () => {
@@ -120,5 +121,24 @@ describe('人物世界核心层', () => {
     })).rejects.toThrow('核心失败')
     const row = memDb.exec("SELECT status, error_message FROM companion_execution_runs WHERE action_type = 'core-test-failure'")[0]?.values[0]
     expect(row).toEqual(['retryable', '核心失败'])
+  })
+
+  it('Outbox 投递成功后标记 delivered，失败后保留 failed 供重试', async () => {
+    await enqueueCompanionOutbox({ roleId: 'luffy', kind: 'test-success', dedupeKey: 'success-1', payload: { ok: true } })
+    await enqueueCompanionOutbox({ roleId: 'luffy', kind: 'test-failure', dedupeKey: 'failure-1', payload: { ok: false } })
+    const delivered: string[] = []
+    const count = await dispatchCompanionOutbox({
+      deliver: async (message) => {
+        if (message.kind === 'test-failure') throw new Error('窗口暂不可用')
+        delivered.push(message.kind)
+      },
+    })
+    expect(count).toBe(1)
+    expect(delivered).toEqual(['test-success'])
+    const rows = memDb.exec("SELECT kind, status, attempt, last_error FROM companion_outbox ORDER BY kind")[0]?.values
+    expect(rows).toEqual([
+      ['test-failure', 'failed', 1, '窗口暂不可用'],
+      ['test-success', 'delivered', 1, null],
+    ])
   })
 })

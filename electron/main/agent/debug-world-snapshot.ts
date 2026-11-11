@@ -10,6 +10,7 @@ import { getActiveRole } from '../companion/orchestrator'
 import { loadRolePack } from '../companion/identity/loader'
 import { getMutable, getMutableMeta } from '../companion/growth/mutable-store'
 import { getRoleState, getDayScript, listEvents, listRelationshipStates, listRelationshipEvents, listEmotionEvents, listEventExecutions } from '../companion/life/store'
+import { getCompanionRuntimeState } from '../companion/core/state/runtime-state'
 import { resolveMomentVisibilityDays } from '../companion/life/moment-visibility'
 import { getSetting } from '../storage/settings-store'
 import { listMomentsForRole } from '../companion/life/moments'
@@ -125,7 +126,10 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
   const mutableBody = meta?.body ?? (await getMutable(role.id, role.universeId))
   const mutableTrunc = mutableBody.length > MUTABLE_MAX
 
-  const state = await getRoleState(role.id)
+  const [state, runtimeState] = await Promise.all([
+    getRoleState(role.id),
+    getCompanionRuntimeState(role.id),
+  ])
   const today = toLocalDateString(Date.now())
   const script = await getDayScript(role.id, today)
   const [plannedEvents, publishedEvents] = await Promise.all([
@@ -209,20 +213,20 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
       updatedAt: meta?.updatedAt ?? null,
       source: meta ? 'override' : 'pack-default',
     },
-    world: state
+    world: runtimeState
       ? {
-          schemaVersion: state.world.schemaVersion,
-          home: state.world.home,
-          timezone: state.world.timezone,
-          situation: clip(state.world.situation || '', 300),
-          mood: state.world.mood,
-          energy: state.world.energy,
-          socialNeed: state.world.socialNeed,
-          currentLocation: clip(state.world.currentLocation || '', 80),
-          locationDetail: clip(state.world.locationDetail || '', 120),
-          currentActivity: clip(state.world.currentActivity || '', 160),
-          statusTags: state.world.statusTags.slice(0, 8),
-          updatedAt: state.world.updatedAt,
+          schemaVersion: 1,
+          home: runtimeState.home,
+          timezone: runtimeState.timezone,
+          situation: clip(runtimeState.situation || '', 300),
+          mood: runtimeState.mood,
+          energy: runtimeState.energy,
+          socialNeed: runtimeState.socialNeed,
+          currentLocation: clip(runtimeState.currentLocation || '', 80),
+          locationDetail: clip(runtimeState.locationDetail || '', 120),
+          currentActivity: clip(runtimeState.currentActivity || '', 160),
+          statusTags: runtimeState.statusTags.slice(0, 8),
+          updatedAt: runtimeState.updatedAt,
         }
       : null,
     life: state

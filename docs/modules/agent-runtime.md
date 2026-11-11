@@ -54,6 +54,8 @@ Prompt 四层功能组合与关系标签收口（2026-11-08）：15 个核心功
 
 生活服务提交隔离（2026-11-11）：信物、脆弱安慰、宿主关怀、日内重排和旅行推进在异步模型生成后再次核对 activeRole，旧角色不会进入最终持久化。
 
+人物世界核心运行态接入（2026-11-12）：主对话装配、人物入口、Debug 世界态和自动配图读取 `companion_runtime_state`；生活行为产生的文化体验、赠礼和信物通知先写领域事件与 Outbox，再由窗口投递适配器发送。该接入只收敛人物世界的数据流，不改变 Agent Loop、模型请求签发或工具权限边界。
+
 主进程类型门禁（2026-11-07）：运行时、LLM、工具和 Eval 共享源码纳入 `tsconfig.node.json`，`npm run typecheck` / `npm run build` 会在 Renderer 检查后执行主进程检查，当前诊断为 0。
 
 材料观察工具（2026-11-07）：新增 `companion_observe_material`，通过注册的视觉观察配方读取当前会话已有图片，返回 observation / inference / uncertainties 候选；工具只读、不接受路径或 URL、不直接写入人物资产。`companion_add_reading_note` 负责带来源、记录者、grounding 和 confirmation 的明确写回，模型失败不产生阅读事实；尝试状态由独立表提供 Debug 证据。

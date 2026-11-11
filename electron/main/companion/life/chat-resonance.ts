@@ -34,6 +34,7 @@ import { getEventById, getMomentByEventId, insertEvent, insertMoment, recordEven
 import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { executeCompanionCommand } from '../core/commands/gateway'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
+import { dispatchCompanionWindowOutbox } from '../core/outbox/dispatcher'
 
 const log = createLogger('ChatResonance')
 
@@ -494,6 +495,14 @@ export async function completeCultureResonance(
   )
   persist()
 
+  const updatedResonance: CompanionLifeResonance = {
+    ...currentResonance,
+    status: 'completed',
+    completedAt: now,
+    feedbackText: parsedReview.chatOpener,
+  }
+  const notificationMessage = `${pack.name} 已经体验完了「${currentResonance.targetName}」！`
+
   // 核心层记录一次可追溯的文化体验完成事实；旧文化表仍保留作当前读模型，迁移完成后由投影替代。
   try {
     await executeCompanionCommand({
@@ -525,10 +534,11 @@ export async function completeCultureResonance(
           eventId: domainEvent.id,
           kind: 'resonance-completed',
           dedupeKey: `resonance-completed:${currentResonance.id}`,
-          payload: { resonanceId: currentResonance.id, targetName: currentResonance.targetName },
+          payload: { roleId, resonance: updatedResonance, message: notificationMessage },
         })
       },
     })
+    await dispatchCompanionWindowOutbox()
   } catch (err) {
     log.warn('Core culture completion ledger failed; legacy read model remains available', { roleId, resonanceId: currentResonance.id, error: String(err) })
   }
@@ -565,27 +575,7 @@ export async function completeCultureResonance(
     }
   }
 
-  const updatedResonance: CompanionLifeResonance = {
-    ...currentResonance,
-    status: 'completed',
-    completedAt: now,
-    feedbackText: parsedReview.chatOpener,
-  }
-
-  const notificationMessage = `${pack.name} 已经体验完了「${currentResonance.targetName}」！`
-
-  // 4. 广播事件
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (!win.isDestroyed()) {
-      win.webContents.send('companion:resonance-completed', {
-        roleId,
-        resonance: updatedResonance,
-        message: notificationMessage,
-      })
-    }
-  }
-
-  // 5. 共同心愿达成触发专属信物奖励（如梅利号金色小羊铃铛）
+  // 4. 共同心愿达成触发专属信物奖励（如梅利号金色小羊铃铛）
   if (roleId === 'luffy') {
     void (async () => {
       try {

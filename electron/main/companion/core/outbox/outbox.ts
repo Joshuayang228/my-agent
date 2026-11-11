@@ -34,6 +34,32 @@ export async function enqueueCompanionOutbox(input: {
   return message
 }
 
+export async function dispatchCompanionOutbox(input: {
+  limit?: number
+  deliver: (message: CompanionOutboxMessage) => Promise<void>
+}): Promise<number> {
+  await ensureCompanionCoreSchema()
+  const db = await getDatabase()
+  const limit = Math.max(1, Math.min(input.limit ?? 20, 100))
+  const rows = db.exec(`SELECT id, role_id, event_id, kind, dedupe_key, payload_json, status, attempt, last_error, created_at, delivered_at
+    FROM companion_outbox WHERE status IN ('pending', 'failed') ORDER BY created_at ASC LIMIT ?`, [limit])[0]?.values ?? []
+  let delivered = 0
+  for (const row of rows) {
+    const message = rowToOutbox(row)
+    db.run(`UPDATE companion_outbox SET status = 'processing', attempt = attempt + 1, last_error = NULL WHERE id = ? AND status IN ('pending', 'failed')`, [message.id])
+    persist()
+    try {
+      await input.deliver({ ...message, status: 'processing', attempt: message.attempt + 1, lastError: null })
+      db.run(`UPDATE companion_outbox SET status = 'delivered', delivered_at = ? WHERE id = ?`, [Date.now(), message.id])
+      delivered += 1
+    } catch (error) {
+      db.run(`UPDATE companion_outbox SET status = 'failed', last_error = ? WHERE id = ?`, [error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500), message.id])
+    }
+    persist()
+  }
+  return delivered
+}
+
 function rowToOutbox(row: unknown[]): CompanionOutboxMessage {
   return {
     id: String(row[0]),

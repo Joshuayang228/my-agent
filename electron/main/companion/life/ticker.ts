@@ -21,6 +21,7 @@ import { checkAndReplanIfExhausted } from './replan'
 import { checkAndTriggerHostCare } from './host-presence'
 import * as store from './store'
 import { isActiveRole } from '../../storage/settings-store'
+import { dispatchCompanionWindowOutbox } from '../core/outbox/dispatcher'
 
 const log = createLogger('LifeTicker')
 
@@ -90,28 +91,30 @@ export function startLifeTicker(defaultIntervalMs = DEFAULT_INTERVAL_MS): void {
     try {
       const r = await tickActiveRole(now)
       activeRoleId = r.roleId
-      if (r.roleId && !r.paused) {
-        broadcastTimelineUpdated(r.roleId, now)
+      const tickRoleId = r.roleId
+      if (tickRoleId && !r.paused) {
+        broadcastTimelineUpdated(tickRoleId, now)
         // M31-G3：默认可关；失败不阻断 ticker
         const actions: Array<{ label: string; userFacing: boolean; action: () => Promise<unknown> }> = [
-          { label: 'proactive greeting', userFacing: true, action: () => maybeProactiveGreeting(r.roleId, now) },
-          { label: 'chat resonance progression', userFacing: false, action: () => checkAndProgressAbsorbedResonances(r.roleId, now) },
-          { label: 'spontaneous impulse', userFacing: true, action: () => triggerSpontaneousImpulse(r.roleId, now) },
-          { label: 'inner thought', userFacing: false, action: () => checkAndGenerateInnerThought(r.roleId, now) },
-          { label: 'contextual dressing', userFacing: false, action: () => checkAndPerformContextualDressing(r.roleId, now) },
-          { label: 'travel progression', userFacing: false, action: () => checkAndProgressTravelJourney(r.roleId, now) },
-          { label: 'vulnerability', userFacing: true, action: () => checkAndTriggerVulnerability(r.roleId, now) },
-          { label: 'nightly reflection', userFacing: false, action: () => checkAndTriggerNightlyReflection(r.roleId, now) },
-          { label: 'replan', userFacing: false, action: () => checkAndReplanIfExhausted(r.roleId, now) },
-          { label: 'host care', userFacing: true, action: () => checkAndTriggerHostCare(r.roleId, now) },
+          { label: 'proactive greeting', userFacing: true, action: () => maybeProactiveGreeting(tickRoleId, now) },
+          { label: 'chat resonance progression', userFacing: false, action: () => checkAndProgressAbsorbedResonances(tickRoleId, now) },
+          { label: 'spontaneous impulse', userFacing: true, action: () => triggerSpontaneousImpulse(tickRoleId, now) },
+          { label: 'inner thought', userFacing: false, action: () => checkAndGenerateInnerThought(tickRoleId, now) },
+          { label: 'contextual dressing', userFacing: false, action: () => checkAndPerformContextualDressing(tickRoleId, now) },
+          { label: 'travel progression', userFacing: false, action: () => checkAndProgressTravelJourney(tickRoleId, now) },
+          { label: 'vulnerability', userFacing: true, action: () => checkAndTriggerVulnerability(tickRoleId, now) },
+          { label: 'nightly reflection', userFacing: false, action: () => checkAndTriggerNightlyReflection(tickRoleId, now) },
+          { label: 'replan', userFacing: false, action: () => checkAndReplanIfExhausted(tickRoleId, now) },
+          { label: 'host care', userFacing: true, action: () => checkAndTriggerHostCare(tickRoleId, now) },
         ]
         let userFacingDelivered = false
         for (const item of actions) {
           if (item.userFacing && userFacingDelivered) continue
-          const outcome = await runForActiveRole(r.roleId, item.label, item.action)
+          const outcome = await runForActiveRole(tickRoleId, item.label, item.action)
           if (!outcome.ok) break
           if (item.userFacing && didDeliverUserFacingAction(outcome.result)) userFacingDelivered = true
         }
+        await runForActiveRole(tickRoleId, 'companion outbox delivery', () => dispatchCompanionWindowOutbox())
       }
     } catch (err) {
       log.warn('tickActiveRole failed', { error: String(err) })

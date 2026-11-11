@@ -10,7 +10,9 @@
 - `electron/main/companion/core/events/domain-events.ts` 提供领域事件幂等写入与因果字段。
 - `electron/main/companion/core/execution/ledger.ts` 提供动作执行状态和失败信息记录。
 - `electron/main/companion/core/outbox/outbox.ts` 提供去重通知出站记录。
+- `electron/main/companion/core/outbox/dispatcher.ts` 是 Electron 窗口投递适配器，负责领取 pending/failed 消息、成功标记 delivered、失败保留 failed 并等待下一轮重试。
 - `chat-resonance.ts` 的文化体验完成链路已写入核心事件、执行账本和 Outbox。
+- 赠礼与信物馈赠已写入核心领域事件并通过 Outbox 投递；`ticker.ts` 每轮生活推进后统一消费窗口通知。
 
 深夜反思与高光回忆重温架构（2026-11-09）：
 - 深夜反思与心灵领悟流：`nightly-reflection.ts` 在深夜时段（22:00～04:00）结合今日生活事件与近期用户对话线索，经 20 小时冷却（每日上限 1 次）由受控配方 `compileNightlyReflectionRequest` 生成第一人称深夜反思；
@@ -77,7 +79,7 @@
 - 主对话交谈冲动：`orchestrator.ts` 根据角色生活见闻与社交体征萃取 `conversationImpulse` 并经 `AgentRuntime` 注入主对话模板（插槽 31），实现闲聊场景下角色自然引出自身生活叙事；
 - 主动问候入会话：`proactive-greeting.ts` 在投递通知时调用 `session-store.ts` 的 `ensureMainSessionForRole`，将问候文案持久化为角色专属主会话的 `assistant` 消息；事件载荷携带 `sessionId`，前端 Toast 触发一键导航直达会话。
 
-生活体征与切片装配架构（2026-11-08）：主对话装配管线由 `AgentRuntime` 读取 `companion_life_assets`（穿着、在读在看在听文化活动）及 `world_json` 中的进行中旅程，通过 `formatLifeAssetsSliceForPrompt` 有界切片注入 `situation.lifeAssetsSlice`；对话流式响应完成并在主进程安全落地后，调用 `settleVitalsAfterChat` 结算角色体力消耗与社交满足度，更新至 `companion_role_state`，与朋友角色的召唤会话不产生主角体征结算。
+生活体征与切片装配架构（2026-11-08）：主对话装配管线由 `AgentRuntime` 读取 `companion_life_assets`（穿着、在读在看在听文化活动）及核心运行态中的进行中旅程，通过 `formatLifeAssetsSliceForPrompt` 有界切片注入 `situation.lifeAssetsSlice`；对话流式响应完成并在主进程安全落地后，调用 `settleVitalsAfterChat` 结算角色体力消耗与社交满足度，写入 `companion_runtime_state`，迁移期同步镜像到 `companion_role_state`，与朋友角色的召唤会话不产生主角体征结算。
 
 出厂静态视觉备份边界（2026-11-07）：`ipc/data-export.ts` 通过 `companion/life/assets.ts` 的 `isStarterVisualImage` 识别与 Role Pack `visualPath` 摘要一致的出厂静态图片，导出 JSON 时仅保留 `visualPath` 而不打包进 `generatedImageMedia`；导入时通过 `restoreStarterVisualPayload` 从本地 Role Pack 重新物化受控图片引用，用户重新生成的资产配图仍走完整 base64 媒体备份与恢复链路。
 
@@ -87,7 +89,7 @@
 
 阅读笔记来源边界（2026-11-07）：书架 `readingNotes` 属于人物生活资产，写入沿 `companion_add_reading_note` 的当前 role 校验和 world-records schema；记录者与来源范围随资产保存，不进入用户长期记忆。
 
-自动配图状态一致性（2026-11-07）：生活层从 `companion_role_state.world_json` 读取图片描述所需的当前地点、活动和叙事心情，与 Prompt / Moment 使用同一事实源；图片服务不写回新的世界事实。
+自动配图状态一致性（2026-11-07）：生活层从 `companion_runtime_state` 读取图片描述所需的当前地点、活动和叙事心情，与 Prompt / Moment 使用同一事实源；图片服务不写回新的世界事实。人物入口和 Debug 世界态也读取该核心快照，旧 `world_json` 只由核心写入镜像。
 
 状态量化边界（2026-11-07）：运行态保留有界数值供 Debug / 计算使用；人物世界头部以本地 UI 状态切换“描述 / 数字”，数值不进入设置写入、权限决策或用户长期记忆。
 

@@ -56,7 +56,7 @@ export interface CompanionOutboxMessage {
   kind: string
   dedupeKey: string
   payload: Record<string, unknown>
-  status: 'pending' | 'delivered' | 'failed'
+  status: 'pending' | 'processing' | 'delivered' | 'failed'
   attempt: number
   lastError: string | null
   createdAt: number

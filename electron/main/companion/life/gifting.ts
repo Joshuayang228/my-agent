@@ -19,7 +19,6 @@
  */
 
 import { randomUUID } from 'crypto'
-import { BrowserWindow } from 'electron'
 import { getDatabase, persist } from '../../storage/database'
 import { createLogger } from '../../utils/logger'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
@@ -29,12 +28,13 @@ import { compileGiftReactionRequest } from '../../prompts/registered-request'
 import { loadRolePack } from '../identity/loader'
 import { ensureMainSessionForRole, saveMessage } from '../../storage/session-store'
 import { tryRecordMilestone } from '../growth/milestones'
-import { ensureWorldState } from './world-state'
-import * as store from './store'
+import { applyCompanionRuntimeDelta, getCompanionRuntimeState } from '../core/state/runtime-state'
+import { appendCompanionDomainEvent } from '../core/events/domain-events'
+import { enqueueCompanionOutbox } from '../core/outbox/outbox'
+import { dispatchCompanionWindowOutbox } from '../core/outbox/dispatcher'
 import type {
   CompanionGiftItem,
   CompanionGiftRecord,
-  CompanionGiftEvent,
   GiftCategory,
   LLMConfig,
 } from '../../../../src/shared/types'
@@ -311,35 +311,6 @@ export async function sendGiftToCompanion(
     throw new Error('赠礼暂时未能完成，请稍后重试。')
   }
 
-  // 3. 提升角色生命体征
-  if (giftDef.vitalsBuff) {
-    try {
-      const world = await ensureWorldState(roleId)
-      const newMood = Math.min(100, (world.mood ?? 65) + (giftDef.vitalsBuff.mood ?? 0))
-      const newEnergy = Math.min(100, (world.energy ?? 70) + (giftDef.vitalsBuff.energy ?? 0))
-      const updatedWorld = {
-        ...world,
-        mood: newMood,
-        energy: newEnergy,
-        situation: `${world.situation}（刚刚收到了心意礼物《${giftDef.name}》，心情大好！）`,
-      }
-      await store.setWorldState(roleId, updatedWorld)
-      log.info('Buffed companion vitals after gift', { roleId, newMood, newEnergy })
-    } catch (err) {
-      log.warn('Failed to update companion vitals', { roleId, error: String(err) })
-    }
-  }
-
-  // 4. 记录关系成长里程碑
-  try {
-    await tryRecordMilestone(roleId, 'gift_received', {
-      roleDisplayName: protagonistName,
-      now,
-    })
-  } catch (err) {
-    log.warn('Failed to record gift milestone', { roleId, error: String(err) })
-  }
-
   const record: CompanionGiftRecord = {
     id: recordId,
     roleId,
@@ -352,13 +323,62 @@ export async function sendGiftToCompanion(
     vitalsBuff: giftDef.vitalsBuff,
   }
 
-  // 5. 广播全窗口事件
-  const eventPayload: CompanionGiftEvent = { roleId, gift: record }
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (!win.isDestroyed()) {
-      win.webContents.send('companion:gift-received', eventPayload)
-      win.webContents.send('companion:timeline-updated', { roleId })
+  // 3. 提升角色生命体征
+  try {
+    const world = await getCompanionRuntimeState(roleId)
+    const domainEvent = await appendCompanionDomainEvent({
+      roleId,
+      universeId: world.universeId,
+      type: 'gift_received',
+      sourceType: 'gifting',
+      sourceId: recordId,
+      causationId: recordId,
+      correlationId: recordId,
+      idempotencyKey: `gift-received:${recordId}`,
+      occurredAt: now,
+      payload: { giftKey: giftDef.key, giftName: giftDef.name, vitalsBuff: giftDef.vitalsBuff },
+      schemaVersion: 1,
+    })
+    let next = world
+    if (giftDef.vitalsBuff) {
+      next = await applyCompanionRuntimeDelta({
+        roleId,
+        eventId: domainEvent.id,
+        delta: {
+          mood: giftDef.vitalsBuff.mood ?? 0,
+          energy: giftDef.vitalsBuff.energy ?? 0,
+        },
+        updatedAt: now,
+      })
     }
+    await enqueueCompanionOutbox({
+      roleId,
+      eventId: domainEvent.id,
+      kind: 'gift-received',
+      dedupeKey: `gift-received:${recordId}`,
+      payload: { roleId, gift: record },
+    })
+    await enqueueCompanionOutbox({
+      roleId,
+      eventId: domainEvent.id,
+      kind: 'timeline-updated',
+      dedupeKey: `gift-timeline:${recordId}`,
+      payload: { roleId, now },
+    })
+    await dispatchCompanionWindowOutbox()
+    log.info('Recorded gift domain event', { roleId, mood: next.mood, energy: next.energy })
+  } catch (err) {
+    log.warn('Failed to record gift domain event', { roleId, error: String(err) })
+  }
+
+  // 4. 记录关系成长里程碑
+  try {
+    await tryRecordMilestone(roleId, 'gift_received', {
+      roleDisplayName: protagonistName,
+      now,
+    })
+  } catch (err) {
+    log.warn('Failed to record gift milestone', { roleId, error: String(err) })
   }
 
   return record

@@ -29,10 +29,14 @@ import { runCatchup } from './life/catchup'
 import { pauseRole, resumeRole } from './life/engine'
 import { getRoleState } from './life/store'
 import { listEmotionEvents, listRelationshipStates } from './life/store'
+import { getCompanionRuntimeState } from './core/state/runtime-state'
 import { narrativeMood } from './life/world-codec'
 import { recordAndBroadcastMilestone } from './growth/milestones'
 import { buildReacquaintCopy } from './presence'
 import { isStreamingActive } from './streaming-gate'
+import { createLogger } from '../utils/logger'
+
+const log = createLogger('CompanionOrchestrator')
 import type { RolePack, RoleSummary, SwitchResult } from './types'
 
 export type { CastBrief, RosterLine }
@@ -53,8 +57,8 @@ export async function getActiveRole(): Promise<RoleSummary & { universeId: strin
   const roleId = await getActiveRoleId()
   const pack = identity.loadRolePack(roleId, universeId)
   const visuals = identity.getRoleVisuals(roleId, universeId)
-  const [state, relationships, emotions] = await Promise.all([
-    getRoleState(roleId),
+  const [runtimeState, relationships, emotions] = await Promise.all([
+    getCompanionRuntimeState(roleId),
     listRelationshipStates(roleId),
     listEmotionEvents(roleId, 1),
   ])
@@ -70,11 +74,11 @@ export async function getActiveRole(): Promise<RoleSummary & { universeId: strin
     themeColor: pack.themeColor,
     avatarDataUrl: visuals.avatarDataUrl,
     bannerDataUrl: visuals.bannerDataUrl,
-    statusSummary: formatCompanionStatusSummary({ world: state?.world, relationships, emotions }),
-    statusMetrics: state ? {
-      mood: state.world.mood,
-      energy: state.world.energy,
-      socialNeed: state.world.socialNeed,
+    statusSummary: formatCompanionStatusSummary({ world: runtimeState, relationships, emotions }),
+    statusMetrics: runtimeState ? {
+      mood: runtimeState.mood,
+      energy: runtimeState.energy,
+      socialNeed: runtimeState.socialNeed,
       relationshipSignal: userRelationship?.signal ?? null,
       relationshipPhase: userRelationship?.phase ?? null,
     } : undefined,

@@ -76,6 +76,25 @@ vi.mock('../../electron/main/companion/life/world-state', () => ({
 }))
 
 vi.mock('../../electron/main/companion/life/store', () => ({
+  getRoleState: vi.fn(async (roleId: string) => ({
+    roleId,
+    world: {
+      schemaVersion: 1,
+      home: '千里阳光号',
+      timezone: 'Asia/Shanghai',
+      situation: '万里阳光号甲板航行中',
+      mood: currentWorldMood,
+      energy: currentWorldEnergy,
+      socialNeed: 48,
+      hunger: 0,
+      sleepiness: 0,
+      currentLocation: '甲板',
+      locationDetail: '',
+      currentActivity: '航行',
+      statusTags: [],
+      updatedAt: 0,
+    },
+  })),
   setWorldState: setWorldStateMock,
 }))
 

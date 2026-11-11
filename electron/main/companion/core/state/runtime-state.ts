@@ -3,6 +3,7 @@ import * as lifeStore from '../../life/store'
 import { defaultWorldState } from '../../life/world-codec'
 import { ensureCompanionCoreSchema } from '../schema'
 import type { CompanionRuntimeState } from '../types'
+import type { CompanionWorldState } from '../../types'
 
 export { resetCompanionCoreSchemaForTesting } from '../schema'
 
@@ -51,14 +52,15 @@ export async function getCompanionRuntimeState(roleId: string, universeId = 'def
   const roleState = await lifeStore.getRoleState(roleId)
   const world = roleState?.world ?? defaultWorldState(roleId)
   const now = Date.now()
+  const legacyWorld = world as CompanionWorldState & Partial<Pick<CompanionRuntimeState, 'hunger' | 'sleepiness'>>
   const state: CompanionRuntimeState = {
     roleId,
     universeId,
     mood: clamp(world.mood),
     energy: clamp(world.energy),
     socialNeed: clamp(world.socialNeed),
-    hunger: clamp(Number(world.hunger) || 0),
-    sleepiness: clamp(Number(world.sleepiness) || 0),
+    hunger: clamp(Number(legacyWorld.hunger) || 0),
+    sleepiness: clamp(Number(legacyWorld.sleepiness) || 0),
     home: world.home,
     timezone: world.timezone,
     currentActivity: world.currentActivity || '',
