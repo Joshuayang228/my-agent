@@ -21,7 +21,7 @@ import { checkAndReplanIfExhausted } from './replan'
 import { checkAndTriggerHostCare } from './host-presence'
 import * as store from './store'
 import { isActiveRole } from '../../storage/settings-store'
-import { dispatchCompanionWindowOutbox } from '../core/outbox/dispatcher'
+import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
 
 const log = createLogger('LifeTicker')
 

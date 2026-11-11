@@ -17,12 +17,22 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import initSqlJs from 'sql.js'
+
+const SQL = await initSqlJs()
+let memDb: InstanceType<typeof SQL.Database>
 
 const sendMock = vi.fn()
 vi.mock('electron', () => ({
+  app: { getPath: () => '/tmp' },
   BrowserWindow: {
     getAllWindows: () => [{ isDestroyed: () => false, webContents: { send: sendMock } }],
   },
+}))
+
+vi.mock('../../electron/main/storage/database', () => ({
+  getDatabase: vi.fn(async () => memDb),
+  persist: vi.fn(),
 }))
 
 vi.mock('../../electron/main/utils/logger', () => ({
@@ -44,6 +54,11 @@ let mockEvents: Array<{
 }> = []
 
 vi.mock('../../electron/main/companion/life/store', () => ({
+  getRoleState: vi.fn(async (roleId: string) => ({
+    roleId,
+    world: { schemaVersion: 1, home: '', timezone: 'Asia/Shanghai', situation: '', mood: mockWorldState.mood, energy: mockWorldState.energy, socialNeed: mockWorldState.socialNeed, currentLocation: '', locationDetail: '', currentActivity: '', statusTags: [], updatedAt: 0 },
+  })),
+  setWorldState: vi.fn(async () => undefined),
   listEvents: vi.fn(async (roleId: string) => {
     return mockEvents.filter((e) => e.roleId === roleId)
   }),
@@ -87,6 +102,7 @@ describe('日内计划槽位自适应重排（Dynamic Re-planning）', () => {
   const now = Date.UTC(2026, 10, 10, 14, 0, 0) // 14:00
 
   beforeEach(() => {
+    memDb = new SQL.Database()
     vi.clearAllMocks()
     mockEvents = []
     mockWorldState = { energy: 80, mood: 75, socialNeed: 40 }

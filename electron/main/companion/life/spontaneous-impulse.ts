@@ -10,7 +10,6 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { BrowserWindow } from 'electron'
 import type {
   LLMConfig,
   SpontaneousImpulseEvent,
@@ -26,6 +25,7 @@ import * as settings from '../../storage/settings-store'
 import { deleteMessage, ensureMainSessionForRole, saveMessage } from '../../storage/session-store'
 import { createLogger } from '../../utils/logger'
 import { loadRolePack } from '../identity/loader'
+import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 import { ensureWorldState } from './world-state'
 import {
   DEFAULT_QUIET_END_HOUR,
@@ -269,11 +269,20 @@ async function runSpontaneousImpulse(
     timestamp: now,
   }
 
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (!win.isDestroyed()) {
-      win.webContents.send('companion:spontaneous-impulse', event)
-    }
-  }
+  await recordCompanionEventAndNotify({
+    roleId,
+    type: 'spontaneous_impulse_triggered',
+    sourceType: 'spontaneous_impulse',
+    sourceId: recordId,
+    idempotencyKey: `spontaneous-impulse:${recordId}`,
+    occurredAt: now,
+    payload: event as unknown as Record<string, unknown>,
+    notification: {
+      kind: 'spontaneous-impulse',
+      dedupeKey: `spontaneous-impulse:${recordId}`,
+      payload: event as unknown as Record<string, unknown>,
+    },
+  })
 
   log.info('Spontaneous impulse triggered and delivered to main session', {
     roleId,

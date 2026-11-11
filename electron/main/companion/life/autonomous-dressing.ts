@@ -17,7 +17,6 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { BrowserWindow } from 'electron'
 import { getDatabase, persist } from '../../storage/database'
 import { createLogger } from '../../utils/logger'
 import { toLocalDateString } from './dates'
@@ -28,6 +27,7 @@ import {
   changeWardrobe,
   ASSET_KIND_WARDROBE,
 } from './assets'
+import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 import type { CompanionAsset } from '../types'
 import type {
   CompanionAutonomousDressingRecord,
@@ -384,18 +384,20 @@ export async function checkAndPerformContextualDressing(
       reason,
     })
 
-    // 广播渲染端更新
-    for (const win of BrowserWindow.getAllWindows()) {
-      if (!win.isDestroyed()) {
-        win.webContents.send('companion:timeline-updated', { roleId, now })
-        win.webContents.send('companion:wardrobe-changed', {
-          roleId,
-          asset: changeResult.asset,
-          reason,
-          now,
-        })
-      }
-    }
+    const wardrobePayload = { roleId, asset: changeResult.asset, reason, now }
+    await recordCompanionEventAndNotify({
+      roleId,
+      type: 'wardrobe_changed',
+      sourceType: 'autonomous_dressing',
+      sourceId: dressingRecord.id,
+      idempotencyKey: `wardrobe-changed:${dressingRecord.id}`,
+      occurredAt: now,
+      payload: wardrobePayload as unknown as Record<string, unknown>,
+      notification: [
+        { kind: 'timeline-updated', dedupeKey: `wardrobe-timeline:${dressingRecord.id}`, payload: { roleId, now } },
+        { kind: 'wardrobe-changed', dedupeKey: `wardrobe-changed:${dressingRecord.id}`, payload: wardrobePayload as unknown as Record<string, unknown> },
+      ],
+    })
 
     return {
       ok: true,

@@ -6,8 +6,8 @@
  * 约束：无积分/无进度条；不调 LLM；写入 settings JSON；失败静默。
  */
 
-import { BrowserWindow } from 'electron'
 import * as settings from '../../storage/settings-store'
+import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 
 export type MilestoneKind =
   | 'first_role_switch'
@@ -159,14 +159,25 @@ export async function getMilestonePromptHint(roleId: string): Promise<string | u
   return text || undefined
 }
 
-export function broadcastMilestone(payload: {
+export async function broadcastMilestone(payload: {
   roleId: string
   kind: MilestoneKind
   toast: string
-}): void {
-  for (const win of BrowserWindow.getAllWindows()) {
-    win.webContents.send('companion:milestone', payload)
-  }
+}): Promise<void> {
+  await recordCompanionEventAndNotify({
+    roleId: payload.roleId,
+    type: 'relationship_milestone_reached',
+    sourceType: 'relationship_milestone',
+    sourceId: `${payload.roleId}:${payload.kind}`,
+    idempotencyKey: `milestone:${payload.roleId}:${payload.kind}`,
+    occurredAt: Date.now(),
+    payload,
+    notification: {
+      kind: 'milestone',
+      dedupeKey: `milestone:${payload.roleId}:${payload.kind}`,
+      payload,
+    },
+  })
 }
 
 /**
@@ -180,11 +191,15 @@ export async function recordAndBroadcastMilestone(
 ): Promise<MilestoneRecordResult> {
   const result = await tryRecordMilestone(roleId, kind, opts)
   if (result.recorded && result.toast) {
-    broadcastMilestone({
-      roleId: roleId.trim(),
-      kind,
-      toast: result.toast,
-    })
+    try {
+      await broadcastMilestone({
+        roleId: roleId.trim(),
+        kind,
+        toast: result.toast,
+      })
+    } catch {
+      // 里程碑事实已经落库，通知投递失败由 Outbox 下一轮重试，不阻断主流程。
+    }
   }
   return result
 }

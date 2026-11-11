@@ -25,7 +25,7 @@ import { tryRecordMilestone } from './milestones'
 import { isActiveRole } from '../../storage/settings-store'
 import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
-import { dispatchCompanionWindowOutbox } from '../core/outbox/dispatcher'
+import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
 import type { CompanionKeepsakeRecord, CompanionKeepsakeGiftEvent, LLMConfig } from '../../../../src/shared/types'
 
 const log = createLogger('RelationshipKeepsake')

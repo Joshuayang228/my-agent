@@ -12,7 +12,6 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { BrowserWindow } from 'electron'
 import type {
   CompanionLifeResonance,
   CompanionLifeResonanceKind,
@@ -34,7 +33,8 @@ import { getEventById, getMomentByEventId, insertEvent, insertMoment, recordEven
 import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { executeCompanionCommand } from '../core/commands/gateway'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
-import { dispatchCompanionWindowOutbox } from '../core/outbox/dispatcher'
+import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
+import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 
 const log = createLogger('ChatResonance')
 
@@ -325,15 +325,21 @@ export async function settleChatResonance(
       ? `${pack.name} 把「${parsed.targetName}」加入了待体验文化清单！`
       : `${pack.name} 记下了关于「${parsed.targetName}」的生活心愿！`
 
-    for (const win of BrowserWindow.getAllWindows()) {
-      if (!win.isDestroyed()) {
-        win.webContents.send('companion:life-resonance-created', {
-          roleId,
-          resonance,
-          message,
-        })
-      }
-    }
+    const resonancePayload = { roleId, resonance, message }
+    await recordCompanionEventAndNotify({
+      roleId,
+      type: 'culture_resonance_created',
+      sourceType: 'chat_resonance',
+      sourceId: resonance.id,
+      idempotencyKey: `culture-resonance-created:${resonance.id}`,
+      occurredAt: resonance.createdAt,
+      payload: resonancePayload as unknown as Record<string, unknown>,
+      notification: {
+        kind: 'life-resonance-created',
+        dedupeKey: `culture-resonance-created:${resonance.id}`,
+        payload: resonancePayload as unknown as Record<string, unknown>,
+      },
+    })
 
     log.info('Chat resonance settled', { roleId, kind: parsed.kind, targetName: parsed.targetName, assetId })
     return { triggered: true, resonance }

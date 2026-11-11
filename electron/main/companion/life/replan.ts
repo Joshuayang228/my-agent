@@ -16,7 +16,6 @@
  * - 避免同一天同一诱因频繁重复重排（具备幂等/防抖保护）。
  */
 
-import { BrowserWindow } from 'electron'
 import type { ReplanResult } from '../../../../src/shared/types'
 import { createLogger } from '../../utils/logger'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
@@ -28,6 +27,7 @@ import { toLocalDateString } from './dates'
 import { ensureWorldState } from './world-state'
 import * as store from './store'
 import { isActiveRole } from '../../storage/settings-store'
+import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 
 const log = createLogger('LifeReplan')
 
@@ -249,12 +249,20 @@ export async function replanRemainingSlots(
     adjustedSlots,
   }
 
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (!win.isDestroyed()) {
-      win.webContents.send('companion:slots-replanned', result)
-      win.webContents.send('companion:timeline-updated', { roleId, now })
-    }
-  }
+  const sourceId = `replan:${roleId}:${now}`
+  await recordCompanionEventAndNotify({
+    roleId,
+    type: 'life_slots_replanned',
+    sourceType: 'life_replan',
+    sourceId,
+    idempotencyKey: sourceId,
+    occurredAt: now,
+    payload: result as unknown as Record<string, unknown>,
+    notification: [
+      { kind: 'slots-replanned', dedupeKey: sourceId, payload: result as unknown as Record<string, unknown> },
+      { kind: 'timeline-updated', dedupeKey: `${sourceId}:timeline`, payload: { roleId, now } },
+    ],
+  })
 
   return result
 }

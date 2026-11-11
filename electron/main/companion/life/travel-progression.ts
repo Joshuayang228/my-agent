@@ -18,7 +18,6 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { BrowserWindow } from 'electron'
 import { getDatabase, persist } from '../../storage/database'
 import { createLogger } from '../../utils/logger'
 import { toLocalDateString } from './dates'
@@ -34,6 +33,7 @@ import type {
   CompanionTravelProgressionRecord,
   CompanionTravelProgressedEvent,
 } from '../../../../src/shared/types'
+import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 import type { TripStopRecord } from '../../../../src/shared/world-records'
 import { isActiveRole } from '../../storage/settings-store'
 
@@ -378,12 +378,19 @@ export async function checkAndProgressTravelJourney(
       timestamp: now,
     }
 
-    for (const win of BrowserWindow.getAllWindows()) {
-      if (!win.isDestroyed()) {
-        win.webContents.send('companion:timeline-updated', { roleId, now })
-        win.webContents.send('companion:travel-progressed', eventPayload)
-      }
-    }
+    await recordCompanionEventAndNotify({
+      roleId,
+      type: 'travel_progressed',
+      sourceType: 'travel_progression',
+      sourceId: progressionRecord.id,
+      idempotencyKey: `travel-progressed:${progressionRecord.id}`,
+      occurredAt: now,
+      payload: eventPayload as unknown as Record<string, unknown>,
+      notification: [
+        { kind: 'timeline-updated', dedupeKey: `travel-timeline:${progressionRecord.id}`, payload: { roleId, now } },
+        { kind: 'travel-progressed', dedupeKey: `travel-progressed:${progressionRecord.id}`, payload: eventPayload as unknown as Record<string, unknown> },
+      ],
+    })
 
     return {
       ok: true,
@@ -466,19 +473,27 @@ export async function triggerTravelProgression(
   )
   persist()
 
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (!win.isDestroyed()) {
-      win.webContents.send('companion:timeline-updated', { roleId, now })
-      win.webContents.send('companion:travel-progressed', {
-        roleId,
-        tripId: activeTrip.id,
-        tripTitle: activeTrip.name,
-        stop,
-        toastTitle: `航海足迹已更新：${stop.name}`,
-        timestamp: now,
-      })
-    }
+  const eventPayload: CompanionTravelProgressedEvent = {
+    roleId,
+    tripId: activeTrip.id,
+    tripTitle: activeTrip.name,
+    stop: { ...stop, date: stop.date || toLocalDateString(now) },
+    toastTitle: `航海足迹已更新：${stop.name}`,
+    timestamp: now,
   }
+  await recordCompanionEventAndNotify({
+    roleId,
+    type: 'travel_progressed',
+    sourceType: 'travel_progression',
+    sourceId: record.id,
+    idempotencyKey: `travel-progressed:${record.id}`,
+    occurredAt: now,
+    payload: eventPayload as unknown as Record<string, unknown>,
+    notification: [
+      { kind: 'timeline-updated', dedupeKey: `travel-timeline:${record.id}`, payload: { roleId, now } },
+      { kind: 'travel-progressed', dedupeKey: `travel-progressed:${record.id}`, payload: eventPayload as unknown as Record<string, unknown> },
+    ],
+  })
 
   return record
 }

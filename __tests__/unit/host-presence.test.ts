@@ -18,17 +18,35 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import initSqlJs from 'sql.js'
+
+const SQL = await initSqlJs()
+let memDb: InstanceType<typeof SQL.Database>
 
 let mockIdleTime = 10 // 默认空闲 10 秒
 const sendMock = vi.fn()
 
 vi.mock('electron', () => ({
+  app: { getPath: () => '/tmp' },
   powerMonitor: {
     getSystemIdleTime: vi.fn(() => mockIdleTime),
   },
   BrowserWindow: {
     getAllWindows: () => [{ isDestroyed: () => false, webContents: { send: sendMock } }],
   },
+}))
+
+vi.mock('../../electron/main/storage/database', () => ({
+  getDatabase: vi.fn(async () => memDb),
+  persist: vi.fn(),
+}))
+
+vi.mock('../../electron/main/companion/life/store', () => ({
+  getRoleState: vi.fn(async (roleId: string) => ({
+    roleId,
+    world: { schemaVersion: 1, home: '', timezone: 'Asia/Shanghai', situation: '', mood: 65, energy: 70, socialNeed: 40, currentLocation: '', locationDetail: '', currentActivity: '', statusTags: [], updatedAt: 0 },
+  })),
+  setWorldState: vi.fn(async () => undefined),
 }))
 
 vi.mock('../../electron/main/utils/logger', () => ({
@@ -77,6 +95,7 @@ describe('宿主作息与现实关怀触达（Host Presence & Care Anchor）', (
   const baseTime = Date.UTC(2026, 10, 10, 10, 0, 0) // 10:00
 
   beforeEach(() => {
+    memDb = new SQL.Database()
     vi.clearAllMocks()
     appendedMessages.length = 0
     mockIdleTime = 10

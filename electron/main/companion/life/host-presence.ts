@@ -18,7 +18,7 @@ import { randomUUID } from 'node:crypto'
  * - 无论网络状况，均具备高质量人设规则兜底。
  */
 
-import { BrowserWindow, powerMonitor } from 'electron'
+import { powerMonitor } from 'electron'
 import type { HostCareEvent, HostCareKind, HostPresenceStatus } from '../../../../src/shared/types'
 import { createLogger } from '../../utils/logger'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
@@ -28,6 +28,7 @@ import { compileHostCareRequest } from '../../prompts/registered-request'
 import { loadRolePack } from '../identity/loader'
 import * as sessionStore from '../../storage/session-store'
 import { isActiveRole } from '../../storage/settings-store'
+import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 
 const log = createLogger('HostPresence')
 
@@ -222,12 +223,20 @@ export async function checkAndTriggerHostCare(
     log.warn('Failed to append host care message to main session', { roleId, error: String(err) })
   }
 
-  // 向所有渲染窗口广播
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (!win.isDestroyed()) {
-      win.webContents.send('companion:host-care-triggered', { roleId, care: careEvent })
-    }
-  }
+  await recordCompanionEventAndNotify({
+    roleId,
+    type: 'host_care_triggered',
+    sourceType: 'host_presence',
+    sourceId: `${roleId}:${careEvent.kind}:${now}`,
+    idempotencyKey: `host-care:${roleId}:${careEvent.kind}:${now}`,
+    occurredAt: now,
+    payload: { roleId, care: careEvent },
+    notification: {
+      kind: 'host-care-triggered',
+      dedupeKey: `host-care:${roleId}:${careEvent.kind}:${now}`,
+      payload: { roleId, care: careEvent },
+    },
+  })
 
   return careEvent
 }

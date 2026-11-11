@@ -1,5 +1,5 @@
 import { BrowserWindow } from 'electron'
-import { dispatchCompanionOutbox } from './outbox'
+import { dispatchCompanionOutbox } from '../core/outbox/outbox'
 
 /**
  * 投递人物世界出站通知到渲染层。

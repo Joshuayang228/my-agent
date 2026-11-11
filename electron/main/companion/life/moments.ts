@@ -6,7 +6,6 @@
  * 约束：列表仅按 role 查询；互动不 tick 对方、不写独立真相。
  */
 
-import { BrowserWindow } from 'electron'
 import type { LLMConfig, AddMomentCommentOptions } from '../../../../src/shared/types'
 import { startSpan } from '../../utils/tracer'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
@@ -31,6 +30,7 @@ import { resolveMomentText } from './moment-polish'
 import * as store from './store'
 import { getSetting } from '../../storage/settings-store'
 import { generateAutomaticMomentMedia } from './automatic-moment-media'
+import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 
 export { formatMomentText } from './moment-format'
 export type { AddMomentCommentOptions } from '../../../../src/shared/types'
@@ -537,15 +537,25 @@ export async function addMomentCommentForRole(
                 replyToActorName: MOMENT_USER_ACTOR_NAME,
                 text: decision.reply,
               })
-              for (const win of BrowserWindow.getAllWindows()) {
-                if (!win.isDestroyed()) {
-                  win.webContents.send('companion:moment-updated', {
-                    momentId: id,
-                    roleId,
-                    reply: { actorName: decision.responderName, text: decision.reply },
-                  })
-                }
+              const replyPayload = {
+                momentId: id,
+                roleId,
+                reply: { actorName: decision.responderName, text: decision.reply },
               }
+              await recordCompanionEventAndNotify({
+                roleId,
+                type: 'moment_comment_replied',
+                sourceType: 'moment_comment',
+                sourceId: inserted.id,
+                idempotencyKey: `moment-comment-reply:${inserted.id}`,
+                occurredAt: Date.now(),
+                payload: replyPayload,
+                notification: {
+                  kind: 'moment-updated',
+                  dedupeKey: `moment-comment-reply:${inserted.id}`,
+                  payload: replyPayload,
+                },
+              })
             } catch {
               // 异步回复落盘失败静默忽略
             }

@@ -6,11 +6,11 @@
  * 约束：不发系统桌面通知；不编造假动态；内容必须来自已投影 Moment；失败静默。
  */
 
-import { BrowserWindow } from 'electron'
 import * as settings from '../../storage/settings-store'
 import * as identity from '../identity/loader'
 import { toLocalDateString } from './dates'
 import { listMomentsForRole } from './moments'
+import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 
 export const MOMENT_TIPS_MUTED_KEY = 'companionMomentTipsMuted' as const
 export const MOMENT_TIPS_LAST_AT_KEY = 'companionMomentTipsLastAt' as const
@@ -158,14 +158,25 @@ export function formatMomentTipToast(input: {
   return `${name}有新动态，可打开朋友圈看看`
 }
 
-function broadcast(payload: {
+async function broadcast(payload: {
   roleId: string
   toast: string
   published: number
-}): void {
-  for (const win of BrowserWindow.getAllWindows()) {
-    win.webContents.send('companion:moment-tip', payload)
-  }
+}): Promise<void> {
+  await recordCompanionEventAndNotify({
+    roleId: payload.roleId,
+    type: 'moment_tip_created',
+    sourceType: 'moment_tip',
+    sourceId: `${payload.roleId}:${payload.published}:${payload.toast}`,
+    idempotencyKey: `moment-tip:${payload.roleId}:${payload.published}:${payload.toast}`,
+    occurredAt: Date.now(),
+    payload,
+    notification: {
+      kind: 'moment-tip',
+      dedupeKey: `moment-tip:${payload.roleId}:${payload.published}:${payload.toast}`,
+      payload,
+    },
+  })
 }
 
 async function loadQuietAndBudget(now: number): Promise<{
@@ -252,7 +263,7 @@ export async function maybeNotifyNewMoments(
   })
   await settings.setSetting(MOMENT_TIPS_LAST_AT_KEY, String(now))
   await recordTipSent(budget.today, budget.sentToday)
-  broadcast({ roleId: id, toast, published })
+  await broadcast({ roleId: id, toast, published })
   return { notified: true, reason: 'ok' }
 }
 

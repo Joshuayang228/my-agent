@@ -16,7 +16,6 @@
  */
 
 import { randomUUID } from 'crypto'
-import { BrowserWindow } from 'electron'
 import { getDatabase, persist } from '../../storage/database'
 import { createLogger } from '../../utils/logger'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
@@ -27,6 +26,7 @@ import { compileInnerThoughtRequest } from '../../prompts/registered-request'
 import { loadRolePack } from '../identity/loader'
 import { ensureWorldState } from './world-state'
 import type { CompanionInnerThoughtRecord, LLMConfig } from '../../../../src/shared/types'
+import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 
 const log = createLogger('InnerThoughts')
 
@@ -362,11 +362,20 @@ export async function triggerInnerThought(
     createdAt: now,
   }
 
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (!win.isDestroyed()) {
-      win.webContents.send('companion:inner-thought-created', record)
-    }
-  }
+  await recordCompanionEventAndNotify({
+    roleId,
+    type: 'inner_thought_created',
+    sourceType: 'inner_thought',
+    sourceId: id,
+    idempotencyKey: `inner-thought-created:${id}`,
+    occurredAt: now,
+    payload: record as unknown as Record<string, unknown>,
+    notification: {
+      kind: 'inner-thought-created',
+      dedupeKey: `inner-thought-created:${id}`,
+      payload: record as unknown as Record<string, unknown>,
+    },
+  })
 
   log.info('Inner thought created and broadcasted', { roleId, id, title })
   return record

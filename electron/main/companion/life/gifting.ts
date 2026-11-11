@@ -31,7 +31,7 @@ import { tryRecordMilestone } from '../growth/milestones'
 import { applyCompanionRuntimeDelta, getCompanionRuntimeState } from '../core/state/runtime-state'
 import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
-import { dispatchCompanionWindowOutbox } from '../core/outbox/dispatcher'
+import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
 import type {
   CompanionGiftItem,
   CompanionGiftRecord,

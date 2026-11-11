@@ -19,7 +19,6 @@
  */
 
 import { randomUUID } from 'crypto'
-import { BrowserWindow } from 'electron'
 import { getDatabase, persist } from '../../storage/database'
 import { createLogger } from '../../utils/logger'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
@@ -30,6 +29,7 @@ import { isActiveRole } from '../../storage/settings-store'
 import { loadRolePack } from '../identity/loader'
 import { ensureWorldState } from './world-state'
 import { listEvents } from './store'
+import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 import { listRecentUserMessagesForRole } from '../../storage/session-store'
 import { addMemory } from '../../storage/memory-store'
 import { recordAssetUsage } from '../../utils/asset-usage'
@@ -231,12 +231,19 @@ export async function triggerNightlyReflection(
     epiphany: result.epiphany,
   }
 
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (!win.isDestroyed()) {
-      win.webContents.send('companion:nightly-reflection-created', record)
-      win.webContents.send('companion:inner-thought-created', record)
-    }
-  }
+  await recordCompanionEventAndNotify({
+    roleId,
+    type: 'nightly_reflection_created',
+    sourceType: 'nightly_reflection',
+    sourceId: id,
+    idempotencyKey: `nightly-reflection-created:${id}`,
+    occurredAt: now,
+    payload: record as unknown as Record<string, unknown>,
+    notification: [
+      { kind: 'nightly-reflection-created', dedupeKey: `nightly-reflection-created:${id}`, payload: record as unknown as Record<string, unknown> },
+      { kind: 'inner-thought-created', dedupeKey: `nightly-inner-thought-created:${id}`, payload: record as unknown as Record<string, unknown> },
+    ],
+  })
 
   void recordAssetUsage({
     assetKey: 'companion:policy:nightly-reflection',

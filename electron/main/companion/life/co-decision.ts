@@ -17,7 +17,6 @@
  */
 
 import { randomUUID } from 'crypto'
-import { BrowserWindow } from 'electron'
 import { getDatabase, persist } from '../../storage/database'
 import { createLogger } from '../../utils/logger'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
@@ -32,6 +31,7 @@ import type {
   CoDecisionOption,
   LLMConfig,
 } from '../../../../src/shared/types'
+import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 
 const log = createLogger('CoDecision')
 
@@ -428,12 +428,19 @@ export async function resolveCoDecision(
     decision: record,
   }
 
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (!win.isDestroyed()) {
-      win.webContents.send('companion:timeline-updated', { roleId, reason: 'co-decision-resolved' })
-      win.webContents.send('companion:co-decision-resolved', eventPayload)
-    }
-  }
+  await recordCompanionEventAndNotify({
+    roleId,
+    type: 'co_decision_resolved',
+    sourceType: 'co_decision',
+    sourceId: record.id,
+    idempotencyKey: `co-decision-resolved:${record.id}`,
+    occurredAt: now,
+    payload: eventPayload as unknown as Record<string, unknown>,
+    notification: [
+      { kind: 'timeline-updated', dedupeKey: `co-decision-timeline:${record.id}`, payload: { roleId, reason: 'co-decision-resolved' } },
+      { kind: 'co-decision-resolved', dedupeKey: `co-decision-resolved:${record.id}`, payload: eventPayload as unknown as Record<string, unknown> },
+    ],
+  })
 
   return record
 }
@@ -511,11 +518,20 @@ export async function createCoDecision(
     decision: record,
   }
 
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (!win.isDestroyed()) {
-      win.webContents.send('companion:co-decision-created', eventPayload)
-    }
-  }
+  await recordCompanionEventAndNotify({
+    roleId,
+    type: 'co_decision_created',
+    sourceType: 'co_decision',
+    sourceId: newId,
+    idempotencyKey: `co-decision-created:${newId}`,
+    occurredAt: now,
+    payload: eventPayload as unknown as Record<string, unknown>,
+    notification: {
+      kind: 'co-decision-created',
+      dedupeKey: `co-decision-created:${newId}`,
+      payload: eventPayload as unknown as Record<string, unknown>,
+    },
+  })
 
   return record
 }

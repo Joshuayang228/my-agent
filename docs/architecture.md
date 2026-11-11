@@ -10,9 +10,10 @@
 - `electron/main/companion/core/events/domain-events.ts` 提供领域事件幂等写入与因果字段。
 - `electron/main/companion/core/execution/ledger.ts` 提供动作执行状态和失败信息记录。
 - `electron/main/companion/core/outbox/outbox.ts` 提供去重通知出站记录。
-- `electron/main/companion/core/outbox/dispatcher.ts` 是 Electron 窗口投递适配器，负责领取 pending/failed 消息、成功标记 delivered、失败保留 failed 并等待下一轮重试。
+- `electron/main/companion/adapters/window-outbox-dispatcher.ts` 是 Electron 窗口投递适配器，负责领取 pending/failed 消息、成功标记 delivered、失败保留 failed 并等待下一轮重试。
 - `chat-resonance.ts` 的文化体验完成链路已写入核心事件、执行账本和 Outbox。
 - 赠礼与信物馈赠已写入核心领域事件并通过 Outbox 投递；`ticker.ts` 每轮生活推进后统一消费窗口通知。
+- 主动搭话、脆弱心境、日记、深夜反思、换装、旅行、日内重排、朋友圈评论回复、宿主关怀和朋友圈轻提示已改为由核心事件记录器生成事件并进入 Outbox，生活服务不再直接向窗口广播这些领域通知。
 
 深夜反思与高光回忆重温架构（2026-11-09）：
 - 深夜反思与心灵领悟流：`nightly-reflection.ts` 在深夜时段（22:00～04:00）结合今日生活事件与近期用户对话线索，经 20 小时冷却（每日上限 1 次）由受控配方 `compileNightlyReflectionRequest` 生成第一人称深夜反思；
