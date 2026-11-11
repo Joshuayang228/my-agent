@@ -22,6 +22,7 @@ import { checkAndTriggerHostCare } from './host-presence'
 import * as store from './store'
 import { isActiveRole } from '../../storage/settings-store'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
+import { executeCompanionCommand } from '../core/commands/gateway'
 
 const log = createLogger('LifeTicker')
 
@@ -30,7 +31,8 @@ const DEFAULT_INTERVAL_MS = 5 * 60 * 1000
 async function runForActiveRole(roleId: string, label: string, action: () => Promise<unknown>): Promise<{ ok: boolean; result?: unknown }> {
   if (!(await isActiveRole(roleId))) return { ok: false }
   try {
-    return { ok: true, result: await action() }
+    const result = await executeCompanionCommand({ roleId, actionType: `life-ticker:${label}`, handler: action })
+    return { ok: true, result }
   } catch (err) {
     log.warn(`${label} failed`, { roleId, error: String(err) })
     return { ok: true }

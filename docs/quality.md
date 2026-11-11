@@ -8,6 +8,7 @@
 Chat Tool 核心入口回归（2026-11-12）：`companion-life-tools.test.ts` 覆盖发朋友圈、评论、资产和阅读笔记写入经过命令网关后的角色隔离、失败语义与真实 ID 链路。
 生活事件投影回归（2026-11-12）：`companion-life.test.ts` 覆盖 published 事件到 Moment、关系、情绪与事件关联的投影链路，核心事件与投影回执在同一测试数据库中验证。
 运行态并发回归（2026-11-12）：`companion-world-core.test.ts` 验证状态 delta 的 expectedVersion 过期写入会拒绝并发覆盖。
+LifeTicker 命令回归（2026-11-12）：`ticker.test.ts` 验证生活时钟调度仍保持用户可见动作协调，命令网关改动不改变动作冷却和用户打扰门禁。
 
 人物草稿隔离门禁（2026-11-11）：`universe-switch.test.ts` 验证快速创建的用户世界草稿使用唯一标识，发布与恢复默认世界的资产目录隔离不因时间戳碰撞失效。
 
