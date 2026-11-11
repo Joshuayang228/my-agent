@@ -68,16 +68,18 @@ export function CompanionSceneBackdrop({ roleId, bannerSrc }: CompanionSceneBack
       aria-hidden
       title={`场景氛围 · ${COMPANION_SCENE_LABEL[scene]}`}
     >
+      {/* 背景：wash 渐变末端是不透明的 bg-primary，若盖在壁纸之上会把图片完全遮住（用户反馈 Chat 底图不可见的根因）。
+          设计意图：wash 作为底色垫在壁纸之下；关键约束：wash 必须先于壁纸渲染，调换顺序会让底图再次消失。 */}
+      <div className="companion-scene-wash absolute inset-0" />
       {bannerSrc && (
         <div className="companion-scene-wallpaper pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
           <img
             src={bannerSrc}
             alt=""
-            className="h-full w-full object-cover object-center opacity-[0.09] filter blur-[1px] transition-opacity duration-700 select-none"
+            className="h-full w-full object-cover object-center opacity-[0.22] transition-opacity duration-700 select-none"
           />
         </div>
       )}
-      <div className="companion-scene-wash absolute inset-0" />
       <div className="companion-scene-glow absolute" />
       <div className="companion-scene-vignette absolute inset-0" />
     </div>

@@ -755,7 +755,9 @@ html[data-font-scale="lg"] {
   transition: background 0.45s ease;
 }
 .companion-scene-vignette {
-  background: radial-gradient(ellipse at center, transparent 40%, color-mix(in srgb, var(--bg-primary) 55%, transparent) 100%);
+  background:
+    radial-gradient(ellipse at center, transparent 40%, color-mix(in srgb, var(--bg-primary) 55%, transparent) 100%),
+    linear-gradient(180deg, transparent 0%, transparent 60%, color-mix(in srgb, var(--bg-primary) 70%, transparent) 88%, var(--bg-primary) 100%);
 }
 
 .companion-scene-backdrop[data-companion-scene="home"] {
