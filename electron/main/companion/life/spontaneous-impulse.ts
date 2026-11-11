@@ -38,6 +38,7 @@ import {
 } from './moment-tips'
 
 const log = createLogger('SpontaneousImpulse')
+const inFlightRoles = new Set<string>()
 
 export const SPONTANEOUS_IMPULSE_COOLDOWN_MS = 3 * 3600 * 1000 // 3 小时冷却
 export const SPONTANEOUS_IMPULSE_DAILY_LIMIT = 2
@@ -100,7 +101,7 @@ export interface TriggerSpontaneousImpulseOptions {
   }
 }
 
-export async function triggerSpontaneousImpulse(
+async function runSpontaneousImpulse(
   roleId: string,
   now = Date.now(),
   opts?: TriggerSpontaneousImpulseOptions,
@@ -273,6 +274,28 @@ export async function triggerSpontaneousImpulse(
     topicKind,
   })
   return { triggered: true, event }
+}
+
+/**
+ * 防止同一角色的手动诊断入口与生活时钟并发生成两条搭话。
+ *
+ * 背景：每日次数和冷却查询发生在异步生成之前，两个调用可以同时读到相同旧计数并各自写入消息。
+ * 设计意图：在进程内先占用角色执行槽，避免重复模型调用和重复主会话写入；跨进程不共享该数据库，故不引入伪分布式锁。
+ * 关键约束：任何异常都必须释放占用，后续 tick 才能重试；force 只跳过策略判断，不能绕过并发保护。
+ */
+export async function triggerSpontaneousImpulse(
+  roleId: string,
+  now = Date.now(),
+  opts?: TriggerSpontaneousImpulseOptions,
+): Promise<{ triggered: boolean; event?: SpontaneousImpulseEvent; reason?: string }> {
+  const key = roleId.trim()
+  if (inFlightRoles.has(key)) return { triggered: false, reason: 'in-flight' }
+  inFlightRoles.add(key)
+  try {
+    return await runSpontaneousImpulse(key, now, opts)
+  } finally {
+    inFlightRoles.delete(key)
+  }
 }
 
 export async function listSpontaneousImpulses(

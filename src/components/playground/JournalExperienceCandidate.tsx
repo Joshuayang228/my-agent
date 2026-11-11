@@ -6,8 +6,6 @@ import type { CompanionInnerThoughtRecord } from '../../shared/types'
 
 const JOURNAL_SCENARIOS = [
   { id: 'default', label: '日记清单' },
-  { id: 'nightly', label: '深夜反思' },
-  { id: 'favorites', label: '星标收藏' },
   { id: 'long', label: '长标题与长文' },
   { id: 'single', label: '单篇精简' },
   { id: 'empty', label: '空日记本' },
@@ -78,8 +76,6 @@ export function JournalExperienceCandidate({ personaId }: { personaId: string })
   const thoughts = useMemo<CompanionInnerThoughtRecord[]>(() => {
     if (scenario === 'empty' || scenario === 'error') return []
     if (scenario === 'single') return [JOURNAL_FIXTURES[0]]
-    if (scenario === 'nightly') return JOURNAL_FIXTURES.filter((t) => t.thoughtType === 'nightly_reflection')
-    if (scenario === 'favorites') return JOURNAL_FIXTURES.filter((t) => t.isFavorite)
     if (scenario === 'long') {
       return JOURNAL_FIXTURES.map((item, index) => ({
         ...item,

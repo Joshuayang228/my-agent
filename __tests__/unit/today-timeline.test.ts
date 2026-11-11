@@ -14,6 +14,7 @@ import { getTodayTimelineForRole } from '../../electron/main/companion/life/time
 import {
   getNextPlannedEventDelay,
   broadcastTimelineUpdated,
+  didDeliverUserFacingAction,
 } from '../../electron/main/companion/life/ticker'
 import { WorldTodayTimeline } from '../../src/components/world/WorldTodayTimeline'
 import * as store from '../../electron/main/companion/life/store'
@@ -39,6 +40,15 @@ vi.mock('../../electron/main/companion/life/engine', () => ({
 describe('今日生活轨迹服务 (Today Timeline)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it('只把明确的主动投递结果计入同一生活 tick 的打扰预算', () => {
+    expect(didDeliverUserFacingAction({ greeted: true })).toBe(true)
+    expect(didDeliverUserFacingAction({ triggered: true })).toBe(true)
+    expect(didDeliverUserFacingAction({ kind: 'fatigue_break', message: '休息一下吧' })).toBe(true)
+    expect(didDeliverUserFacingAction({ triggered: false, reason: 'cooldown' })).toBe(false)
+    expect(didDeliverUserFacingAction({ replannedCount: 2 })).toBe(false)
+    expect(didDeliverUserFacingAction(null)).toBe(false)
   })
 
   it('根据传入的固定时间正确计算 past, current, upcoming 状态与时段列表', async () => {

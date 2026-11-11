@@ -12,7 +12,7 @@ describe('Playground World Candidates (日记与专属信物)', () => {
     expect(journalComp.status).toBe('playground')
     expect(journalComp.sourcePath).toBe('src/components/playground/JournalExperienceCandidate.tsx')
     expect(journalComp.stories).toContain('日记清单')
-    expect(journalComp.stories).toContain('星标收藏')
+    expect(journalComp.stories).toContain('单篇精简')
     expect(journalComp.stories).toContain('空日记本')
 
     const keepsakesComp = UI_COMPONENT_REGISTRY['layout.keepsakes-experience-candidate']

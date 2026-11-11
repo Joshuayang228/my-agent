@@ -63,7 +63,8 @@ it('事件多图投影保留旧单图入口，去重并持久化图片顺序', a
   expect(post).not.toBeNull()
   expect(await momentImageIdsForRole('lin', post!.id)).toEqual(ids)
   const second = await projectMomentFromEvent(event)
-  expect(second).toBeNull()
+  // 已存在的 Moment 需要返回并继续修复关联，保证投影重试不会把已有动态误判为失败。
+  expect(second).toMatchObject({ id: post!.id, eventId: event.id })
   expect(await momentImageIdsForRole('lin', post!.id)).toEqual(ids)
 })
 

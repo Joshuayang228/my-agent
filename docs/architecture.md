@@ -4,7 +4,7 @@
 - 深夜反思与心灵领悟流：`nightly-reflection.ts` 在深夜时段（22:00～04:00）结合今日生活事件与近期用户对话线索，经 20 小时冷却（每日上限 1 次）由受控配方 `compileNightlyReflectionRequest` 生成第一人称深夜反思；
 - 数据模型与记忆闭环：随笔写入 SQLite `companion_inner_thoughts`（`thought_type: 'nightly_reflection'`），提炼出的心灵感悟（`epiphany`）同步调用 `addMemory('feedback', ...)` 存入长期记忆的“我们之间”分桶；广播 `companion:nightly-reflection-created`；
 - 高光回忆重温引擎：`nostalgia.ts` 在主会话提示词装配前夕（`orchestrator.ts`）检索沉淀记忆（feedback 深度默契、专属信物、深夜领悟），经 4 小时冷却保护挑选一条高光切片，注入 `formatConversationImpulseForPrompt` 作为【高光回忆羁绊】生活切片话头，引导角色在闲聊时像真人老友一样自然带出过去共同经历；
-- 前端呈现与双向连通：`WorldJournalPanel` 为深夜反思提供「🌙 深夜反思」专属高光徽章与感悟气泡框，支持一键「与TA聊聊这篇深夜感悟」预填话题直达主会话；Playground 对应接入 `nightly` 隔离样张。
+- 前端呈现与双向连通：`WorldJournalPanel` 使用日记封面与信件式详情展示正文，日期、地点和心情收在日记本内容中，保留删除与「与TA聊聊」入口；Playground 只覆盖清单、详情、长文、空态和读取失败等通用状态。
 
 工作区持久化与跨会话协同架构（2026-11-09）：
 - 工作区会话持久模型：`sessions` 表扩充 `parent_session_id` 列（schema 25），`getOrCreateWorkspaceSession` 将工作区侧聊与宿主主会话一对一绑定并建立索引；组件折叠、隐藏或视图切换时不销毁会话，保留工程讨论全过程；
@@ -21,7 +21,7 @@
 - 共同决策数据模型：`co-decision.ts` 管理 `companion_co_decisions` 表，每个角色同一时刻最多 1 个待决项（pending）；
 - 即时第一人称回响：用户决断后，由 `coDecisionReaction` 模型配方生成生动第一人称回应（或高质量预设保底），作为 assistant 消息直接存入主会话并触发 `companion:co-decision-resolved` 广播；
 - 次日剧本因果闭环：`getRecentResolvedCoDecision` 与 `markCoDecisionAbsorbed` 联动 `script-generator.ts`，将用户抉择深度注入次日剧本上下文，真实左右角色次日探险与生活轨迹；
-- UI 呈现：`WorldDecisionsPanel` 与 `CoDecisionCard` 接入人物世界「共同决策」Tab，支持实时投票、已决断回顾与历史因果追溯。
+- UI 边界：共同决策不再作为人物世界或 Playground 的独立 Tab 展示，`co-decision.ts` 只作为生活因果链内部能力，用户通过主会话中的求助与回响完成决策。
 
 衣柜与穿搭自主演化架构（2026-11-09）：
 - 生活时钟自主调度：`LifeTicker` 在定时推进生活时唤起 `checkAndPerformContextualDressing`（`autonomous-dressing.ts`），结合日剧本主题/活动槽位、清晨起床 routine 与衣柜资产匹配目标穿搭；
@@ -35,7 +35,7 @@
 - 日剧本因果闭环：`script-generator.ts#collectDayScriptLifeContext` 读取活跃心愿作为次日剧本输入，并更新状态为 `absorbed_in_script`，让聊天中提到的话题真正出现在角色次日日程中；
 - 文化心愿体验闭环与主动反馈：`ticker.ts` 动态生活推进或定时轮询时调用 `checkAndProgressAbsorbedResonances`，通过 `compileCultureReviewRequest` 生成第一人称评语与下次对话引子（`chatOpener`），文化资产推进至 `finished` 并将感悟追加至 `readingNotes`；待反馈引子注入 `formatConversationImpulseForPrompt`（插槽 31），主对话送达后调用 `markResonanceFeedbackDelivered` 标记投递，并广播 `companion:resonance-completed` 通知；
 - 突发生活意图与主动找聊（Spontaneous Impulse）：`ticker.ts` 结合体征（`socialNeed >= 70` 或 `energy >= 80`）与活动，经 `decideSpontaneousImpulse` 规则门控（每日最多 2 次、冷却 3 小时、避开勿扰时段），通过 `compileSpontaneousImpulseRequest` 生成即兴搭话消息；主动消息直接写入角色主会话（`sessionKind === 'main'`），并广播 `companion:spontaneous-impulse` 通知，前端支持 Toast 一键直达会话与即时无感渲染；
-- 私密内心独白与航海日记（Inner Thoughts & Private Journal Stream）：构建角色私密内心记录流（SQLite `companion_inner_thoughts` 表）；`ticker.ts` 结合夜间/清晨时段与生活状态，经 `decideInnerThought`（每日 2 次、冷却 6 小时）通过 `compileInnerThoughtRequest`（或保底）生成第一人称私密随笔；出厂自动为路飞播种 3 篇具情感羁绊的 starter 日记；`WorldHub` 新增 `journal` 分区（`WorldJournalPanel`），支持实时广播更新、星标收藏与删除，并支持一键将日记契机回引至主对话（「与TA聊聊这篇日记」）；
+- 私密内心独白与日记（Inner Thoughts & Private Journal Stream）：构建角色私密内心记录流（SQLite `companion_inner_thoughts` 表）；`ticker.ts` 结合夜间/清晨时段与生活状态，经 `decideInnerThought`（每日 2 次、冷却 6 小时）通过 `compileInnerThoughtRequest`（或保底）生成第一人称私密随笔；出厂自动为路飞播种 3 篇具情感羁绊的 starter 日记；`WorldHub` 新增 `journal` 分区（`WorldJournalPanel`），使用封面与详情两层阅读，支持实时广播更新、删除和一键将日记契机回引至主对话（「与TA聊聊这篇日记」）；
 - 羁绊深度跃迁与专属信物馈赠（Relationship Progression & Keepsake Gifts）：构建实体信物承载流（SQLite `companion_keepsakes` 表）；跨越关键里程碑或完成共同心愿（`completeCultureResonance`）时由 `relationship-keepsake.ts` 驱动赠送专属信物，通过 `compileKeepsakeGiftRequest` 生成真情实感第一人称赠礼寄语直写主会话，记录 `keepsake_gifted` 关系里程碑并广播 `companion:keepsake-gifted`；出厂为路飞播种首件信物「生命卡的一角」，`WorldHub` 新增 `keepsakes` 分区（`WorldKeepsakesPanel`）支持高光展示与触摸信物直达会话；
 - 实时通知与跳转：心愿入库后通过 `companion:life-resonance-created` 广播给渲染进程，前端 Toast 提供一键跳转文化角查看。
 

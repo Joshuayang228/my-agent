@@ -26,15 +26,29 @@ const log = createLogger('LifeTicker')
 
 const DEFAULT_INTERVAL_MS = 5 * 60 * 1000
 
-async function runForActiveRole(roleId: string, label: string, action: () => Promise<unknown>): Promise<boolean> {
-  if (!(await isActiveRole(roleId))) return false
+async function runForActiveRole(roleId: string, label: string, action: () => Promise<unknown>): Promise<{ ok: boolean; result?: unknown }> {
+  if (!(await isActiveRole(roleId))) return { ok: false }
   try {
-    await action()
-    return true
+    return { ok: true, result: await action() }
   } catch (err) {
     log.warn(`${label} failed`, { roleId, error: String(err) })
-    return true
+    return { ok: true }
   }
+}
+
+/**
+ * 判断一次生活动作是否真的向用户投递了主动内容。
+ *
+ * 背景：生活时钟会在同一轮评估问候、搭话、脆弱时刻和宿主关怀，若每个动作各自只看自己的冷却，
+ *       一轮可能连续打断用户多次。
+ * 设计意图：只依据动作返回的已投递结果做轻量协调，不把后台状态变化误判为消息，也不复制各模块的策略。
+ * 关键约束：只有明确的 `greeted` / `triggered` 或带有用户事件载荷的结果才消费本轮名额，失败和空结果必须允许后续动作继续评估。
+ */
+export function didDeliverUserFacingAction(result: unknown): boolean {
+  if (!result || typeof result !== 'object') return false
+  const value = result as Record<string, unknown>
+  if (value.greeted === true || value.triggered === true) return true
+  return typeof value.kind === 'string' && typeof value.message === 'string'
 }
 
 let timer: ReturnType<typeof setTimeout> | null = null
@@ -79,20 +93,24 @@ export function startLifeTicker(defaultIntervalMs = DEFAULT_INTERVAL_MS): void {
       if (r.roleId && !r.paused) {
         broadcastTimelineUpdated(r.roleId, now)
         // M31-G3：默认可关；失败不阻断 ticker
-        const actions: Array<[string, () => Promise<unknown>]> = [
-          ['proactive greeting', () => maybeProactiveGreeting(r.roleId, now)],
-          ['chat resonance progression', () => checkAndProgressAbsorbedResonances(r.roleId, now)],
-          ['spontaneous impulse', () => triggerSpontaneousImpulse(r.roleId, now)],
-          ['inner thought', () => checkAndGenerateInnerThought(r.roleId, now)],
-          ['contextual dressing', () => checkAndPerformContextualDressing(r.roleId, now)],
-          ['travel progression', () => checkAndProgressTravelJourney(r.roleId, now)],
-          ['vulnerability', () => checkAndTriggerVulnerability(r.roleId, now)],
-          ['nightly reflection', () => checkAndTriggerNightlyReflection(r.roleId, now)],
-          ['replan', () => checkAndReplanIfExhausted(r.roleId, now)],
-          ['host care', () => checkAndTriggerHostCare(r.roleId, now)],
+        const actions: Array<{ label: string; userFacing: boolean; action: () => Promise<unknown> }> = [
+          { label: 'proactive greeting', userFacing: true, action: () => maybeProactiveGreeting(r.roleId, now) },
+          { label: 'chat resonance progression', userFacing: false, action: () => checkAndProgressAbsorbedResonances(r.roleId, now) },
+          { label: 'spontaneous impulse', userFacing: true, action: () => triggerSpontaneousImpulse(r.roleId, now) },
+          { label: 'inner thought', userFacing: false, action: () => checkAndGenerateInnerThought(r.roleId, now) },
+          { label: 'contextual dressing', userFacing: false, action: () => checkAndPerformContextualDressing(r.roleId, now) },
+          { label: 'travel progression', userFacing: false, action: () => checkAndProgressTravelJourney(r.roleId, now) },
+          { label: 'vulnerability', userFacing: true, action: () => checkAndTriggerVulnerability(r.roleId, now) },
+          { label: 'nightly reflection', userFacing: false, action: () => checkAndTriggerNightlyReflection(r.roleId, now) },
+          { label: 'replan', userFacing: false, action: () => checkAndReplanIfExhausted(r.roleId, now) },
+          { label: 'host care', userFacing: true, action: () => checkAndTriggerHostCare(r.roleId, now) },
         ]
-        for (const [label, action] of actions) {
-          if (!(await runForActiveRole(r.roleId, label, action))) break
+        let userFacingDelivered = false
+        for (const item of actions) {
+          if (item.userFacing && userFacingDelivered) continue
+          const outcome = await runForActiveRole(r.roleId, item.label, item.action)
+          if (!outcome.ok) break
+          if (item.userFacing && didDeliverUserFacingAction(outcome.result)) userFacingDelivered = true
         }
       }
     } catch (err) {

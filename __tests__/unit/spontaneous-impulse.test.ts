@@ -157,4 +157,20 @@ describe('突发生活意图与主动找聊（Spontaneous Impulse）', () => {
     expect(history.length).toBe(1)
     expect(history[0].impulseText).toContain('金色的鱼')
   })
+
+  it('同一角色并发触发时只允许一个调用占用主动搭话执行槽', async () => {
+    const [first, second] = await Promise.all([
+      triggerSpontaneousImpulse('luffy', Date.now(), {
+        force: true,
+        mockResponse: { impulseText: '第一条', contextHint: '并发测试' },
+      }),
+      triggerSpontaneousImpulse('luffy', Date.now(), {
+        force: true,
+        mockResponse: { impulseText: '第二条', contextHint: '并发测试' },
+      }),
+    ])
+
+    expect([first.triggered, second.triggered].filter(Boolean)).toHaveLength(1)
+    expect([first.reason, second.reason]).toContain('in-flight')
+  })
 })
