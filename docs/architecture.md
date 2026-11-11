@@ -7,6 +7,7 @@
 当前首批核心落点：
 
 - `electron/main/companion/core/state/runtime-state.ts` 统一人物当前运行态快照，并镜像到既有 `companion_role_state.world_json`。
+- 运行态 delta 支持 `expectedVersion` 乐观并发校验，过期写入直接拒绝，不覆盖更新后的状态。
 - `electron/main/companion/core/events/domain-events.ts` 提供领域事件幂等写入与因果字段。
 - `electron/main/companion/core/execution/ledger.ts` 提供动作执行状态和失败信息记录。
 - `electron/main/companion/core/projections/receipts.ts` 提供 `projection_name + event_id` 的幂等投影回执，迁移期用于约束旧生活读模型重试。

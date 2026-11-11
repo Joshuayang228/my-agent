@@ -69,6 +69,7 @@ describe('人物世界核心层', () => {
     expect(next.socialNeed).toBe(53)
     expect(next.version).toBe(1)
     expect(next.lastEventId).toBe('event-1')
+    await expect(applyCompanionRuntimeDelta({ roleId: 'luffy', eventId: 'stale', expectedVersion: 0, delta: { mood: 1 } })).rejects.toThrow('版本冲突')
   })
 
   it('领域事件和 Outbox 使用幂等键，重复提交返回既有记录', async () => {

@@ -137,9 +137,13 @@ export async function applyCompanionRuntimeDelta(input: {
   eventId?: string | null
   delta?: Partial<Pick<CompanionRuntimeState, 'mood' | 'energy' | 'socialNeed' | 'hunger' | 'sleepiness'>>
   patch?: Partial<Pick<CompanionRuntimeState, 'currentActivity' | 'currentLocation' | 'situation'>>
+  expectedVersion?: number
   updatedAt?: number
 }): Promise<CompanionRuntimeState> {
   const current = await getCompanionRuntimeState(input.roleId, input.universeId)
+  if (input.expectedVersion !== undefined && current.version !== input.expectedVersion) {
+    throw new Error(`人物运行态版本冲突，当前版本为 ${current.version}。`)
+  }
   const delta = input.delta ?? {}
   return replaceCompanionRuntimeState({
     ...current,
