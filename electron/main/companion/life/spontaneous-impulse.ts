@@ -23,7 +23,7 @@ import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { compileSpontaneousImpulseRequest } from '../../prompts/registered-request'
 import { getDatabase, persist } from '../../storage/database'
 import * as settings from '../../storage/settings-store'
-import { ensureMainSessionForRole, saveMessage } from '../../storage/session-store'
+import { deleteMessage, ensureMainSessionForRole, saveMessage } from '../../storage/session-store'
 import { createLogger } from '../../utils/logger'
 import { loadRolePack } from '../identity/loader'
 import { ensureWorldState } from './world-state'
@@ -241,13 +241,21 @@ async function runSpontaneousImpulse(
 
   // 2. 存入数据库
   const recordId = randomUUID()
-  db.run(
-    `INSERT INTO companion_spontaneous_impulses
-     (id, role_id, session_id, message_id, impulse_text, topic_kind, context_hint, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [recordId, roleId, session.id, messageId, generatedText, topicKind, generatedHint, now],
-  )
-  persist()
+  try {
+    db.run(
+      `INSERT INTO companion_spontaneous_impulses
+       (id, role_id, session_id, message_id, impulse_text, topic_kind, context_hint, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [recordId, roleId, session.id, messageId, generatedText, topicKind, generatedHint, now],
+    )
+    persist()
+  } catch (err) {
+    await deleteMessage(messageId).catch((cleanupError) => {
+      log.warn('Failed to roll back spontaneous impulse message', { roleId, messageId, error: String(cleanupError) })
+    })
+    log.warn('Spontaneous impulse history failed; rolled back chat message', { roleId, messageId, error: String(err) })
+    throw new Error('主动消息暂时未能完成，请稍后重试。')
+  }
 
   // 3. 构造广播事件
   const event: SpontaneousImpulseEvent = {
