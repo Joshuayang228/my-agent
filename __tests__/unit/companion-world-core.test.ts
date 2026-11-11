@@ -42,6 +42,7 @@ const {
 const { appendCompanionDomainEvent } = await import('../../electron/main/companion/core/events/domain-events')
 const { startCompanionExecution, finishCompanionExecution } = await import('../../electron/main/companion/core/execution/ledger')
 const { enqueueCompanionOutbox } = await import('../../electron/main/companion/core/outbox/outbox')
+const { executeCompanionCommand } = await import('../../electron/main/companion/core/commands/gateway')
 
 describe('人物世界核心层', () => {
   beforeEach(() => {
@@ -109,5 +110,15 @@ describe('人物世界核心层', () => {
     await finishCompanionExecution({ executionId: run.id, status: 'retryable', errorCode: 'ASSET_WRITE_FAILED', errorMessage: '重试' })
     const row = memDb.exec('SELECT status, error_code, error_message FROM companion_execution_runs WHERE id = ?', [run.id])[0]?.values[0]
     expect(row).toEqual(['retryable', 'ASSET_WRITE_FAILED', '重试'])
+  })
+
+  it('命令网关在 handler 失败时记录 retryable，不伪造完成', async () => {
+    await expect(executeCompanionCommand({
+      roleId: 'luffy',
+      actionType: 'core-test-failure',
+      handler: async () => { throw new Error('核心失败') },
+    })).rejects.toThrow('核心失败')
+    const row = memDb.exec("SELECT status, error_message FROM companion_execution_runs WHERE action_type = 'core-test-failure'")[0]?.values[0]
+    expect(row).toEqual(['retryable', '核心失败'])
   })
 })

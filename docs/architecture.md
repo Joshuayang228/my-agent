@@ -2,7 +2,7 @@
 
 ## 人物世界核心层（2026-11-12）
 
-人物世界采用模块化单体内的领域核心。IPC、Chat Tool、LifeTicker 和 Debug 逐步转为 Command Adapter，核心层维护 `companion_runtime_state`、`companion_domain_events`、`companion_execution_runs` 和 `companion_outbox`。朋友圈、日记、信物、关系和 Prompt 读取面作为投影迁移，旧生活表在迁移期只作为镜像读模型。
+人物世界采用模块化单体内的领域核心。IPC、Chat Tool、LifeTicker 和 Debug 逐步转为 Command Adapter，核心层维护 `companion_runtime_state`、`companion_domain_events`、`companion_execution_runs` 和 `companion_outbox`。`core/commands/gateway.ts` 统一 active role 校验、命令执行账本和 retryable 失败记录。朋友圈、日记、信物、关系和 Prompt 读取面作为投影迁移，旧生活表在迁移期只作为镜像读模型。
 
 当前首批核心落点：
 

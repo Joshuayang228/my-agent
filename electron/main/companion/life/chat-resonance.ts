@@ -32,7 +32,7 @@ import {
 import { createAsset, deleteAsset, getAsset, updateAsset, ASSET_KIND_CULTURE } from './assets'
 import { getEventById, getMomentByEventId, insertEvent, insertMoment, recordEventExecution } from './store'
 import { appendCompanionDomainEvent } from '../core/events/domain-events'
-import { startCompanionExecution, finishCompanionExecution } from '../core/execution/ledger'
+import { executeCompanionCommand } from '../core/commands/gateway'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
 
 const log = createLogger('ChatResonance')
@@ -496,37 +496,39 @@ export async function completeCultureResonance(
 
   // 核心层记录一次可追溯的文化体验完成事实；旧文化表仍保留作当前读模型，迁移完成后由投影替代。
   try {
-    const execution = await startCompanionExecution({
+    await executeCompanionCommand({
       roleId,
       actionType: 'culture-experience-completed',
-    })
-    const domainEvent = await appendCompanionDomainEvent({
-      roleId,
-      universeId: 'default',
-      type: 'culture_experience_completed',
-      sourceType: 'chat_resonance',
-      sourceId: currentResonance.id,
-      causationId: currentResonance.id,
       correlationId: currentResonance.id,
-      idempotencyKey: `culture-experience-completed:${currentResonance.id}`,
-      occurredAt: now,
-      payload: {
-        resonanceId: currentResonance.id,
-        assetId: currentResonance.assetId,
-        targetName: currentResonance.targetName,
-        reviewText: parsedReview.reviewText,
-        chatOpener: parsedReview.chatOpener,
+      handler: async (context) => {
+        const domainEvent = await appendCompanionDomainEvent({
+          roleId,
+          universeId: 'default',
+          type: 'culture_experience_completed',
+          sourceType: 'chat_resonance',
+          sourceId: currentResonance.id,
+          causationId: currentResonance.id,
+          correlationId: context.correlationId,
+          idempotencyKey: `culture-experience-completed:${currentResonance.id}`,
+          occurredAt: now,
+          payload: {
+            resonanceId: currentResonance.id,
+            assetId: currentResonance.assetId,
+            targetName: currentResonance.targetName,
+            reviewText: parsedReview.reviewText,
+            chatOpener: parsedReview.chatOpener,
+          },
+          schemaVersion: 1,
+        })
+        await enqueueCompanionOutbox({
+          roleId,
+          eventId: domainEvent.id,
+          kind: 'resonance-completed',
+          dedupeKey: `resonance-completed:${currentResonance.id}`,
+          payload: { resonanceId: currentResonance.id, targetName: currentResonance.targetName },
+        })
       },
-      schemaVersion: 1,
     })
-    await enqueueCompanionOutbox({
-      roleId,
-      eventId: domainEvent.id,
-      kind: 'resonance-completed',
-      dedupeKey: `resonance-completed:${currentResonance.id}`,
-      payload: { resonanceId: currentResonance.id, targetName: currentResonance.targetName },
-    })
-    await finishCompanionExecution({ executionId: execution.id, status: 'completed' })
   } catch (err) {
     log.warn('Core culture completion ledger failed; legacy read model remains available', { roleId, resonanceId: currentResonance.id, error: String(err) })
   }
