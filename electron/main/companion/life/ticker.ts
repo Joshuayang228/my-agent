@@ -20,16 +20,11 @@ import { checkAndTriggerNightlyReflection } from './nightly-reflection'
 import { checkAndReplanIfExhausted } from './replan'
 import { checkAndTriggerHostCare } from './host-presence'
 import * as store from './store'
-import * as settings from '../../storage/settings-store'
+import { isActiveRole } from '../../storage/settings-store'
 
 const log = createLogger('LifeTicker')
 
 const DEFAULT_INTERVAL_MS = 5 * 60 * 1000
-
-async function isActiveRole(roleId: string): Promise<boolean> {
-  const active = (await settings.getSetting('activeRoleId')).trim()
-  return !active || active === roleId
-}
 
 async function runForActiveRole(roleId: string, label: string, action: () => Promise<unknown>): Promise<boolean> {
   if (!(await isActiveRole(roleId))) return false

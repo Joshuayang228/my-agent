@@ -26,6 +26,7 @@ import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm'
 import { compileNightlyReflectionRequest } from '../../prompts/registered-request'
+import { isActiveRole } from '../../storage/settings-store'
 import { loadRolePack } from '../identity/loader'
 import { ensureWorldState } from './world-state'
 import { listEvents } from './store'
@@ -95,6 +96,7 @@ export async function checkAndTriggerNightlyReflection(
   now = Date.now(),
   opts?: { force?: boolean },
 ): Promise<CompanionInnerThoughtRecord | null> {
+  if (!(await isActiveRole(roleId))) return null
   const hour = new Date(now).getHours()
   const isNightTime = hour >= 22 || hour < 4
 
@@ -130,6 +132,7 @@ export async function triggerNightlyReflection(
   now = Date.now(),
   opts?: { force?: boolean },
 ): Promise<CompanionInnerThoughtRecord | null> {
+  if (!(await isActiveRole(roleId))) return null
   await ensureInnerThoughtTable()
   const db = await getDatabase()
 
