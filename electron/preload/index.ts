@@ -160,7 +160,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
           catchupQueued: boolean
           reacquaint: { title: string; body: string; toast: string }
         }
-      | { ok: false; code: 'SESSION_ACTIVE' | 'UNKNOWN_ROLE' | 'ALREADY_ACTIVE' }
+      | { ok: false; code: 'SESSION_ACTIVE' | 'UNKNOWN_ROLE' | 'ALREADY_ACTIVE' | 'SWITCH_FAILED' }
     > => ipcRenderer.invoke('companion:request-switch', roleId),
     getMutable: (roleId?: string): Promise<{ roleId: string; body: string }> =>
       ipcRenderer.invoke('companion:get-mutable', roleId),

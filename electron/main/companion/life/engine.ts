@@ -158,7 +158,7 @@ export async function tickActiveRole(now: number): Promise<{
   const state = await store.getRoleState(roleId)
   if (state?.pausedAt != null) {
     log.debug('Skip tick: active role still paused', { roleId, pausedAt: state.pausedAt })
-    return { roleId, published: 0, scriptsCreated: 0 }
+    return { roleId, published: 0, scriptsCreated: 0, paused: true }
   }
 
   // 背景：生活推进独立于聊天；意图：记录真实任务身份并给发布节点传父 ID。
@@ -193,7 +193,7 @@ export async function tickActiveRole(now: number): Promise<{
         log.info('Active role ticked', { roleId, published, scriptsCreated: created, now })
       }
       span.end()
-      return { roleId, published, scriptsCreated: created }
+      return { roleId, published, scriptsCreated: created, paused: false }
     } catch (error) { span.end('error'); throw error }
   })
 }

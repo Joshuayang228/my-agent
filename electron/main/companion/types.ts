@@ -265,7 +265,7 @@ export interface ReacquaintCopyPayload {
 
 export type SwitchResult =
   | { ok: true; catchupQueued: boolean; reacquaint: ReacquaintCopyPayload }
-  | { ok: false; code: 'SESSION_ACTIVE' | 'UNKNOWN_ROLE' | 'ALREADY_ACTIVE' }
+  | { ok: false; code: 'SESSION_ACTIVE' | 'UNKNOWN_ROLE' | 'ALREADY_ACTIVE' | 'SWITCH_FAILED' }
 
 /** 事件/槽位可选：发布时写入 companion_assets（M25-G2） */
 export interface GrantAssetSpec {

@@ -225,6 +225,10 @@ export async function triggerSpontaneousImpulse(
   }
 
   // 1. 获取主角专属主会话并将消息直接保存为 assistant
+  const activeRoleId = (await settings.getSetting('activeRoleId')).trim()
+  if (activeRoleId && activeRoleId !== roleId) {
+    return { triggered: false, reason: 'role-inactive' }
+  }
   const session = await ensureMainSessionForRole(roleId)
   const messageId = randomUUID()
   await saveMessage(session.id, {

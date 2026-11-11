@@ -169,7 +169,7 @@ declare global {
               catchupQueued: boolean
               reacquaint: { title: string; body: string; toast: string }
             }
-          | { ok: false; code: 'SESSION_ACTIVE' | 'UNKNOWN_ROLE' | 'ALREADY_ACTIVE' }
+          | { ok: false; code: 'SESSION_ACTIVE' | 'UNKNOWN_ROLE' | 'ALREADY_ACTIVE' | 'SWITCH_FAILED' }
         >
         getMutable: (roleId?: string) => Promise<{ roleId: string; body: string }>
         setMutable: (

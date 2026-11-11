@@ -20,6 +20,7 @@ import { BrowserWindow } from 'electron'
 import { getDatabase, persist } from '../../storage/database'
 import { createLogger } from '../../utils/logger'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
+import * as settings from '../../storage/settings-store'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm'
 import { compileInnerThoughtRequest } from '../../prompts/registered-request'
@@ -335,6 +336,11 @@ export async function triggerInnerThought(
   }
 
   const id = `thought-${randomUUID()}`
+  const activeRoleId = (await settings.getSetting('activeRoleId')).trim()
+  if (activeRoleId && activeRoleId !== roleId) {
+    log.info('Skip inner thought persistence for inactive role', { roleId })
+    return null
+  }
   db.run(
     `INSERT INTO companion_inner_thoughts
      (id, role_id, title, content, mood, weather, location, activity, is_favorite, created_at)

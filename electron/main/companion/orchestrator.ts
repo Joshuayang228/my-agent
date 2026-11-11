@@ -525,14 +525,21 @@ export async function requestSwitch(roleId: string): Promise<SwitchResult> {
   const targetPrev = await getRoleState(roleId)
   const pausedAt = targetPrev?.pausedAt ?? null
 
-  await settings.setSetting('activeRoleId', roleId)
-
   let catchupQueued = false
-  if (pausedAt != null) {
-    await runCatchup(roleId, pausedAt, now)
-    catchupQueued = true
-  } else {
-    await resumeRole(roleId)
+  try {
+    await settings.setSetting('activeRoleId', roleId)
+    if (pausedAt != null) {
+      await runCatchup(roleId, pausedAt, now)
+      catchupQueued = true
+    } else {
+      await resumeRole(roleId)
+    }
+  } catch (error) {
+    // 切换必须是一个可回滚的边界。Catch-up 或目标恢复失败时，不能留下新旧角色同时暂停的半状态。
+    log.warn('Role switch failed; rolling back active role', { current, roleId, error: String(error) })
+    await settings.setSetting('activeRoleId', current)
+    await resumeRole(current)
+    return { ok: false, code: 'SWITCH_FAILED' }
   }
 
   // M28-G3：再认识微文案（不碰成长时钟）

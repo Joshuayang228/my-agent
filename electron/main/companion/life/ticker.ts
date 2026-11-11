@@ -20,10 +20,27 @@ import { checkAndTriggerNightlyReflection } from './nightly-reflection'
 import { checkAndReplanIfExhausted } from './replan'
 import { checkAndTriggerHostCare } from './host-presence'
 import * as store from './store'
+import * as settings from '../../storage/settings-store'
 
 const log = createLogger('LifeTicker')
 
 const DEFAULT_INTERVAL_MS = 5 * 60 * 1000
+
+async function isActiveRole(roleId: string): Promise<boolean> {
+  const active = (await settings.getSetting('activeRoleId')).trim()
+  return !active || active === roleId
+}
+
+async function runForActiveRole(roleId: string, label: string, action: () => Promise<unknown>): Promise<boolean> {
+  if (!(await isActiveRole(roleId))) return false
+  try {
+    await action()
+    return true
+  } catch (err) {
+    log.warn(`${label} failed`, { roleId, error: String(err) })
+    return true
+  }
+}
 
 let timer: ReturnType<typeof setTimeout> | null = null
 
@@ -64,39 +81,24 @@ export function startLifeTicker(defaultIntervalMs = DEFAULT_INTERVAL_MS): void {
     try {
       const r = await tickActiveRole(now)
       activeRoleId = r.roleId
-      if (r.roleId) {
+      if (r.roleId && !r.paused) {
         broadcastTimelineUpdated(r.roleId, now)
         // M31-G3：默认可关；失败不阻断 ticker
-        await maybeProactiveGreeting(r.roleId, now).catch((err) => {
-          log.warn('proactive greeting failed', { error: String(err) })
-        })
-        await checkAndProgressAbsorbedResonances(r.roleId, now).catch((err) => {
-          log.warn('checkAndProgressAbsorbedResonances failed', { error: String(err) })
-        })
-        await triggerSpontaneousImpulse(r.roleId, now).catch((err) => {
-          log.warn('triggerSpontaneousImpulse failed', { error: String(err) })
-        })
-        await checkAndGenerateInnerThought(r.roleId, now).catch((err) => {
-          log.warn('checkAndGenerateInnerThought failed', { error: String(err) })
-        })
-        await checkAndPerformContextualDressing(r.roleId, now).catch((err) => {
-          log.warn('checkAndPerformContextualDressing failed', { error: String(err) })
-        })
-        await checkAndProgressTravelJourney(r.roleId, now).catch((err) => {
-          log.warn('checkAndProgressTravelJourney failed', { error: String(err) })
-        })
-        await checkAndTriggerVulnerability(r.roleId, now).catch((err) => {
-          log.warn('checkAndTriggerVulnerability failed', { error: String(err) })
-        })
-        await checkAndTriggerNightlyReflection(r.roleId, now).catch((err) => {
-          log.warn('checkAndTriggerNightlyReflection failed', { error: String(err) })
-        })
-        await checkAndReplanIfExhausted(r.roleId, now).catch((err) => {
-          log.warn('checkAndReplanIfExhausted failed', { error: String(err) })
-        })
-        await checkAndTriggerHostCare(r.roleId, now).catch((err) => {
-          log.warn('checkAndTriggerHostCare failed', { error: String(err) })
-        })
+        const actions: Array<[string, () => Promise<unknown>]> = [
+          ['proactive greeting', () => maybeProactiveGreeting(r.roleId, now)],
+          ['chat resonance progression', () => checkAndProgressAbsorbedResonances(r.roleId, now)],
+          ['spontaneous impulse', () => triggerSpontaneousImpulse(r.roleId, now)],
+          ['inner thought', () => checkAndGenerateInnerThought(r.roleId, now)],
+          ['contextual dressing', () => checkAndPerformContextualDressing(r.roleId, now)],
+          ['travel progression', () => checkAndProgressTravelJourney(r.roleId, now)],
+          ['vulnerability', () => checkAndTriggerVulnerability(r.roleId, now)],
+          ['nightly reflection', () => checkAndTriggerNightlyReflection(r.roleId, now)],
+          ['replan', () => checkAndReplanIfExhausted(r.roleId, now)],
+          ['host care', () => checkAndTriggerHostCare(r.roleId, now)],
+        ]
+        for (const [label, action] of actions) {
+          if (!(await runForActiveRole(r.roleId, label, action))) break
+        }
       }
     } catch (err) {
       log.warn('tickActiveRole failed', { error: String(err) })

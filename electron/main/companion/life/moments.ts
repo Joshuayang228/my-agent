@@ -256,7 +256,6 @@ async function projectRange(
     if (ev.scheduledAt < fromMs || ev.scheduledAt > toMs) continue
     const span = startSpan('生活事件发布', 'system', 'interaction', opts?.parentSpanId, { roleId, sourceEventId: ev.id, operation: 'life_projection' })
     try {
-      await store.markEventPublished(ev.id)
       const published: CompanionEvent = { ...ev, status: 'published' }
       // M25-G2：payload.grantAsset → 幂等入库（无则 noop）
       await maybeGrantFromEvent({
@@ -269,14 +268,18 @@ async function projectRange(
         suppressMoment: opts?.automatic ? !decision.allow || ev.id !== selected?.id : opts?.suppressMoment,
         publishedAt: opts?.automatic ? toMs : opts?.publishedAt,
       })
-      if (moment) span.setAttribute('momentId', moment.id)
+      // 事件状态必须在投影完成后提交。投影失败时保留 planned，下一次 tick 才能重试。
+      // 若上一次尝试已经写入 Moment 但在后续步骤失败，按 event_id 恢复已有投影，避免重复写入。
+      const persistedMoment = moment ?? await store.getMomentByEventId(ev.roleId, ev.id)
+      await store.markEventPublished(ev.id)
+      if (persistedMoment) span.setAttribute('momentId', persistedMoment.id)
       await store.recordEventExecution({
         roleId,
         eventId: ev.id,
         attemptedAt: toMs,
-        action: moment ? 'published' : 'skipped',
+        action: persistedMoment ? 'published' : 'skipped',
         reason: opts?.automatic && selected && ev.id !== selected.id ? 'not-selected' : decision.reason,
-        momentId: moment?.id ?? null,
+        momentId: persistedMoment?.id ?? null,
       })
       span.end()
     } catch (error) { span.end('error'); throw error }

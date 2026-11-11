@@ -394,6 +394,7 @@ describe('LifeEngine', () => {
     const r = await tickActiveRole(localDateTimeMs(toLocalDateString(Date.now()), 18, 0))
     expect(r.scriptsCreated).toBe(0)
     expect(r.published).toBe(0)
+    expect(r.paused).toBe(true)
     expect(await __lifeStore.countDayScripts('luffy')).toBe(0)
   })
 
