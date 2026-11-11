@@ -4,6 +4,7 @@ import { startCompanionExecution, finishCompanionExecution } from '../execution/
 
 export interface CompanionCommandContext {
   commandId: string
+  executionId: string
   correlationId: string
   roleId: string
   occurredAt: number
@@ -27,7 +28,7 @@ export async function executeCompanionCommand<T>(input: {
   const correlationId = input.correlationId ?? commandId
   const execution = await startCompanionExecution({ roleId: input.roleId, commandId, actionType: input.actionType })
   try {
-    const result = await input.handler({ commandId, correlationId, roleId: input.roleId, occurredAt: Date.now() })
+    const result = await input.handler({ commandId, executionId: execution.id, correlationId, roleId: input.roleId, occurredAt: Date.now() })
     await finishCompanionExecution({ executionId: execution.id, status: 'completed' })
     return result
   } catch (error) {

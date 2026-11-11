@@ -9,9 +9,11 @@
 - `electron/main/companion/core/state/runtime-state.ts` 统一人物当前运行态快照，并镜像到既有 `companion_role_state.world_json`。
 - `electron/main/companion/core/events/domain-events.ts` 提供领域事件幂等写入与因果字段。
 - `electron/main/companion/core/execution/ledger.ts` 提供动作执行状态和失败信息记录。
+- `electron/main/companion/core/projections/receipts.ts` 提供 `projection_name + event_id` 的幂等投影回执，迁移期用于约束旧生活读模型重试。
 - `electron/main/companion/core/outbox/outbox.ts` 提供去重通知出站记录。
 - `electron/main/companion/adapters/window-outbox-dispatcher.ts` 是 Electron 窗口投递适配器，负责领取 pending/failed 消息、成功标记 delivered、失败保留 failed 并等待下一轮重试。
 - `chat-resonance.ts` 的文化体验完成链路已写入核心事件、执行账本和 Outbox。
+- 文化体验完成已把旧文化读模型的消费写入投影回执，重复重试不会重复登记同一领域事件。
 - 赠礼与信物馈赠已写入核心领域事件并通过 Outbox 投递；`ticker.ts` 每轮生活推进后统一消费窗口通知。
 - 主动搭话、脆弱心境、日记、深夜反思、换装、旅行、日内重排、朋友圈评论回复、宿主关怀和朋友圈轻提示已改为由核心事件记录器生成事件并进入 Outbox，生活服务不再直接向窗口广播这些领域通知。
 

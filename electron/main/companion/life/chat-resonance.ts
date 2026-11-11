@@ -35,6 +35,8 @@ import { executeCompanionCommand } from '../core/commands/gateway'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
 import { recordCompanionEventAndNotify } from '../application/record-event-notify'
+import { recordCompanionProjection } from '../core/projections/receipts'
+import { linkCompanionExecutionEvent } from '../core/execution/ledger'
 
 const log = createLogger('ChatResonance')
 
@@ -535,6 +537,8 @@ export async function completeCultureResonance(
           },
           schemaVersion: 1,
         })
+        await linkCompanionExecutionEvent({ executionId: context.executionId, eventId: domainEvent.id })
+        await recordCompanionProjection({ projectionName: 'legacy-culture-resonance', eventId: domainEvent.id })
         await enqueueCompanionOutbox({
           roleId,
           eventId: domainEvent.id,

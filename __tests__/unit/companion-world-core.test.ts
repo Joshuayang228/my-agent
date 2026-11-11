@@ -40,10 +40,11 @@ const {
   resetCompanionCoreSchemaForTesting,
 } = await import('../../electron/main/companion/core/state/runtime-state')
 const { appendCompanionDomainEvent } = await import('../../electron/main/companion/core/events/domain-events')
-const { startCompanionExecution, finishCompanionExecution } = await import('../../electron/main/companion/core/execution/ledger')
+const { startCompanionExecution, finishCompanionExecution, linkCompanionExecutionEvent } = await import('../../electron/main/companion/core/execution/ledger')
 const { enqueueCompanionOutbox } = await import('../../electron/main/companion/core/outbox/outbox')
 const { dispatchCompanionOutbox } = await import('../../electron/main/companion/core/outbox/outbox')
 const { executeCompanionCommand } = await import('../../electron/main/companion/core/commands/gateway')
+const { recordCompanionProjection } = await import('../../electron/main/companion/core/projections/receipts')
 
 describe('人物世界核心层', () => {
   beforeEach(() => {
@@ -108,9 +109,10 @@ describe('人物世界核心层', () => {
   it('执行账本记录完成状态和失败信息', async () => {
     const run = await startCompanionExecution({ roleId: 'luffy', eventId: 'event-1', actionType: 'culture-review' })
     expect(run.status).toBe('running')
+    await linkCompanionExecutionEvent({ executionId: run.id, eventId: 'event-1' })
     await finishCompanionExecution({ executionId: run.id, status: 'retryable', errorCode: 'ASSET_WRITE_FAILED', errorMessage: '重试' })
-    const row = memDb.exec('SELECT status, error_code, error_message FROM companion_execution_runs WHERE id = ?', [run.id])[0]?.values[0]
-    expect(row).toEqual(['retryable', 'ASSET_WRITE_FAILED', '重试'])
+    const row = memDb.exec('SELECT event_id, status, error_code, error_message FROM companion_execution_runs WHERE id = ?', [run.id])[0]?.values[0]
+    expect(row).toEqual(['event-1', 'retryable', 'ASSET_WRITE_FAILED', '重试'])
   })
 
   it('命令网关在 handler 失败时记录 retryable，不伪造完成', async () => {
@@ -140,5 +142,11 @@ describe('人物世界核心层', () => {
       ['test-failure', 'failed', 1, '窗口暂不可用'],
       ['test-success', 'delivered', 1, null],
     ])
+  })
+
+  it('投影回执按投影名和事件 ID 幂等', async () => {
+    expect(await recordCompanionProjection({ projectionName: 'culture-read-model', eventId: 'event-1', appliedAt: 100 })).toBe(true)
+    expect(await recordCompanionProjection({ projectionName: 'culture-read-model', eventId: 'event-1', appliedAt: 200 })).toBe(false)
+    expect(await recordCompanionProjection({ projectionName: 'gift-read-model', eventId: 'event-1', appliedAt: 200 })).toBe(true)
   })
 })

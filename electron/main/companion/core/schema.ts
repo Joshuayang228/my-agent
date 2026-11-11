@@ -82,6 +82,15 @@ export async function ensureCompanionCoreSchema(): Promise<void> {
     )
   `)
   db.run('CREATE INDEX IF NOT EXISTS idx_companion_outbox_pending ON companion_outbox(status, created_at)')
+  db.run(`
+    CREATE TABLE IF NOT EXISTS companion_projection_receipts (
+      projection_name TEXT NOT NULL,
+      event_id TEXT NOT NULL,
+      applied_at INTEGER NOT NULL,
+      PRIMARY KEY (projection_name, event_id)
+    )
+  `)
+  db.run('CREATE INDEX IF NOT EXISTS idx_companion_projection_receipts_event ON companion_projection_receipts(event_id)')
 }
 
 export function resetCompanionCoreSchemaForTesting(): void {

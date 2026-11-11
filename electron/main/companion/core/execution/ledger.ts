@@ -45,3 +45,10 @@ export async function finishCompanionExecution(input: {
     WHERE id = ?`, [input.status, input.errorCode ?? null, input.errorMessage?.slice(0, 500) ?? null, Date.now(), input.executionId])
   persist()
 }
+
+export async function linkCompanionExecutionEvent(input: { executionId: string; eventId: string }): Promise<void> {
+  await ensureCompanionCoreSchema()
+  const db = await getDatabase()
+  db.run('UPDATE companion_execution_runs SET event_id = ? WHERE id = ?', [input.eventId, input.executionId])
+  persist()
+}
