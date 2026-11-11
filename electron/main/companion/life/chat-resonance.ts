@@ -29,7 +29,7 @@ import {
   compileChatResonanceRequest,
   compileCultureReviewRequest,
 } from '../../prompts/registered-request'
-import { createAsset, getAsset, updateAsset, ASSET_KIND_CULTURE } from './assets'
+import { createAsset, deleteAsset, getAsset, updateAsset, ASSET_KIND_CULTURE } from './assets'
 import { getEventById, getMomentByEventId, insertEvent, insertMoment, recordEventExecution } from './store'
 
 const log = createLogger('ChatResonance')
@@ -286,26 +286,35 @@ export async function settleChatResonance(
       assetId,
     }
 
-    db.run(
-      `INSERT INTO companion_life_resonances
-       (id, role_id, session_id, kind, title, target_name, user_quote, reason, culture_type, status, created_at, absorbed_at, asset_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        resonance.id,
-        resonance.roleId,
-        resonance.sessionId,
-        resonance.kind,
-        resonance.title,
-        resonance.targetName,
-        resonance.userQuote,
-        resonance.reason,
-        resonance.cultureType ?? null,
-        resonance.status,
-        resonance.createdAt,
-        resonance.absorbedAt,
-        resonance.assetId,
-      ],
-    )
+    try {
+      db.run(
+        `INSERT INTO companion_life_resonances
+         (id, role_id, session_id, kind, title, target_name, user_quote, reason, culture_type, status, created_at, absorbed_at, asset_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          resonance.id,
+          resonance.roleId,
+          resonance.sessionId,
+          resonance.kind,
+          resonance.title,
+          resonance.targetName,
+          resonance.userQuote,
+          resonance.reason,
+          resonance.cultureType ?? null,
+          resonance.status,
+          resonance.createdAt,
+          resonance.absorbedAt,
+          resonance.assetId,
+        ],
+      )
+    } catch (error) {
+      if (assetId) {
+        await deleteAsset(assetId, { expectedRoleId: roleId }).catch((cleanupError) => {
+          log.warn('Failed to clean up orphaned resonance asset', { roleId, assetId, error: String(cleanupError) })
+        })
+      }
+      throw error
+    }
     persist()
 
     const message = parsed.kind === 'culture_wish'
@@ -445,30 +454,31 @@ export async function completeCultureResonance(
   if (currentResonance.assetId) {
     try {
       const existingAsset = await getAsset(currentResonance.assetId)
-      if (existingAsset) {
-        const type = (existingAsset.payload.type as string) || currentResonance.cultureType || 'reading'
-        const statusField = type === 'music' ? 'listeningStatus' : type === 'film' ? 'watchStatus' : 'readingStatus'
-        const completedStatusVal = 'finished'
-        const existingNotes = Array.isArray(existingAsset.payload.readingNotes)
-          ? [...existingAsset.payload.readingNotes]
-          : []
-        existingNotes.push({
-          id: `review:${randomUUID().slice(0, 8)}`,
-          text: parsedReview.reviewText,
-          author: 'companion',
-          createdAt: now,
-        })
+      if (!existingAsset) return { ok: false, error: '文化资料不存在，体验结果会在下次生活推进时重试。' }
+      const type = (existingAsset.payload.type as string) || currentResonance.cultureType || 'reading'
+      const statusField = type === 'music' ? 'listeningStatus' : type === 'film' ? 'watchStatus' : 'readingStatus'
+      const completedStatusVal = 'finished'
+      const existingNotes = Array.isArray(existingAsset.payload.readingNotes)
+        ? [...existingAsset.payload.readingNotes]
+        : []
+      existingNotes.push({
+        id: `review:${randomUUID().slice(0, 8)}`,
+        text: parsedReview.reviewText,
+        author: 'companion',
+        createdAt: now,
+      })
 
-        await updateAsset(currentResonance.assetId, {
-          payload: {
-            [statusField]: completedStatusVal,
-            readingNotes: existingNotes,
-            note: parsedReview.reviewText,
-          },
-        }, { expectedRoleId: roleId })
-      }
+      const updateResult = await updateAsset(currentResonance.assetId, {
+        payload: {
+          [statusField]: completedStatusVal,
+          readingNotes: existingNotes,
+          note: parsedReview.reviewText,
+        },
+      }, { expectedRoleId: roleId })
+      if (!updateResult.ok) return { ok: false, error: '文化资料更新失败，体验结果会在下次生活推进时重试。' }
     } catch (err) {
       log.warn('Failed to update asset on resonance complete', { assetId: currentResonance.assetId, error: String(err) })
+      return { ok: false, error: '文化资料更新失败，体验结果会在下次生活推进时重试。' }
     }
   }
 
