@@ -551,6 +551,7 @@ export async function countEvents(roleId: string): Promise<number> {
 }
 
 export async function insertEvent(input: {
+  id?: string
   roleId: string
   scheduledAt: number
   status: CompanionEventStatus
@@ -560,7 +561,7 @@ export async function insertEvent(input: {
 }): Promise<CompanionEvent> {
   await ensureTables()
   const db = await getDatabase()
-  const id = randomUUID()
+  const id = input.id ?? randomUUID()
   db.run(
     `INSERT INTO companion_events
        (id, role_id, scheduled_at, status, type, payload_json, day_script_id)

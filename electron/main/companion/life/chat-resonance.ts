@@ -30,7 +30,7 @@ import {
   compileCultureReviewRequest,
 } from '../../prompts/registered-request'
 import { createAsset, getAsset, updateAsset, ASSET_KIND_CULTURE } from './assets'
-import { insertMoment } from './store'
+import { getEventById, getMomentByEventId, insertEvent, insertMoment, recordEventExecution } from './store'
 
 const log = createLogger('ChatResonance')
 
@@ -484,17 +484,30 @@ export async function completeCultureResonance(
   // 3. 若有朋友圈分享意向，插入 Moment
   if (parsedReview.shouldPostMoment && parsedReview.momentText) {
     try {
-      await insertMoment({
+      const eventId = `resonance-${currentResonance.id}`
+      const event = await getEventById(eventId) ?? await insertEvent({
+        id: eventId,
         roleId,
-        eventId: `resonance-${currentResonance.id}`,
-        publishedAt: now,
-        text: parsedReview.momentText,
-        meta: {
+        scheduledAt: now,
+        status: 'published',
+        type: 'moment',
+        dayScriptId: null,
+        payload: {
+          activity: '文化体验回响',
+          story: parsedReview.momentText,
           resonanceId: currentResonance.id,
           targetName: currentResonance.targetName,
           kind: currentResonance.kind,
         },
       })
+      const moment = await insertMoment({
+        roleId,
+        eventId: event.id,
+        publishedAt: now,
+        text: parsedReview.momentText,
+        meta: { resonanceId: currentResonance.id, targetName: currentResonance.targetName, kind: currentResonance.kind },
+      }) ?? await getMomentByEventId(roleId, event.id)
+      await recordEventExecution({ roleId, eventId: event.id, attemptedAt: now, action: 'published', reason: 'culture-resonance-completed', momentId: moment?.id ?? null })
     } catch (err) {
       log.warn('Failed to insert moment from resonance review', { roleId, error: String(err) })
     }
