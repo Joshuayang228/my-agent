@@ -1,4 +1,5 @@
 import { app } from 'electron'
+import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -165,7 +166,10 @@ export async function saveCharacterDraft(input: {
   const existing = input.draftId ? await readCharacterDraft(input.draftId) : null
   if (input.action !== 'create' && !existing) throw new Error('找不到人物草稿。')
   const draft: CharacterDraft = existing ?? {
-    id: assertId(`${input.universeId ?? 'character'}-${Date.now().toString(36)}`, '草稿标识'),
+    id: assertId(
+      `${(input.universeId ?? 'character').slice(0, 32)}-${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`,
+      '草稿标识',
+    ),
     universeId: assertId(input.universeId ?? '', '世界观标识'),
     title: assertText(input.title ?? '', '草稿标题', 120),
     roleId: assertId(input.roleId ?? '', '人物标识'),
