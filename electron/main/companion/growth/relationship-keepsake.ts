@@ -308,7 +308,10 @@ export async function triggerGiftKeepsake(
       timestamp: now,
     })
   } catch (err) {
-    log.warn('Failed to deliver keepsake speech to main session', { roleId, error: String(err) })
+    db.run('DELETE FROM companion_keepsakes WHERE id = ? AND role_id = ?', [keepsakeRecord.id, roleId])
+    persist()
+    log.warn('Keepsake delivery failed; rolled back keepsake record', { roleId, error: String(err) })
+    return null
   }
 
   // 6. 记录关系里程碑

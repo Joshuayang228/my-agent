@@ -81,11 +81,10 @@ describe('羁绊深度跃迁与专属信物馈赠（Relationship Keepsake Gifts�
         session_id       TEXT NOT NULL,
         role             TEXT NOT NULL,
         content          TEXT NOT NULL,
-        timestamp        INTEGER NOT NULL,
-        model            TEXT,
-        tokens           INTEGER,
-        reasoning_tokens INTEGER,
-        metadata         TEXT,
+        created_at       INTEGER NOT NULL,
+        sort_order       INTEGER NOT NULL,
+        tool_calls       TEXT,
+        tool_call_id     TEXT,
         generated_images TEXT
       );
     `)

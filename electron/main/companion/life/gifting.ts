@@ -305,7 +305,10 @@ export async function sendGiftToCompanion(
       log.info('Recorded gift reaction in main session', { roleId, sessionId: mainSession.id })
     }
   } catch (err) {
-    log.warn('Failed to save gift reaction to main session', { roleId, error: String(err) })
+    db.run('DELETE FROM companion_received_gifts WHERE id = ? AND role_id = ?', [recordId, roleId])
+    persist()
+    log.warn('Gift reaction delivery failed; rolled back gift record', { roleId, error: String(err) })
+    throw new Error('赠礼暂时未能完成，请稍后重试。')
   }
 
   // 3. 提升角色生命体征
