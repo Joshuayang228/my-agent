@@ -183,7 +183,7 @@ export async function projectMomentFromEvent(
     })
   }
 
-  const moment = await store.insertMoment({
+  let moment = await store.insertMoment({
     roleId: event.roleId,
     eventId: event.id,
     publishedAt: opts?.publishedAt ?? event.scheduledAt,
@@ -203,7 +203,10 @@ export async function projectMomentFromEvent(
       ...(relationship ? { relationship } : {}),
     },
   })
-  if (!moment) return null
+  if (!moment) {
+    moment = await store.getMomentByEventId(event.roleId, event.id)
+    if (!moment) return null
+  }
   await store.replaceEventLinks(event.roleId, event.id, links)
   if (opts?.automatic && (await getSetting('companionMomentImagePolicy')) === 'generated') {
     await generateAutomaticMomentMedia(event.roleId, event, moment)
