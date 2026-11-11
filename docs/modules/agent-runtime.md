@@ -27,7 +27,7 @@
 - 换装结果与版本写入 `companion_autonomous_dressings` 表，由 `formatLifeAssetsSliceForPrompt` 将最新穿着自然同步至主对话生活事实切片（`situation.lifeAssetsSlice`）。
 
 突发生活意图与私密内心独白（2026-11-08）：
-- 新增 `companion:list-inner-thoughts`、`companion:create-inner-thought`、`companion:toggle-inner-thought-favorite`、`companion:delete-inner-thought` IPC 接口与 `companion:inner-thought-created` 广播通道；
+- 新增 `companion:list-inner-thoughts`、`companion:delete-inner-thought` IPC 接口与 `companion:inner-thought-created` 广播通道；日记生成与历史收藏字段仅由生活引擎内部使用，不对 Renderer 暴露手动写作或收藏切换；
 - 新增 `companionInnerThought` 受控签发配方 `compileInnerThoughtRequest` 与功能合同 `innerThought`，由 `inner-thoughts.ts` 调度小模型生成或平滑回退；
 - 新增 `spontaneousImpulse` 受控签发配方 `compileSpontaneousImpulseRequest` 与功能合同 `spontaneousImpulse`，由 `spontaneous-impulse.ts` 驱动主动搭话消息直写主会话并广播 `companion:spontaneous-impulse` 通知；
 - 新增 `companion:list-keepsakes`、`companion:gift-keepsake` IPC 接口与 `companion:keepsake-gifted` 广播通道，新增 `companionKeepsakeGift` 签发配方与 `keepsakeGift` 功能合同，由 `relationship-keepsake.ts` 驱动赠礼发言直写主会话并关联关系里程碑（`keepsake_gifted`）。

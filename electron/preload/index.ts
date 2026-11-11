@@ -465,15 +465,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       roleId?: string,
     ): Promise<import('../../src/shared/types').CompanionInnerThoughtRecord[]> =>
       ipcRenderer.invoke('companion:list-inner-thoughts', roleId),
-    createInnerThought: (
-      roleId?: string,
-      trigger?: string,
-    ): Promise<import('../../src/shared/types').CompanionInnerThoughtRecord | null> =>
-      ipcRenderer.invoke('companion:create-inner-thought', roleId, trigger),
-    toggleInnerThoughtFavorite: (
-      id: string,
-    ): Promise<boolean> =>
-      ipcRenderer.invoke('companion:toggle-inner-thought-favorite', id),
     deleteInnerThought: (
       id: string,
     ): Promise<boolean> =>

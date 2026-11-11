@@ -6,6 +6,8 @@
 - 高光回忆重温引擎：`nostalgia.ts` 在主会话提示词装配前夕（`orchestrator.ts`）检索沉淀记忆（feedback 深度默契、专属信物、深夜领悟），经 4 小时冷却保护挑选一条高光切片，注入 `formatConversationImpulseForPrompt` 作为【高光回忆羁绊】生活切片话头，引导角色在闲聊时像真人老友一样自然带出过去共同经历；
 - 前端呈现与双向连通：`WorldJournalPanel` 使用日记封面与信件式详情展示正文，日期、地点和心情收在日记本内容中，保留删除与「与TA聊聊」入口；Playground 只覆盖清单、详情、长文、空态和读取失败等通用状态。
 
+人物世界能力边界（2026-11-11）：日记的公开 IPC 只提供读取、删除和引导聊天，手动创建与收藏切换不再暴露给 Renderer；内部生活引擎仍可生成日记，历史收藏字段只作为内部连续性数据保留。
+
 工作区持久化与跨会话协同架构（2026-11-09）：
 - 工作区会话持久模型：`sessions` 表扩充 `parent_session_id` 列（schema 25），`getOrCreateWorkspaceSession` 将工作区侧聊与宿主主会话一对一绑定并建立索引；组件折叠、隐藏或视图切换时不销毁会话，保留工程讨论全过程；
 - 会话生命周期与隔离：切换主会话时，工作区右坞根据新的 `activeSessionId` 自动无缝切换对应侧聊上下文与变更审阅；主会话列表（`listSessions`）过滤排除 `session_kind = 'workspace'` 避免侧聊混淆；

@@ -242,18 +242,6 @@ export function registerCompanionIPC(): void {
     return listInnerThoughts(targetRoleId)
   })
 
-  ipcMain.handle('companion:create-inner-thought', async (_e, roleId?: string, trigger?: string) => {
-    if (typeof trigger !== 'undefined' && (typeof trigger !== 'string' || trigger.length > 300)) throw new Error('思绪触发原因无效。')
-    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
-    const { triggerInnerThought } = await import('../companion/life/inner-thoughts')
-    return triggerInnerThought(targetRoleId, trigger, Date.now())
-  })
-
-  ipcMain.handle('companion:toggle-inner-thought-favorite', async (_e, id: string) => {
-    const { toggleInnerThoughtFavorite } = await import('../companion/life/inner-thoughts')
-    return toggleInnerThoughtFavorite(id)
-  })
-
   ipcMain.handle('companion:delete-inner-thought', async (_e, id: string) => {
     const { deleteInnerThought } = await import('../companion/life/inner-thoughts')
     return deleteInnerThought(id)
