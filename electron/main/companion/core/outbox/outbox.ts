@@ -47,6 +47,7 @@ export async function dispatchCompanionOutbox(input: {
   for (const row of rows) {
     const message = rowToOutbox(row)
     db.run(`UPDATE companion_outbox SET status = 'processing', attempt = attempt + 1, last_error = NULL WHERE id = ? AND status IN ('pending', 'failed')`, [message.id])
+    if (db.getRowsModified() !== 1) continue
     persist()
     try {
       await input.deliver({ ...message, status: 'processing', attempt: message.attempt + 1, lastError: null })

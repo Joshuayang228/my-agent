@@ -12,6 +12,7 @@
 - `electron/main/companion/core/projections/receipts.ts` 提供 `projection_name + event_id` 的幂等投影回执，迁移期用于约束旧生活读模型重试。
 - `electron/main/companion/core/outbox/outbox.ts` 提供去重通知出站记录。
 - `electron/main/companion/adapters/window-outbox-dispatcher.ts` 是 Electron 窗口投递适配器，负责领取 pending/failed 消息、成功标记 delivered、失败保留 failed 并等待下一轮重试。
+- 窗口不可用时投递器不会把消息误标为 delivered，Outbox 保留失败状态等待下一轮窗口恢复后重试。
 - `chat-resonance.ts` 的文化体验完成链路已写入核心事件、执行账本和 Outbox。
 - 文化体验完成已把旧文化读模型的消费写入投影回执，重复重试不会重复登记同一领域事件。
 - 赠礼与信物馈赠已写入核心领域事件并通过 Outbox 投递；`ticker.ts` 每轮生活推进后统一消费窗口通知。

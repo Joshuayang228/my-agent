@@ -12,9 +12,14 @@ export async function dispatchCompanionWindowOutbox(limit = 20): Promise<number>
   return dispatchCompanionOutbox({
     limit,
     deliver: async (message) => {
+      let sent = 0
       for (const win of BrowserWindow.getAllWindows()) {
-        if (!win.isDestroyed()) win.webContents.send(`companion:${message.kind}`, message.payload)
+        if (!win.isDestroyed()) {
+          win.webContents.send(`companion:${message.kind}`, message.payload)
+          sent += 1
+        }
       }
+      if (sent === 0) throw new Error('当前没有可用的渲染窗口。')
     },
   })
 }

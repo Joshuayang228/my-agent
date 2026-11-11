@@ -4,7 +4,7 @@
 
 人物世界引擎主动节奏门禁（2026-11-11）：`today-timeline.test.ts` 覆盖同一生活 tick 只把明确已投递的问候、搭话或关怀计入主动消息预算；`spontaneous-impulse.test.ts` 覆盖同一角色并发触发只允许一个执行槽；`moment-images.test.ts` 覆盖重复投影返回既有 Moment 并保持图片关联，避免恢复路径被旧断言误判为失败。
 
-人物世界核心层 P0 门禁（2026-11-12）：`companion-world-core.test.ts` 覆盖旧 world state 回填统一运行态、状态 delta 有界与版本递增、领域事件幂等、投影回执幂等、Outbox 去重、投递成功 / 失败状态、命令网关失败记录和执行账本失败状态；`world-state.test.ts`、`companion-life.test.ts`、`gifting.test.ts`、`relationship-keepsake.test.ts`、`vulnerability.test.ts`、`travel-progression.test.ts` 与 `replan.test.ts` 验证生活行为通过核心运行态和 Outbox 工作；IPC handler 通过类型检查、构建和全量行为测试门禁。
+人物世界核心层 P0 门禁（2026-11-12）：`companion-world-core.test.ts` 覆盖旧 world state 回填统一运行态、状态 delta 有界与版本递增、领域事件幂等、投影回执幂等、Outbox 去重、投递成功 / 失败状态、窗口不可用重试语义、命令网关失败记录和执行账本失败状态；`world-state.test.ts`、`companion-life.test.ts`、`gifting.test.ts`、`relationship-keepsake.test.ts`、`vulnerability.test.ts`、`travel-progression.test.ts` 与 `replan.test.ts` 验证生活行为通过核心运行态和 Outbox 工作；IPC handler 通过类型检查、构建和全量行为测试门禁。
 
 人物草稿隔离门禁（2026-11-11）：`universe-switch.test.ts` 验证快速创建的用户世界草稿使用唯一标识，发布与恢复默认世界的资产目录隔离不因时间戳碰撞失效。
 
