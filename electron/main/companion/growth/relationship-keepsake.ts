@@ -23,6 +23,7 @@ import { compileKeepsakeGiftRequest } from '../../prompts/registered-request'
 import { loadRolePack } from '../identity/loader'
 import { ensureMainSessionForRole, saveMessage } from '../../storage/session-store'
 import { tryRecordMilestone } from './milestones'
+import { isActiveRole } from '../../storage/settings-store'
 import type { CompanionKeepsakeRecord, CompanionKeepsakeGiftEvent, LLMConfig } from '../../../../src/shared/types'
 
 const log = createLogger('RelationshipKeepsake')
@@ -271,6 +272,11 @@ export async function triggerGiftKeepsake(
     giftReason: customReason || candidate.giftReason,
     iconName: candidate.iconName,
     acquiredAt: now,
+  }
+
+  if (!(await isActiveRole(roleId))) {
+    log.info('Skip keepsake persistence for inactive role', { roleId, keepsakeId: keepsakeRecord.id })
+    return null
   }
 
   db.run(

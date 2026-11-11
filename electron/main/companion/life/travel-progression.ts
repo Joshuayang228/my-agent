@@ -35,6 +35,7 @@ import type {
   CompanionTravelProgressedEvent,
 } from '../../../../src/shared/types'
 import type { TripStopRecord } from '../../../../src/shared/world-records'
+import { isActiveRole } from '../../storage/settings-store'
 
 const log = createLogger('TravelProgression')
 
@@ -298,6 +299,7 @@ export async function checkAndProgressTravelJourney(
       : []
 
     const updatedStops = [...existingStops, nextStop]
+    if (!(await isActiveRole(roleId))) return { ok: false, error: '伙伴已切换，请刷新人物页面后重试。' }
     const updateResult = await updateAsset(
       activeTrip.id,
       { payload: { stops: updatedStops } },
@@ -425,6 +427,7 @@ export async function triggerTravelProgression(
   }
 
   const updatedStops = [...existingStops, stop]
+  if (!(await isActiveRole(roleId))) return null
   const updateResult = await updateAsset(
     activeTrip.id,
     { payload: { stops: updatedStops } },

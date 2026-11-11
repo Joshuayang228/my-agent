@@ -27,6 +27,7 @@ import { loadRolePack } from '../identity/loader'
 import { toLocalDateString } from './dates'
 import { ensureWorldState } from './world-state'
 import * as store from './store'
+import { isActiveRole } from '../../storage/settings-store'
 
 const log = createLogger('LifeReplan')
 
@@ -201,6 +202,9 @@ export async function replanRemainingSlots(
   }
 
   // 4. 落盘更新每个待执行事件
+  if (!(await isActiveRole(roleId))) {
+    return { ok: false, roleId, replannedCount: 0, trigger: options.trigger, reason: '伙伴已切换', adjustedSlots: [] }
+  }
   const adjustedSlots: ReplanResult['adjustedSlots'] = []
   for (let i = 0; i < upcomingPlanned.length; i++) {
     const ev = upcomingPlanned[i]

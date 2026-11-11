@@ -27,6 +27,7 @@ import { chatComplete } from '../../llm/index'
 import { compileHostCareRequest } from '../../prompts/registered-request'
 import { loadRolePack } from '../identity/loader'
 import * as sessionStore from '../../storage/session-store'
+import { isActiveRole } from '../../storage/settings-store'
 
 const log = createLogger('HostPresence')
 
@@ -184,6 +185,8 @@ export async function checkAndTriggerHostCare(
     careMessage = fb.careMessage
     suggestedAction = fb.suggestedAction
   }
+
+  if (!(await isActiveRole(roleId))) return null
 
   // 记录触发时间与熬夜标志
   lastCareTriggeredAt[targetKind] = now

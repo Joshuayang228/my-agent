@@ -38,6 +38,7 @@ vi.mock('../../electron/main/storage/settings-store', () => ({
   setSetting: vi.fn(async (k: string, v: string) => { settingsStore.set(k, v) }),
   getAllSettings: vi.fn(async () => ({})),
   getAllSettingsReadOnly: vi.fn(() => ({})),
+  isActiveRole: vi.fn(async () => true),
 }))
 
 const llmState = vi.hoisted(() => ({

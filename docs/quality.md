@@ -6,6 +6,8 @@
 
 人物草稿隔离门禁（2026-11-11）：`universe-switch.test.ts` 验证快速创建的用户世界草稿使用唯一标识，发布与恢复默认世界的资产目录隔离不因时间戳碰撞失效。
 
+生活服务切角门禁（2026-11-11）：`gifting.test.ts`、`relationship-keepsake.test.ts`、`vulnerability.test.ts`、`host-presence.test.ts`、`life-replan.test.ts` 与 `travel-progression.test.ts` 覆盖赠礼、信物、安慰、关怀、重排和旅行的异步提交路径；服务在模型等待后再次确认 activeRole，旧角色不会落盘。
+
 日记与信物视觉收口门禁（2026-11-10）：正式人物世界和 Playground 复用组件均通过八分区导航、九项 UI E2E、类型检查与相关单测，确认列表切换、空态、错误态和窄宽布局没有因卡片层级收敛而回归。
 
 人物世界信息架构收敛门禁（2026-11-10）：正式人物世界与 Playground 现在均验证 8 个生活面，移除共同决策入口后导航、当前主角贯穿和八分区标签断言通过；共同决策后端单测继续保留，覆盖内部因果读取与吸收链，不把内部引擎误当作用户可见模块。

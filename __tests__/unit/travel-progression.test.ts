@@ -39,6 +39,7 @@ vi.mock('../../electron/main/storage/settings-store', () => ({
     return ''
   }),
   setSetting: vi.fn(async () => {}),
+  isActiveRole: vi.fn(async () => true),
 }))
 
 const {
