@@ -1,5 +1,17 @@
 # 系统架构
 
+## 人物世界核心层（2026-11-12）
+
+人物世界采用模块化单体内的领域核心。IPC、Chat Tool、LifeTicker 和 Debug 逐步转为 Command Adapter，核心层维护 `companion_runtime_state`、`companion_domain_events`、`companion_execution_runs` 和 `companion_outbox`。朋友圈、日记、信物、关系和 Prompt 读取面作为投影迁移，旧生活表在迁移期只作为镜像读模型。
+
+当前首批核心落点：
+
+- `electron/main/companion/core/state/runtime-state.ts` 统一人物当前运行态快照，并镜像到既有 `companion_role_state.world_json`。
+- `electron/main/companion/core/events/domain-events.ts` 提供领域事件幂等写入与因果字段。
+- `electron/main/companion/core/execution/ledger.ts` 提供动作执行状态和失败信息记录。
+- `electron/main/companion/core/outbox/outbox.ts` 提供去重通知出站记录。
+- `chat-resonance.ts` 的文化体验完成链路已写入核心事件、执行账本和 Outbox。
+
 深夜反思与高光回忆重温架构（2026-11-09）：
 - 深夜反思与心灵领悟流：`nightly-reflection.ts` 在深夜时段（22:00～04:00）结合今日生活事件与近期用户对话线索，经 20 小时冷却（每日上限 1 次）由受控配方 `compileNightlyReflectionRequest` 生成第一人称深夜反思；
 - 数据模型与记忆闭环：随笔写入 SQLite `companion_inner_thoughts`（`thought_type: 'nightly_reflection'`），提炼出的心灵感悟（`epiphany`）同步调用 `addMemory('feedback', ...)` 存入长期记忆的“我们之间”分桶；广播 `companion:nightly-reflection-created`；

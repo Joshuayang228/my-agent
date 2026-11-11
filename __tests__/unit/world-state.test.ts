@@ -171,6 +171,8 @@ describe('world-state store', () => {
 
   it('ensureWorldState 将旧 world_json 覆盖为 schemaVersion 1', async () => {
     await ensureWorldState('hang')
+    // 核心运行态是当前事实源，删除快照后才模拟旧库首次进入核心层的回填路径。
+    memDb.run('DELETE FROM companion_runtime_state WHERE role_id = ?', ['hang'])
     memDb.run(
       `UPDATE companion_role_state SET world_json = ? WHERE role_id = ?`,
       [JSON.stringify({ home: '旧住处', timezone: 'Asia/Shanghai', situation: '' }), 'hang'],

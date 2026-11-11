@@ -13,6 +13,52 @@ import {
 } from './world-codec'
 import * as store from './store'
 import { applyVitalsDelta, deriveVitalsDelta, releaseSocialNeedAfterChat } from './world-vitals'
+import {
+  getCompanionRuntimeState,
+  replaceCompanionRuntimeState,
+} from '../core/state/runtime-state'
+
+function runtimeToWorldState(state: Awaited<ReturnType<typeof getCompanionRuntimeState>>): CompanionWorldState {
+  return {
+    schemaVersion: 1,
+    home: state.home,
+    timezone: state.timezone,
+    situation: state.situation,
+    mood: state.mood,
+    energy: state.energy,
+    socialNeed: state.socialNeed,
+    currentLocation: state.currentLocation,
+    locationDetail: state.locationDetail,
+    currentActivity: state.currentActivity,
+    statusTags: state.statusTags,
+    updatedAt: state.updatedAt,
+  }
+}
+
+function worldToRuntimeState(
+  world: CompanionWorldState,
+  runtime: Awaited<ReturnType<typeof getCompanionRuntimeState>>,
+) {
+  return {
+    roleId: runtime.roleId,
+    universeId: runtime.universeId,
+    mood: world.mood,
+    energy: world.energy,
+    socialNeed: world.socialNeed,
+    hunger: runtime.hunger,
+    sleepiness: runtime.sleepiness,
+    home: world.home,
+    timezone: world.timezone,
+    currentActivity: world.currentActivity,
+    currentLocation: world.currentLocation,
+    locationDetail: world.locationDetail,
+    statusTags: world.statusTags,
+    situation: world.situation,
+    version: runtime.version + 1,
+    updatedAt: world.updatedAt,
+    lastEventId: runtime.lastEventId,
+  }
+}
 
 export {
   defaultWorldState,
@@ -23,14 +69,8 @@ export {
 
 /** 读取当前 schema 世界；旧版 world_json 已由 codec 直接重置为出厂世界。 */
 export async function ensureWorldState(roleId: string): Promise<CompanionWorldState> {
-  const state = await store.getRoleState(roleId)
-  const world = state?.world ?? defaultWorldState(roleId)
-  if (!state || world.updatedAt === 0) {
-    const next = { ...world, updatedAt: Date.now() }
-    await store.setWorldState(roleId, next)
-    return next
-  }
-  return world
+  const state = await getCompanionRuntimeState(roleId)
+  return runtimeToWorldState(state)
 }
 
 /** 单次刷新最多结算的新事件数；离线补叙一次涌入大量事件时只结算最近若干条，避免数值被一次性推到极端。 */
@@ -98,7 +138,8 @@ export async function refreshSituationFromLife(
     currentActivity,
     updatedAt: now,
   }
-  await store.setWorldState(roleId, next)
+  const runtime = await getCompanionRuntimeState(roleId)
+  await replaceCompanionRuntimeState(worldToRuntimeState(next, runtime))
   return next
 }
 
@@ -111,6 +152,7 @@ export async function settleVitalsAfterChat(roleId: string): Promise<CompanionWo
   const world = await ensureWorldState(roleId)
   const released = releaseSocialNeedAfterChat(world)
   const next: CompanionWorldState = { ...world, ...released }
-  await store.setWorldState(roleId, next)
+  const runtime = await getCompanionRuntimeState(roleId)
+  await replaceCompanionRuntimeState(worldToRuntimeState(next, runtime))
   return next
 }

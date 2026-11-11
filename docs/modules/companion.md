@@ -1,5 +1,9 @@
 # 伙伴世界（Companion）
 
+## 核心引擎重构进行中
+
+人物世界正在迁移到模块化单体内的领域核心。当前核心层统一保存人物运行态、领域事件、执行账本和通知 Outbox，文化体验完成链路已接入首批核心记录。朋友圈、日记、信物、关系和 Prompt 读模型按施工合同逐步迁移，旧生活表在迁移期间作为镜像读模型使用。
+
 ## 已落地能力：多角色专属头像体系与空间氛围横幅（Companion Avatars & Atmospheric Banners）
 
 - **多角色专属头像（Companion Avatars）**：角色包（Role Pack）在 `manifest.json` 中配置 `avatarVisualPath` 与 `themeColor`，主进程加载器 `loader.ts` 结合 `resolveRoleAssetFilePath` 将角色头像物化或转换为 base64 dataUrl 供前端消费；为路飞（`luffy`）、索隆（`zoro`）、娜美（`nami`）、山治（`sanji`）、乌索普（`usopp`）出厂落地 1:1 高清专属立绘头像，并为小林（`lin`）补齐展厅候选头像。
