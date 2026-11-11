@@ -23,7 +23,7 @@
 - 共同决策数据模型：`co-decision.ts` 管理 `companion_co_decisions` 表，每个角色同一时刻最多 1 个待决项（pending）；
 - 即时第一人称回响：用户决断后，由 `coDecisionReaction` 模型配方生成生动第一人称回应（或高质量预设保底），作为 assistant 消息直接存入主会话并触发 `companion:co-decision-resolved` 广播；
 - 次日剧本因果闭环：`getRecentResolvedCoDecision` 与 `markCoDecisionAbsorbed` 联动 `script-generator.ts`，将用户抉择深度注入次日剧本上下文，真实左右角色次日探险与生活轨迹；
-- UI 边界：共同决策不再作为人物世界或 Playground 的独立 Tab 展示，`co-decision.ts` 只作为生活因果链内部能力，用户通过主会话中的求助与回响完成决策。
+- UI 边界：共同决策不再作为人物世界、Playground 或 Renderer IPC 的独立能力展示，`co-decision.ts` 只作为生活因果链内部能力，由既有主会话与次日日剧本链路吸收。
 
 衣柜与穿搭自主演化架构（2026-11-09）：
 - 生活时钟自主调度：`LifeTicker` 在定时推进生活时唤起 `checkAndPerformContextualDressing`（`autonomous-dressing.ts`），结合日剧本主题/活动槽位、清晨起床 routine 与衣柜资产匹配目标穿搭；

@@ -422,16 +422,6 @@ declare global {
         onTravelProgressed: (
           callback: (payload: import('./shared/types').CompanionTravelProgressedEvent) => void,
         ) => () => void
-        getPendingCoDecision: (roleId?: string) => Promise<import('./shared/types').CompanionCoDecisionRecord | null>
-        listCoDecisions: (roleId?: string) => Promise<import('./shared/types').CompanionCoDecisionRecord[]>
-        resolveCoDecision: (decisionId: string, optionId: string) => Promise<import('./shared/types').CompanionCoDecisionRecord | null>
-        createCoDecision: (roleId?: string, dilemmaHint?: string) => Promise<import('./shared/types').CompanionCoDecisionRecord | null>
-        onCoDecisionCreated: (
-          callback: (payload: import('./shared/types').CompanionCoDecisionEvent) => void,
-        ) => () => void
-        onCoDecisionResolved: (
-          callback: (payload: import('./shared/types').CompanionCoDecisionEvent) => void,
-        ) => () => void
         getActiveVulnerability: (roleId?: string) => Promise<import('./shared/types').CompanionVulnerabilityRecord | null>
         listVulnerabilities: (roleId?: string, limit?: number) => Promise<import('./shared/types').CompanionVulnerabilityRecord[]>
         comfortVulnerability: (vulnerabilityId: string, comfortText?: string) => Promise<{ ok: boolean; vulnerability?: import('./shared/types').CompanionVulnerabilityRecord; reaction?: string }>

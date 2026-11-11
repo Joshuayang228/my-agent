@@ -272,31 +272,6 @@ export function registerCompanionIPC(): void {
     return triggerGiftKeepsake(targetRoleId, keepsakeKey, customReason)
   })
 
-  ipcMain.handle('companion:get-pending-co-decision', async (_e, roleId?: string) => {
-    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
-    const { getPendingCoDecision } = await import('../companion/life/co-decision')
-    return getPendingCoDecision(targetRoleId)
-  })
-
-  ipcMain.handle('companion:list-co-decisions', async (_e, roleId?: string) => {
-    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
-    const { listCoDecisions } = await import('../companion/life/co-decision')
-    return listCoDecisions(targetRoleId)
-  })
-
-  ipcMain.handle('companion:resolve-co-decision', async (_e, decisionId: string, optionId: string) => {
-    if (typeof decisionId !== 'string' || decisionId.length === 0 || decisionId.length > 160 || typeof optionId !== 'string' || optionId.length === 0 || optionId.length > 100) return null
-    const { resolveCoDecision } = await import('../companion/life/co-decision')
-    return resolveCoDecision(decisionId, optionId)
-  })
-
-  ipcMain.handle('companion:create-co-decision', async (_e, roleId?: string, dilemmaHint?: string) => {
-    if (typeof dilemmaHint !== 'undefined' && (typeof dilemmaHint !== 'string' || dilemmaHint.length > 500)) throw new Error('决策提示无效。')
-    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
-    const { createCoDecision } = await import('../companion/life/co-decision')
-    return createCoDecision(targetRoleId, dilemmaHint)
-  })
-
   ipcMain.handle('companion:get-active-vulnerability', async (_e, roleId?: string) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { getActiveVulnerability } = await import('../companion/life/vulnerability')

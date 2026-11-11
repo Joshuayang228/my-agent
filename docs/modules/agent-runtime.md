@@ -17,7 +17,7 @@
 - 自动向 SQLite `companion_assets` 的 active trip 追加站点并联动完成对应共鸣心愿；主会话 Prompt 生活切片同步感知最新到访站点。
 
 同伴求助与生活共同决策（2026-11-09）：
-- 新增 `companion:get-pending-co-decision`、`companion:list-co-decisions`、`companion:resolve-co-decision`、`companion:create-co-decision` IPC 接口与 `companion:co-decision-created`、`companion:co-decision-resolved` 广播通道；
+- 共同决策不再暴露独立 Renderer IPC 或广播通道，`co-decision.ts` 只由生活因果与次日日剧本吸收链路内部调用；
 - 新增 `coDecisionReaction` 功能合同与受控签发配方 `compileCoDecisionReactionRequest`，由 `co-decision.ts` 调度模型生成或预设保底；
 - 用户选定后角色即时生成第一人称回响写入主会话（assistant 消息）并广播通知，决断通过 `collectDayScriptLifeContext` 注入次日剧本，真实影响明日日程。
 

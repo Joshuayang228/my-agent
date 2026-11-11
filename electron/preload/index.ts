@@ -543,44 +543,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('companion:travel-progressed', handler)
       return () => ipcRenderer.removeListener('companion:travel-progressed', handler)
     },
-    getPendingCoDecision: (
-      roleId?: string,
-    ): Promise<import('../../src/shared/types').CompanionCoDecisionRecord | null> =>
-      ipcRenderer.invoke('companion:get-pending-co-decision', roleId),
-    listCoDecisions: (
-      roleId?: string,
-    ): Promise<import('../../src/shared/types').CompanionCoDecisionRecord[]> =>
-      ipcRenderer.invoke('companion:list-co-decisions', roleId),
-    resolveCoDecision: (
-      decisionId: string,
-      optionId: string,
-    ): Promise<import('../../src/shared/types').CompanionCoDecisionRecord | null> =>
-      ipcRenderer.invoke('companion:resolve-co-decision', decisionId, optionId),
-    createCoDecision: (
-      roleId?: string,
-      dilemmaHint?: string,
-    ): Promise<import('../../src/shared/types').CompanionCoDecisionRecord | null> =>
-      ipcRenderer.invoke('companion:create-co-decision', roleId, dilemmaHint),
-    onCoDecisionCreated: (
-      callback: (payload: import('../../src/shared/types').CompanionCoDecisionEvent) => void,
-    ) => {
-      const handler = (
-        _e: Electron.IpcRendererEvent,
-        payload: import('../../src/shared/types').CompanionCoDecisionEvent,
-      ) => callback(payload)
-      ipcRenderer.on('companion:co-decision-created', handler)
-      return () => ipcRenderer.removeListener('companion:co-decision-created', handler)
-    },
-    onCoDecisionResolved: (
-      callback: (payload: import('../../src/shared/types').CompanionCoDecisionEvent) => void,
-    ) => {
-      const handler = (
-        _e: Electron.IpcRendererEvent,
-        payload: import('../../src/shared/types').CompanionCoDecisionEvent,
-      ) => callback(payload)
-      ipcRenderer.on('companion:co-decision-resolved', handler)
-      return () => ipcRenderer.removeListener('companion:co-decision-resolved', handler)
-    },
     getActiveVulnerability: (
       roleId?: string,
     ): Promise<import('../../src/shared/types').CompanionVulnerabilityRecord | null> =>
