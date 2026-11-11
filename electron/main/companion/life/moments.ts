@@ -31,6 +31,8 @@ import * as store from './store'
 import { getSetting } from '../../storage/settings-store'
 import { generateAutomaticMomentMedia } from './automatic-moment-media'
 import { recordCompanionEventAndNotify } from '../application/record-event-notify'
+import { appendCompanionDomainEvent } from '../core/events/domain-events'
+import { recordCompanionProjection } from '../core/projections/receipts'
 
 export { formatMomentText } from './moment-format'
 export type { AddMomentCommentOptions } from '../../../../src/shared/types'
@@ -55,6 +57,19 @@ export async function projectMomentFromEvent(
   opts?: ProjectMomentOpts,
 ): Promise<CompanionMoment | null> {
   if (event.status !== 'published') return null
+  const domainEvent = await appendCompanionDomainEvent({
+    roleId: event.roleId,
+    universeId: opts?.universeId ?? 'default',
+    type: event.type === 'moment' ? 'moment_published' : 'life_event_published',
+    sourceType: 'companion_event',
+    sourceId: event.id,
+    causationId: event.id,
+    correlationId: event.id,
+    idempotencyKey: `life-event-published:${event.id}`,
+    occurredAt: opts?.publishedAt ?? event.scheduledAt,
+    payload: event.payload,
+    schemaVersion: 1,
+  })
   const relationship = event.payload.relationship && typeof event.payload.relationship === 'object' && !Array.isArray(event.payload.relationship)
     ? event.payload.relationship as Record<string, unknown>
     : undefined
@@ -208,6 +223,7 @@ export async function projectMomentFromEvent(
     if (!moment) return null
   }
   await store.replaceEventLinks(event.roleId, event.id, links)
+  await recordCompanionProjection({ projectionName: 'moment-read-model', eventId: domainEvent.id })
   if (opts?.automatic && (await getSetting('companionMomentImagePolicy')) === 'generated') {
     await generateAutomaticMomentMedia(event.roleId, event, moment)
   }
