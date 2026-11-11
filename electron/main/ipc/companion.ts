@@ -62,6 +62,7 @@ import { createLogger } from '../utils/logger'
 import { readGeneratedImageReference, loadGeneratedImageReference } from '../storage/generated-images'
 import { getHostPresenceStatus, checkAndTriggerHostCare } from '../companion/life/host-presence'
 import { replanRemainingSlots } from '../companion/life/replan'
+import { executeCompanionCommand } from '../companion/core/commands/gateway'
 
 const log = createLogger('CompanionIPC')
 const boundedLimit = (value: unknown, fallback = 50, maximum = 200): number => Number.isSafeInteger(value) ? Math.max(1, Math.min(maximum, value as number)) : fallback
@@ -209,7 +210,7 @@ export function registerCompanionIPC(): void {
       return { ok: false as const, error: '动态不存在', code: 'INVALID' }
     }
     const roleId = await getActiveRoleId()
-    return toggleMomentLikeForRole(roleId, momentId.trim())
+    return executeCompanionCommand({ roleId, actionType: 'toggle-moment-like', handler: () => toggleMomentLikeForRole(roleId, momentId.trim()) })
   })
 
   ipcMain.handle(
@@ -224,7 +225,7 @@ export function registerCompanionIPC(): void {
         return { ok: false as const, error: '动态不存在', code: 'INVALID' }
       }
       const roleId = await getActiveRoleId()
-      return addMomentCommentForRole(roleId, momentId.trim(), text, opts)
+      return executeCompanionCommand({ roleId, actionType: 'add-moment-comment', handler: () => addMomentCommentForRole(roleId, momentId.trim(), text, opts) })
     },
   )
 
@@ -237,12 +238,12 @@ export function registerCompanionIPC(): void {
   ipcMain.handle('companion:trigger-host-care-check', async (_e, roleId?: unknown, kind?: unknown) => {
     const targetRoleId = await requireActiveWriteRole(roleId)
     if (typeof kind !== 'undefined' && kind !== 'fatigue_break' && kind !== 'late_night_sleep' && kind !== 'welcome_back') return { ok: false as const, error: '关怀类型无效。' }
-    return { ok: true as const, care: await checkAndTriggerHostCare(targetRoleId, Date.now(), kind as import('../../../src/shared/types').HostCareKind | undefined) }
+    return executeCompanionCommand({ roleId: targetRoleId, actionType: 'host-care-check', handler: async () => ({ ok: true as const, care: await checkAndTriggerHostCare(targetRoleId, Date.now(), kind as import('../../../src/shared/types').HostCareKind | undefined) }) })
   })
   ipcMain.handle('companion:replan-today-slots', async (_e, roleId?: unknown, reason?: unknown) => {
     const targetRoleId = await requireActiveWriteRole(roleId)
     if (typeof reason !== 'string' || reason.trim().length === 0 || reason.length > 500) return { ok: false as const, error: '重排原因无效。' }
-    return replanRemainingSlots(targetRoleId, { trigger: 'manual', reason: reason.trim(), now: Date.now(), preferLlm: true })
+    return executeCompanionCommand({ roleId: targetRoleId, actionType: 'replan-today-slots', handler: () => replanRemainingSlots(targetRoleId, { trigger: 'manual', reason: reason.trim(), now: Date.now(), preferLlm: true }) })
   })
 
   ipcMain.handle('companion:list-life-resonances', async (_e, roleId?: string) => {
@@ -258,13 +259,14 @@ export function registerCompanionIPC(): void {
 
   ipcMain.handle('companion:delete-inner-thought', async (_e, id: string) => {
     const { deleteInnerThought } = await import('../companion/life/inner-thoughts')
-    return deleteInnerThought(id)
+    const roleId = await getActiveRoleId()
+    return executeCompanionCommand({ roleId, actionType: 'delete-inner-thought', handler: () => deleteInnerThought(id) })
   })
 
   ipcMain.handle('companion:trigger-nightly-reflection', async (_e, roleId?: string, force?: boolean) => {
     const targetRoleId = await requireActiveWriteRole(roleId)
     const { triggerNightlyReflection } = await import('../companion/life/nightly-reflection')
-    return triggerNightlyReflection(targetRoleId, Date.now(), { force: force === true })
+    return executeCompanionCommand({ roleId: targetRoleId, actionType: 'nightly-reflection', handler: () => triggerNightlyReflection(targetRoleId, Date.now(), { force: force === true }) })
   })
 
   ipcMain.handle('companion:get-nostalgic-reminiscence', async (_e, roleId?: string) => {
@@ -283,7 +285,7 @@ export function registerCompanionIPC(): void {
     if (typeof keepsakeKey !== 'undefined' && (typeof keepsakeKey !== 'string' || keepsakeKey.length > 100) || typeof customReason !== 'undefined' && (typeof customReason !== 'string' || customReason.length > 500)) throw new Error('信物信息无效。')
     const targetRoleId = await requireActiveWriteRole(roleId)
     const { triggerGiftKeepsake } = await import('../companion/growth/relationship-keepsake')
-    return triggerGiftKeepsake(targetRoleId, keepsakeKey, customReason)
+    return executeCompanionCommand({ roleId: targetRoleId, actionType: 'gift-keepsake', handler: () => triggerGiftKeepsake(targetRoleId, keepsakeKey, customReason) })
   })
 
   ipcMain.handle('companion:get-active-vulnerability', async (_e, roleId?: string) => {
@@ -301,14 +303,15 @@ export function registerCompanionIPC(): void {
   ipcMain.handle('companion:comfort-vulnerability', async (_e, vulnerabilityId: string, comfortText?: string) => {
     if (typeof vulnerabilityId !== 'string' || vulnerabilityId.length === 0 || vulnerabilityId.length > 160 || typeof comfortText !== 'undefined' && (typeof comfortText !== 'string' || comfortText.length > 500)) return { ok: false as const, error: '安慰内容无效。' }
     const { comfortVulnerability } = await import('../companion/life/vulnerability')
-    return comfortVulnerability(vulnerabilityId, comfortText)
+    const roleId = await getActiveRoleId()
+    return executeCompanionCommand({ roleId, actionType: 'comfort-vulnerability', handler: () => comfortVulnerability(vulnerabilityId, comfortText) })
   })
 
   ipcMain.handle('companion:trigger-vulnerability', async (_e, roleId?: string, forceContext?: string) => {
     if (typeof forceContext !== 'undefined' && (typeof forceContext !== 'string' || forceContext.length > 500)) throw new Error('心境上下文无效。')
     const targetRoleId = await requireActiveWriteRole(roleId)
     const { triggerVulnerability } = await import('../companion/life/vulnerability')
-    return triggerVulnerability(targetRoleId, forceContext)
+    return executeCompanionCommand({ roleId: targetRoleId, actionType: 'trigger-vulnerability', handler: () => triggerVulnerability(targetRoleId, forceContext) })
   })
 
   ipcMain.handle('companion:list-available-gifts', async (_e, roleId?: string) => {
@@ -327,7 +330,7 @@ export function registerCompanionIPC(): void {
     if (typeof giftKey !== 'string' || giftKey.length > 100 || typeof userNote === 'string' && userNote.length > 500) throw new Error('赠礼信息无效。')
     const targetRoleId = await requireActiveWriteRole(roleId)
     const { sendGiftToCompanion } = await import('../companion/life/gifting')
-    return sendGiftToCompanion(targetRoleId, giftKey, userNote)
+    return executeCompanionCommand({ roleId: targetRoleId, actionType: 'send-gift', handler: () => sendGiftToCompanion(targetRoleId, giftKey, userNote) })
   })
 
   ipcMain.handle('companion:list-autonomous-dressings', async (_e, roleId?: string, limit?: number) => {
@@ -346,7 +349,7 @@ export function registerCompanionIPC(): void {
     if (typeof customStop !== 'undefined' && (!customStop || typeof customStop !== 'object' || typeof customStop.name !== 'string' || typeof customStop.story !== 'string' || customStop.name.length > 100 || customStop.story.length > 5000)) throw new Error('旅行站点内容无效。')
     const targetRoleId = await requireActiveWriteRole(roleId)
     const { triggerTravelProgression } = await import('../companion/life/travel-progression')
-    return triggerTravelProgression(targetRoleId, customStop)
+    return executeCompanionCommand({ roleId: targetRoleId, actionType: 'travel-progression', handler: () => triggerTravelProgression(targetRoleId, customStop) })
   })
 
   ipcMain.handle('companion:catchup-status', async () => {
@@ -398,14 +401,15 @@ export function registerCompanionIPC(): void {
       if (input.roleId !== roleId) {
         return { ok: false as const, code: 'ROLE_MISMATCH', error: '伙伴已切换，请刷新人物页面后重试。' }
       }
-      const result = await createAsset({
+      return executeCompanionCommand({
         roleId,
-        kind: input.kind,
-        name: input.name,
-        payload: input.payload,
+        actionType: 'create-asset',
+        handler: async () => {
+          const result = await createAsset({ roleId, kind: input.kind, name: input.name, payload: input.payload })
+          if (!result.ok) return { ok: false as const, error: result.error, code: result.code }
+          return { ok: true as const, asset: result.asset }
+        },
       })
-      if (!result.ok) return { ok: false as const, error: result.error, code: result.code }
-      return { ok: true as const, asset: result.asset }
     },
   )
 
@@ -415,7 +419,7 @@ export function registerCompanionIPC(): void {
       || !Number.isSafeInteger(input.expectedVersion) || input.expectedVersion < 0) return { ok: false as const, code: 'INVALID', error: '换装信息无效，请重新读取衣柜。' }
     const roleId = await getActiveRoleId()
     if (input.roleId !== roleId) return { ok: false as const, code: 'ROLE_MISMATCH', error: '伙伴已切换，请重新读取衣柜。' }
-    try { return await changeWardrobe({ ...input, roleId }) } catch (error) {
+    try { return await executeCompanionCommand({ roleId, actionType: 'change-wardrobe', handler: () => changeWardrobe({ ...input, roleId }) }) } catch (error) {
       log.error('Wardrobe change failed', { errorType: error instanceof Error ? error.name : 'unknown' })
       return { ok: false as const, code: 'INVALID', error: '换装暂时未能保存，请重新读取衣柜后重试。' }
     }
@@ -436,9 +440,15 @@ export function registerCompanionIPC(): void {
         return { ok: false as const, error: 'INVALID_PATCH' }
       }
       const roleId = await getActiveRoleId()
-      const result = await updateAsset(assetId.trim(), patch, { expectedRoleId: roleId })
-      if (!result.ok) return { ok: false as const, error: result.error, code: result.code }
-      return { ok: true as const, asset: result.asset }
+      return executeCompanionCommand({
+        roleId,
+        actionType: 'update-asset',
+        handler: async () => {
+          const result = await updateAsset(assetId.trim(), patch, { expectedRoleId: roleId })
+          if (!result.ok) return { ok: false as const, error: result.error, code: result.code }
+          return { ok: true as const, asset: result.asset }
+        },
+      })
     },
   )
 
@@ -448,9 +458,15 @@ export function registerCompanionIPC(): void {
       return { ok: false as const, error: 'INVALID_ID' }
     }
     const roleId = await getActiveRoleId()
-    const result = await deleteAsset(assetId.trim(), { expectedRoleId: roleId })
-    if (!result.ok) return { ok: false as const, error: result.error, code: result.code }
-    return { ok: true as const }
+    return executeCompanionCommand({
+      roleId,
+      actionType: 'delete-asset',
+      handler: async () => {
+        const result = await deleteAsset(assetId.trim(), { expectedRoleId: roleId })
+        if (!result.ok) return { ok: false as const, error: result.error, code: result.code }
+        return { ok: true as const }
+      },
+    })
   })
 
   /**
