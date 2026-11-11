@@ -143,7 +143,7 @@ it('Chat 评论工具拒绝跨人物动态，且不写入互动记录', async ()
   await registry().executeAll([{ id: 'post', name: 'companion_post_moment', arguments: JSON.stringify({ text: '只属于路飞的动态。' }) }], { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' })
   const moment = (await listMoments('luffy'))[0]
   const result = await registry().executeAll([{ id: 'comment', name: 'companion_comment_moment', arguments: JSON.stringify({ momentId: moment.id, text: '不应写入。' }) }], { sessionId: 's', workdir: process.cwd(), roleId: 'lin' })
-  expect(result[0].content).toContain('朋友圈评论未保存')
+  expect(result[0].content).toContain('工具错误')
   expect(await listMomentUserInteractions('luffy')).toEqual([])
 })
 

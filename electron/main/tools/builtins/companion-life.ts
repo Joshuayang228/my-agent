@@ -9,6 +9,7 @@ import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { chatComplete } from '../../llm/index'
 import { compileMaterialObservationRequest } from '../../prompts/registered-request'
 import { recordMaterialObservationAttempt } from '../../companion/life/material-observation-store'
+import { executeCompanionCommand } from '../../companion/core/commands/gateway'
 
 const ASSET_KINDS = ['home', 'furniture', 'footprint', 'culture', 'bookshelf', 'wardrobe'] as const
 type CompanionAssetKind = (typeof ASSET_KINDS)[number]
@@ -182,29 +183,35 @@ export const companionPostMomentTool = buildTool({
     const relationshipNote = textArg(args, 'relationshipNote', 300)
     const activity = textArg(args, 'activity', 120) || text.slice(0, 80)
     const location = textArg(args, 'location', 160)
-    const event = await insertEvent({
+    return executeCompanionCommand({
       roleId,
-      scheduledAt: Date.now(),
-      status: 'published',
-      type: 'moment',
-      dayScriptId: null,
-      payload: {
-        activity,
-        story: text,
-        ...(location ? { location } : {}),
-        ...(imageIds.length ? { imageIds } : {}),
-        ...(participantIds.length ? { participantIds } : {}),
-        ...(phase || relationshipNote ? { relationship: { ...(phase ? { phase } : {}), ...(relationshipNote ? { note: relationshipNote } : {}) } } : {}),
+      actionType: 'post-moment',
+      handler: async () => {
+        const event = await insertEvent({
+          roleId,
+          scheduledAt: Date.now(),
+          status: 'published',
+          type: 'moment',
+          dayScriptId: null,
+          payload: {
+            activity,
+            story: text,
+            ...(location ? { location } : {}),
+            ...(imageIds.length ? { imageIds } : {}),
+            ...(participantIds.length ? { participantIds } : {}),
+            ...(phase || relationshipNote ? { relationship: { ...(phase ? { phase } : {}), ...(relationshipNote ? { note: relationshipNote } : {}) } } : {}),
+          },
+        })
+        try {
+          const moment = await projectMomentFromEvent(event, { preferLlm: false })
+          if (!moment) throw new Error('朋友圈投影未创建')
+          return `已发布朋友圈（动态 ID：${moment.id}）。${imageIds.length ? `已附 ${imageIds.length} 张图片。` : ''}`
+        } catch (error) {
+          await deleteEvent(roleId, event.id)
+          return `朋友圈发布失败，已撤销未完成的记录：${error instanceof Error ? error.message : '投影失败'}`
+        }
       },
     })
-    try {
-      const moment = await projectMomentFromEvent(event, { preferLlm: false })
-      if (!moment) throw new Error('朋友圈投影未创建')
-      return `已发布朋友圈（动态 ID：${moment.id}）。${imageIds.length ? `已附 ${imageIds.length} 张图片。` : ''}`
-    } catch (error) {
-      await deleteEvent(roleId, event.id)
-      return `朋友圈发布失败，已撤销未完成的记录：${error instanceof Error ? error.message : '投影失败'}`
-    }
   },
 })
 
@@ -240,8 +247,14 @@ export const companionCreateAssetTool = buildTool({
     const payload = args.payload === undefined ? undefined : args.payload
     if (payload !== undefined && (!payload || typeof payload !== 'object' || Array.isArray(payload))) return '资产资料必须是结构化对象。'
     try {
-      const result = await createAsset({ roleId, kind, name, payload: payload as Record<string, unknown> | undefined })
-      return result.ok ? `已添加${name}到人物世界（资产 ID：${result.asset.id}）。` : `生活资产未保存：${result.error}`
+      return executeCompanionCommand({
+        roleId,
+        actionType: 'create-asset-tool',
+        handler: async () => {
+          const result = await createAsset({ roleId, kind, name, payload: payload as Record<string, unknown> | undefined })
+          return result.ok ? `已添加${name}到人物世界（资产 ID：${result.asset.id}）。` : `生活资产未保存：${result.error}`
+        },
+      })
     } catch (error) {
       return `生活资产未保存：${error instanceof Error ? error.message : '资料校验失败'}`
     }
@@ -300,8 +313,14 @@ export const companionAddReadingNoteTool = buildTool({
       confirmation: { by: author, at: Date.now() },
       ...(page === undefined ? {} : { page }), ...(chapter ? { chapter } : {}), createdAt: Date.now(),
     }].slice(-50)
-    const result = await updateAsset(assetId, { payload: { readingNotes } }, { expectedRoleId: roleId })
-    return result.ok ? `已保存《${asset.name}》的阅读笔记${duplicate ? '（已存在相同来源记录）' : ''}。${author === 'companion' ? '记录者：人物。' : '记录者：用户。'}来源：${source}${page === undefined ? '' : `，第 ${page} 页`}${chapter ? `，${chapter}` : ''}` : `阅读笔记未保存：${result.error}`
+    return executeCompanionCommand({
+      roleId,
+      actionType: 'add-reading-note',
+      handler: async () => {
+        const result = await updateAsset(assetId, { payload: { readingNotes } }, { expectedRoleId: roleId })
+        return result.ok ? `已保存《${asset.name}》的阅读笔记${duplicate ? '（已存在相同来源记录）' : ''}。${author === 'companion' ? '记录者：人物。' : '记录者：用户。'}来源：${source}${page === undefined ? '' : `，第 ${page} 页`}${chapter ? `，${chapter}` : ''}` : `阅读笔记未保存：${result.error}`
+      },
+    })
   },
 })
 
@@ -331,7 +350,7 @@ export const companionCommentMomentTool = buildTool({
     const momentId = textArg(args, 'momentId', 200)
     const text = textArg(args, 'text', 280)
     if (!momentId || !text) return '动态 ID 和评论内容不能为空，评论不能超过 280 字。'
-    const result = await addMomentCommentForRole(roleId, momentId, text)
+    const result = await executeCompanionCommand({ roleId, actionType: 'comment-moment-tool', handler: () => addMomentCommentForRole(roleId, momentId, text) })
     if (!result.ok) return `朋友圈评论未保存：${result.error}`
     const reply = result.social.comments.find(item => item.source === 'protagonist' && item.parentInteractionId)
     return reply?.text ? `已评论朋友圈，${roleId} 回复：${reply.text}` : '已评论朋友圈；人物回复暂未生成。'
