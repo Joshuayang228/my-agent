@@ -20,6 +20,8 @@
 
 ## 进行中
 
+人物世界核心引擎重构：[companion-world-engine-core-v1.md](./companion-world-engine-core-v1.md)，建立统一人物运行态、领域命令、领域事件、幂等投影、执行账本和通知 Outbox。
+
 人物世界引擎统一与旅程闭环：[companion-engine-unification-v1.md](./companion-engine-unification-v1.md)，审查并修复事件、状态、投影、主动行为和用户旅程之间的断点。
 
 生活引擎因果与现实锚点：[life-engine-causality-and-real-world-anchor-v1.md](./life-engine-causality-and-real-world-anchor-v1.md)，针对日内事件离散割裂缺乏状态因果重编排（问题4）以及宿主环境专注度/空闲现实关切感知（问题6）的系统化重塑。
