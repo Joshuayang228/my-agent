@@ -8,6 +8,8 @@
 
 人物世界能力边界（2026-11-11）：日记的公开 IPC 只提供读取、删除和引导聊天，手动创建与收藏切换不再暴露给 Renderer；内部生活引擎仍可生成日记，历史收藏字段只作为内部连续性数据保留。
 
+人物写入角色隔离（2026-11-11）：手动生活写入统一由 `companion.ts#requireActiveWriteRole` 在主进程核对当前 activeRole，Renderer 的旧 roleId 不能跨切换写入赠礼、信物、旅行、关怀、重排或反思事实。
+
 工作区持久化与跨会话协同架构（2026-11-09）：
 - 工作区会话持久模型：`sessions` 表扩充 `parent_session_id` 列（schema 25），`getOrCreateWorkspaceSession` 将工作区侧聊与宿主主会话一对一绑定并建立索引；组件折叠、隐藏或视图切换时不销毁会话，保留工程讨论全过程；
 - 会话生命周期与隔离：切换主会话时，工作区右坞根据新的 `activeSessionId` 自动无缝切换对应侧聊上下文与变更审阅；主会话列表（`listSessions`）过滤排除 `session_kind = 'workspace'` 避免侧聊混淆；

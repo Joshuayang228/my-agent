@@ -66,6 +66,20 @@ import { replanRemainingSlots } from '../companion/life/replan'
 const log = createLogger('CompanionIPC')
 const boundedLimit = (value: unknown, fallback = 50, maximum = 200): number => Number.isSafeInteger(value) ? Math.max(1, Math.min(maximum, value as number)) : fallback
 
+/**
+ * 校验 Renderer 发来的生活写入是否仍属于当前人物。
+ *
+ * 背景：切换人物后，旧页面可能迟到提交 roleId，若直接信任它会把赠礼、旅行或关怀事实写进旧人物。
+ * 设计意图：所有手动生活写入口统一以主进程当前 activeRole 为准，避免每个 handler 各自实现不完整的角色校验。
+ * 关键约束：缺省 roleId 代表当前人物；显式 roleId 不匹配必须拒绝，不能静默改写成新人物。
+ */
+async function requireActiveWriteRole(roleId?: unknown): Promise<string> {
+  const activeRoleId = await getActiveRoleId()
+  if (typeof roleId === 'undefined' || (typeof roleId === 'string' && roleId.trim() === '')) return activeRoleId
+  if (typeof roleId !== 'string' || roleId.trim() !== activeRoleId) throw new Error('伙伴已切换，请刷新人物页面后重试。')
+  return activeRoleId
+}
+
 export function registerCompanionIPC(): void {
   ipcMain.handle('companion:proactive-greeting-receipt', (event, input: unknown) => acknowledgeProactiveGreeting(event, input))
   ipcMain.handle('companion:proactive-evidence-query', (_event, input: unknown) => {
@@ -221,12 +235,12 @@ export function registerCompanionIPC(): void {
 
   ipcMain.handle('companion:get-host-presence-status', async () => getHostPresenceStatus())
   ipcMain.handle('companion:trigger-host-care-check', async (_e, roleId?: unknown, kind?: unknown) => {
-    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const targetRoleId = await requireActiveWriteRole(roleId)
     if (typeof kind !== 'undefined' && kind !== 'fatigue_break' && kind !== 'late_night_sleep' && kind !== 'welcome_back') return { ok: false as const, error: '关怀类型无效。' }
     return { ok: true as const, care: await checkAndTriggerHostCare(targetRoleId, Date.now(), kind as import('../../../src/shared/types').HostCareKind | undefined) }
   })
   ipcMain.handle('companion:replan-today-slots', async (_e, roleId?: unknown, reason?: unknown) => {
-    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const targetRoleId = await requireActiveWriteRole(roleId)
     if (typeof reason !== 'string' || reason.trim().length === 0 || reason.length > 500) return { ok: false as const, error: '重排原因无效。' }
     return replanRemainingSlots(targetRoleId, { trigger: 'manual', reason: reason.trim(), now: Date.now(), preferLlm: true })
   })
@@ -248,7 +262,7 @@ export function registerCompanionIPC(): void {
   })
 
   ipcMain.handle('companion:trigger-nightly-reflection', async (_e, roleId?: string, force?: boolean) => {
-    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const targetRoleId = await requireActiveWriteRole(roleId)
     const { triggerNightlyReflection } = await import('../companion/life/nightly-reflection')
     return triggerNightlyReflection(targetRoleId, Date.now(), { force: force === true })
   })
@@ -267,7 +281,7 @@ export function registerCompanionIPC(): void {
 
   ipcMain.handle('companion:gift-keepsake', async (_e, roleId?: string, keepsakeKey?: string, customReason?: string) => {
     if (typeof keepsakeKey !== 'undefined' && (typeof keepsakeKey !== 'string' || keepsakeKey.length > 100) || typeof customReason !== 'undefined' && (typeof customReason !== 'string' || customReason.length > 500)) throw new Error('信物信息无效。')
-    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const targetRoleId = await requireActiveWriteRole(roleId)
     const { triggerGiftKeepsake } = await import('../companion/growth/relationship-keepsake')
     return triggerGiftKeepsake(targetRoleId, keepsakeKey, customReason)
   })
@@ -292,7 +306,7 @@ export function registerCompanionIPC(): void {
 
   ipcMain.handle('companion:trigger-vulnerability', async (_e, roleId?: string, forceContext?: string) => {
     if (typeof forceContext !== 'undefined' && (typeof forceContext !== 'string' || forceContext.length > 500)) throw new Error('心境上下文无效。')
-    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const targetRoleId = await requireActiveWriteRole(roleId)
     const { triggerVulnerability } = await import('../companion/life/vulnerability')
     return triggerVulnerability(targetRoleId, forceContext)
   })
@@ -311,7 +325,7 @@ export function registerCompanionIPC(): void {
 
   ipcMain.handle('companion:send-gift', async (_e, roleId: string, giftKey: string, userNote?: string) => {
     if (typeof giftKey !== 'string' || giftKey.length > 100 || typeof userNote === 'string' && userNote.length > 500) throw new Error('赠礼信息无效。')
-    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const targetRoleId = await requireActiveWriteRole(roleId)
     const { sendGiftToCompanion } = await import('../companion/life/gifting')
     return sendGiftToCompanion(targetRoleId, giftKey, userNote)
   })
@@ -330,7 +344,7 @@ export function registerCompanionIPC(): void {
 
   ipcMain.handle('companion:trigger-travel-progression', async (_e, roleId?: string, customStop?: { name: string; story: string }) => {
     if (typeof customStop !== 'undefined' && (!customStop || typeof customStop !== 'object' || typeof customStop.name !== 'string' || typeof customStop.story !== 'string' || customStop.name.length > 100 || customStop.story.length > 5000)) throw new Error('旅行站点内容无效。')
-    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const targetRoleId = await requireActiveWriteRole(roleId)
     const { triggerTravelProgression } = await import('../companion/life/travel-progression')
     return triggerTravelProgression(targetRoleId, customStop)
   })
