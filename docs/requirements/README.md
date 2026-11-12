@@ -20,8 +20,6 @@
 
 ## 进行中
 
-人物世界核心引擎重构：[companion-world-engine-core-v1.md](./companion-world-engine-core-v1.md)，建立统一人物运行态、领域命令、领域事件、幂等投影、执行账本和通知 Outbox。
-
 人物世界引擎统一与旅程闭环：[companion-engine-unification-v1.md](./companion-engine-unification-v1.md)，审查并修复事件、状态、投影、主动行为和用户旅程之间的断点。
 
 生活引擎因果与现实锚点：[life-engine-causality-and-real-world-anchor-v1.md](./life-engine-causality-and-real-world-anchor-v1.md)，针对日内事件离散割裂缺乏状态因果重编排（问题4）以及宿主环境专注度/空闲现实关切感知（问题6）的系统化重塑。
@@ -55,6 +53,8 @@
 ---
 
 ## 已完成施工快照（冻结）
+
+人物世界核心引擎重构：[companion-world-engine-core-v1.md](./companion-world-engine-core-v1.md)，已完成统一人物运行态、领域命令、领域事件、幂等投影、执行账本、主会话与窗口 Outbox、Read Model 和 Electron 旅程验收。
 
 提示词开发者审阅：[debug-prompt-review-workbench-v1.md](./debug-prompt-review-workbench-v1.md)，候选已回流正式提示词管理器；唯一计数、用途排序、正文及按需来源 / 调用证据已验收，当前事实见 agent-runtime 模块卡。
 

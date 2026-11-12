@@ -12,6 +12,7 @@ LifeTicker 命令回归（2026-11-12）：`ticker.test.ts` 验证生活时钟调
 主会话 Outbox 回归（2026-11-12）：`companion-session-outbox.test.ts` 验证 assistant 增量消息经过 Outbox、按消息 ID 幂等并在独立适配器中标记 delivered。
 命令幂等回归（2026-11-12）：`companion-world-core.test.ts` 验证同一命令幂等键只执行一次并复用第一次结果。
 运行态 Read Model 回归（2026-11-12）：`companion-world-core.test.ts` 验证只读模型来自核心快照并保留人物运行态边界。
+人物世界核心合同验收（2026-11-12）：全量 Unit 1743 通过、Electron Chat 旅程 `luffy-chat-tools.test.ts` 通过、构建、资产审计和文档门禁通过。
 
 人物草稿隔离门禁（2026-11-11）：`universe-switch.test.ts` 验证快速创建的用户世界草稿使用唯一标识，发布与恢复默认世界的资产目录隔离不因时间戳碰撞失效。
 
