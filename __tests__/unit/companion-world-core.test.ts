@@ -45,6 +45,7 @@ const { enqueueCompanionOutbox } = await import('../../electron/main/companion/c
 const { dispatchCompanionOutbox } = await import('../../electron/main/companion/core/outbox/outbox')
 const { executeCompanionCommand } = await import('../../electron/main/companion/core/commands/gateway')
 const { recordCompanionProjection } = await import('../../electron/main/companion/core/projections/receipts')
+const { getCompanionRuntimeReadModel } = await import('../../electron/main/companion/core/read-models/runtime-read-model')
 
 describe('人物世界核心层', () => {
   beforeEach(() => {
@@ -70,6 +71,11 @@ describe('人物世界核心层', () => {
     expect(next.version).toBe(1)
     expect(next.lastEventId).toBe('event-1')
     await expect(applyCompanionRuntimeDelta({ roleId: 'luffy', eventId: 'stale', expectedVersion: 0, delta: { mood: 1 } })).rejects.toThrow('版本冲突')
+  })
+
+  it('只读模型从核心运行态读取，不重新拼接旧生活表', async () => {
+    const readModel = await getCompanionRuntimeReadModel('luffy')
+    expect(readModel).toMatchObject({ roleId: 'luffy', home: '千里阳光号', mood: 64 })
   })
 
   it('领域事件和 Outbox 使用幂等键，重复提交返回既有记录', async () => {
@@ -124,6 +130,25 @@ describe('人物世界核心层', () => {
     })).rejects.toThrow('核心失败')
     const row = memDb.exec("SELECT status, error_message FROM companion_execution_runs WHERE action_type = 'core-test-failure'")[0]?.values[0]
     expect(row).toEqual(['retryable', '核心失败'])
+  })
+
+  it('命令幂等键重复提交时复用第一次结果，不重复执行 handler', async () => {
+    let calls = 0
+    const first = await executeCompanionCommand({
+      roleId: 'luffy',
+      actionType: 'core-test-idempotent',
+      idempotencyKey: 'idempotent-1',
+      handler: async () => { calls += 1; return { accepted: true } },
+    })
+    const second = await executeCompanionCommand({
+      roleId: 'luffy',
+      actionType: 'core-test-idempotent',
+      idempotencyKey: 'idempotent-1',
+      handler: async () => { calls += 1; return { accepted: false } },
+    })
+    expect(first).toEqual({ accepted: true })
+    expect(second).toEqual({ accepted: true })
+    expect(calls).toBe(1)
   })
 
   it('Outbox 投递成功后标记 delivered，失败后保留 failed 供重试', async () => {

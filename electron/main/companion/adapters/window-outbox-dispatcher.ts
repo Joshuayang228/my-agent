@@ -11,6 +11,7 @@ import { dispatchCompanionOutbox } from '../core/outbox/outbox'
 export async function dispatchCompanionWindowOutbox(limit = 20): Promise<number> {
   return dispatchCompanionOutbox({
     limit,
+    excludeKinds: ['main-session-message'],
     deliver: async (message) => {
       let sent = 0
       for (const win of BrowserWindow.getAllWindows()) {

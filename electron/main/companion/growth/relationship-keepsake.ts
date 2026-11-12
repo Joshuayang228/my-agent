@@ -20,12 +20,13 @@ import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test
 import { chatComplete } from '../../llm'
 import { compileKeepsakeGiftRequest } from '../../prompts/registered-request'
 import { loadRolePack } from '../identity/loader'
-import { ensureMainSessionForRole, saveMessage } from '../../storage/session-store'
+import { ensureMainSessionForRole } from '../../storage/session-store'
 import { tryRecordMilestone } from './milestones'
 import { isActiveRole } from '../../storage/settings-store'
 import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
+import { enqueueCompanionSessionMessage } from '../application/session-outbox'
 import type { CompanionKeepsakeRecord, CompanionKeepsakeGiftEvent, LLMConfig } from '../../../../src/shared/types'
 
 const log = createLogger('RelationshipKeepsake')
@@ -303,11 +304,15 @@ export async function triggerGiftKeepsake(
   // 5. 将赠礼消息作为 assistant 写入该角色的主会话
   try {
     const session = await ensureMainSessionForRole(roleId)
-    await saveMessage(session.id, {
+    await enqueueCompanionSessionMessage({
+      roleId,
+      sessionId: session.id,
+      message: {
       id: randomUUID(),
       role: 'assistant',
       content: speech,
       timestamp: now,
+      },
     })
   } catch (err) {
     db.run('DELETE FROM companion_keepsakes WHERE id = ? AND role_id = ?', [keepsakeRecord.id, roleId])

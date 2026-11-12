@@ -22,10 +22,11 @@ import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { compileSpontaneousImpulseRequest } from '../../prompts/registered-request'
 import { getDatabase, persist } from '../../storage/database'
 import * as settings from '../../storage/settings-store'
-import { deleteMessage, ensureMainSessionForRole, saveMessage } from '../../storage/session-store'
+import { deleteMessage, ensureMainSessionForRole } from '../../storage/session-store'
 import { createLogger } from '../../utils/logger'
 import { loadRolePack } from '../identity/loader'
 import { recordCompanionEventAndNotify } from '../application/record-event-notify'
+import { enqueueCompanionSessionMessage } from '../application/session-outbox'
 import { ensureWorldState } from './world-state'
 import {
   DEFAULT_QUIET_END_HOUR,
@@ -232,15 +233,19 @@ async function runSpontaneousImpulse(
   }
   const session = await ensureMainSessionForRole(roleId)
   const messageId = randomUUID()
-  await saveMessage(session.id, {
+  const recordId = randomUUID()
+  await enqueueCompanionSessionMessage({
+    roleId,
+    sessionId: session.id,
+    message: {
     id: messageId,
     role: 'assistant',
     content: generatedText,
     timestamp: now,
+    },
   })
 
   // 2. 存入数据库
-  const recordId = randomUUID()
   try {
     db.run(
       `INSERT INTO companion_spontaneous_impulses

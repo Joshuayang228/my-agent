@@ -10,9 +10,12 @@
 - 运行态 delta 支持 `expectedVersion` 乐观并发校验，过期写入直接拒绝，不覆盖更新后的状态。
 - `electron/main/companion/core/events/domain-events.ts` 提供领域事件幂等写入与因果字段。
 - `electron/main/companion/core/execution/ledger.ts` 提供动作执行状态和失败信息记录。
+- 执行账本支持 `idempotency_key` 与 `result_json`，重复命令复用第一次结果，运行中的同键命令拒绝并发执行。
 - `electron/main/companion/core/projections/receipts.ts` 提供 `projection_name + event_id` 的幂等投影回执，迁移期用于约束旧生活读模型重试。
+- `electron/main/companion/core/read-models/runtime-read-model.ts` 是 Prompt、Debug、人物入口和自动配图共享的运行态只读边界。
 - `electron/main/companion/core/outbox/outbox.ts` 提供去重通知出站记录。
 - `electron/main/companion/adapters/window-outbox-dispatcher.ts` 是 Electron 窗口投递适配器，负责领取 pending/failed 消息、成功标记 delivered、失败保留 failed 并等待下一轮重试。
+- `electron/main/companion/adapters/session-outbox-dispatcher.ts` 消费 `main-session-message`，按消息 ID 幂等写入主会话；窗口通知和主会话留痕使用独立消费器。
 - 窗口不可用时投递器不会把消息误标为 delivered，Outbox 保留失败状态等待下一轮窗口恢复后重试。
 - `chat-resonance.ts` 的文化体验完成链路已写入核心事件、执行账本和 Outbox。
 - 文化体验完成已把旧文化读模型的消费写入投影回执，重复重试不会重复登记同一领域事件。
@@ -34,9 +37,9 @@
 
 生活服务提交边界（2026-11-11）：手动与 ticker 生活服务在模型等待后再次核对 activeRole，确保生成阶段发生切角时不提交旧人物的信物、安慰、关怀、重排和旅行事实。
 
-生活结果失败恢复（2026-11-11）：赠礼、信物和脆弱安慰将主会话留痕视为用户可见完成条件，留痕失败时回滚核心记录，不发送成功广播。
+生活结果失败恢复（2026-11-11）：赠礼、信物和脆弱安慰将主会话留痕作为 `main-session-message` Outbox 消费，消息写入失败时保留失败状态，不发送成功广播。
 
-主动搭话失败恢复（2026-11-11）：主动消息必须同时存在主会话留痕与主动行为历史，历史写入失败时删除消息并停止广播。
+主动搭话失败恢复（2026-11-11）：主动消息先进入主会话 Outbox 与主动行为历史，任一投递失败都不标记为成功通知，消息 ID 保证重试幂等。
 
 工作区持久化与跨会话协同架构（2026-11-09）：
 - 工作区会话持久模型：`sessions` 表扩充 `parent_session_id` 列（schema 25），`getOrCreateWorkspaceSession` 将工作区侧聊与宿主主会话一对一绑定并建立索引；组件折叠、隐藏或视图切换时不销毁会话，保留工程讨论全过程；
@@ -66,7 +69,7 @@
 - 意向抽取与自动播种：由 `compileChatResonanceRequest` 签名签发并由辅助模型分析提取，文化类意向自动调用 `createAsset` 在文化角创建 `planned`/`queued` 状态的待体验物什，意向全量存入 SQLite `companion_life_resonances`；
 - 日剧本因果闭环：`script-generator.ts#collectDayScriptLifeContext` 读取活跃心愿作为次日剧本输入，并更新状态为 `absorbed_in_script`，让聊天中提到的话题真正出现在角色次日日程中；
 - 文化心愿体验闭环与主动反馈：`ticker.ts` 动态生活推进或定时轮询时调用 `checkAndProgressAbsorbedResonances`，通过 `compileCultureReviewRequest` 生成第一人称评语与下次对话引子（`chatOpener`），文化资产推进至 `finished` 并将感悟追加至 `readingNotes`；待反馈引子注入 `formatConversationImpulseForPrompt`（插槽 31），主对话送达后调用 `markResonanceFeedbackDelivered` 标记投递，并广播 `companion:resonance-completed` 通知；
-- 突发生活意图与主动找聊（Spontaneous Impulse）：`ticker.ts` 结合体征（`socialNeed >= 70` 或 `energy >= 80`）与活动，经 `decideSpontaneousImpulse` 规则门控（每日最多 2 次、冷却 3 小时、避开勿扰时段），通过 `compileSpontaneousImpulseRequest` 生成即兴搭话消息；主动消息直接写入角色主会话（`sessionKind === 'main'`），并广播 `companion:spontaneous-impulse` 通知，前端支持 Toast 一键直达会话与即时无感渲染；
+- 突发生活意图与主动找聊（Spontaneous Impulse）：`ticker.ts` 结合体征（`socialNeed >= 70` 或 `energy >= 80`）与活动，经 `decideSpontaneousImpulse` 规则门控（每日最多 2 次、冷却 3 小时、避开勿扰时段），通过 `compileSpontaneousImpulseRequest` 生成即兴搭话消息；主动消息经 `main-session-message` Outbox 写入角色主会话（`sessionKind === 'main'`），并经窗口 Outbox 广播 `companion:spontaneous-impulse` 通知，前端支持 Toast 一键直达会话与即时无感渲染；
 - 私密内心独白与日记（Inner Thoughts & Private Journal Stream）：构建角色私密内心记录流（SQLite `companion_inner_thoughts` 表）；`ticker.ts` 结合夜间/清晨时段与生活状态，经 `decideInnerThought`（每日 2 次、冷却 6 小时）通过 `compileInnerThoughtRequest`（或保底）生成第一人称私密随笔；出厂自动为路飞播种 3 篇具情感羁绊的 starter 日记；`WorldHub` 新增 `journal` 分区（`WorldJournalPanel`），使用封面与详情两层阅读，支持实时广播更新、删除和一键将日记契机回引至主对话（「与TA聊聊这篇日记」）；
 - 羁绊深度跃迁与专属信物馈赠（Relationship Progression & Keepsake Gifts）：构建实体信物承载流（SQLite `companion_keepsakes` 表）；跨越关键里程碑或完成共同心愿（`completeCultureResonance`）时由 `relationship-keepsake.ts` 驱动赠送专属信物，通过 `compileKeepsakeGiftRequest` 生成真情实感第一人称赠礼寄语直写主会话，记录 `keepsake_gifted` 关系里程碑并广播 `companion:keepsake-gifted`；出厂为路飞播种首件信物「生命卡的一角」，`WorldHub` 新增 `keepsakes` 分区（`WorldKeepsakesPanel`）支持高光展示与触摸信物直达会话；
 - 实时通知与跳转：心愿入库后通过 `companion:life-resonance-created` 广播给渲染进程，前端 Toast 提供一键跳转文化角查看。

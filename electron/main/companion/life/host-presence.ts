@@ -29,6 +29,7 @@ import { loadRolePack } from '../identity/loader'
 import * as sessionStore from '../../storage/session-store'
 import { isActiveRole } from '../../storage/settings-store'
 import { recordCompanionEventAndNotify } from '../application/record-event-notify'
+import { enqueueCompanionSessionMessage } from '../application/session-outbox'
 
 const log = createLogger('HostPresence')
 
@@ -213,11 +214,10 @@ export async function checkAndTriggerHostCare(
   // 写入主角专属主会话，实现会话留痕
   try {
     const mainSession = await sessionStore.ensureMainSessionForRole(roleId)
-    await sessionStore.saveMessage(mainSession.id, {
-      id: randomUUID(),
-      role: 'assistant',
-      content: careMessage,
-      timestamp: now,
+    await enqueueCompanionSessionMessage({
+      roleId,
+      sessionId: mainSession.id,
+      message: { id: randomUUID(), role: 'assistant', content: careMessage, timestamp: now },
     })
   } catch (err) {
     log.warn('Failed to append host care message to main session', { roleId, error: String(err) })

@@ -39,12 +39,14 @@ export interface CompanionExecutionRun {
   id: string
   roleId: string
   commandId: string | null
+  idempotencyKey: string | null
   eventId: string | null
   actionType: string
   status: CompanionExecutionStatus
   attempt: number
   errorCode: string | null
   errorMessage: string | null
+  result?: unknown
   startedAt: number
   completedAt: number | null
 }

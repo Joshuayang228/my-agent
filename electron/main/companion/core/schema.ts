@@ -54,16 +54,21 @@ export async function ensureCompanionCoreSchema(): Promise<void> {
       id TEXT PRIMARY KEY,
       role_id TEXT NOT NULL,
       command_id TEXT,
+      idempotency_key TEXT,
       event_id TEXT,
       action_type TEXT NOT NULL,
       status TEXT NOT NULL,
       attempt INTEGER NOT NULL DEFAULT 1,
       error_code TEXT,
       error_message TEXT,
+      result_json TEXT,
       started_at INTEGER NOT NULL,
       completed_at INTEGER
     )
   `)
+  try { db.run('ALTER TABLE companion_execution_runs ADD COLUMN idempotency_key TEXT') } catch { /* 已存在 */ }
+  try { db.run('ALTER TABLE companion_execution_runs ADD COLUMN result_json TEXT') } catch { /* 已存在 */ }
+  db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_companion_execution_idempotency ON companion_execution_runs(role_id, action_type, idempotency_key) WHERE idempotency_key IS NOT NULL')
   db.run('CREATE INDEX IF NOT EXISTS idx_companion_execution_role_time ON companion_execution_runs(role_id, started_at DESC)')
   db.run(`
     CREATE TABLE IF NOT EXISTS companion_outbox (

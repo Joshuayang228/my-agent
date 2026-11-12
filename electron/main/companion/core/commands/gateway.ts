@@ -20,16 +20,19 @@ export interface CompanionCommandContext {
 export async function executeCompanionCommand<T>(input: {
   roleId: string
   actionType: string
+  idempotencyKey?: string
   correlationId?: string
   handler: (context: CompanionCommandContext) => Promise<T>
 }): Promise<T> {
   if (!(await isActiveRole(input.roleId))) throw new Error('伙伴已切换，请刷新人物页面后重试。')
   const commandId = randomUUID()
   const correlationId = input.correlationId ?? commandId
-  const execution = await startCompanionExecution({ roleId: input.roleId, commandId, actionType: input.actionType })
+  const execution = await startCompanionExecution({ roleId: input.roleId, commandId, idempotencyKey: input.idempotencyKey ?? null, actionType: input.actionType })
+  if (input.idempotencyKey && execution.status === 'completed') return execution.result as T
+  if (input.idempotencyKey && execution.status === 'running' && execution.commandId !== commandId) throw new Error('同一命令正在执行，请勿重复提交。')
   try {
     const result = await input.handler({ commandId, executionId: execution.id, correlationId, roleId: input.roleId, occurredAt: Date.now() })
-    await finishCompanionExecution({ executionId: execution.id, status: 'completed' })
+    await finishCompanionExecution({ executionId: execution.id, status: 'completed', result })
     return result
   } catch (error) {
     await finishCompanionExecution({

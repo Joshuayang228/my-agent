@@ -10,7 +10,7 @@ import { getActiveRole } from '../companion/orchestrator'
 import { loadRolePack } from '../companion/identity/loader'
 import { getMutable, getMutableMeta } from '../companion/growth/mutable-store'
 import { getRoleState, getDayScript, listEvents, listRelationshipStates, listRelationshipEvents, listEmotionEvents, listEventExecutions } from '../companion/life/store'
-import { getCompanionRuntimeState } from '../companion/core/state/runtime-state'
+import { getCompanionRuntimeReadModel } from '../companion/core/read-models/runtime-read-model'
 import { resolveMomentVisibilityDays } from '../companion/life/moment-visibility'
 import { getSetting } from '../storage/settings-store'
 import { listMomentsForRole } from '../companion/life/moments'
@@ -128,7 +128,7 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
 
   const [state, runtimeState] = await Promise.all([
     getRoleState(role.id),
-    getCompanionRuntimeState(role.id),
+    getCompanionRuntimeReadModel(role.id),
   ])
   const today = toLocalDateString(Date.now())
   const script = await getDayScript(role.id, today)

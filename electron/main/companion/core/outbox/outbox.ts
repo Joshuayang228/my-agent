@@ -36,13 +36,22 @@ export async function enqueueCompanionOutbox(input: {
 
 export async function dispatchCompanionOutbox(input: {
   limit?: number
+  kinds?: readonly string[]
+  excludeKinds?: readonly string[]
   deliver: (message: CompanionOutboxMessage) => Promise<void>
 }): Promise<number> {
   await ensureCompanionCoreSchema()
   const db = await getDatabase()
   const limit = Math.max(1, Math.min(input.limit ?? 20, 100))
+  const kindFilter = input.kinds && input.kinds.length > 0
+    ? ` AND kind IN (${input.kinds.map(() => '?').join(', ')})`
+    : ''
+  const excludeFilter = input.excludeKinds && input.excludeKinds.length > 0
+    ? ` AND kind NOT IN (${input.excludeKinds.map(() => '?').join(', ')})`
+    : ''
+  const params: Array<string | number> = ['pending', 'failed', ...(input.kinds ?? []), ...(input.excludeKinds ?? []), limit]
   const rows = db.exec(`SELECT id, role_id, event_id, kind, dedupe_key, payload_json, status, attempt, last_error, created_at, delivered_at
-    FROM companion_outbox WHERE status IN ('pending', 'failed') ORDER BY created_at ASC LIMIT ?`, [limit])[0]?.values ?? []
+    FROM companion_outbox WHERE status IN (?, ?)${kindFilter}${excludeFilter} ORDER BY created_at ASC LIMIT ?`, params)[0]?.values ?? []
   let delivered = 0
   for (const row of rows) {
     const message = rowToOutbox(row)

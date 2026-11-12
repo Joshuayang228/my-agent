@@ -7,7 +7,7 @@ import { loadRolePack } from '../identity/loader'
 import { formatRoleAppearanceForImagePrompt } from '../identity/profile'
 import { attachMomentImageForRole } from './moment-images'
 import { getLatestMomentMediaAttempt, listMomentMediaAttempts, recordMomentMediaAttempt, storeMomentMedia } from './moment-media-store'
-import { getCompanionRuntimeState } from '../core/state/runtime-state'
+import { getCompanionRuntimeReadModel } from '../core/read-models/runtime-read-model'
 import { narrativeMood } from './world-codec'
 import { getSetting } from '../../storage/settings-store'
 
@@ -62,7 +62,7 @@ export async function generateAutomaticMomentMedia(roleId: string, event: Compan
       return { ok: false, reason: 'no-image-config' }
     }
     const appearance = (() => { try { const profile = loadRolePack(roleId).profile; return profile ? formatRoleAppearanceForImagePrompt(profile) : '' } catch { return '' } })()
-    const worldState = await getCompanionRuntimeState(roleId)
+    const worldState = await getCompanionRuntimeReadModel(roleId)
     const description = buildAutomaticMomentImageDescription({ momentText: moment.text, world: worldState, appearance })
     const response = await requestGeneratedImage(config, compileImageGenerationRequest(description), undefined)
     const image = await normalizeGeneratedImage(response.bytes)

@@ -64,6 +64,9 @@ vi.mock('../../electron/main/storage/session-store', () => ({
   saveMessage: vi.fn(async (sessionId: string, message: { role: string; content: string }) => {
     appendedMessages.push({ sessionId, content: message.content })
   }),
+  saveMessageIfAbsent: vi.fn(async (sessionId: string, message: { role: string; content: string }) => {
+    appendedMessages.push({ sessionId, content: message.content })
+  }),
 }))
 
 vi.mock('../../electron/main/companion/identity/loader', () => ({

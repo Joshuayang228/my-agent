@@ -264,6 +264,13 @@ export async function saveMessage(sessionId: string, message: ChatMessage): Prom
   persist()
 }
 
+export async function saveMessageIfAbsent(sessionId: string, message: ChatMessage): Promise<void> {
+  const db = await getDatabase()
+  const existing = db.exec('SELECT 1 FROM messages WHERE id = ? LIMIT 1', [message.id])[0]?.values[0]
+  if (existing) return
+  await saveMessage(sessionId, message)
+}
+
 export async function forkSession(sourceSessionId: string, upToMessageId: string): Promise<ChatSession> {
   const db = await getDatabase()
   const newId = randomUUID()

@@ -17,6 +17,7 @@ import * as identity from '../identity/loader'
 import { toLocalDateString } from './dates'
 import { listMomentsForRole } from './moments'
 import { dispatchProactiveGreeting, hasProactiveReservation, recordProactiveSkip } from './proactive-evidence'
+import { enqueueCompanionSessionMessage } from '../application/session-outbox'
 import {
   DEFAULT_QUIET_END_HOUR,
   DEFAULT_QUIET_START_HOUR,
@@ -170,16 +171,15 @@ export async function maybeProactiveGreeting(
   }
   let sessionId: string | undefined
   try {
-    const { ensureMainSessionForRole, saveMessage } = await import('../../storage/session-store')
+    const { ensureMainSessionForRole } = await import('../../storage/session-store')
     const session = await ensureMainSessionForRole(id)
     sessionId = session.id
     const greetingText = toast.replace(/^[^：:]+[：:]\s*/, '').trim()
     if (greetingText) {
-      await saveMessage(session.id, {
-        id: randomUUID(),
-        role: 'assistant',
-        content: greetingText,
-        timestamp: now,
+      await enqueueCompanionSessionMessage({
+        roleId: id,
+        sessionId: session.id,
+        message: { id: randomUUID(), role: 'assistant', content: greetingText, timestamp: now },
       })
     }
   } catch (err) {

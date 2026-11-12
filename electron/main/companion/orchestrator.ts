@@ -29,7 +29,7 @@ import { runCatchup } from './life/catchup'
 import { pauseRole, resumeRole } from './life/engine'
 import { getRoleState } from './life/store'
 import { listEmotionEvents, listRelationshipStates } from './life/store'
-import { getCompanionRuntimeState } from './core/state/runtime-state'
+import { getCompanionRuntimeReadModel } from './core/read-models/runtime-read-model'
 import { narrativeMood } from './life/world-codec'
 import { recordAndBroadcastMilestone } from './growth/milestones'
 import { buildReacquaintCopy } from './presence'
@@ -58,7 +58,7 @@ export async function getActiveRole(): Promise<RoleSummary & { universeId: strin
   const pack = identity.loadRolePack(roleId, universeId)
   const visuals = identity.getRoleVisuals(roleId, universeId)
   const [runtimeState, relationships, emotions] = await Promise.all([
-    getCompanionRuntimeState(roleId),
+    getCompanionRuntimeReadModel(roleId),
     listRelationshipStates(roleId),
     listEmotionEvents(roleId, 1),
   ])

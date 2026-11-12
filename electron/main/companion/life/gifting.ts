@@ -26,12 +26,13 @@ import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test
 import { chatComplete } from '../../llm'
 import { compileGiftReactionRequest } from '../../prompts/registered-request'
 import { loadRolePack } from '../identity/loader'
-import { ensureMainSessionForRole, saveMessage } from '../../storage/session-store'
+import { ensureMainSessionForRole } from '../../storage/session-store'
 import { tryRecordMilestone } from '../growth/milestones'
 import { applyCompanionRuntimeDelta, getCompanionRuntimeState } from '../core/state/runtime-state'
 import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
+import { enqueueCompanionSessionMessage } from '../application/session-outbox'
 import type {
   CompanionGiftItem,
   CompanionGiftRecord,
@@ -296,11 +297,15 @@ export async function sendGiftToCompanion(
       const giftMessageContent = userNote
         ? `【送上了礼物 · ${giftDef.name}】“${userNote}”\n\n${reactionText}`
         : `【送上了礼物 · ${giftDef.name}】\n\n${reactionText}`
-      await saveMessage(mainSession.id, {
+      await enqueueCompanionSessionMessage({
+        roleId,
+        sessionId: mainSession.id,
+        message: {
         id: randomUUID(),
         role: 'assistant',
         content: giftMessageContent,
         timestamp: now,
+        },
       })
       log.info('Recorded gift reaction in main session', { roleId, sessionId: mainSession.id })
     }

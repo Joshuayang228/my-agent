@@ -24,7 +24,7 @@ import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test
 import { chatComplete } from '../../llm'
 import { compileCoDecisionReactionRequest } from '../../prompts/registered-request'
 import { loadRolePack } from '../identity/loader'
-import { ensureMainSessionForRole, saveMessage } from '../../storage/session-store'
+import { ensureMainSessionForRole } from '../../storage/session-store'
 import type {
   CompanionCoDecisionRecord,
   CompanionCoDecisionEvent,
@@ -32,6 +32,7 @@ import type {
   LLMConfig,
 } from '../../../../src/shared/types'
 import { recordCompanionEventAndNotify } from '../application/record-event-notify'
+import { enqueueCompanionSessionMessage } from '../application/session-outbox'
 
 const log = createLogger('CoDecision')
 
@@ -411,11 +412,10 @@ export async function resolveCoDecision(
   // 3. 将角色反应写入主会话
   try {
     const mainSession = await ensureMainSessionForRole(roleId)
-    await saveMessage(mainSession.id, {
-      id: randomUUID(),
-      role: 'assistant',
-      content: reactionText,
-      timestamp: Date.now(),
+    await enqueueCompanionSessionMessage({
+      roleId,
+      sessionId: mainSession.id,
+      message: { id: randomUUID(), role: 'assistant', content: reactionText, timestamp: Date.now() },
     })
     log.info('Co-decision reaction saved to main chat session', { roleId, mainSessionId: mainSession.id })
   } catch (err) {

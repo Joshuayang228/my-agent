@@ -23,6 +23,7 @@ import * as store from './store'
 import { isActiveRole } from '../../storage/settings-store'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
 import { executeCompanionCommand } from '../core/commands/gateway'
+import { dispatchCompanionSessionOutbox } from '../adapters/session-outbox-dispatcher'
 
 const log = createLogger('LifeTicker')
 
@@ -117,6 +118,7 @@ export function startLifeTicker(defaultIntervalMs = DEFAULT_INTERVAL_MS): void {
           if (item.userFacing && didDeliverUserFacingAction(outcome.result)) userFacingDelivered = true
         }
         await runForActiveRole(tickRoleId, 'companion outbox delivery', () => dispatchCompanionWindowOutbox())
+        await runForActiveRole(tickRoleId, 'companion session outbox delivery', () => dispatchCompanionSessionOutbox())
       }
     } catch (err) {
       log.warn('tickActiveRole failed', { error: String(err) })
