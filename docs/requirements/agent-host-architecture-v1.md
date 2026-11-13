@@ -61,6 +61,8 @@ Capability 分为：
 - `context`：向 Context Compiler 提供有界动态上下文。
 - `lifecycle`：响应会话完成、定时器、启动和恢复等宿主事件。
 
+Capability 可声明 `exposeToTool: false`。生命周期和仅供 Scheduler / Headless 使用的 Workflow 默认不进入 LLM Tool Catalog，固定入口仍可通过 Application Orchestrator 调用。
+
 ### 4.4 Tool
 
 Tool 是 Capability 面向 LLM 的调用协议。Tool schema、参数校验、Permission、执行中间件和结果回传由 Tool Runtime 管理。LLM 只能调用当前 Agent 已授权并已暴露的 Tool。

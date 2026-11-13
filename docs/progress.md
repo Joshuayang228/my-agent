@@ -1627,3 +1627,6 @@ Debug Model Context 目录新增 Agent Manifest 与 Capability 状态记录，�
 # 2026-11-14 Companion Life Tick Workflow 接入
 
 生活时钟已接入 `companion.life.tick` Workflow Capability，固定调度和受控调用共享 `tickActiveRole` 事实链路。
+# 2026-11-14 Lifecycle Capability Tool 边界
+
+生活时钟 Workflow 标记为 `exposeToTool: false`，只保留 Scheduler / Headless 固定入口，不把生命周期控制权暴露给 LLM。

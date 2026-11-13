@@ -1559,3 +1559,6 @@ Playground 提示词管理器 v3 候选：调整文字职责与阅读比例，�
 # 2026-11-14 Companion Life Tick Workflow
 
 - 生活时钟推进接入 Agent Host Workflow Capability，复用既有 `tickActiveRole` 实现。
+# 2026-11-14 Lifecycle Capability 边界
+
+- 生活时钟 Workflow 不再暴露为 LLM Tool，只保留固定生命周期入口。

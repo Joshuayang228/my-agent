@@ -15,6 +15,7 @@ export interface AgentHostCapability {
   kind: AgentHostCapabilityKind
   description: string
   toolName?: string
+  exposeToTool?: boolean
   parameters: {
     type: 'object'
     properties: Record<string, { type: string; description?: string }>

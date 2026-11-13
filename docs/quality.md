@@ -1173,3 +1173,6 @@ Skill 初始化完成后的 Host 元数据同步沿主进程启动链路执行�
 # 2026-11-14 Companion Life Tick Workflow 回归
 
 Agent Host Companion Domain 单测覆盖生活推进 Workflow key，日剧本、到期投影、Outbox 和冷却规则继续由既有 LifeTicker 单测覆盖。
+# 2026-11-14 Lifecycle Capability Tool 门禁
+
+生命周期 Workflow 的 Host Capability 仍可由 Application 调用，但不出现在 Host Tool Catalog，防止模型直接触发生活时钟。

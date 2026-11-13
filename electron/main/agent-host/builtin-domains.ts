@@ -60,6 +60,7 @@ export function createCompanionCoreDomain(): AgentHostDomainDefinition {
       key: 'companion.life.tick',
       domainKey: 'companion',
       kind: 'workflow',
+      exposeToTool: false,
       description: '推进当前人物的生活时钟和到期事件',
       parameters: { type: 'object', properties: {} },
       requiredPermissions: ['companion.lifecycle'],
