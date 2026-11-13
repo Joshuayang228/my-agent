@@ -8,6 +8,8 @@
 
 主进程启动阶段将首批查询 Capability 注册为 `capability_*` Tool，沿用 Tool Runtime 的超时、权限和调用记录。能力结果使用当前 ToolContext 的 roleId，不把某个具体人物写死在 Tool 定义中。
 
+Application Orchestrator 另提供 `runWorkflow`，只接受 `kind: 'workflow'` 的 Capability。固定入口可以直接编排 Workflow，LLM 仍通过 Tool Adapter 选择 query / command 能力。
+
 主角主会话已通过 `getAgentHostContext` 读取已授权 Context Provider，结果进入会话信息区并保留失败隔离。召唤与 Workspace 会话不注入主角 Agent Host 动态上下文。
 
 ## 可靠性边界（2026-11-13）

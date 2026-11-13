@@ -62,4 +62,28 @@ describe('Agent Host Registry', () => {
     const allowedEnvironment = orchestrator.createEnvironment(manifest)
     await expect(orchestrator.invokeCapability(allowedEnvironment, 'memory.search', {}, { agentId: 'zoro', traceId: 't2' })).rejects.toThrow('does not match')
   })
+
+  it('固定 Workflow 只能由 Application 直接编排', async () => {
+    const domains = new AgentHostDomainRegistry()
+    domains.register({
+      key: 'diary',
+      version: 1,
+      dependencies: [],
+      capabilities: [{
+        key: 'diary.generate',
+        domainKey: 'diary',
+        kind: 'workflow',
+        description: '生成日记',
+        parameters: { type: 'object', properties: {} },
+        requiredPermissions: ['companion.write'],
+        invoke: async () => ({ created: true }),
+      }],
+      contextProviders: [],
+    })
+    const registry = new AgentHostCapabilityRegistry(domains)
+    const orchestrator = new AgentHostApplicationOrchestrator(registry)
+    const environment = orchestrator.createEnvironment({ ...manifest, domainKeys: ['diary'], capabilityPolicy: { allow: ['diary'], deny: [] } })
+    await expect(orchestrator.runWorkflow(environment, 'diary.generate', {}, { agentId: 'luffy', traceId: 'workflow-1' })).resolves.toEqual({ created: true })
+    await expect(orchestrator.runWorkflow(environment, 'diary.missing', {}, { agentId: 'luffy', traceId: 'workflow-2' })).rejects.toThrow('unavailable')
+  })
 })

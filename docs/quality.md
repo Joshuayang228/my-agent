@@ -1149,3 +1149,6 @@ Agent Host 内置 Domain 单测覆盖 Workspace 根目录 Capability key，文�
 # 2026-11-13 Agent Host Tool 注册回归
 
 主进程启动注册 Agent Host 查询 Tool，重复注册保护和 ToolContext roleId 传递由单元与构建门禁覆盖。Manifest 会话级 Tool 可见性仍属于施工合同后续阶段。
+# 2026-11-13 Agent Host Workflow 边界
+
+Registry 单测覆盖 Workflow 只能通过 Application Orchestrator 直接运行，缺失 Workflow 和跨 Agent 上下文会拒绝。自然语言 Tool 入口不绕过该边界。

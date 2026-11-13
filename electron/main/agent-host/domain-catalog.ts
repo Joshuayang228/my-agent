@@ -86,4 +86,16 @@ export class AgentHostApplicationOrchestrator {
     if (context.agentId !== environment.manifest.id) throw new Error('Agent execution context does not match manifest')
     return capability.invoke(input, context)
   }
+
+  async runWorkflow(
+    environment: AgentHostExecutionEnvironment,
+    workflowKey: string,
+    input: unknown,
+    context: AgentHostExecutionContext,
+  ): Promise<unknown> {
+    const workflow = environment.capabilities.find(item => item.key === workflowKey && item.kind === 'workflow')
+    if (!workflow) throw new Error(`Workflow "${workflowKey}" is unavailable for agent "${environment.manifest.id}"`)
+    if (context.agentId !== environment.manifest.id) throw new Error('Agent execution context does not match manifest')
+    return workflow.invoke(input, context)
+  }
 }

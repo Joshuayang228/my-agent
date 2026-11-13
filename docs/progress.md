@@ -1603,3 +1603,6 @@ Workspace 已注册 `workspace.root.read` 查询 Capability，默认 Manifest �
 # 2026-11-13 Agent Host Tool manifest identity
 
 Host Tool 注册使用稳定的宿主 Manifest 身份，实际人物 roleId 继续从 ToolContext 注入，避免把某个角色绑定到 Tool 定义。
+# 2026-11-13 Agent Host Workflow API
+
+Application Orchestrator 增加 `runWorkflow`，固定 Workflow 与 LLM Tool 能力入口的边界已经落到代码契约和单测。
