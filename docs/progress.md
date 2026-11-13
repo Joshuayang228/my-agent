@@ -1624,3 +1624,6 @@ Debug Model Context 目录新增 Agent Manifest 与 Capability 状态记录，�
 # 2026-11-14 Scoped Tool Catalog
 
 新增 `AgentHostScopedToolCatalog`，把 Manifest 授权筛选从 Runtime 条件分支提取为会话级目录对象。全局 ToolRegistry 继续只保存实现，未授权 Capability 不进入模型请求。
+# 2026-11-14 Companion Life Tick Workflow 接入
+
+生活时钟已接入 `companion.life.tick` Workflow Capability，固定调度和受控调用共享 `tickActiveRole` 事实链路。

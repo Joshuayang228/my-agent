@@ -1556,3 +1556,6 @@ Playground 提示词管理器 v3 候选：调整文字职责与阅读比例，�
 # 2026-11-14 Scoped Tool Catalog
 
 - Agent Host 增加会话级 Tool Catalog，Manifest 授权筛选从 Runtime 条件分支中抽出。
+# 2026-11-14 Companion Life Tick Workflow
+
+- 生活时钟推进接入 Agent Host Workflow Capability，复用既有 `tickActiveRole` 实现。

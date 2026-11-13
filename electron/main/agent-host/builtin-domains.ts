@@ -4,6 +4,7 @@ import * as memory from '../storage/memory-store'
 import { getWorkspaceRoot } from '../agent/project-memory'
 import { companionPostMomentTool } from '../tools/builtins/companion-life'
 import { triggerInnerThought } from '../companion/life/inner-thoughts'
+import { tickActiveRole } from '../companion/life/engine'
 import type { AgentHostDomainDefinition, AgentHostManifest } from '../../../src/shared/agent-host'
 
 export function createCompanionCoreDomain(): AgentHostDomainDefinition {
@@ -54,6 +55,17 @@ export function createCompanionCoreDomain(): AgentHostDomainDefinition {
           ? String((input as Record<string, unknown>).triggerReason).slice(0, 240)
           : undefined
         return triggerInnerThought(context.roleId, triggerReason)
+      },
+    }, {
+      key: 'companion.life.tick',
+      domainKey: 'companion',
+      kind: 'workflow',
+      description: '推进当前人物的生活时钟和到期事件',
+      parameters: { type: 'object', properties: {} },
+      requiredPermissions: ['companion.lifecycle'],
+      invoke: async (_input, context) => {
+        if (!context.roleId) throw new Error('Life tick workflow requires roleId')
+        return tickActiveRole(Date.now())
       },
     }],
     contextProviders: [{

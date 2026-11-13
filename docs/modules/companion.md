@@ -8,6 +8,8 @@ Companion 首个 Agent Host Domain Definition 已注册，提供 `companion.runt
 
 日记生成新增 `companion.diary.generate` Workflow Capability，复用 `triggerInnerThought` 的生活引擎实现，AI 触发与生活时钟触发共享日记持久化和 Outbox 链路。
 
+生活推进新增 `companion.life.tick` Workflow Capability，复用 `tickActiveRole` 的日剧本、到期事件、投影和 Outbox 链路。
+
 ## 核心一致性与恢复（2026-11-13）
 
 - `withCompanionUnitOfWork` 将人物世界领域事件和 Outbox 写入置于同一数据库事务，建表初始化不参与业务回滚。

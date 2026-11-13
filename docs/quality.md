@@ -1170,3 +1170,6 @@ Skill 初始化完成后的 Host 元数据同步沿主进程启动链路执行�
 # 2026-11-14 Scoped Tool Catalog 回归
 
 新增会话级 Tool 目录单测，覆盖 Host Capability Tool 和普通既有 Tool 的筛选边界。
+# 2026-11-14 Companion Life Tick Workflow 回归
+
+Agent Host Companion Domain 单测覆盖生活推进 Workflow key，日剧本、到期投影、Outbox 和冷却规则继续由既有 LifeTicker 单测覆盖。

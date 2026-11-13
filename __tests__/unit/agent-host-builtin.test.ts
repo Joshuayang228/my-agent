@@ -21,7 +21,7 @@ describe('Agent Host 内置 Domain', () => {
   it('Companion Domain 暴露运行态查询和 Context Provider', () => {
     const domain = createCompanionCoreDomain()
     expect(domain.key).toBe('companion')
-    expect(domain.capabilities.map(item => item.key)).toEqual(['companion.runtime.read', 'companion.moment.publish', 'companion.diary.generate'])
+    expect(domain.capabilities.map(item => item.key)).toEqual(['companion.runtime.read', 'companion.moment.publish', 'companion.diary.generate', 'companion.life.tick'])
     expect(domain.contextProviders.map(item => item.key)).toEqual(['companion.runtime-context'])
   })
 
@@ -44,9 +44,11 @@ describe('Agent Host 内置 Domain', () => {
       'capability_companion_runtime_read',
       'companion_post_moment',
       'capability_companion_diary_generate',
+      'capability_companion_life_tick',
     ])
     expect(getAgentHostTools().find(tool => tool.name === 'companion_post_moment')?.description).toContain('朋友圈')
     expect(getAgentHostTools().find(tool => tool.name === 'capability_companion_diary_generate')?.description).toContain('日记')
+    expect(getAgentHostTools().find(tool => tool.name === 'capability_companion_life_tick')?.description).toContain('生活时钟')
   })
 
   it('Host 按当前 Agent Manifest 计算会话级 Tool 可见性', () => {
