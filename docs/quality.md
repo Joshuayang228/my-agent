@@ -1152,3 +1152,6 @@ Agent Host 内置 Domain 单测覆盖 Workspace 根目录 Capability key，文�
 # 2026-11-13 Agent Host Workflow 边界
 
 Registry 单测覆盖 Workflow 只能通过 Application Orchestrator 直接运行，缺失 Workflow 和跨 Agent 上下文会拒绝。自然语言 Tool 入口不绕过该边界。
+# 2026-11-13 Agent Host 会话可见性回归
+
+新增当前 Agent Manifest 的 Capability Tool 可见性断言。Runtime 仍先做 Host 能力筛选，再应用 Skill 工具白名单。

@@ -1606,3 +1606,6 @@ Host Tool 注册使用稳定的宿主 Manifest 身份，实际人物 roleId 继�
 # 2026-11-13 Agent Host Workflow API
 
 Application Orchestrator 增加 `runWorkflow`，固定 Workflow 与 LLM Tool 能力入口的边界已经落到代码契约和单测。
+# 2026-11-13 Agent Host 会话级能力筛选
+
+Runtime 的 Tool 过滤器已按当前 Agent Manifest 筛选 `capability_*`，并与 Skill `allowed_tools` 规则叠加，补齐注册层到模型请求之间的授权边界。

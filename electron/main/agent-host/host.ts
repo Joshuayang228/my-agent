@@ -36,6 +36,13 @@ export function getAgentHostTools(): ToolDefinition[] {
   return environment.capabilities.map(capability => capabilityToTool(capability, { agentId: manifest.id }))
 }
 
+export function getAgentHostToolNamesForRole(roleId: string): ReadonlySet<string> {
+  initializeAgentHost()
+  const manifest = createCompanionAgentManifest({ id: roleId, personaKey: `role:${roleId}` })
+  const environment = agentHostApplication.createEnvironment(manifest)
+  return new Set(environment.capabilities.map(capability => capabilityToTool(capability, { agentId: 'agent-host' }).name))
+}
+
 export function registerAgentHostTools(toolRegistry: ToolRegistry): void {
   for (const tool of getAgentHostTools()) {
     if (!toolRegistry.has(tool.name)) toolRegistry.register(tool)

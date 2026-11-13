@@ -8,6 +8,8 @@
 
 首批查询 Capability 通过 `registerAgentHostTools` 注册为 `capability_*` Tool，执行上下文从当前 ToolContext 取得 roleId。后续按 Agent Manifest 收窄 Tool 可见性，不复制第二套工具执行链。
 
+当前会话在 Runtime 的 `filterTools` 阶段根据 role 对应 Manifest 再筛选 `capability_*`，Skill 的 `allowed_tools` 继续在同一过滤器内叠加，未授权能力不会进入模型请求。
+
 固定业务流程通过 Application Orchestrator 的 `runWorkflow` 进入 `kind: 'workflow'` Capability，LLM 只通过 Tool Adapter 选择已授权的 query / command Capability。
 
 ## 2026-11-13 可靠性收口

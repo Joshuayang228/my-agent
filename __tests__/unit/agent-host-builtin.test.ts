@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createCompanionAgentManifest, createCompanionCoreDomain, createMemoryDomain, createPersonaDomain, createWorkspaceDomain } from '../../electron/main/agent-host/builtin-domains'
 import { capabilityToTool } from '../../electron/main/agent-host/adapter'
-import { getAgentHostTools } from '../../electron/main/agent-host/host'
+import { getAgentHostToolNamesForRole, getAgentHostTools } from '../../electron/main/agent-host/host'
 
 describe('Agent Host 内置 Domain', () => {
   it('以通用 Manifest 工厂创建人物 Agent，不绑定单一角色', () => {
@@ -42,5 +42,11 @@ describe('Agent Host 内置 Domain', () => {
       'capability_workspace_root_read',
       'capability_companion_runtime_read',
     ])
+  })
+
+  it('Host 按当前 Agent Manifest 计算会话级 Tool 可见性', () => {
+    const names = getAgentHostToolNamesForRole('lin')
+    expect(names.has('capability_companion_runtime_read')).toBe(true)
+    expect(names.has('capability_memory_profile_read')).toBe(true)
   })
 })

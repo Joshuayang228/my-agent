@@ -1537,6 +1537,7 @@ Playground 提示词管理器 v3 候选：调整文字职责与阅读比例，�
 - 首批 Agent Host 查询 Capability 接入主进程 ToolRegistry，复用既有 Tool Runtime。
 - Host Tool 注册补齐稳定 Manifest 身份，运行时人物作用域仍由 ToolContext 提供。
 - Application Orchestrator 增加固定 Workflow 入口，和 LLM Tool 调用分开。
+- Agent Host Capability Tool 在 Runtime 请求阶段按当前 Agent Manifest 筛选。
 # 2026-11-13 Agent Host Context 接入
 
 - 主角主会话开始通过 Agent Host Context Provider 读取 Companion 运行态上下文，召唤和 Workspace 保持隔离。
