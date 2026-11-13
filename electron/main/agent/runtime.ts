@@ -21,6 +21,7 @@ import { describeCastPresence } from '../companion/cast/availability'
 import { formatSummonSceneBlock } from '../companion/cast/scene-prompts'
 import { summonParentDelegationHint } from '../companion/cast/summon-delegation'
 import { settleConversationCompletion } from './conversation-application-service'
+import { getAgentHostContext } from '../agent-host/host'
 import {
   formatRelationshipStageForPrompt,
   resolveRelationshipStageForRole,
@@ -309,6 +310,18 @@ class AgentRuntime {
         summonNote = buildSummonContextPrompt(presenceLine, summonParentDelegationHint(), sceneBlock)
       }
       const sessionInfoParts = [summonNote].filter(Boolean)
+      if (!isWorkspace && !isSummon) {
+        try {
+          const hostContext = await getAgentHostContext({
+            roleId: assembleRoleId,
+            sessionId,
+            traceId: chatSpan.id,
+          })
+          if (hostContext.length > 0) sessionInfoParts.push(`Agent Host 动态上下文：\n${hostContext.join('\n')}`)
+        } catch (error) {
+          log.warn('Agent Host context provider failed', { roleId: assembleRoleId, errorType: error instanceof Error ? error.name : 'unknown' })
+        }
+      }
       if (isWorkspace) {
         const parent = workspaceContext?.parentSessionId
           ? await store.getSession(workspaceContext.parentSessionId)

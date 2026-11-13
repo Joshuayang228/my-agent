@@ -1588,3 +1588,6 @@ Companion 列表资源上限（2026-11-10）：主进程统一限制多个生活
 # 2026-11-13 Agent Host Capability Adapter
 
 完成首个 Capability → Tool Adapter，固定 LLM Tool 只暴露已授权能力，补充 3 项 Agent Host 单测。Capability 仍由 Registry 按 Manifest 筛选，尚未把全局 ToolRegistry 改成按会话重建。
+# 2026-11-13 Agent Host Context 接入
+
+主角主会话开始通过 Application Host 读取 Companion Runtime Context Provider，召唤和 Workspace 保持隔离。Provider 失败只记录并继续原有 Prompt 装配，现有生活切片和 Tool 链路不变。

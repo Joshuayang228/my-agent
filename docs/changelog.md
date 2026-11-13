@@ -1532,3 +1532,6 @@ Playground 提示词管理器 v3 候选：调整文字职责与阅读比例，�
 - 新增 Agent Manifest、Domain Registry、Capability Registry、Application Orchestrator 和 Context Provider 契约。
 - Companion 首个运行态查询能力接入 Agent Host，现有 Agent Loop、Tool、Skill 和 Permission 行为保持不变。
 - 新增受控 Capability Adapter，将已授权业务能力转换为 LLM Tool 协议。
+# 2026-11-13 Agent Host Context 接入
+
+- 主角主会话开始通过 Agent Host Context Provider 读取 Companion 运行态上下文，召唤和 Workspace 保持隔离。

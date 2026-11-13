@@ -1137,3 +1137,6 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 # 2026-11-13 Agent Host Adapter 门禁
 
 新增 Capability Adapter 单测，验证只读元数据、稳定 Tool 名称和执行上下文传递。当前完整迁移仍由 Agent Host 施工合同持续覆盖。
+# 2026-11-13 Agent Host Context 回归
+
+Context Provider 接入 Runtime 后继续执行失败隔离，主会话才注入 Companion Host Context，召唤和 Workspace 不跨角色共享。相关回归在后续完整 Agent Host 验收中补齐。

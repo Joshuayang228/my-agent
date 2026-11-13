@@ -6,6 +6,8 @@
 
 `agent-host/adapter.ts` 提供受控转换，将已授权 Capability 映射为 LLM Tool，Tool 只负责协议和执行上下文转发，不拥有 Domain 业务规则。
 
+主角主会话已通过 `getAgentHostContext` 读取已授权 Context Provider，结果进入会话信息区并保留失败隔离。召唤与 Workspace 会话不注入主角 Agent Host 动态上下文。
+
 ## 可靠性边界（2026-11-13）
 
 - 对话完成后的伙伴生活副作用统一由 `conversation-application-service.ts` 编排，Runtime 不再直接依赖生命体征、共鸣和反思服务。

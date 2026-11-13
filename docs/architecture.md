@@ -4,6 +4,8 @@
 
 新增 `src/shared/agent-host.ts` 定义 Agent Manifest、Domain、Capability、Context Provider 和执行作用域。主进程 `electron/main/agent-host/` 提供 Domain Registry、Capability Registry 与 Application Orchestrator，当前先注册 Companion Runtime Read Model 能力。Tool、Skill、Workflow 的边界由施工合同 `agent-host-architecture-v1.md` 固定，现有 Agent Loop、Tool Registry、Skill Registry 和 Permission Engine 继续作为执行基础。
 
+主角主会话通过 `getAgentHostContext` 获取已授权 Context Provider，召唤和 Workspace 会话不注入主角动态上下文。Provider 失败保持原 Prompt 装配并记录结构化告警。
+
 ## 2026-11-13 可靠性收口
 
 人物世界核心写入现在通过 `withCompanionUnitOfWork` 复用数据库事务协调器，建表在事务外完成，领域事件、业务事实与 Outbox 写入在同一事务内提交。Outbox 采用 `claimed_at` / `lease_until` 租约，过期 processing 会被下一轮恢复，失败使用 `next_attempt_at` 退避重试，投递语义为至少一次，消费端必须幂等。

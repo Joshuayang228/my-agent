@@ -1,5 +1,6 @@
 import { AgentHostApplicationOrchestrator, AgentHostCapabilityRegistry, AgentHostDomainRegistry } from './domain-catalog'
-import { createCompanionCoreDomain } from './builtin-domains'
+import { createCompanionAgentManifest, createCompanionCoreDomain } from './builtin-domains'
+import type { AgentHostExecutionContext } from '../../../src/shared/agent-host'
 
 export const agentHostDomainRegistry = new AgentHostDomainRegistry()
 export const agentHostCapabilityRegistry = new AgentHostCapabilityRegistry(agentHostDomainRegistry)
@@ -12,4 +13,12 @@ export function initializeAgentHost(): void {
   if (initialized) return
   agentHostDomainRegistry.register(createCompanionCoreDomain())
   initialized = true
+}
+
+export async function getAgentHostContext(input: Omit<AgentHostExecutionContext, 'agentId'> & { roleId: string }): Promise<string[]> {
+  initializeAgentHost()
+  const manifest = createCompanionAgentManifest({ id: input.roleId, personaKey: `role:${input.roleId}` })
+  const environment = agentHostApplication.createEnvironment(manifest)
+  const blocks = await Promise.all(environment.contextProviders.map(async provider => provider.provide({ ...input, agentId: manifest.id })))
+  return blocks.filter((block): block is string => Boolean(block?.trim()))
 }
