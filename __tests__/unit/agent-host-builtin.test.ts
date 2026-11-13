@@ -20,7 +20,7 @@ describe('Agent Host 内置 Domain', () => {
   it('Companion Domain 暴露运行态查询和 Context Provider', () => {
     const domain = createCompanionCoreDomain()
     expect(domain.key).toBe('companion')
-    expect(domain.capabilities.map(item => item.key)).toEqual(['companion.runtime.read'])
+    expect(domain.capabilities.map(item => item.key)).toEqual(['companion.runtime.read', 'companion.moment.publish'])
     expect(domain.contextProviders.map(item => item.key)).toEqual(['companion.runtime-context'])
   })
 
@@ -41,7 +41,9 @@ describe('Agent Host 内置 Domain', () => {
       'capability_memory_profile_read',
       'capability_workspace_root_read',
       'capability_companion_runtime_read',
+      'companion_post_moment',
     ])
+    expect(getAgentHostTools().find(tool => tool.name === 'companion_post_moment')?.description).toContain('朋友圈')
   })
 
   it('Host 按当前 Agent Manifest 计算会话级 Tool 可见性', () => {

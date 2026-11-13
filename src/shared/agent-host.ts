@@ -14,6 +14,7 @@ export interface AgentHostCapability {
   domainKey: string
   kind: AgentHostCapabilityKind
   description: string
+  toolName?: string
   parameters: {
     type: 'object'
     properties: Record<string, { type: string; description?: string }>

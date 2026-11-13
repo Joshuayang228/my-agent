@@ -1609,3 +1609,6 @@ Application Orchestrator 增加 `runWorkflow`，固定 Workflow 与 LLM Tool 能
 # 2026-11-13 Agent Host 会话级能力筛选
 
 Runtime 的 Tool 过滤器已按当前 Agent Manifest 筛选 `capability_*`，并与 Skill `allowed_tools` 规则叠加，补齐注册层到模型请求之间的授权边界。
+# 2026-11-14 Companion Moment Workflow 接入
+
+朋友圈发布已接入 `companion.moment.publish` Workflow Capability，直接复用 `companion_post_moment` 的执行实现，固定入口与自然语言 Tool 不再维护第二套朋友圈写入规则。

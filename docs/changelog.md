@@ -1541,3 +1541,6 @@ Playground 提示词管理器 v3 候选：调整文字职责与阅读比例，�
 # 2026-11-13 Agent Host Context 接入
 
 - 主角主会话开始通过 Agent Host Context Provider 读取 Companion 运行态上下文，召唤和 Workspace 保持隔离。
+# 2026-11-14 Companion Moment Workflow
+
+- 朋友圈发布接入 Agent Host Workflow Capability，固定入口与自然语言 Tool 复用同一执行实现。

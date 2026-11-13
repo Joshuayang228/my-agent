@@ -12,6 +12,8 @@
 
 固定业务流程通过 Application Orchestrator 的 `runWorkflow` 进入 `kind: 'workflow'` Capability，LLM 只通过 Tool Adapter 选择已授权的 query / command Capability。
 
+朋友圈发布 Workflow 复用既有 `companion_post_moment` Tool 的执行实现，继续沿角色校验、命令网关、领域事件和 Moment 投影链路写入。Host Capability 只提供统一编排入口，不复制朋友圈业务规则。
+
 ## 2026-11-13 可靠性收口
 
 人物世界核心写入现在通过 `withCompanionUnitOfWork` 复用数据库事务协调器，建表在事务外完成，领域事件、业务事实与 Outbox 写入在同一事务内提交。Outbox 采用 `claimed_at` / `lease_until` 租约，过期 processing 会被下一轮恢复，失败使用 `next_attempt_at` 退避重试，投递语义为至少一次，消费端必须幂等。

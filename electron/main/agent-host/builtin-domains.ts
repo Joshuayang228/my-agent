@@ -2,6 +2,7 @@ import { getCompanionRuntimeReadModel } from '../companion/core/read-models/runt
 import * as identity from '../companion/identity/loader'
 import * as memory from '../storage/memory-store'
 import { getWorkspaceRoot } from '../agent/project-memory'
+import { companionPostMomentTool } from '../tools/builtins/companion-life'
 import type { AgentHostDomainDefinition, AgentHostManifest } from '../../../src/shared/agent-host'
 
 export function createCompanionCoreDomain(): AgentHostDomainDefinition {
@@ -19,6 +20,22 @@ export function createCompanionCoreDomain(): AgentHostDomainDefinition {
       invoke: async (_input, context) => {
         if (!context.roleId) throw new Error('Companion capability requires roleId')
         return getCompanionRuntimeReadModel(context.roleId)
+      },
+    }, {
+      key: 'companion.moment.publish',
+      toolName: 'companion_post_moment',
+      domainKey: 'companion',
+      kind: 'workflow',
+      description: companionPostMomentTool.description,
+      parameters: companionPostMomentTool.parameters,
+      requiredPermissions: ['companion.write'],
+      invoke: async (input, context) => {
+        if (!context.roleId) throw new Error('Moment workflow requires roleId')
+        return companionPostMomentTool.execute(input as Record<string, unknown>, {
+          workdir: process.cwd(),
+          sessionId: context.sessionId ?? `agent-host-${context.roleId}`,
+          roleId: context.roleId,
+        })
       },
     }],
     contextProviders: [{

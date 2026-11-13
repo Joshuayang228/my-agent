@@ -7,7 +7,7 @@ export function capabilityToTool(capability: AgentHostCapability, input: {
   roleId?: string
 }): ToolDefinition {
   return {
-    name: `capability_${capability.key.replace(/[^a-zA-Z0-9_]/g, '_')}`,
+    name: capability.toolName ?? `capability_${capability.key.replace(/[^a-zA-Z0-9_]/g, '_')}`,
     description: capability.description,
     parameters: capability.parameters,
     metadata: {
