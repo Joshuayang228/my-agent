@@ -1615,3 +1615,6 @@ Runtime 的 Tool 过滤器已按当前 Agent Manifest 筛选 `capability_*`，�
 # 2026-11-14 Companion Diary Workflow 接入
 
 日记生成已接入 `companion.diary.generate` Workflow Capability，复用 `triggerInnerThought` 生活引擎入口，固定触发与自然语言调用共享同一事实链路。
+# 2026-11-14 Agent Host Debug 状态证据
+
+Debug Model Context 目录新增 Agent Manifest 与 Capability 状态记录，按 Registered / Available / Activated 展示生产 Registry、当前 Manifest 和实际调用证据。

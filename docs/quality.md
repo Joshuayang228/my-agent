@@ -1161,3 +1161,6 @@ Agent Host Companion Domain 单测覆盖朋友圈 Workflow Capability 与既有 
 # 2026-11-14 Companion Diary Workflow 回归
 
 Agent Host Companion Domain 单测覆盖日记 Workflow Capability key 和 Tool 暴露，具体生成、冷却和持久化仍由既有 inner-thought 单测覆盖。
+# 2026-11-14 Agent Host Debug 证据回归
+
+Host Registry 增加 Capability 激活记录，Debug 目录聚合当前 Manifest 和状态证据。后续补充跨角色 Activated 隔离回归。

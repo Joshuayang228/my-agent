@@ -10,6 +10,8 @@
 
 Runtime 每轮请求按当前 Agent Manifest 过滤 `capability_*`，再叠加 Skill 的 `allowed_tools` 限制。全局注册表只保存实现，模型请求只接收当前会话可见的能力。
 
+Debug Model Context 目录聚合 Host Manifest 和 Capability 状态，Registered 来自 Registry，Available 来自当前 Manifest，Activated 来自真实 Tool / Workflow 调用标记。
+
 Application Orchestrator 另提供 `runWorkflow`，只接受 `kind: 'workflow'` 的 Capability。固定入口可以直接编排 Workflow，LLM 仍通过 Tool Adapter 选择 query / command 能力。
 
 主角主会话已通过 `getAgentHostContext` 读取已授权 Context Provider，结果进入会话信息区并保留失败隔离。召唤与 Workspace 会话不注入主角 Agent Host 动态上下文。

@@ -86,4 +86,15 @@ describe('Agent Host Registry', () => {
     await expect(orchestrator.runWorkflow(environment, 'diary.generate', {}, { agentId: 'luffy', traceId: 'workflow-1' })).resolves.toEqual({ created: true })
     await expect(orchestrator.runWorkflow(environment, 'diary.missing', {}, { agentId: 'luffy', traceId: 'workflow-2' })).rejects.toThrow('unavailable')
   })
+
+  it('记录真实 Capability 激活状态，供 Debug 读取', async () => {
+    const domains = new AgentHostDomainRegistry()
+    domains.register(createDomain())
+    const registry = new AgentHostCapabilityRegistry(domains)
+    const orchestrator = new AgentHostApplicationOrchestrator(registry)
+    const environment = orchestrator.createEnvironment(manifest)
+    expect(registry.hasBeenActivated('memory.search')).toBe(false)
+    await orchestrator.invokeCapability(environment, 'memory.search', { query: '海' }, { agentId: 'luffy', traceId: 'activation-1' })
+    expect(registry.hasBeenActivated('memory.search')).toBe(true)
+  })
 })

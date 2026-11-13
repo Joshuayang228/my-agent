@@ -1547,3 +1547,6 @@ Playground 提示词管理器 v3 候选：调整文字职责与阅读比例，�
 # 2026-11-14 Companion Diary Workflow
 
 - 日记生成接入 Agent Host Workflow Capability，复用生活引擎的日记事实链路。
+# 2026-11-14 Agent Host Debug 证据
+
+- Debug Model Context 目录新增 Agent Manifest 与 Capability 的 Registered / Available / Activated 运行证据。

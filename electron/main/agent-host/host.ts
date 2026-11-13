@@ -33,7 +33,10 @@ export function getAgentHostTools(): ToolDefinition[] {
   initializeAgentHost()
   const manifest = createCompanionAgentManifest({ id: 'agent-host', personaKey: 'agent-host' })
   const environment = agentHostApplication.createEnvironment(manifest)
-  return environment.capabilities.map(capability => capabilityToTool(capability, { agentId: manifest.id }))
+  return environment.capabilities.map(capability => capabilityToTool(capability, {
+    agentId: manifest.id,
+    onActivated: capabilityKey => agentHostCapabilityRegistry.markActivated(capabilityKey),
+  }))
 }
 
 export function getAgentHostToolNamesForRole(roleId: string): ReadonlySet<string> {
@@ -41,6 +44,38 @@ export function getAgentHostToolNamesForRole(roleId: string): ReadonlySet<string
   const manifest = createCompanionAgentManifest({ id: roleId, personaKey: `role:${roleId}` })
   const environment = agentHostApplication.createEnvironment(manifest)
   return new Set(environment.capabilities.map(capability => capabilityToTool(capability, { agentId: 'agent-host' }).name))
+}
+
+export interface AgentHostDebugRecord {
+  key: string
+  kind: 'manifest' | 'capability'
+  status: 'registered' | 'available' | 'activated'
+  domainKey?: string
+  details: Record<string, unknown>
+}
+
+export function getAgentHostDebugRecords(roleId: string): AgentHostDebugRecord[] {
+  initializeAgentHost()
+  const manifest = createCompanionAgentManifest({ id: roleId, personaKey: `role:${roleId}` })
+  const environment = agentHostApplication.createEnvironment(manifest)
+  const records: AgentHostDebugRecord[] = [{
+    key: `agent-manifest:${manifest.id}`,
+    kind: 'manifest',
+    status: 'registered',
+    details: { version: manifest.version, domains: manifest.domainKeys, allow: manifest.capabilityPolicy.allow, deny: manifest.capabilityPolicy.deny },
+  }]
+  const available = new Set(environment.capabilities.map(capability => capability.key))
+  for (const capability of agentHostCapabilityRegistry.getRegisteredCapabilities()) {
+    const activated = agentHostCapabilityRegistry.hasBeenActivated(capability.key)
+    records.push({
+      key: `agent-capability:${capability.key}`,
+      kind: 'capability',
+      status: activated ? 'activated' : available.has(capability.key) ? 'available' : 'registered',
+      domainKey: capability.domainKey,
+      details: { capabilityKey: capability.key, capabilityKind: capability.kind, requiredPermissions: capability.requiredPermissions },
+    })
+  }
+  return records
 }
 
 export function registerAgentHostTools(toolRegistry: ToolRegistry): void {

@@ -32,6 +32,7 @@ export class AgentHostDomainRegistry {
 }
 
 export class AgentHostCapabilityRegistry {
+  private readonly activated = new Set<string>()
   constructor(private readonly domains: AgentHostDomainRegistry) {}
 
   getRegisteredCapabilities(): readonly AgentHostCapability[] {
@@ -62,6 +63,18 @@ export class AgentHostCapabilityRegistry {
       })
       .sort((left, right) => left.priority - right.priority)
   }
+
+  markActivated(key: string): void {
+    this.activated.add(key)
+  }
+
+  hasBeenActivated(key: string): boolean {
+    return this.activated.has(key)
+  }
+
+  getActivatedKeys(): readonly string[] {
+    return [...this.activated]
+  }
 }
 
 export class AgentHostApplicationOrchestrator {
@@ -84,6 +97,7 @@ export class AgentHostApplicationOrchestrator {
     const capability = environment.capabilities.find(item => item.key === capabilityKey)
     if (!capability) throw new Error(`Capability "${capabilityKey}" is unavailable for agent "${environment.manifest.id}"`)
     if (context.agentId !== environment.manifest.id) throw new Error('Agent execution context does not match manifest')
+    this.capabilities.markActivated(capability.key)
     return capability.invoke(input, context)
   }
 
@@ -96,6 +110,7 @@ export class AgentHostApplicationOrchestrator {
     const workflow = environment.capabilities.find(item => item.key === workflowKey && item.kind === 'workflow')
     if (!workflow) throw new Error(`Workflow "${workflowKey}" is unavailable for agent "${environment.manifest.id}"`)
     if (context.agentId !== environment.manifest.id) throw new Error('Agent execution context does not match manifest')
+    this.capabilities.markActivated(workflow.key)
     return workflow.invoke(input, context)
   }
 }

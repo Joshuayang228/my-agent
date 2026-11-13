@@ -5,6 +5,7 @@ import type { AgentHostCapability } from '../../../src/shared/agent-host'
 export function capabilityToTool(capability: AgentHostCapability, input: {
   agentId: string
   roleId?: string
+  onActivated?: (capabilityKey: string) => void
 }): ToolDefinition {
   return {
     name: capability.toolName ?? `capability_${capability.key.replace(/[^a-zA-Z0-9_]/g, '_')}`,
@@ -16,6 +17,7 @@ export function capabilityToTool(capability: AgentHostCapability, input: {
       isConcurrencySafe: capability.kind === 'query' || capability.kind === 'context',
     },
     execute: async (args, context): Promise<ToolOutput> => {
+      input.onActivated?.(capability.key)
       const result = await capability.invoke(args, {
         agentId: input.agentId,
         roleId: input.roleId ?? context?.roleId,

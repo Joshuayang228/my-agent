@@ -23,6 +23,7 @@ import { getEvalCaseGraderAssetCatalog } from '../../../evals/asset-registry'
 import { getProviderAssetCatalog } from '../llm/provider-asset-registry'
 import { getSubAgentRoleAssetCatalog } from '../agent/subagent-asset-registry'
 import { skillAssetKey, toolAssetKey } from '../tools/asset-keys'
+import { getAgentHostDebugRecords } from '../agent-host/host'
 
 function toolSchemaContent(tool: ToolDefinition): string {
   return JSON.stringify({
@@ -143,6 +144,7 @@ export function buildModelContextAssets(input: {
   skills: SkillDefinition[]
   systemPrompt: string
   universeId?: string
+  activeRoleId?: string
 }): ModelContextAsset[] {
   const promptAssets = withCurrentUserPrompt(input.promptAssets, input.systemPrompt)
   const toolAssets = input.tools.map((tool) => toolAsset(tool, input.skills))
@@ -154,7 +156,34 @@ export function buildModelContextAssets(input: {
   const evalCaseGraderAssets = getEvalCaseGraderAssetCatalog()
   const providerAssets = getProviderAssetCatalog()
   const subAgentRoleAssets = getSubAgentRoleAssetCatalog()
-  return [...promptAssets, ...toolAssets, ...skillAssets, ...companionAssets, ...memoryStrategyAssets, ...permissionSandboxAssets, ...evalCaseGraderAssets, ...providerAssets, ...subAgentRoleAssets]
+  const agentHostAssets = getAgentHostDebugRecords(input.activeRoleId || 'luffy').map(record => {
+    const content = JSON.stringify(record, null, 2)
+    return {
+      key: `agent-host:${record.key}`,
+      id: `agent-host:${record.key}`,
+      name: record.kind === 'manifest' ? `Agent Manifest · ${record.key}` : `Agent Capability · ${record.key.replace('agent-capability:', '')}`,
+      category: 'provider',
+      purpose: 'Agent Host 能力状态证据',
+      role: 'agent-host',
+      desc: `${record.status} · ${record.domainKey ?? 'agent'}`,
+      source: 'electron/main/agent-host/host.ts',
+      sourcePath: 'electron/main/agent-host/host.ts',
+      version: '1.0.0',
+      fingerprint: modelContextFingerprint(content),
+      fingerprintKind: 'content',
+      assetType: 'provider-capability',
+      ownership: 'builtin',
+      contentKind: 'runtime',
+      mode: 'dynamic',
+      locale: 'zh-CN',
+      locales: { 'zh-CN': { template: content } },
+      slots: [],
+      preview: record.status,
+      content,
+      dynamic: true,
+    } satisfies ModelContextAsset
+  })
+  return [...promptAssets, ...toolAssets, ...skillAssets, ...companionAssets, ...memoryStrategyAssets, ...permissionSandboxAssets, ...evalCaseGraderAssets, ...providerAssets, ...subAgentRoleAssets, ...agentHostAssets]
 }
 
 export async function getModelContextAssets(toolRegistry: ToolRegistry): Promise<ModelContextAsset[]> {
@@ -165,6 +194,7 @@ export async function getModelContextAssets(toolRegistry: ToolRegistry): Promise
     skills: getLoadedSkills(),
     systemPrompt: settings.systemPrompt || '',
     universeId: settings.universeId || 'default',
+    activeRoleId: settings.activeRoleId || 'luffy',
   })
 }
 
