@@ -1140,3 +1140,6 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 # 2026-11-13 Agent Host Context 回归
 
 Context Provider 接入 Runtime 后继续执行失败隔离，主会话才注入 Companion Host Context，召唤和 Workspace 不跨角色共享。相关回归在后续完整 Agent Host 验收中补齐。
+# 2026-11-13 Agent Host Domain 注册回归
+
+新增 Persona / Memory / Companion Domain Definition 的注册和能力 key 断言。主会话仍只注入 Companion Context Provider，避免 Persona / Memory 与既有 Prompt 装配重复。

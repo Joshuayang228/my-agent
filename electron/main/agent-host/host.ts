@@ -1,5 +1,5 @@
 import { AgentHostApplicationOrchestrator, AgentHostCapabilityRegistry, AgentHostDomainRegistry } from './domain-catalog'
-import { createCompanionAgentManifest, createCompanionCoreDomain } from './builtin-domains'
+import { createCompanionAgentManifest, createCompanionCoreDomain, createMemoryDomain, createPersonaDomain } from './builtin-domains'
 import type { AgentHostExecutionContext } from '../../../src/shared/agent-host'
 
 export const agentHostDomainRegistry = new AgentHostDomainRegistry()
@@ -11,6 +11,8 @@ let initialized = false
 /** 注册内置 Domain 一次，入口由主进程启动阶段调用。 */
 export function initializeAgentHost(): void {
   if (initialized) return
+  agentHostDomainRegistry.register(createPersonaDomain())
+  agentHostDomainRegistry.register(createMemoryDomain())
   agentHostDomainRegistry.register(createCompanionCoreDomain())
   initialized = true
 }

@@ -1,4 +1,6 @@
 import { getCompanionRuntimeReadModel } from '../companion/core/read-models/runtime-read-model'
+import * as identity from '../companion/identity/loader'
+import * as memory from '../storage/memory-store'
 import type { AgentHostDomainDefinition, AgentHostManifest } from '../../../src/shared/agent-host'
 
 export function createCompanionCoreDomain(): AgentHostDomainDefinition {
@@ -34,6 +36,46 @@ export function createCompanionCoreDomain(): AgentHostDomainDefinition {
   }
 }
 
+export function createPersonaDomain(): AgentHostDomainDefinition {
+  return {
+    key: 'persona',
+    version: 1,
+    dependencies: [],
+    capabilities: [{
+      key: 'persona.read',
+      domainKey: 'persona',
+      kind: 'query',
+      description: '读取当前 Agent 的稳定身份摘要',
+      parameters: { type: 'object', properties: {} },
+      requiredPermissions: ['persona.read'],
+      invoke: async (_input, context) => {
+        if (!context.roleId) throw new Error('Persona capability requires roleId')
+        const pack = identity.loadRolePack(context.roleId)
+        return { id: pack.id, name: pack.name, description: pack.description, summary: pack.summary }
+      },
+    }],
+    contextProviders: [],
+  }
+}
+
+export function createMemoryDomain(): AgentHostDomainDefinition {
+  return {
+    key: 'memory',
+    version: 1,
+    dependencies: [],
+    capabilities: [{
+      key: 'memory.profile.read',
+      domainKey: 'memory',
+      kind: 'query',
+      description: '读取当前 Agent 作用域内的用户画像摘要',
+      parameters: { type: 'object', properties: {} },
+      requiredPermissions: ['memory.read'],
+      invoke: async (_input, context) => memory.buildUserProfile(context.roleId),
+    }],
+    contextProviders: [],
+  }
+}
+
 export function createCompanionAgentManifest(input: {
   id: string
   personaKey: string
@@ -44,8 +86,8 @@ export function createCompanionAgentManifest(input: {
     id: input.id,
     version: 1,
     personaKey: input.personaKey,
-    domainKeys: input.domainKeys ?? ['companion'],
-    capabilityPolicy: { allow: input.allowCapabilities ?? ['companion'], deny: [] },
+    domainKeys: input.domainKeys ?? ['persona', 'memory', 'companion'],
+    capabilityPolicy: { allow: input.allowCapabilities ?? ['persona', 'memory', 'companion'], deny: [] },
     skillKeys: [],
     modelPolicyKey: 'main',
     permissionPolicyKey: 'companion-default',
