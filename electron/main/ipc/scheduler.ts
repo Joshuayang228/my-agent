@@ -1,12 +1,13 @@
 import { ipcMain } from 'electron'
+import { registerSecureIpcHandler } from './ipc-security'
 import * as scheduler from '../scheduler/index'
 
 const MAX_ID_LENGTH = 200
 
 export function registerSchedulerIPC(): void {
-  ipcMain.handle('scheduler:list', async () => scheduler.listTasks())
+  registerSecureIpcHandler('scheduler:list', async () => scheduler.listTasks())
 
-  ipcMain.handle('scheduler:create', async (_event, opts: { name: string; prompt: string; cron?: string; intervalMs?: number }) => {
+  registerSecureIpcHandler('scheduler:create', async (_event, opts: { name: string; prompt: string; cron?: string; intervalMs?: number }) => {
     if (!opts || typeof opts !== 'object') return { ok: false, error: '任务参数无效' }
     const validationError = scheduler.validateScheduledTaskInput(opts)
     if (validationError) return { ok: false, error: validationError }
@@ -14,7 +15,7 @@ export function registerSchedulerIPC(): void {
     catch { return { ok: false, error: '创建定时任务失败' } }
   })
 
-  ipcMain.handle('scheduler:update', async (_event, id: string, updates: Record<string, unknown>) => {
+  registerSecureIpcHandler('scheduler:update', async (_event, id: string, updates: Record<string, unknown>) => {
     if (typeof id !== 'string' || id.length === 0 || id.length > MAX_ID_LENGTH || !updates || typeof updates !== 'object') {
       return { ok: false, error: '任务参数无效' }
     }
@@ -27,7 +28,7 @@ export function registerSchedulerIPC(): void {
     catch { return { ok: false, error: '更新定时任务失败' } }
   })
 
-  ipcMain.handle('scheduler:delete', async (_event, id: string) => {
+  registerSecureIpcHandler('scheduler:delete', async (_event, id: string) => {
     if (typeof id !== 'string' || id.length === 0 || id.length > MAX_ID_LENGTH) return { ok: false, error: '任务 ID 无效' }
     try { await scheduler.deleteTask(id); return { ok: true } }
     catch { return { ok: false, error: '删除定时任务失败' } }

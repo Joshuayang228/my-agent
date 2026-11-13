@@ -1,11 +1,12 @@
 import { ipcMain, dialog } from 'electron'
+import { registerSecureIpcHandler } from './ipc-security'
 import * as rag from '../rag/index'
 import { loadMainLLMConfig } from '../llm/aux-config'
 
 export function registerRagIPC(): void {
-  ipcMain.handle('rag:list', async () => rag.listDocuments())
+  registerSecureIpcHandler('rag:list', async () => rag.listDocuments())
 
-  ipcMain.handle('rag:ingest', async () => {
+  registerSecureIpcHandler('rag:ingest', async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile', 'multiSelections'],
       filters: [
@@ -27,7 +28,7 @@ export function registerRagIPC(): void {
     return docs
   })
 
-  ipcMain.handle('rag:delete', async (_event, docId: string) => {
+  registerSecureIpcHandler('rag:delete', async (_event, docId: string) => {
     if (typeof docId !== 'string' || !docId.trim() || docId.length > 200) throw new Error('文档 ID 无效')
     return rag.deleteDocument(docId)
   })

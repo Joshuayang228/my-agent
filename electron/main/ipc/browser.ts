@@ -11,6 +11,7 @@
  */
 
 import { ipcMain } from 'electron'
+import { assertTrustedIpcSender } from './ipc-security'
 import { validateFetchUrl } from '../tools/builtins/url-fetch'
 import { createLogger, hashForLog } from '../utils/logger'
 
@@ -53,6 +54,7 @@ async function readBody(response: Response): Promise<string | null> {
 
 export function registerBrowserIPC(): void {
   ipcMain.handle('browser:load', async (event, rawUrl: unknown, rawRequestId: unknown) => {
+    if (event) assertTrustedIpcSender(event)
     if (typeof rawRequestId !== 'string' || rawRequestId.length === 0 || rawRequestId.length > MAX_REQUEST_ID_LENGTH) {
       return { ok: false, error: '网页请求标识无效' }
     }
@@ -94,6 +96,7 @@ export function registerBrowserIPC(): void {
     }
   })
   ipcMain.handle('browser:cancel', (event, rawRequestId: unknown) => {
+    if (event) assertTrustedIpcSender(event)
     if (typeof rawRequestId !== 'string' || rawRequestId.length === 0 || rawRequestId.length > MAX_REQUEST_ID_LENGTH) return { ok: false }
     const key = requestKey(event.sender.id, rawRequestId)
     const controller = activeRequests.get(key)

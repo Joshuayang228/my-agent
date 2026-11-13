@@ -4,6 +4,7 @@
  * 遵循架构分层：ipc/ → agent/, tools/, storage/, memory/, mcp/
  */
 import { BrowserWindow, dialog, ipcMain } from 'electron'
+import { registerSecureIpcHandler } from './ipc-security'
 import type { DebugTracesSnapshot } from '../../../src/shared/types'
 import { writeFile } from 'node:fs/promises'
 import path from 'node:path'
@@ -47,13 +48,13 @@ let evalRunner: DebugEvalRunner | null = null
 let evalRunnerUnsubscribe: (() => void) | null = null
 
 export function registerDebugIPC(toolRegistry: ToolRegistry): void {
-  ipcMain.handle('debug:history-query', (_event, input: unknown) => {
+  registerSecureIpcHandler('debug:history-query', (_event, input: unknown) => {
     try { return queryDiagnosticHistory(input) } catch { log.warn('Diagnostic history query rejected or unavailable'); throw new Error('无法读取运行历史，请检查查询范围后重试') }
   })
-  ipcMain.handle('debug:companion-evidence-scope', () => {
+  registerSecureIpcHandler('debug:companion-evidence-scope', () => {
     try { return getDebugEvidenceScope() } catch { log.warn('Debug evidence scope unavailable'); throw new Error('无法读取人物诊断范围') }
   })
-  ipcMain.handle('debug:companion-evidence-query', (_event, input: unknown) => {
+  registerSecureIpcHandler('debug:companion-evidence-query', (_event, input: unknown) => {
     try { return queryCompanionEvidence(input) } catch { log.warn('Debug evidence query rejected or unavailable'); throw new Error('无法读取诊断证据，请检查人物、日期与查询范围') }
   })
   if (!evalRunner) {
@@ -74,7 +75,7 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
     })
   }
 
-  ipcMain.handle('debug:system-prompt', async () => {
+  registerSecureIpcHandler('debug:system-prompt', async () => {
     try {
       const settings = await getAllSettings()
       const { pack, mutableBody } = await loadActiveAssembleInput()
@@ -126,10 +127,10 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
   })
 
   /** Prompt 资产目录：由主进程生产代码和 Role Pack 资产生成，前端不维护副本。 */
-  ipcMain.handle('debug:prompt-assets', () => getPromptAssets())
-  ipcMain.handle('debug:model-context-assets', () => getModelContextAssets(toolRegistry))
+  registerSecureIpcHandler('debug:prompt-assets', () => getPromptAssets())
+  registerSecureIpcHandler('debug:model-context-assets', () => getModelContextAssets(toolRegistry))
 
-  ipcMain.handle('debug:tools', () => {
+  registerSecureIpcHandler('debug:tools', () => {
     const tools = toolRegistry.getAll()
     return tools.map(t => ({
       name: t.name,
@@ -139,12 +140,12 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
     }))
   })
 
-  ipcMain.handle('debug:system-info', async () => {
+  registerSecureIpcHandler('debug:system-info', async () => {
     const { buildDebugSystemInfo } = await import('../agent/debug-system-info')
     return buildDebugSystemInfo(toolRegistry)
   })
 
-  ipcMain.handle('debug:traces', (): DebugTracesSnapshot => {
+  registerSecureIpcHandler('debug:traces', (): DebugTracesSnapshot => {
     const lanes = getTokenLaneStats()
     return {
       spans: getRecentSpans(100),
@@ -158,34 +159,34 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
   })
 
   /** Persona Eval 报告：Debug 只读展示 CLI 生成的真实报告，不在 UI 隐式触发付费运行。 */
-  ipcMain.handle('debug:persona-eval-reports', async () => {
+  registerSecureIpcHandler('debug:persona-eval-reports', async () => {
     const reportDir = path.join(process.env.APP_ROOT || process.cwd(), 'eval-reports')
     return listPersonaEvalReports(reportDir)
   })
 
-  ipcMain.handle('debug:persona-eval-report-get', async (_event, fileName: string) => {
+  registerSecureIpcHandler('debug:persona-eval-report-get', async (_event, fileName: string) => {
     if (typeof fileName !== 'string' || !fileName.trim()) return null
     const reportDir = path.join(process.env.APP_ROOT || process.cwd(), 'eval-reports')
     return getPersonaEvalReport(reportDir, fileName)
   })
 
-  ipcMain.handle('debug:skill-eval-reports', async () => {
+  registerSecureIpcHandler('debug:skill-eval-reports', async () => {
     const reportDir = path.join(process.env.APP_ROOT || process.cwd(), 'eval-reports')
     return listSkillEvalReports(reportDir)
   })
 
-  ipcMain.handle('debug:skill-eval-report-get', async (_event, fileName: string) => {
+  registerSecureIpcHandler('debug:skill-eval-report-get', async (_event, fileName: string) => {
     if (typeof fileName !== 'string' || !fileName.trim()) return null
     const reportDir = path.join(process.env.APP_ROOT || process.cwd(), 'eval-reports')
     return getSkillEvalReport(reportDir, fileName)
   })
 
-  ipcMain.handle('debug:persona-eval-human-reviews-list', async (_event, fileName: string) => {
+  registerSecureIpcHandler('debug:persona-eval-human-reviews-list', async (_event, fileName: string) => {
     if (typeof fileName !== 'string' || !fileName.trim()) return []
     return listPersonaEvalHumanReviews(fileName)
   })
 
-  ipcMain.handle('debug:persona-eval-human-review-save', async (_event, input: PersonaEvalHumanReviewInput) => {
+  registerSecureIpcHandler('debug:persona-eval-human-review-save', async (_event, input: PersonaEvalHumanReviewInput) => {
     try {
       return { ok: true, review: await upsertPersonaEvalHumanReview(input) } as const
     } catch (error) {
@@ -197,7 +198,7 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
     }
   })
 
-  ipcMain.handle('debug:persona-eval-human-review-delete', async (_event, input: PersonaEvalHumanReviewDeleteInput) => {
+  registerSecureIpcHandler('debug:persona-eval-human-review-delete', async (_event, input: PersonaEvalHumanReviewDeleteInput) => {
     try {
       await deletePersonaEvalHumanReview(input)
       return { ok: true } as const
@@ -210,9 +211,9 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
     }
   })
 
-  ipcMain.handle('debug:eval-run-plans', () => evalRunner!.getPlans())
-  ipcMain.handle('debug:eval-run-status', () => evalRunner!.getStatus())
-  ipcMain.handle('debug:eval-run-start', async (event, suite: DebugEvalSuite) => {
+  registerSecureIpcHandler('debug:eval-run-plans', () => evalRunner!.getPlans())
+  registerSecureIpcHandler('debug:eval-run-status', () => evalRunner!.getStatus())
+  registerSecureIpcHandler('debug:eval-run-start', async (event, suite: DebugEvalSuite) => {
     if (suite !== 'mock' && suite !== 'skill' && suite !== 'persona-real') {
       return { ok: false, error: '不支持的 Eval 套件' }
     }
@@ -233,13 +234,13 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
     }
     return evalRunner!.start(suite)
   })
-  ipcMain.handle('debug:eval-run-cancel', (_event, runId: string) => {
+  registerSecureIpcHandler('debug:eval-run-cancel', (_event, runId: string) => {
     if (typeof runId !== 'string' || !runId.trim() || runId.length > 200) return { ok: false, error: '无效的 Eval runId' }
     return evalRunner!.cancel(runId)
   })
 
   /** 生产资产使用证据：只接受有界白名单过滤字段。 */
-  ipcMain.handle('debug:asset-usage-query', async (_event, input?: AgentAssetUsageQuery) => {
+  registerSecureIpcHandler('debug:asset-usage-query', async (_event, input?: AgentAssetUsageQuery) => {
     const bounded = (value: unknown) => typeof value === 'string' && value.trim().length <= 240
       ? value.trim()
       : undefined
@@ -255,7 +256,7 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
   })
 
   /** LLM Debug 历史摘要：正文不随列表查询返回，避免侧栏加载大 payload。 */
-  ipcMain.handle('debug:llm-logs-query', async (_event, input?: LLMCallQuery) => {
+  registerSecureIpcHandler('debug:llm-logs-query', async (_event, input?: LLMCallQuery) => {
     const bounded = (value: unknown) => typeof value === 'string' && value.trim().length <= 240
       ? value.trim()
       : undefined
@@ -275,12 +276,12 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
   })
 
   /** 按 logId（现有 tracer Span ID）懒加载单条 Debug 正文。 */
-  ipcMain.handle('debug:llm-log-get', async (_event, id: string) => {
+  registerSecureIpcHandler('debug:llm-log-get', async (_event, id: string) => {
     if (typeof id !== 'string' || !id.trim() || id.length > 240) return null
     return llmDebugStore.getById(id)
   })
 
-  ipcMain.handle('debug:llm-log-export', async (event, id: string) => {
+  registerSecureIpcHandler('debug:llm-log-export', async (event, id: string) => {
     if (typeof id !== 'string' || !id.trim() || id.length > 240) return { ok: false, error: '无效的 Debug 记录' }
     const record = await llmDebugStore.getById(id)
     if (!record) return { ok: false, error: 'Debug 记录不存在' }
@@ -304,17 +305,17 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
     }
   })
 
-  ipcMain.handle('debug:llm-subagents', async (_event, mainSessionId: string) => {
+  registerSecureIpcHandler('debug:llm-subagents', async (_event, mainSessionId: string) => {
     if (typeof mainSessionId !== 'string' || !mainSessionId.trim() || mainSessionId.length > 240) return []
     return llmDebugStore.listSubagentSessions(mainSessionId)
   })
 
-  ipcMain.handle('debug:llm-logs-clear', async (_event, sessionId?: string) => {
+  registerSecureIpcHandler('debug:llm-logs-clear', async (_event, sessionId?: string) => {
     await llmDebugStore.clear(typeof sessionId === 'string' && sessionId.length <= 240 ? sessionId : undefined)
     return { ok: true }
   })
 
-  ipcMain.handle('debug:llm-logs-export', async (event, input?: LLMCallQuery) => {
+  registerSecureIpcHandler('debug:llm-logs-export', async (event, input?: LLMCallQuery) => {
     const bounded = (value: unknown) => typeof value === 'string' && value.trim().length <= 240
       ? value.trim()
       : undefined
@@ -348,7 +349,7 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
   })
 
   /** 免伴侣上下文的 Prompt 试跑（可多轮 history；wishlist Playground） */
-  ipcMain.handle(
+  registerSecureIpcHandler(
     'debug:playground-run',
     async (
       _e,
@@ -369,7 +370,7 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
   )
 
   /** 工具手测：真实 Registry + 权限门闸（M32-G2） */
-  ipcMain.handle(
+  registerSecureIpcHandler(
     'debug:tool-run',
     async (
       _e,
@@ -404,24 +405,24 @@ export function registerDebugIPC(toolRegistry: ToolRegistry): void {
   )
 
   /** 世界态只读快照（M32-G4） */
-  ipcMain.handle('debug:world-snapshot', async () => {
+  registerSecureIpcHandler('debug:world-snapshot', async () => {
     const { buildDebugWorldSnapshot } = await import('../agent/debug-world-snapshot')
     return buildDebugWorldSnapshot()
   })
 
   /** Playground 模型烟测（对齐 Alice「模型测试」） */
-  ipcMain.handle('debug:model-smoke', async () => {
+  registerSecureIpcHandler('debug:model-smoke', async () => {
     const { runModelSmokeTest } = await import('../agent/playground-model-test')
     return runModelSmokeTest()
   })
 
   /** Playground：探测 thinking.disabled 并写入能力缓存 */
-  ipcMain.handle('debug:model-probe-thinking', async () => {
+  registerSecureIpcHandler('debug:model-probe-thinking', async () => {
     const { probeThinkingDisable } = await import('../agent/playground-model-test')
     return probeThinkingDisable()
   })
 
-  ipcMain.handle('debug:model-test-status', async () => {
+  registerSecureIpcHandler('debug:model-test-status', async () => {
     const { getModelTestStatus } = await import('../agent/playground-model-test')
     return getModelTestStatus()
   })

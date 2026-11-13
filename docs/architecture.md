@@ -647,3 +647,7 @@ Renderer 通过 preload 调用宿主作息和计划重排通道，主进程 IPC 
 宿主作息数据流以主进程接收时刻为时间源。
 
 生活历史查询在 IPC 层先应用结果数量上限。
+## 2026-11-13 IPC 可信发送方收口
+
+通用 IPC handler 通过 `registerSecureIpcHandler` 统一检查 sender 生命周期和主框架来源。MCP、Settings、Terminal、Browser 与生成图片读取保留各自的 OAuth、请求租约、导航、销毁窗口和凭据隔离复核，并调用同一 `assertTrustedIpcSender`。这层校验只负责入口可信性，人物、会话和工具权限仍由应用层与 Permission Engine 决定。
+

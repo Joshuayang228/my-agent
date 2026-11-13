@@ -620,3 +620,7 @@ Chat IPC 在用户消息通过校验后记录宿主活动时间，供生活关�
 Chat IPC 的现实锚点时间由主进程生成。
 
 Companion 列表 IPC 统一执行结果数量上限。
+# IPC 统一门禁补充（2026-11-13）
+
+通用 IPC handler 通过 `registerSecureIpcHandler` 统一校验 sender。MCP、Settings、Terminal、Browser 和生成图片入口保留已有请求租约、导航、主框架或凭据隔离逻辑，并在入口复用 `assertTrustedIpcSender`。业务参数、权限引擎和会话 / 人物归属校验仍由各自应用层负责。
+

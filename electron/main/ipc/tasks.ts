@@ -7,6 +7,7 @@
  */
 
 import { ipcMain } from 'electron'
+import { registerSecureIpcHandler } from './ipc-security'
 import { taskQueue } from '../services/task-queue'
 import { createLogger, hashForLog } from '../utils/logger'
 
@@ -20,7 +21,7 @@ function boundedOptionalId(value: unknown): string | undefined | null {
 
 export function registerTasksIPC(): void {
   // 查询当前活跃任务（pending | running）
-  ipcMain.handle('task:list', (_event, rawSessionId?: unknown) => {
+  registerSecureIpcHandler('task:list', (_event, rawSessionId?: unknown) => {
     const sessionId = boundedOptionalId(rawSessionId)
     if (sessionId === null) return []
     const tasks = taskQueue.getActiveTasks(sessionId)
@@ -29,7 +30,7 @@ export function registerTasksIPC(): void {
   })
 
   // M09：渲染进程重挂后主动对齐（活跃 + 未通知终态）
-  ipcMain.handle('task:sync', (_event, rawSessionId?: unknown) => {
+  registerSecureIpcHandler('task:sync', (_event, rawSessionId?: unknown) => {
     const sessionId = boundedOptionalId(rawSessionId)
     if (sessionId === null) return { active: [], pendingNotify: [] }
     const snapshot = taskQueue.syncForRenderer(sessionId)
@@ -42,7 +43,7 @@ export function registerTasksIPC(): void {
   })
 
   // 取消 pending 任务
-  ipcMain.handle('task:cancel', (_event, taskId: unknown) => {
+  registerSecureIpcHandler('task:cancel', (_event, taskId: unknown) => {
     if (typeof taskId !== 'string' || taskId.length === 0 || taskId.length > MAX_TASK_ID_LENGTH) return false
     return taskQueue.cancel(taskId)
   })

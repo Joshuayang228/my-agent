@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron'
+import { registerSecureIpcHandler } from './ipc-security'
 import { correctCitedMemory } from '../memory/citation-correct'
 import * as memory from '../storage/memory-store'
 import type { MemoryCategory } from '../storage/memory-store'
@@ -16,12 +17,12 @@ function isBoundedString(value: unknown, max: number): value is string {
 }
 
 export function registerMemoryIPC(): void {
-  ipcMain.handle('memory:list', async (_event, category?: string) =>
+  registerSecureIpcHandler('memory:list', async (_event, category?: string) =>
     category === undefined || isMemoryCategory(category)
       ? memory.listMemories(category as MemoryCategory | undefined)
       : [])
 
-  ipcMain.handle(
+  registerSecureIpcHandler(
     'memory:add',
     async (_event, category: string, content: string, roleId?: string) => {
       if (!isMemoryCategory(category) || !isBoundedString(content, MAX_MEMORY_CONTENT_LENGTH)) {
@@ -33,12 +34,12 @@ export function registerMemoryIPC(): void {
     },
   )
 
-  ipcMain.handle('memory:delete', async (_event, id: string) => {
+  registerSecureIpcHandler('memory:delete', async (_event, id: string) => {
     if (!isBoundedString(id, MAX_MEMORY_ID_LENGTH)) throw new Error('记忆 ID 无效')
     return memory.deleteMemory(id)
   })
 
-  ipcMain.handle('memory:update', async (_event, id: string, content: string) => {
+  registerSecureIpcHandler('memory:update', async (_event, id: string, content: string) => {
     if (!isBoundedString(id, MAX_MEMORY_ID_LENGTH) || !isBoundedString(content, MAX_MEMORY_CONTENT_LENGTH)) {
       throw new Error('记忆参数无效或内容过长')
     }
@@ -46,7 +47,7 @@ export function registerMemoryIPC(): void {
   })
 
   /** M29-G2：对话内对本轮引用一键纠错（忘/改） */
-  ipcMain.handle(
+  registerSecureIpcHandler(
     'memory:correct-citation',
     async (_event, id: string, replacement?: string) => {
       if (!isBoundedString(id, MAX_MEMORY_ID_LENGTH)) throw new Error('记忆 ID 无效')

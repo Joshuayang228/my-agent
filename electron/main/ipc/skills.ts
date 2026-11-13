@@ -1,11 +1,12 @@
 import { ipcMain } from 'electron'
+import { registerSecureIpcHandler } from './ipc-security'
 import { getLoadedSkills, isSkillEnabled, reloadSkills, setSkillEnabled, withSkillMutation } from '../skills/registry'
 import { getSkillContent, getSkillVersionContent, listSkillVersionInfo, rollbackSkill, saveSkill, validateSkillContent, deleteSkill, MAX_SKILL_CONTENT_LENGTH } from '../skills/loader'
 import { ToolRegistry } from '../tools/registry'
 import type { SkillEnabledResult, SkillInfo, SkillValidationResult } from '../../../src/shared/types'
 
 export function registerSkillsIPC(toolRegistry: ToolRegistry): void {
-  ipcMain.handle('skills:list', async () => withSkillMutation(async () => {
+  registerSecureIpcHandler('skills:list', async () => withSkillMutation(async () => {
     return getLoadedSkills().map((s): SkillInfo => ({
       name: s.meta.name,
       description: s.meta.description,
@@ -19,7 +20,7 @@ export function registerSkillsIPC(toolRegistry: ToolRegistry): void {
     }))
   }))
 
-  ipcMain.handle('skills:get', async (_event, name: string) => {
+  registerSecureIpcHandler('skills:get', async (_event, name: string) => {
     if (typeof name !== 'string' || name.length > 64) return null
     const skill = getLoadedSkills().find((item) => item.meta.name === name)
     if (!skill) return null
@@ -28,7 +29,7 @@ export function registerSkillsIPC(toolRegistry: ToolRegistry): void {
     try { return await readFile(skill.filePath, 'utf-8') } catch { return null }
   })
 
-  ipcMain.handle('skills:set-enabled', async (_event, name: unknown, enabled: unknown): Promise<SkillEnabledResult> => {
+  registerSecureIpcHandler('skills:set-enabled', async (_event, name: unknown, enabled: unknown): Promise<SkillEnabledResult> => {
     if (typeof name !== 'string' || name.length > 64 || typeof enabled !== 'boolean') return { success: false, error: 'Skill 启停参数无效。' }
     try {
       await setSkillEnabled(toolRegistry, name, enabled)
@@ -41,9 +42,9 @@ export function registerSkillsIPC(toolRegistry: ToolRegistry): void {
   const validate = (content: string): SkillValidationResult =>
     validateSkillContent(content, new Set(toolRegistry.getAll().map((tool) => tool.name)))
 
-  ipcMain.handle('skills:validate', async (_event, content: string) => validate(content))
+  registerSecureIpcHandler('skills:validate', async (_event, content: string) => validate(content))
 
-  ipcMain.handle('skills:save', async (_event, name: string, content: string) => withSkillMutation(async () => {
+  registerSecureIpcHandler('skills:save', async (_event, name: string, content: string) => withSkillMutation(async () => {
     const existing = getLoadedSkills().find((skill) => skill.meta.name === name)
     if (typeof name !== 'string' || name.length > 64 || existing?.source === 'builtin') {
       return { success: false, issues: [{ severity: 'error', code: 'save.readonly', message: '此 Skill 不可编辑。' }] }
@@ -69,7 +70,7 @@ export function registerSkillsIPC(toolRegistry: ToolRegistry): void {
     }
   }))
 
-  ipcMain.handle('skills:delete', async (_event, name: string) => withSkillMutation(async () => {
+  registerSecureIpcHandler('skills:delete', async (_event, name: string) => withSkillMutation(async () => {
     if (typeof name !== 'string' || !getLoadedSkills().some((skill) => skill.meta.name === name && skill.source === 'user')) return { success: false }
     try {
       await deleteSkill(name)
@@ -80,7 +81,7 @@ export function registerSkillsIPC(toolRegistry: ToolRegistry): void {
     }
   }))
 
-  ipcMain.handle('skills:reload', async () => withSkillMutation(async () => {
+  registerSecureIpcHandler('skills:reload', async () => withSkillMutation(async () => {
     try {
       await reloadSkills(toolRegistry)
       return { success: true, count: getLoadedSkills().length }
@@ -90,15 +91,15 @@ export function registerSkillsIPC(toolRegistry: ToolRegistry): void {
   }))
 
   // G1 版本管理：列出历史版本 + 查看正文 + 回滚
-  ipcMain.handle('skills:versions', async (_event, name: string) => {
+  registerSecureIpcHandler('skills:versions', async (_event, name: string) => {
     return listSkillVersionInfo(name)
   })
 
-  ipcMain.handle('skills:version-content', async (_event, name: string, version: number) => {
+  registerSecureIpcHandler('skills:version-content', async (_event, name: string, version: number) => {
     return getSkillVersionContent(name, version)
   })
 
-  ipcMain.handle('skills:playground-run', async (_event, input: { content: string; userPrompt: string }) => {
+  registerSecureIpcHandler('skills:playground-run', async (_event, input: { content: string; userPrompt: string }) => {
     if (!input || typeof input !== 'object' || typeof input.content !== 'string' || typeof input.userPrompt !== 'string') {
       return { ok: false, error: 'Playground 参数无效' }
     }
@@ -111,7 +112,7 @@ export function registerSkillsIPC(toolRegistry: ToolRegistry): void {
     return runPlayground({ systemPrompt: input.content, userPrompt: input.userPrompt })
   })
 
-  ipcMain.handle('skills:rollback', async (_event, name: string, version: number) => withSkillMutation(async () => {
+  registerSecureIpcHandler('skills:rollback', async (_event, name: string, version: number) => withSkillMutation(async () => {
     const success = await rollbackSkill(name, version)
     if (success) await reloadSkills(toolRegistry)
     return { success }

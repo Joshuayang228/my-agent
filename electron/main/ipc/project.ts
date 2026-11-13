@@ -1,4 +1,5 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron'
+import { registerSecureIpcHandler } from './ipc-security'
 import * as path from 'node:path'
 import * as fs from 'node:fs'
 import * as settings from '../storage/settings-store'
@@ -122,7 +123,7 @@ export function isAuthorizedProjectSelection(
 }
 
 export function registerProjectIPC(): void {
-  ipcMain.handle('project:browse', async () => {
+  registerSecureIpcHandler('project:browse', async () => {
     const win = BrowserWindow.getFocusedWindow()
     const result = await dialog.showOpenDialog(win!, {
       title: '选择项目目录',
@@ -140,11 +141,11 @@ export function registerProjectIPC(): void {
     return { path: dirPath, name: pathToName(dirPath) }
   })
 
-  ipcMain.handle('project:list', async () => {
+  registerSecureIpcHandler('project:list', async () => {
     return getRecentProjects()
   })
 
-  ipcMain.handle('project:set', async (_e, dirPath: string | null) => {
+  registerSecureIpcHandler('project:set', async (_e, dirPath: string | null) => {
     if (dirPath !== null && typeof dirPath !== 'string') return { success: false, error: 'Invalid directory' }
     if (dirPath) {
       try {
@@ -169,7 +170,7 @@ export function registerProjectIPC(): void {
     return { success: true }
   })
 
-  ipcMain.handle('project:get', async () => {
+  registerSecureIpcHandler('project:get', async () => {
     const dirPath = await getCurrentProjectRoot()
     if (!dirPath) return null
     // 启动后仅读设置不会 set workspace；这里恢复真实工作区，避免 symlink / 相对路径漂移
@@ -177,7 +178,7 @@ export function registerProjectIPC(): void {
     return { path: dirPath, name: pathToName(dirPath) }
   })
 
-  ipcMain.handle('project:listFiles', async (_e, dirPath: string, depth = 2) => {
+  registerSecureIpcHandler('project:listFiles', async (_e, dirPath: string, depth = 2) => {
     if (typeof dirPath !== 'string' || !dirPath) return []
     const root = await getCurrentProjectRoot()
     if (!root || !isPathAllowedInProject(dirPath, root)) return []
@@ -187,7 +188,7 @@ export function registerProjectIPC(): void {
     return listDirTree(resolveExistingPath(dirPath) || dirPath, safeDepth)
   })
 
-  ipcMain.handle('project:readFile', async (_e, filePath: string) => {
+  registerSecureIpcHandler('project:readFile', async (_e, filePath: string) => {
     try {
       if (!filePath || typeof filePath !== 'string') return { error: 'Invalid path' }
       const resolvedFile = await resolveCurrentProjectFile(filePath)
@@ -243,7 +244,7 @@ export function registerProjectIPC(): void {
     }
   })
 
-  ipcMain.handle('project:openExternal', async (_e, filePath: string) => {
+  registerSecureIpcHandler('project:openExternal', async (_e, filePath: string) => {
     try {
       if (!filePath || typeof filePath !== 'string') return { ok: false, error: 'Invalid path' }
       const resolvedFile = await resolveCurrentProjectFile(filePath)

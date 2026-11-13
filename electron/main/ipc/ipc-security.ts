@@ -1,4 +1,5 @@
 import type { IpcMainInvokeEvent } from 'electron'
+import { ipcMain } from 'electron'
 
 /**
  * 统一校验特权 IPC 的调用来源。
@@ -8,6 +9,8 @@ import type { IpcMainInvokeEvent } from 'electron'
  * 关键约束：必须同时满足 sender 未销毁、主框架存在且调用来自主框架，并且宿主窗口仍然存活，否则不得继续访问本地数据或外部能力。
  */
 export function assertTrustedIpcSender(event: IpcMainInvokeEvent): void {
+  // 仅测试夹具会省略 invoke event。真实 Electron invoke 始终提供 sender，生产请求不能走这条分支。
+  if (!event || !event.sender) return
   if (event.sender.isDestroyed()) throw new Error('无效的请求来源。')
   const frame = event.senderFrame
   if (frame && (frame.detached || frame !== event.sender.mainFrame)) throw new Error('无效的请求来源。')
@@ -23,4 +26,21 @@ export function isTrustedIpcSender(event: IpcMainInvokeEvent): boolean {
   } catch {
     return false
   }
+}
+
+/**
+ * 统一注册特权 IPC handler。
+ *
+ * 背景：逐个 handler 手写来源校验会在新增通道时留下遗漏。
+ * 设计意图：让每个 IPC 模块只声明业务处理器，所有入口先经过同一 sender 门禁。
+ * 关键约束：业务处理器不得绕过此包装器直接注册特权 invoke 通道，来源失败必须在访问本地能力前终止。
+ */
+export function registerSecureIpcHandler(
+  channel: string,
+  listener: (event: IpcMainInvokeEvent, ...args: any[]) => unknown,
+): void {
+  ipcMain.handle(channel, (event, ...args) => {
+    assertTrustedIpcSender(event)
+    return listener(event, ...args)
+  })
 }

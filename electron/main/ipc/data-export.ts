@@ -5,6 +5,7 @@
  * 导入时按 ID 合并（不覆盖现有数据）；导入文件在写库前做结构与规模校验。
  */
 import { app, ipcMain, dialog } from 'electron'
+import { registerSecureIpcHandler } from './ipc-security'
 import { createBackupOperationGuard } from './backup-operation'
 import path from 'node:path'
 import { writeFile, readFile, stat } from 'node:fs/promises'
@@ -660,7 +661,7 @@ export function importBackupPayload(
 
 export function registerDataExportIPC(): void {
   const operations = createBackupOperationGuard()
-  ipcMain.handle('data:export', async (event) => {
+  registerSecureIpcHandler('data:export', async (event) => {
     const operation = operations.begin(event)
     if (!operation.ok) return { success: false, error: operation.error }
     try {
@@ -731,7 +732,7 @@ export function registerDataExportIPC(): void {
     }
   })
 
-  ipcMain.handle('data:import', async (event) => {
+  registerSecureIpcHandler('data:import', async (event) => {
     const operation = operations.begin(event)
     if (!operation.ok) return { success: false, error: operation.error }
     try {

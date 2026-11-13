@@ -1573,3 +1573,7 @@ Companion 列表资源上限（2026-11-10）：主进程统一限制多个生活
 
 人物世界本地事务与 Outbox 租约恢复已落地，Chat / Session / Companion 特权 IPC 统一增加主框架来源校验，对话完成后的伙伴副作用已抽到 Conversation Application Service。新增 `npm run bench:database` 记录 sql.js 插入与导出基线。完整单测、构建和资产审计通过，可靠性施工合同仍在进行中。
 
+# 2026-11-13 IPC 可信发送方收口
+
+通用 IPC 注册器已统一经过 `registerSecureIpcHandler`，Browser、MCP、Settings、Terminal 和图片读取保留各自的导航、窗口归属与请求租约复核，并复用统一 sender 检查。五边界审计记录到 `docs/architecture-boundary-audit.md`，施工合同仍因执行账本与领域事实提交边界未完全合并而保持进行中。
+

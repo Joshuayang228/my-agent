@@ -3,6 +3,7 @@
  */
 
 import { ipcMain } from 'electron'
+import { registerSecureIpcHandler } from './ipc-security'
 import { promises as fs } from 'node:fs'
 import {
   clearSessionFileChanges,
@@ -23,7 +24,7 @@ function validId(value: unknown): value is string {
 }
 
 export function registerSessionChangesIPC(): void {
-  ipcMain.handle('session:listFileChanges', (_e, sessionId: string) => {
+  registerSecureIpcHandler('session:listFileChanges', (_e, sessionId: string) => {
     if (!validId(sessionId)) return []
     return listSessionFileChanges(sessionId).map((c) => ({
       path: c.path,
@@ -34,13 +35,13 @@ export function registerSessionChangesIPC(): void {
     }))
   })
 
-  ipcMain.handle('session:clearFileChanges', (_e, sessionId: string) => {
+  registerSecureIpcHandler('session:clearFileChanges', (_e, sessionId: string) => {
     if (!validId(sessionId)) return { ok: false }
     clearSessionFileChanges(sessionId)
     return { ok: true }
   })
 
-  ipcMain.handle('session:getFileChangeDiff', async (_e, sessionId: string, filePath: string) => {
+  registerSecureIpcHandler('session:getFileChangeDiff', async (_e, sessionId: string, filePath: string) => {
     if (!validId(sessionId) || typeof filePath !== 'string' || filePath.length === 0 || filePath.length > MAX_PATH_LENGTH) {
       return { error: '审阅参数无效' }
     }
