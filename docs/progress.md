@@ -1630,3 +1630,6 @@ Debug Model Context 目录新增 Agent Manifest 与 Capability 状态记录，�
 # 2026-11-14 Lifecycle Capability Tool 边界
 
 生活时钟 Workflow 标记为 `exposeToTool: false`，只保留 Scheduler / Headless 固定入口，不把生命周期控制权暴露给 LLM。
+# 2026-11-14 Skill 可见状态收口
+
+Agent Host 只同步当前启用的 Skill 元数据，停用 Skill 不进入 Available 能力证据。

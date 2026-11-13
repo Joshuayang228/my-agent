@@ -1176,3 +1176,6 @@ Agent Host Companion Domain 单测覆盖生活推进 Workflow key，日剧本、
 # 2026-11-14 Lifecycle Capability Tool 门禁
 
 生命周期 Workflow 的 Host Capability 仍可由 Application 调用，但不出现在 Host Tool Catalog，防止模型直接触发生活时钟。
+# 2026-11-14 Skill Available 状态
+
+Skill Host 同步按 `isSkillEnabled` 过滤，停用 Skill 不伪装成当前可用能力。

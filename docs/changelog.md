@@ -1562,3 +1562,6 @@ Playground 提示词管理器 v3 候选：调整文字职责与阅读比例，�
 # 2026-11-14 Lifecycle Capability 边界
 
 - 生活时钟 Workflow 不再暴露为 LLM Tool，只保留固定生命周期入口。
+# 2026-11-14 Skill 可见状态收口
+
+- 停用 Skill 不再同步为 Agent Host 的 Available 能力。
