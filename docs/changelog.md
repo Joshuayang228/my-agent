@@ -1527,3 +1527,7 @@ Playground 提示词管理器 v3 候选：调整文字职责与阅读比例，�
 - 完成人物世界事务边界、Outbox 租约恢复、统一 IPC sender 校验、Runtime 应用服务抽离、SQLite 多指标基准和五边界架构审计。
 - 固化执行账本与本地事实的事务边界，避免外部等待持有数据库事务。
 
+# 2026-11-13 Agent Host 架构施工启动
+
+- 新增 Agent Manifest、Domain Registry、Capability Registry、Application Orchestrator 和 Context Provider 契约。
+- Companion 首个运行态查询能力接入 Agent Host，现有 Agent Loop、Tool、Skill 和 Permission 行为保持不变。

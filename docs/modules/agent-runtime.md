@@ -1,5 +1,9 @@
 # Agent 运行时
 
+## Agent Host 契约骨架（2026-11-13）
+
+主进程启动阶段注册 `AgentHostDomainRegistry`、`AgentHostCapabilityRegistry` 和 `AgentHostApplicationOrchestrator`。当前 Companion 暴露运行态查询 Capability 与 Context Provider，Manifest 工厂不绑定路飞，可为不同角色创建独立 Agent 实例。现有 Tool / Skill 注册与执行逻辑尚未迁移，下一阶段按合同接入。
+
 ## 可靠性边界（2026-11-13）
 
 - 对话完成后的伙伴生活副作用统一由 `conversation-application-service.ts` 编排，Runtime 不再直接依赖生命体征、共鸣和反思服务。

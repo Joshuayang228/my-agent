@@ -17,6 +17,7 @@ import { llmDebugStore } from './storage/llm-debug-store'
 import { assetUsageStore } from './storage/asset-usage-store'
 import { createModelContextAssetResolver } from './debug/model-context-assets'
 import { registerAllIPC } from './ipc/index'
+import { initializeAgentHost } from './agent-host/host'
 import { mcpManager } from './mcp/client'
 import { syncMcpToolsToRegistry } from './mcp/bridge'
 import { parseStoredMcpConfigs } from './mcp/config-security'
@@ -131,6 +132,8 @@ async function createWindow() {
 }
 
 // ── 工具注册 ──
+
+initializeAgentHost()
 
 const toolRegistry = new ToolRegistry()
 for (const tool of builtinTools) {

@@ -1,5 +1,9 @@
 # 伙伴世界（Companion）
 
+## Agent Host 能力接入（2026-11-13）
+
+Companion 首个 Agent Host Domain Definition 已注册，提供 `companion.runtime.read` 查询能力和 `companion.runtime-context` Context Provider。两者只读取核心 Runtime Read Model，沿用角色作用域和现有权限边界，不复制人物状态或 Prompt 正文。
+
 ## 核心一致性与恢复（2026-11-13）
 
 - `withCompanionUnitOfWork` 将人物世界领域事件和 Outbox 写入置于同一数据库事务，建表初始化不参与业务回滚。

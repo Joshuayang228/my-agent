@@ -561,3 +561,8 @@
 人物世界命令的执行账本分为运行生命周期元数据和本地事实关联两部分。`running` 在用例开始时写入，允许跨模型、网络和用户确认等待观测执行状态。领域事件、Runtime State、领域事实、Outbox 及事件与执行的关联必须在本地 Unit of Work 内提交。`completed` / `retryable` 在用例结束后更新，属于执行生命周期结算，不与外部副作用放入同一事务。这样既保证本地事实一致，又避免持有 SQLite 事务跨越模型请求、窗口等待和网络调用。
 
 证据：`withCompanionUnitOfWork`、`recordCompanionEventAndNotify`、`companion_outbox` 租约字段、`conversation-application-service.ts`。后续新增领域用例必须沿用这一边界，不得把外部等待放入事务。
+# DEC-2026-11-13-02：Agent Host 能力边界
+
+My Agent 采用 Agent Manifest + Domain Registry + Capability Registry + Application Orchestrator 作为统一宿主骨架。Domain 提供业务事实和规则，Capability 提供受控接口，Tool 只负责 LLM 调用协议，Skill 只负责操作指导，Workflow 由 Application 直接编排。LLM 只能选择 Manifest 授权且 Registry 暴露的 Capability，不能动态加载未授权 Domain。
+
+当前先接入 Companion Runtime Read Model，保留既有 Agent Loop、Tool Registry、Skill Registry 和 Permission Engine。只有存在多入口复用、独立授权或独立生命周期的能力才进入 Registry，避免新增抽象层成为第二套业务实现。

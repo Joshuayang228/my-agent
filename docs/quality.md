@@ -1131,3 +1131,6 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 
 全量单测 275 个测试文件通过，1 个既有跳过，1745 个测试通过。类型检查、生产构建、资产审计、文档校验和 IPC 迁移回归均通过。数据库基准覆盖插入、导出、重载和 Outbox 批处理，结果写入施工记录，不自动触发存储替换。
 
+# 2026-11-13 Agent Host 契约门禁
+
+新增 Agent Host Registry 单测，覆盖 Manifest 授权筛选、重复注册、跨 Agent 执行上下文拒绝、Companion Runtime Capability 和 Context Provider。当前单测 4 项通过，构建通过；完整迁移门禁在施工合同完成阶段执行。

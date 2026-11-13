@@ -20,6 +20,8 @@
 
 ## 进行中
 
+Agent Host 总体架构：[agent-host-architecture-v1.md](./agent-host-architecture-v1.md)，建立 Agent Manifest、Domain Registry、Capability Registry、Application Orchestrator 与 Context Provider 契约，统一固定 Workflow 和自然语言 Tool 调用入口。
+
 人物世界引擎统一与旅程闭环：[companion-engine-unification-v1.md](./companion-engine-unification-v1.md)，审查并修复事件、状态、投影、主动行为和用户旅程之间的断点。
 
 生活引擎因果与现实锚点：[life-engine-causality-and-real-world-anchor-v1.md](./life-engine-causality-and-real-world-anchor-v1.md)，针对日内事件离散割裂缺乏状态因果重编排（问题4）以及宿主环境专注度/空闲现实关切感知（问题6）的系统化重塑。

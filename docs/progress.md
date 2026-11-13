@@ -1581,3 +1581,7 @@ Companion 列表资源上限（2026-11-10）：主进程统一限制多个生活
 
 事务、Outbox 租约恢复、IPC 可信发送方、Conversation Application Service、sql.js 多指标基准和 Context / Memory / Persona / Permission / Runtime 五边界审计完成。执行账本按 DEC-2026-11-13-01 分为生命周期元数据与本地事实关联，避免事务跨越模型、网络和窗口等待。合同已冻结为已完成施工快照。
 
+# 2026-11-13 Agent Host 架构施工启动
+
+完成 Agent Host 施工合同和首批契约骨架：Agent Manifest、Domain Registry、Capability Registry、Application Orchestrator、Companion Runtime Capability 与 Context Provider。新增 4 项单测，类型检查和构建通过，现有 Runtime / Tool / Skill 仍保持原入口，后续继续迁移。
+
