@@ -12,6 +12,8 @@ Runtime 每轮请求按当前 Agent Manifest 过滤 `capability_*`，再叠加 S
 
 会话级筛选由 `AgentHostScopedToolCatalog` 承担，Runtime 只负责把目录与 Skill 白名单组合，不直接维护 Capability 名称规则。
 
+Workspace 会话的项目路径、最近对话和焦点内容由 Workspace Context Provider 生成，主 Runtime 只准备作用域输入；主角 Companion Context 不进入 Workspace 会话。
+
 Debug Model Context 目录聚合 Host Manifest 和 Capability 状态，Registered 来自 Registry，Available 来自当前 Manifest，Activated 来自真实 Tool / Workflow 调用标记。
 
 Application Orchestrator 另提供 `runWorkflow`，只接受 `kind: 'workflow'` 的 Capability。固定入口可以直接编排 Workflow，LLM 仍通过 Tool Adapter 选择 query / command 能力。

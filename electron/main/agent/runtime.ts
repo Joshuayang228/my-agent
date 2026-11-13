@@ -15,7 +15,7 @@ import { randomUUID } from 'node:crypto'
 import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 import { agentLoop } from './loop'
 import { characterDefinitionFromRolePack } from '../prompts/compiler'
-import { buildSummonContextPrompt, buildWorkspaceContextPrompt, buildActiveSkillPrompt } from '../prompts/runtime-context'
+import { buildSummonContextPrompt, buildActiveSkillPrompt } from '../prompts/runtime-context'
 import { compileMainSystem } from '../prompts/registered-request'
 import { describeCastPresence } from '../companion/cast/availability'
 import { formatSummonSceneBlock } from '../companion/cast/scene-prompts'
@@ -312,18 +312,6 @@ class AgentRuntime {
         summonNote = buildSummonContextPrompt(presenceLine, summonParentDelegationHint(), sceneBlock)
       }
       const sessionInfoParts = [summonNote].filter(Boolean)
-      if (!isWorkspace && !isSummon) {
-        try {
-          const hostContext = await getAgentHostContext({
-            roleId: assembleRoleId,
-            sessionId,
-            traceId: chatSpan.id,
-          })
-          if (hostContext.length > 0) sessionInfoParts.push(`Agent Host 动态上下文：\n${hostContext.join('\n')}`)
-        } catch (error) {
-          log.warn('Agent Host context provider failed', { roleId: assembleRoleId, errorType: error instanceof Error ? error.name : 'unknown' })
-        }
-      }
       if (isWorkspace) {
         const parent = workspaceContext?.parentSessionId
           ? await store.getSession(workspaceContext.parentSessionId)
@@ -335,9 +323,27 @@ class AgentRuntime {
           .map((message) => `${message.role === 'user' ? '用户' : '伙伴'}：${message.content.slice(0, 1_000)}`)
           .join('\n')
         const project = workspaceContext?.projectPath?.trim()
-        sessionInfoParts.push(buildWorkspaceContextPrompt({
-          project, transcript, focus: workspaceContext?.focus,
-        }))
+        try {
+          const hostContext = await getAgentHostContext({
+            roleId: assembleRoleId,
+            sessionId,
+            traceId: chatSpan.id,
+            domainKeys: ['workspace'],
+            workspaceRoot: project,
+            workspaceTranscript: transcript,
+            workspaceFocus: workspaceContext?.focus,
+          })
+          if (hostContext.length > 0) sessionInfoParts.push(...hostContext)
+        } catch (error) {
+          log.warn('Workspace Agent Host context provider failed', { sessionId, errorType: error instanceof Error ? error.name : 'unknown' })
+        }
+      } else if (!isSummon) {
+        try {
+          const hostContext = await getAgentHostContext({ roleId: assembleRoleId, sessionId, traceId: chatSpan.id })
+          if (hostContext.length > 0) sessionInfoParts.push(`Agent Host 动态上下文：\n${hostContext.join('\n')}`)
+        } catch (error) {
+          log.warn('Agent Host context provider failed', { roleId: assembleRoleId, errorType: error instanceof Error ? error.name : 'unknown' })
+        }
       }
 
       // M27-G1/G3：立场 + 语气收放（不拦 Loop）

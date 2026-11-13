@@ -1633,3 +1633,6 @@ Debug Model Context 目录新增 Agent Manifest 与 Capability 状态记录，�
 # 2026-11-14 Skill 可见状态收口
 
 Agent Host 只同步当前启用的 Skill 元数据，停用 Skill 不进入 Available 能力证据。
+# 2026-11-14 Workspace Context Provider 接入
+
+Workspace 会话已迁移到 `workspace.context` Provider，统一注入项目路径、最近主对话和当前焦点内容，移除 Runtime 里的第二份 Workspace Prompt 拼装。

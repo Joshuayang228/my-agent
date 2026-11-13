@@ -1565,3 +1565,6 @@ Playground 提示词管理器 v3 候选：调整文字职责与阅读比例，�
 # 2026-11-14 Skill 可见状态收口
 
 - 停用 Skill 不再同步为 Agent Host 的 Available 能力。
+# 2026-11-14 Workspace Context Provider
+
+- Workspace 会话的项目、最近对话和焦点上下文统一由 Agent Host Provider 注入。

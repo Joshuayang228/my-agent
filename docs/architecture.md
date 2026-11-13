@@ -24,6 +24,8 @@
 
 Debug Model Context 目录现在聚合 Agent Manifest 与 Capability 状态证据，状态来自 Host Registry 和实际激活记录，分别标记 Registered、Available、Activated。
 
+Workspace 的项目路径、最近主对话和当前焦点内容现在由 `workspace.context` Provider 统一注入，Runtime 不再同时拼接第二份 Workspace Prompt。
+
 ## 2026-11-13 可靠性收口
 
 人物世界核心写入现在通过 `withCompanionUnitOfWork` 复用数据库事务协调器，建表在事务外完成，领域事件、业务事实与 Outbox 写入在同一事务内提交。Outbox 采用 `claimed_at` / `lease_until` 租约，过期 processing 会被下一轮恢复，失败使用 `next_attempt_at` 退避重试，投递语义为至少一次，消费端必须幂等。

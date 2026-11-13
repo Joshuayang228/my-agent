@@ -1179,3 +1179,6 @@ Agent Host Companion Domain 单测覆盖生活推进 Workflow key，日剧本、
 # 2026-11-14 Skill Available 状态
 
 Skill Host 同步按 `isSkillEnabled` 过滤，停用 Skill 不伪装成当前可用能力。
+# 2026-11-14 Workspace Context Provider 回归
+
+Workspace 后端契约回归继续通过，主角 Companion Context 与 Workspace Provider 作用域隔离，Provider 失败沿 Runtime 原有错误隔离路径处理。

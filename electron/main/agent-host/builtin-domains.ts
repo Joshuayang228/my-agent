@@ -5,6 +5,7 @@ import { getWorkspaceRoot } from '../agent/project-memory'
 import { companionPostMomentTool } from '../tools/builtins/companion-life'
 import { triggerInnerThought } from '../companion/life/inner-thoughts'
 import { tickActiveRole } from '../companion/life/engine'
+import { buildWorkspaceContextPrompt } from '../prompts/runtime-context'
 import type { AgentHostDomainDefinition, AgentHostManifest } from '../../../src/shared/agent-host'
 
 export function createCompanionCoreDomain(): AgentHostDomainDefinition {
@@ -139,7 +140,21 @@ export function createWorkspaceDomain(): AgentHostDomainDefinition {
       requiredPermissions: ['workspace.read'],
       invoke: async () => ({ root: getWorkspaceRoot() ?? null }),
     }],
-    contextProviders: [],
+    contextProviders: [{
+      key: 'workspace.context',
+      domainKey: 'workspace',
+      scope: 'session',
+      priority: 40,
+      maxChars: 12_000,
+      requires: ['workspace.read'],
+      provide: async context => context.workspaceRoot || context.workspaceTranscript || context.workspaceFocus
+        ? buildWorkspaceContextPrompt({
+            project: context.workspaceRoot,
+            transcript: context.workspaceTranscript,
+            focus: context.workspaceFocus,
+          }).slice(0, 12_000)
+        : null,
+    }],
   }
 }
 

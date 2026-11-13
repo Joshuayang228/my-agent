@@ -213,7 +213,7 @@ Debug 必须展示真实的 `Registered`、`Available`、`Activated` 状态。Re
 1. 将当前主角 Chat 通过 Application Orchestrator 装配基础 Persona、Session、Permission、Companion Core 和 Memory Provider。
 2. 将现有 Tool Registry / Skill Registry 接入 Capability Registry，保留既有 Tool key、Prompt 注册和权限门禁。
 3. 将 Companion、Memory、Persona、Workspace 注册为第一批 Domain Definition。
-4. 将固定的日记、朋友圈、生活推进、主会话完成和 Workspace Workflow 接入 Application 层。
+4. 将固定的日记、朋友圈、生活推进、主会话完成和 Workspace Workflow 接入 Application 层，Workspace 上下文由 Workspace Context Provider 作为唯一注入源。
 5. 将 Manifest 生产事实源版本化，并建立会话级 Scoped Tool Catalog 的接口。
 
 ### P2 · 渐进式能力暴露
