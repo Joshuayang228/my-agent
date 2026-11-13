@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createCompanionAgentManifest, createCompanionCoreDomain, createMemoryDomain, createPersonaDomain } from '../../electron/main/agent-host/builtin-domains'
+import { createCompanionAgentManifest, createCompanionCoreDomain, createMemoryDomain, createPersonaDomain, createWorkspaceDomain } from '../../electron/main/agent-host/builtin-domains'
 import { capabilityToTool } from '../../electron/main/agent-host/adapter'
 
 describe('Agent Host 内置 Domain', () => {
@@ -7,12 +7,13 @@ describe('Agent Host 内置 Domain', () => {
     const manifest = createCompanionAgentManifest({ id: 'lin', personaKey: 'role:lin' })
     expect(manifest.id).toBe('lin')
     expect(manifest.personaKey).toBe('role:lin')
-    expect(manifest.domainKeys).toEqual(['persona', 'memory', 'companion'])
+    expect(manifest.domainKeys).toEqual(['persona', 'memory', 'companion', 'workspace'])
   })
 
   it('Persona 和 Memory 通过独立 Capability 接入，不复制 Tool 实现', () => {
     expect(createPersonaDomain().capabilities.map(item => item.key)).toEqual(['persona.read'])
     expect(createMemoryDomain().capabilities.map(item => item.key)).toEqual(['memory.profile.read'])
+    expect(createWorkspaceDomain().capabilities.map(item => item.key)).toEqual(['workspace.root.read'])
   })
 
   it('Companion Domain 暴露运行态查询和 Context Provider', () => {

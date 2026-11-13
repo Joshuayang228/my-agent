@@ -1,5 +1,5 @@
 import { AgentHostApplicationOrchestrator, AgentHostCapabilityRegistry, AgentHostDomainRegistry } from './domain-catalog'
-import { createCompanionAgentManifest, createCompanionCoreDomain, createMemoryDomain, createPersonaDomain } from './builtin-domains'
+import { createCompanionAgentManifest, createCompanionCoreDomain, createMemoryDomain, createPersonaDomain, createWorkspaceDomain } from './builtin-domains'
 import type { AgentHostExecutionContext } from '../../../src/shared/agent-host'
 
 export const agentHostDomainRegistry = new AgentHostDomainRegistry()
@@ -13,6 +13,7 @@ export function initializeAgentHost(): void {
   if (initialized) return
   agentHostDomainRegistry.register(createPersonaDomain())
   agentHostDomainRegistry.register(createMemoryDomain())
+  agentHostDomainRegistry.register(createWorkspaceDomain())
   agentHostDomainRegistry.register(createCompanionCoreDomain())
   initialized = true
 }

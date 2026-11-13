@@ -2,7 +2,7 @@
 
 ## Agent Host 契约骨架（2026-11-13）
 
-主进程启动阶段注册 `AgentHostDomainRegistry`、`AgentHostCapabilityRegistry` 和 `AgentHostApplicationOrchestrator`。当前 Persona、Memory、Companion 已注册首批查询 Capability，Companion 另外提供 Runtime Context Provider。Manifest 工厂不绑定路飞，可为不同角色创建独立 Agent 实例。现有 Tool / Skill 注册与执行逻辑尚未迁移，下一阶段按合同接入。
+主进程启动阶段注册 `AgentHostDomainRegistry`、`AgentHostCapabilityRegistry` 和 `AgentHostApplicationOrchestrator`。当前 Persona、Memory、Companion、Workspace 已注册首批查询 Capability，Companion 另外提供 Runtime Context Provider。Manifest 工厂不绑定路飞，可为不同角色创建独立 Agent 实例。现有 Tool / Skill 注册与执行逻辑尚未迁移，下一阶段按合同接入。
 
 `agent-host/adapter.ts` 提供受控转换，将已授权 Capability 映射为 LLM Tool，Tool 只负责协议和执行上下文转发，不拥有 Domain 业务规则。
 

@@ -1594,3 +1594,6 @@ Companion 列表资源上限（2026-11-10）：主进程统一限制多个生活
 # 2026-11-13 Agent Host Domain 首批接入
 
 Persona、Memory、Companion 已注册首批查询 Capability，默认 Agent Manifest 同时声明三类 Domain；只有 Companion Runtime Context 进入主会话动态上下文，Persona 和 Memory 先通过受控 Capability 提供，避免重复注入。
+# 2026-11-13 Agent Host Workspace 接入
+
+Workspace 已注册 `workspace.root.read` 查询 Capability，默认 Manifest 声明 Persona、Memory、Companion、Workspace 四类 Domain。工作区文件读写仍沿既有 Permission / Tool 链路，未把文件能力直接暴露给 Host。

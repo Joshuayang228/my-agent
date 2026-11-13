@@ -1,6 +1,7 @@
 import { getCompanionRuntimeReadModel } from '../companion/core/read-models/runtime-read-model'
 import * as identity from '../companion/identity/loader'
 import * as memory from '../storage/memory-store'
+import { getWorkspaceRoot } from '../agent/project-memory'
 import type { AgentHostDomainDefinition, AgentHostManifest } from '../../../src/shared/agent-host'
 
 export function createCompanionCoreDomain(): AgentHostDomainDefinition {
@@ -76,6 +77,24 @@ export function createMemoryDomain(): AgentHostDomainDefinition {
   }
 }
 
+export function createWorkspaceDomain(): AgentHostDomainDefinition {
+  return {
+    key: 'workspace',
+    version: 1,
+    dependencies: [],
+    capabilities: [{
+      key: 'workspace.root.read',
+      domainKey: 'workspace',
+      kind: 'query',
+      description: '读取当前受控工作区根目录',
+      parameters: { type: 'object', properties: {} },
+      requiredPermissions: ['workspace.read'],
+      invoke: async () => ({ root: getWorkspaceRoot() ?? null }),
+    }],
+    contextProviders: [],
+  }
+}
+
 export function createCompanionAgentManifest(input: {
   id: string
   personaKey: string
@@ -86,8 +105,8 @@ export function createCompanionAgentManifest(input: {
     id: input.id,
     version: 1,
     personaKey: input.personaKey,
-    domainKeys: input.domainKeys ?? ['persona', 'memory', 'companion'],
-    capabilityPolicy: { allow: input.allowCapabilities ?? ['persona', 'memory', 'companion'], deny: [] },
+    domainKeys: input.domainKeys ?? ['persona', 'memory', 'companion', 'workspace'],
+    capabilityPolicy: { allow: input.allowCapabilities ?? ['persona', 'memory', 'companion', 'workspace'], deny: [] },
     skillKeys: [],
     modelPolicyKey: 'main',
     permissionPolicyKey: 'companion-default',

@@ -1143,3 +1143,6 @@ Context Provider 接入 Runtime 后继续执行失败隔离，主会话才注入
 # 2026-11-13 Agent Host Domain 注册回归
 
 新增 Persona / Memory / Companion Domain Definition 的注册和能力 key 断言。主会话仍只注入 Companion Context Provider，避免 Persona / Memory 与既有 Prompt 装配重复。
+# 2026-11-13 Agent Host Workspace 回归
+
+Agent Host 内置 Domain 单测覆盖 Workspace 根目录 Capability key，文件读写权限仍由现有 Tool Runtime 独立控制。
