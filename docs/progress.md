@@ -1612,3 +1612,6 @@ Runtime 的 Tool 过滤器已按当前 Agent Manifest 筛选 `capability_*`，�
 # 2026-11-14 Companion Moment Workflow 接入
 
 朋友圈发布已接入 `companion.moment.publish` Workflow Capability，直接复用 `companion_post_moment` 的执行实现，固定入口与自然语言 Tool 不再维护第二套朋友圈写入规则。
+# 2026-11-14 Companion Diary Workflow 接入
+
+日记生成已接入 `companion.diary.generate` Workflow Capability，复用 `triggerInnerThought` 生活引擎入口，固定触发与自然语言调用共享同一事实链路。

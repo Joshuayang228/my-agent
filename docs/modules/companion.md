@@ -6,6 +6,8 @@ Companion 首个 Agent Host Domain Definition 已注册，提供 `companion.runt
 
 朋友圈发布新增 `companion.moment.publish` Workflow Capability，复用既有 `companion_post_moment` Tool 的执行实现。固定 Workflow 与自然语言 Tool 共享角色校验、命令网关、领域事件和 Moment 投影链路。
 
+日记生成新增 `companion.diary.generate` Workflow Capability，复用 `triggerInnerThought` 的生活引擎实现，AI 触发与生活时钟触发共享日记持久化和 Outbox 链路。
+
 ## 核心一致性与恢复（2026-11-13）
 
 - `withCompanionUnitOfWork` 将人物世界领域事件和 Outbox 写入置于同一数据库事务，建表初始化不参与业务回滚。

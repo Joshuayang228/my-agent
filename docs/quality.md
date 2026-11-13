@@ -1158,3 +1158,6 @@ Registry 单测覆盖 Workflow 只能通过 Application Orchestrator 直接运�
 # 2026-11-14 Companion Moment Workflow 回归
 
 Agent Host Companion Domain 单测覆盖朋友圈 Workflow Capability 与既有 Tool 名称绑定，执行链路继续由原有 Tool / Command Gateway / Moment Projection 回归覆盖。
+# 2026-11-14 Companion Diary Workflow 回归
+
+Agent Host Companion Domain 单测覆盖日记 Workflow Capability key 和 Tool 暴露，具体生成、冷却和持久化仍由既有 inner-thought 单测覆盖。

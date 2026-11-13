@@ -1544,3 +1544,6 @@ Playground 提示词管理器 v3 候选：调整文字职责与阅读比例，�
 # 2026-11-14 Companion Moment Workflow
 
 - 朋友圈发布接入 Agent Host Workflow Capability，固定入口与自然语言 Tool 复用同一执行实现。
+# 2026-11-14 Companion Diary Workflow
+
+- 日记生成接入 Agent Host Workflow Capability，复用生活引擎的日记事实链路。

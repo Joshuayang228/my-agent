@@ -3,6 +3,7 @@ import * as identity from '../companion/identity/loader'
 import * as memory from '../storage/memory-store'
 import { getWorkspaceRoot } from '../agent/project-memory'
 import { companionPostMomentTool } from '../tools/builtins/companion-life'
+import { triggerInnerThought } from '../companion/life/inner-thoughts'
 import type { AgentHostDomainDefinition, AgentHostManifest } from '../../../src/shared/agent-host'
 
 export function createCompanionCoreDomain(): AgentHostDomainDefinition {
@@ -36,6 +37,23 @@ export function createCompanionCoreDomain(): AgentHostDomainDefinition {
           sessionId: context.sessionId ?? `agent-host-${context.roleId}`,
           roleId: context.roleId,
         })
+      },
+    }, {
+      key: 'companion.diary.generate',
+      domainKey: 'companion',
+      kind: 'workflow',
+      description: '根据当前人物生活状态生成一篇私密日记',
+      parameters: {
+        type: 'object',
+        properties: { triggerReason: { type: 'string', description: '可选的写作触发原因。' } },
+      },
+      requiredPermissions: ['companion.write'],
+      invoke: async (input, context) => {
+        if (!context.roleId) throw new Error('Diary workflow requires roleId')
+        const triggerReason = input && typeof input === 'object' && typeof (input as Record<string, unknown>).triggerReason === 'string'
+          ? String((input as Record<string, unknown>).triggerReason).slice(0, 240)
+          : undefined
+        return triggerInnerThought(context.roleId, triggerReason)
       },
     }],
     contextProviders: [{
