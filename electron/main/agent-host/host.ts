@@ -1,16 +1,18 @@
+import { createHash } from 'node:crypto'
 import { AgentHostApplicationOrchestrator, AgentHostCapabilityRegistry, AgentHostDomainRegistry } from './domain-catalog'
 import { createCompanionCoreDomain, createMemoryDomain, createPersonaDomain, createWorkspaceDomain, loadCompanionAgentManifest } from './builtin-domains'
-import type { AgentHostExecutionContext } from '../../../src/shared/agent-host'
+import type { AgentHostExecutionContext, AgentHostSkillMetadata } from '../../../src/shared/agent-host'
 import { capabilityToTool } from './adapter'
 import type { SkillDefinition, ToolDefinition } from '../../../src/shared/types'
 import type { ToolRegistry } from '../tools/registry'
+import { isSkillEnabled } from '../skills/registry'
 
 export const agentHostDomainRegistry = new AgentHostDomainRegistry()
 export const agentHostCapabilityRegistry = new AgentHostCapabilityRegistry(agentHostDomainRegistry)
 export const agentHostApplication = new AgentHostApplicationOrchestrator(agentHostCapabilityRegistry)
 
 let initialized = false
-let registeredSkillKeys: string[] = []
+let registeredSkills: AgentHostSkillMetadata[] = []
 
 /** 注册内置 Domain 一次，入口由主进程启动阶段调用。 */
 export function initializeAgentHost(): void {
@@ -57,7 +59,7 @@ export interface AgentHostDebugRecord {
 
 export function getAgentHostDebugRecords(roleId: string): AgentHostDebugRecord[] {
   initializeAgentHost()
-  const manifest = { ...loadCompanionAgentManifest({ id: roleId, personaKey: `role:${roleId}` }), skillKeys: registeredSkillKeys }
+  const manifest = { ...loadCompanionAgentManifest({ id: roleId, personaKey: `role:${roleId}` }), skillKeys: registeredSkills.map(skill => skill.key) }
   const environment = agentHostApplication.createEnvironment(manifest)
   const records: AgentHostDebugRecord[] = [{
     key: `agent-manifest:${manifest.id}`,
@@ -76,12 +78,20 @@ export function getAgentHostDebugRecords(roleId: string): AgentHostDebugRecord[]
       details: { capabilityKey: capability.key, capabilityKind: capability.kind, requiredPermissions: capability.requiredPermissions },
     })
   }
-  for (const skillKey of registeredSkillKeys) {
+  for (const skill of registeredSkills) {
     records.push({
-      key: `agent-skill:${skillKey}`,
+      key: `agent-skill:${skill.key}`,
       kind: 'skill',
-      status: 'available',
-      details: { skillKey, activationTool: `skill_invoke_${skillKey.replace(/[^a-z0-9]/g, '_')}` },
+      status: skill.enabled ? 'available' : 'registered',
+      details: {
+        skillKey: skill.key,
+        version: skill.version,
+        fingerprint: skill.fingerprint,
+        source: skill.source,
+        allowedTools: skill.allowedTools,
+        capabilityKeys: skill.capabilityKeys,
+        activationTool: `skill_invoke_${skill.key.replace(/[^a-z0-9]/g, '_')}`,
+      },
     })
   }
   return records
@@ -94,7 +104,22 @@ export function registerAgentHostTools(toolRegistry: ToolRegistry): void {
 }
 
 export function syncAgentHostSkills(skills: readonly SkillDefinition[]): void {
-  registeredSkillKeys = skills.map(skill => skill.meta.name)
+  const seen = new Set<string>()
+  registeredSkills = skills.flatMap(skill => {
+    const key = skill.meta.name.trim()
+    if (!key || seen.has(key)) return []
+    seen.add(key)
+    const allowedTools = skill.meta.allowed_tools ?? []
+    return [{
+      key,
+      version: skill.meta.version ?? 'unversioned',
+      fingerprint: createHash('sha256').update(skill.body).digest('hex').slice(0, 16),
+      source: skill.source,
+      enabled: isSkillEnabled(skill.meta.name),
+      allowedTools,
+      capabilityKeys: allowedTools.filter(toolName => toolName.startsWith('capability_') || toolName === 'companion_post_moment'),
+    }]
+  })
 }
 
 export async function runCompanionLifeTickWorkflow(now: number): Promise<unknown> {

@@ -56,6 +56,8 @@
 
 Agent Host 总体架构：[agent-host-architecture-v1.md](./agent-host-architecture-v1.md)，已完成 Agent Manifest、Domain Registry、Capability Registry、Application Orchestrator、Context Provider、Scoped Tool Catalog 与固定 Workflow / 自然语言 Tool 统一入口。
 
+Agent Host 架构收口：[agent-host-architecture-closeout-v2.md](./agent-host-architecture-closeout-v2.md)，已完成会话唯一工具目录、Skill 元数据关系、Companion 跨入口事实链和恢复隔离收口。
+
 架构可靠性加固：[architecture-reliability-hardening-v1.md](./architecture-reliability-hardening-v1.md)，已完成 Companion 事务边界、Outbox 恢复、IPC sender 安全、Conversation Application Service、存储基准与五边界审计。
 
 人物世界核心引擎重构：[companion-world-engine-core-v1.md](./companion-world-engine-core-v1.md)，已完成统一人物运行态、领域命令、领域事件、幂等投影、执行账本、主会话与窗口 Outbox、Read Model 和 Electron 旅程验收。

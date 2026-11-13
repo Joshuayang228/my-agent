@@ -3,9 +3,11 @@ import { registerSecureIpcHandler } from './ipc-security'
 import { getLoadedSkills, isSkillEnabled, reloadSkills, setSkillEnabled, withSkillMutation } from '../skills/registry'
 import { getSkillContent, getSkillVersionContent, listSkillVersionInfo, rollbackSkill, saveSkill, validateSkillContent, deleteSkill, MAX_SKILL_CONTENT_LENGTH } from '../skills/loader'
 import { ToolRegistry } from '../tools/registry'
+import { syncAgentHostSkills } from '../agent-host/host'
 import type { SkillEnabledResult, SkillInfo, SkillValidationResult } from '../../../src/shared/types'
 
 export function registerSkillsIPC(toolRegistry: ToolRegistry): void {
+  const syncHostSkillMetadata = () => syncAgentHostSkills(getLoadedSkills())
   registerSecureIpcHandler('skills:list', async () => withSkillMutation(async () => {
     return getLoadedSkills().map((s): SkillInfo => ({
       name: s.meta.name,
@@ -33,6 +35,7 @@ export function registerSkillsIPC(toolRegistry: ToolRegistry): void {
     if (typeof name !== 'string' || name.length > 64 || typeof enabled !== 'boolean') return { success: false, error: 'Skill 启停参数无效。' }
     try {
       await setSkillEnabled(toolRegistry, name, enabled)
+      syncHostSkillMetadata()
       return { success: true, enabled }
     } catch {
       return { success: false, error: '未能更新 Skill 状态，请重试。' }
@@ -61,6 +64,7 @@ export function registerSkillsIPC(toolRegistry: ToolRegistry): void {
     try {
       const filePath = await saveSkill(targetName, content)
       await reloadSkills(toolRegistry)
+      syncHostSkillMetadata()
       return { success: true, filePath, issues: validation.issues }
     } catch {
       return {
@@ -75,6 +79,7 @@ export function registerSkillsIPC(toolRegistry: ToolRegistry): void {
     try {
       await deleteSkill(name)
       await reloadSkills(toolRegistry)
+      syncHostSkillMetadata()
       return { success: true }
     } catch {
       return { success: false }
@@ -84,6 +89,7 @@ export function registerSkillsIPC(toolRegistry: ToolRegistry): void {
   registerSecureIpcHandler('skills:reload', async () => withSkillMutation(async () => {
     try {
       await reloadSkills(toolRegistry)
+      syncHostSkillMetadata()
       return { success: true, count: getLoadedSkills().length }
     } catch {
       throw new Error('无法重新加载 Skills，请重试。')
@@ -114,7 +120,10 @@ export function registerSkillsIPC(toolRegistry: ToolRegistry): void {
 
   registerSecureIpcHandler('skills:rollback', async (_event, name: string, version: number) => withSkillMutation(async () => {
     const success = await rollbackSkill(name, version)
-    if (success) await reloadSkills(toolRegistry)
+    if (success) {
+      await reloadSkills(toolRegistry)
+      syncHostSkillMetadata()
+    }
     return { success }
   }))
 }

@@ -12,9 +12,14 @@ import { getAgentHostToolNamesForRole } from './host'
 export class AgentHostScopedToolCatalog {
   constructor(private readonly manifest: AgentHostManifest) {}
 
-  filter(tools: readonly ToolDefinition[]): ToolDefinition[] {
+  filter(tools: readonly ToolDefinition[], allowedTools?: readonly string[]): ToolDefinition[] {
     const available = getAgentHostToolNamesForRole(this.manifest.id)
-    return tools.filter(tool => !tool.name.startsWith('capability_') && tool.name !== 'companion_post_moment'
-      || available.has(tool.name))
+    const skillAllowed = allowedTools && allowedTools.length > 0 ? new Set(allowedTools) : null
+    return tools.filter(tool => {
+      if (tool.name.startsWith('capability_') || tool.name === 'companion_post_moment') {
+        if (!available.has(tool.name)) return false
+      }
+      return !skillAllowed || skillAllowed.has(tool.name) || tool.name.startsWith('skill_invoke_')
+    })
   }
 }

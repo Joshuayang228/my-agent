@@ -4,6 +4,16 @@ export type AgentHostCapabilityKind = 'query' | 'command' | 'workflow' | 'contex
 
 export const AGENT_HOST_MANIFEST_VERSION = 1
 
+export interface AgentHostSkillMetadata {
+  key: string
+  version: string
+  fingerprint: string
+  source: 'builtin' | 'user'
+  enabled: boolean
+  allowedTools: readonly string[]
+  capabilityKeys: readonly string[]
+}
+
 export interface AgentHostExecutionContext {
   agentId: string
   sessionId?: string

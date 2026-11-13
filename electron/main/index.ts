@@ -21,7 +21,7 @@ import { initializeAgentHost, registerAgentHostTools, syncAgentHostSkills } from
 import { mcpManager } from './mcp/client'
 import { syncMcpToolsToRegistry } from './mcp/bridge'
 import { parseStoredMcpConfigs } from './mcp/config-security'
-import { getLoadedSkills, initSkillSystem, isSkillEnabled } from './skills/registry'
+import { getLoadedSkills, initSkillSystem } from './skills/registry'
 import { runtime } from './agent/runtime'
 import * as settings from './storage/settings-store'
 import { initScheduler, shutdownScheduler } from './scheduler/index'
@@ -303,7 +303,7 @@ app.whenReady().then(async () => {
   })
 
   initSkillSystem(toolRegistry).then(() => {
-    syncAgentHostSkills(getLoadedSkills().filter(skill => isSkillEnabled(skill.meta.name)))
+    syncAgentHostSkills(getLoadedSkills())
   }).catch(err => log.warn('Skill init failed', { error: String(err) }))
   restoreMcpConnections().then(() => mark('mcp_ready'))
   initScheduler().catch(err => log.warn('Scheduler init failed', { error: String(err) }))

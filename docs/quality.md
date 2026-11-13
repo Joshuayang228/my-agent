@@ -1185,3 +1185,6 @@ Workspace 后端契约回归继续通过，主角 Companion Context 与 Workspac
 # 2026-11-14 Context Provider 来源去重回归
 
 Context Provider 必须声明稳定 `source`。同一 `scope + source` 只保留优先级最高的一份，避免同一事实重复注入上下文，并由 Registry 单测验证。
+# 2026-11-14 Agent Host 收口 v2 回归
+
+Scoped Tool Catalog 现在在同一入口内完成 Host Manifest 授权和 Skill `allowed_tools` 过滤。Host Debug 记录 Skill 版本、指纹、启停状态和 Capability 关系，相关单测覆盖目录唯一性与元数据证据。

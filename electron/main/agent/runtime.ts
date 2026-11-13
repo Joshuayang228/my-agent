@@ -458,13 +458,9 @@ class AgentRuntime {
           toolContext,
           interactionSpanId: chatSpan.id,  // 传入父 span ID，使 loop 内的子 span 形成调用链树
           filterTools: (allTools) => {
-            const hostScopedTools = new AgentHostScopedToolCatalog(loadCompanionAgentManifest({ id: assembleRoleId, personaKey: `role:${assembleRoleId}` })).filter(allTools)
             const active = getActiveSkill()
-            if (active?.meta.allowed_tools?.length) {
-              const allowed = new Set(active.meta.allowed_tools)
-              return hostScopedTools.filter(t => allowed.has(t.name) || t.name.startsWith('skill_invoke_'))
-            }
-            return hostScopedTools
+            return new AgentHostScopedToolCatalog(loadCompanionAgentManifest({ id: assembleRoleId, personaKey: `role:${assembleRoleId}` }))
+              .filter(allTools, active?.meta.allowed_tools)
           },
         },
         toolRegistry,

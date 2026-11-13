@@ -1625,6 +1625,10 @@ Debug Model Context 目录新增 Agent Manifest 与 Capability 状态记录，�
 # 2026-11-14 Agent Host 可靠性收口
 
 Manifest 生产入口统一经过版本化 loader。Capability 激活证据按 Agent 隔离，避免一个角色的 Tool 调用污染另一个角色的 Debug 状态。Context Provider 以 `scope + source` 去重并按优先级选择唯一事实来源。LifeTicker 通过 `runCompanionLifeTickWorkflow` 进入 Host Application，再复用既有生活引擎。
+
+# 2026-11-14 Agent Host 架构收口 v2 完成
+
+完成 Session Catalog 与 Skill 版本、指纹、启停、允许能力关系接入。Agent Loop 的会话工具目录不再由调用方分别筛选，Companion 写入口继续统一经过 Command Gateway，LifeTicker、Chat 完成结算和 Host Workflow 共用 Application / Domain / Event / Outbox 事实链。SQLite 存储替换仍按可靠性合同的独立性能基准边界管理。
 # 2026-11-14 Scoped Tool Catalog
 
 新增 `AgentHostScopedToolCatalog`，把 Manifest 授权筛选从 Runtime 条件分支提取为会话级目录对象。全局 ToolRegistry 继续只保存实现，未授权 Capability 不进入模型请求。

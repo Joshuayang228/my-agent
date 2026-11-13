@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createCompanionAgentManifest, createCompanionCoreDomain, createMemoryDomain, createPersonaDomain, createWorkspaceDomain, loadCompanionAgentManifest } from '../../electron/main/agent-host/builtin-domains'
 import { capabilityToTool } from '../../electron/main/agent-host/adapter'
-import { getAgentHostToolNamesForRole, getAgentHostTools } from '../../electron/main/agent-host/host'
+import { getAgentHostDebugRecords, getAgentHostToolNamesForRole, getAgentHostTools, syncAgentHostSkills } from '../../electron/main/agent-host/host'
 import { AgentHostScopedToolCatalog } from '../../electron/main/agent-host/scoped-catalog'
 
 describe('Agent Host 内置 Domain', () => {
@@ -71,5 +71,28 @@ describe('Agent Host 内置 Domain', () => {
     const visible = catalog.filter(tools)
     expect(visible.some(tool => tool.name === 'unrelated_tool')).toBe(true)
     expect(visible.some(tool => tool.name === 'companion_post_moment')).toBe(true)
+  })
+
+  it('Scoped Tool Catalog 在 Host 授权后继续应用 Skill allowlist', () => {
+    const manifest = createCompanionAgentManifest({ id: 'lin', personaKey: 'role:lin' })
+    const catalog = new AgentHostScopedToolCatalog(manifest)
+    const tools = [
+      ...getAgentHostTools(),
+      { name: 'skill_invoke_demo', description: '', parameters: { type: 'object' as const, properties: {} }, metadata: { isReadOnly: true, isDestructive: false, isConcurrencySafe: true }, execute: async () => 'ok' },
+    ]
+    const visible = catalog.filter(tools, ['capability_persona_read'])
+    expect(visible.map(tool => tool.name)).toEqual(['capability_persona_read', 'skill_invoke_demo'])
+  })
+
+  it('Host Debug 记录 Skill 的版本、指纹和 Capability 关系', () => {
+    syncAgentHostSkills([{
+      meta: { name: 'demo-skill', description: 'demo', version: '1.0.0', allowed_tools: ['capability_persona_read'] },
+      body: '指南',
+      filePath: 'demo.md',
+      source: 'builtin',
+    }])
+    const record = getAgentHostDebugRecords('lin').find(item => item.key === 'agent-skill:demo-skill')
+    expect(record?.status).toBe('available')
+    expect(record?.details).toMatchObject({ version: '1.0.0', source: 'builtin', capabilityKeys: ['capability_persona_read'] })
   })
 })
