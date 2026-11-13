@@ -556,3 +556,8 @@
 - **背景**：显式 key 和 AST 命名门禁仍允许调用点给任意正文挂生产来源。
 - **决定**：固定生产配方签发不透明请求，私有身份表认证冻结的消息、依赖与作用域；统一模型入口拒绝原始消息、手填 key、promptless、未知来源及错误调用行为。实验正文使用明确外部来源，生产模块不得导入 Eval 签发入口。
 - **影响**：LLM、Loop、Runtime、后台辅助行为与 Eval；Debug 生产目录只读，既有实验草稿 / 用户补充指令的受控保存保留。该边界证明请求来自现有配方，不声称防止恶意修改应用代码，也不替代数据注入与模型行为 Eval。
+# DEC-2026-11-13-01：执行账本与领域事实的事务边界
+
+人物世界命令的执行账本分为运行生命周期元数据和本地事实关联两部分。`running` 在用例开始时写入，允许跨模型、网络和用户确认等待观测执行状态。领域事件、Runtime State、领域事实、Outbox 及事件与执行的关联必须在本地 Unit of Work 内提交。`completed` / `retryable` 在用例结束后更新，属于执行生命周期结算，不与外部副作用放入同一事务。这样既保证本地事实一致，又避免持有 SQLite 事务跨越模型请求、窗口等待和网络调用。
+
+证据：`withCompanionUnitOfWork`、`recordCompanionEventAndNotify`、`companion_outbox` 租约字段、`conversation-application-service.ts`。后续新增领域用例必须沿用这一边界，不得把外部等待放入事务。

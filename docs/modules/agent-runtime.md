@@ -624,3 +624,7 @@ Companion 列表 IPC 统一执行结果数量上限。
 
 通用 IPC handler 通过 `registerSecureIpcHandler` 统一校验 sender。MCP、Settings、Terminal、Browser 和生成图片入口保留已有请求租约、导航、主框架或凭据隔离逻辑，并在入口复用 `assertTrustedIpcSender`。业务参数、权限引擎和会话 / 人物归属校验仍由各自应用层负责。
 
+# 可靠性施工完成（2026-11-13）
+
+Runtime、IPC、Context、Memory、Persona 和 Permission 边界审计完成。Conversation Application Service 接管对话完成后的伙伴副作用，执行账本生命周期与本地事实事务边界按 DEC-2026-11-13-01 固定。
+

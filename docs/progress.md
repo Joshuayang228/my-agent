@@ -1577,3 +1577,7 @@ Companion 列表资源上限（2026-11-10）：主进程统一限制多个生活
 
 通用 IPC 注册器已统一经过 `registerSecureIpcHandler`，Browser、MCP、Settings、Terminal 和图片读取保留各自的导航、窗口归属与请求租约复核，并复用统一 sender 检查。五边界审计记录到 `docs/architecture-boundary-audit.md`，施工合同仍因执行账本与领域事实提交边界未完全合并而保持进行中。
 
+# 2026-11-13 可靠性施工合同冻结
+
+事务、Outbox 租约恢复、IPC 可信发送方、Conversation Application Service、sql.js 多指标基准和 Context / Memory / Persona / Permission / Runtime 五边界审计完成。执行账本按 DEC-2026-11-13-01 分为生命周期元数据与本地事实关联，避免事务跨越模型、网络和窗口等待。合同已冻结为已完成施工快照。
+

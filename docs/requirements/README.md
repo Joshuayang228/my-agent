@@ -20,8 +20,6 @@
 
 ## 进行中
 
-架构可靠性加固：[architecture-reliability-hardening-v1.md](./architecture-reliability-hardening-v1.md)，完善 Companion 事务、Outbox 恢复、IPC sender 安全、Conversation Application Service 与存储基准。
-
 人物世界引擎统一与旅程闭环：[companion-engine-unification-v1.md](./companion-engine-unification-v1.md)，审查并修复事件、状态、投影、主动行为和用户旅程之间的断点。
 
 生活引擎因果与现实锚点：[life-engine-causality-and-real-world-anchor-v1.md](./life-engine-causality-and-real-world-anchor-v1.md)，针对日内事件离散割裂缺乏状态因果重编排（问题4）以及宿主环境专注度/空闲现实关切感知（问题6）的系统化重塑。
@@ -55,6 +53,8 @@
 ---
 
 ## 已完成施工快照（冻结）
+
+架构可靠性加固：[architecture-reliability-hardening-v1.md](./architecture-reliability-hardening-v1.md)，已完成 Companion 事务边界、Outbox 恢复、IPC sender 安全、Conversation Application Service、存储基准与五边界审计。
 
 人物世界核心引擎重构：[companion-world-engine-core-v1.md](./companion-world-engine-core-v1.md)，已完成统一人物运行态、领域命令、领域事件、幂等投影、执行账本、主会话与窗口 Outbox、Read Model 和 Electron 旅程验收。
 

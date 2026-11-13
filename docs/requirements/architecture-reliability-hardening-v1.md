@@ -1,7 +1,7 @@
 # My Agent 架构可靠性加固施工合同 v1
 
-> 状态：进行中
-> 生命周期：进行中，核心事务、Outbox 恢复、IPC 安全、Runtime 边界和存储基准已完成首批施工，执行账本与完整应用用例边界仍在收口。
+> 状态：已完成施工快照
+> 生命周期：已完成施工快照（冻结），稳定事实已回流 Architecture、模块卡、Quality、Decisions 和边界审计。
 
 ## 1. 需求背景
 
@@ -166,4 +166,4 @@ Agent Runtime 保留 Agent Loop、Context、Tool、Permission、取消和流式�
 - `npm run assets:check`
 - 事务、Outbox 恢复、IPC sender、Runtime 边界和存储基准对应 Unit / Electron 测试。
 
-边界审计证据：[`docs/architecture-boundary-audit.md`](../architecture-boundary-audit.md)。IPC 入口按两类收口：通用 handler 使用 `registerSecureIpcHandler`，MCP、Settings、Terminal、图片读取等已有窗口生命周期门禁的 handler 保留专用校验，并复用同一 `assertTrustedIpcSender` 规则或更严格的业务归属复核。执行账本的 running / completed 生命周期仍跨越业务用例，尚未与每个领域事实写入合并为单一事务，合同暂不冻结。
+边界审计证据：[`docs/architecture-boundary-audit.md`](../architecture-boundary-audit.md)。IPC 入口按两类收口：通用 handler 使用 `registerSecureIpcHandler`，MCP、Settings、Terminal、图片读取等已有窗口生命周期门禁的 handler 保留专用校验，并复用同一 `assertTrustedIpcSender` 规则或更严格的业务归属复核。执行账本按 DEC-2026-11-13-01 分为跨外部等待的生命周期元数据和本地事实关联，二者边界已固定。
