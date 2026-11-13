@@ -1618,3 +1618,6 @@ Runtime 的 Tool 过滤器已按当前 Agent Manifest 筛选 `capability_*`，�
 # 2026-11-14 Agent Host Debug 状态证据
 
 Debug Model Context 目录新增 Agent Manifest 与 Capability 状态记录，按 Registered / Available / Activated 展示生产 Registry、当前 Manifest 和实际调用证据。
+# 2026-11-14 Skill 元数据接入 Agent Host
+
+主进程 Skill 初始化完成后同步 Skill key 与激活工具元数据到 Host，Debug 可以读取 Skill 与 Capability 的可见关系，Skill 正文仍只由 Skill Registry 管理。

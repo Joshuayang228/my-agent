@@ -2,7 +2,7 @@ import { AgentHostApplicationOrchestrator, AgentHostCapabilityRegistry, AgentHos
 import { createCompanionAgentManifest, createCompanionCoreDomain, createMemoryDomain, createPersonaDomain, createWorkspaceDomain } from './builtin-domains'
 import type { AgentHostExecutionContext } from '../../../src/shared/agent-host'
 import { capabilityToTool } from './adapter'
-import type { ToolDefinition } from '../../../src/shared/types'
+import type { SkillDefinition, ToolDefinition } from '../../../src/shared/types'
 import type { ToolRegistry } from '../tools/registry'
 
 export const agentHostDomainRegistry = new AgentHostDomainRegistry()
@@ -10,6 +10,7 @@ export const agentHostCapabilityRegistry = new AgentHostCapabilityRegistry(agent
 export const agentHostApplication = new AgentHostApplicationOrchestrator(agentHostCapabilityRegistry)
 
 let initialized = false
+let registeredSkillKeys: string[] = []
 
 /** 注册内置 Domain 一次，入口由主进程启动阶段调用。 */
 export function initializeAgentHost(): void {
@@ -48,7 +49,7 @@ export function getAgentHostToolNamesForRole(roleId: string): ReadonlySet<string
 
 export interface AgentHostDebugRecord {
   key: string
-  kind: 'manifest' | 'capability'
+  kind: 'manifest' | 'capability' | 'skill'
   status: 'registered' | 'available' | 'activated'
   domainKey?: string
   details: Record<string, unknown>
@@ -56,7 +57,7 @@ export interface AgentHostDebugRecord {
 
 export function getAgentHostDebugRecords(roleId: string): AgentHostDebugRecord[] {
   initializeAgentHost()
-  const manifest = createCompanionAgentManifest({ id: roleId, personaKey: `role:${roleId}` })
+  const manifest = { ...createCompanionAgentManifest({ id: roleId, personaKey: `role:${roleId}` }), skillKeys: registeredSkillKeys }
   const environment = agentHostApplication.createEnvironment(manifest)
   const records: AgentHostDebugRecord[] = [{
     key: `agent-manifest:${manifest.id}`,
@@ -75,6 +76,14 @@ export function getAgentHostDebugRecords(roleId: string): AgentHostDebugRecord[]
       details: { capabilityKey: capability.key, capabilityKind: capability.kind, requiredPermissions: capability.requiredPermissions },
     })
   }
+  for (const skillKey of registeredSkillKeys) {
+    records.push({
+      key: `agent-skill:${skillKey}`,
+      kind: 'skill',
+      status: 'available',
+      details: { skillKey, activationTool: `skill_invoke_${skillKey.replace(/[^a-z0-9]/g, '_')}` },
+    })
+  }
   return records
 }
 
@@ -82,4 +91,8 @@ export function registerAgentHostTools(toolRegistry: ToolRegistry): void {
   for (const tool of getAgentHostTools()) {
     if (!toolRegistry.has(tool.name)) toolRegistry.register(tool)
   }
+}
+
+export function syncAgentHostSkills(skills: readonly SkillDefinition[]): void {
+  registeredSkillKeys = skills.map(skill => skill.meta.name)
 }

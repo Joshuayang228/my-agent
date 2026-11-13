@@ -1164,3 +1164,6 @@ Agent Host Companion Domain 单测覆盖日记 Workflow Capability key 和 Tool 
 # 2026-11-14 Agent Host Debug 证据回归
 
 Host Registry 增加 Capability 激活记录，Debug 目录聚合当前 Manifest 和状态证据。后续补充跨角色 Activated 隔离回归。
+# 2026-11-14 Skill Host 同步回归
+
+Skill 初始化完成后的 Host 元数据同步沿主进程启动链路执行，失败不伪造同步成功；Skill 正文、启停和激活行为继续由原有测试覆盖。

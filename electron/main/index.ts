@@ -17,11 +17,11 @@ import { llmDebugStore } from './storage/llm-debug-store'
 import { assetUsageStore } from './storage/asset-usage-store'
 import { createModelContextAssetResolver } from './debug/model-context-assets'
 import { registerAllIPC } from './ipc/index'
-import { initializeAgentHost, registerAgentHostTools } from './agent-host/host'
+import { initializeAgentHost, registerAgentHostTools, syncAgentHostSkills } from './agent-host/host'
 import { mcpManager } from './mcp/client'
 import { syncMcpToolsToRegistry } from './mcp/bridge'
 import { parseStoredMcpConfigs } from './mcp/config-security'
-import { initSkillSystem } from './skills/registry'
+import { getLoadedSkills, initSkillSystem } from './skills/registry'
 import { runtime } from './agent/runtime'
 import * as settings from './storage/settings-store'
 import { initScheduler, shutdownScheduler } from './scheduler/index'
@@ -302,7 +302,9 @@ app.whenReady().then(async () => {
     }
   })
 
-  initSkillSystem(toolRegistry).catch(err => log.warn('Skill init failed', { error: String(err) }))
+  initSkillSystem(toolRegistry).then(() => {
+    syncAgentHostSkills(getLoadedSkills())
+  }).catch(err => log.warn('Skill init failed', { error: String(err) }))
   restoreMcpConnections().then(() => mark('mcp_ready'))
   initScheduler().catch(err => log.warn('Scheduler init failed', { error: String(err) }))
 

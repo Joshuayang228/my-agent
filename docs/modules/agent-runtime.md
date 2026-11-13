@@ -644,3 +644,4 @@ Companion 列表 IPC 统一执行结果数量上限。
 
 Runtime、IPC、Context、Memory、Persona 和 Permission 边界审计完成。Conversation Application Service 接管对话完成后的伙伴副作用，执行账本生命周期与本地事实事务边界按 DEC-2026-11-13-01 固定。
 
+Skill Registry 初始化完成后同步 Skill key 与激活工具元数据到 Host，Skill 正文和实际激活继续由既有 Skill Registry 管理。
