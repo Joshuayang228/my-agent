@@ -1146,3 +1146,6 @@ Context Provider 接入 Runtime 后继续执行失败隔离，主会话才注入
 # 2026-11-13 Agent Host Workspace 回归
 
 Agent Host 内置 Domain 单测覆盖 Workspace 根目录 Capability key，文件读写权限仍由现有 Tool Runtime 独立控制。
+# 2026-11-13 Agent Host Tool 注册回归
+
+主进程启动注册 Agent Host 查询 Tool，重复注册保护和 ToolContext roleId 传递由单元与构建门禁覆盖。Manifest 会话级 Tool 可见性仍属于施工合同后续阶段。

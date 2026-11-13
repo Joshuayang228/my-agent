@@ -6,6 +6,8 @@
 
 主角主会话通过 `getAgentHostContext` 获取已授权 Context Provider，召唤和 Workspace 会话不注入主角动态上下文。Provider 失败保持原 Prompt 装配并记录结构化告警。
 
+首批查询 Capability 通过 `registerAgentHostTools` 注册为 `capability_*` Tool，执行上下文从当前 ToolContext 取得 roleId。后续按 Agent Manifest 收窄 Tool 可见性，不复制第二套工具执行链。
+
 ## 2026-11-13 可靠性收口
 
 人物世界核心写入现在通过 `withCompanionUnitOfWork` 复用数据库事务协调器，建表在事务外完成，领域事件、业务事实与 Outbox 写入在同一事务内提交。Outbox 采用 `claimed_at` / `lease_until` 租约，过期 processing 会被下一轮恢复，失败使用 `next_attempt_at` 退避重试，投递语义为至少一次，消费端必须幂等。

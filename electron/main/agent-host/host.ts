@@ -1,6 +1,9 @@
 import { AgentHostApplicationOrchestrator, AgentHostCapabilityRegistry, AgentHostDomainRegistry } from './domain-catalog'
 import { createCompanionAgentManifest, createCompanionCoreDomain, createMemoryDomain, createPersonaDomain, createWorkspaceDomain } from './builtin-domains'
 import type { AgentHostExecutionContext } from '../../../src/shared/agent-host'
+import { capabilityToTool } from './adapter'
+import type { ToolDefinition } from '../../../src/shared/types'
+import type { ToolRegistry } from '../tools/registry'
 
 export const agentHostDomainRegistry = new AgentHostDomainRegistry()
 export const agentHostCapabilityRegistry = new AgentHostCapabilityRegistry(agentHostDomainRegistry)
@@ -24,4 +27,17 @@ export async function getAgentHostContext(input: Omit<AgentHostExecutionContext,
   const environment = agentHostApplication.createEnvironment(manifest)
   const blocks = await Promise.all(environment.contextProviders.map(async provider => provider.provide({ ...input, agentId: manifest.id })))
   return blocks.filter((block): block is string => Boolean(block?.trim()))
+}
+
+export function getAgentHostTools(): ToolDefinition[] {
+  initializeAgentHost()
+  const manifest = createCompanionAgentManifest({ id: 'agent-host' })
+  const environment = agentHostApplication.createEnvironment(manifest)
+  return environment.capabilities.map(capability => capabilityToTool(capability, { agentId: manifest.id }))
+}
+
+export function registerAgentHostTools(toolRegistry: ToolRegistry): void {
+  for (const tool of getAgentHostTools()) {
+    if (!toolRegistry.has(tool.name)) toolRegistry.register(tool)
+  }
 }

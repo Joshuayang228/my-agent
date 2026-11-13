@@ -1597,3 +1597,6 @@ Persona、Memory、Companion 已注册首批查询 Capability，默认 Agent Man
 # 2026-11-13 Agent Host Workspace 接入
 
 Workspace 已注册 `workspace.root.read` 查询 Capability，默认 Manifest 声明 Persona、Memory、Companion、Workspace 四类 Domain。工作区文件读写仍沿既有 Permission / Tool 链路，未把文件能力直接暴露给 Host。
+# 2026-11-13 Agent Host Tool 注册
+
+首批 Persona、Memory、Companion、Workspace 查询 Capability 已转换为 `capability_*` Tool 并接入主进程 ToolRegistry。Tool 复用既有 Tool Runtime，当前角色从 ToolContext 传入，后续再按 Agent Manifest 做会话级可见性筛选。

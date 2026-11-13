@@ -1534,6 +1534,7 @@ Playground 提示词管理器 v3 候选：调整文字职责与阅读比例，�
 - 新增受控 Capability Adapter，将已授权业务能力转换为 LLM Tool 协议。
 - Persona、Memory、Companion 注册首批查询 Capability，默认 Agent Manifest 声明三类 Domain。
 - Workspace 注册受控根目录查询 Capability，文件读写仍沿既有权限链路。
+- 首批 Agent Host 查询 Capability 接入主进程 ToolRegistry，复用既有 Tool Runtime。
 # 2026-11-13 Agent Host Context 接入
 
 - 主角主会话开始通过 Agent Host Context Provider 读取 Companion 运行态上下文，召唤和 Workspace 保持隔离。

@@ -17,7 +17,7 @@ import { llmDebugStore } from './storage/llm-debug-store'
 import { assetUsageStore } from './storage/asset-usage-store'
 import { createModelContextAssetResolver } from './debug/model-context-assets'
 import { registerAllIPC } from './ipc/index'
-import { initializeAgentHost } from './agent-host/host'
+import { initializeAgentHost, registerAgentHostTools } from './agent-host/host'
 import { mcpManager } from './mcp/client'
 import { syncMcpToolsToRegistry } from './mcp/bridge'
 import { parseStoredMcpConfigs } from './mcp/config-security'
@@ -140,6 +140,7 @@ for (const tool of builtinTools) {
   toolRegistry.register(tool)
   log.info(`Tool registered: ${tool.name}`)
 }
+registerAgentHostTools(toolRegistry)
 mark('tools_ready')
 
 // 注入 registry 给 delegate_task 工具（子 Agent 需要访问父注册表）

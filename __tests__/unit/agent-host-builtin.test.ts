@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createCompanionAgentManifest, createCompanionCoreDomain, createMemoryDomain, createPersonaDomain, createWorkspaceDomain } from '../../electron/main/agent-host/builtin-domains'
 import { capabilityToTool } from '../../electron/main/agent-host/adapter'
+import { getAgentHostTools } from '../../electron/main/agent-host/host'
 
 describe('Agent Host 内置 Domain', () => {
   it('以通用 Manifest 工厂创建人物 Agent，不绑定单一角色', () => {
@@ -32,5 +33,14 @@ describe('Agent Host 内置 Domain', () => {
     expect(tool.name).toBe('capability_companion_runtime_read')
     expect(tool.metadata.isReadOnly).toBe(true)
     await expect(tool.execute({}, { workdir: '.', sessionId: 'session-1', roleId: 'lin' })).resolves.toMatchObject({ content: expect.stringContaining('甲板') })
+  })
+
+  it('Host 将首批查询 Capability 转成稳定的 capability Tool 名称', () => {
+    expect(getAgentHostTools().map(tool => tool.name)).toEqual([
+      'capability_persona_read',
+      'capability_memory_profile_read',
+      'capability_workspace_root_read',
+      'capability_companion_runtime_read',
+    ])
   })
 })
