@@ -54,6 +54,7 @@ export class AgentHostCapabilityRegistry {
     const allowedDomains = new Set(manifest.domainKeys)
     const allowed = new Set(manifest.capabilityPolicy.allow)
     const denied = new Set(manifest.capabilityPolicy.deny)
+    const seenSources = new Set<string>()
     return this.domains.getAll()
       .filter(domain => allowedDomains.has(domain.key))
       .flatMap(domain => domain.contextProviders)
@@ -61,19 +62,28 @@ export class AgentHostCapabilityRegistry {
         if (denied.has(provider.key) || denied.has(provider.domainKey)) return false
         return allowed.has('*') || allowed.has(provider.key) || allowed.has(provider.domainKey)
       })
-      .sort((left, right) => left.priority - right.priority)
+      .sort((left, right) => right.priority - left.priority)
+      .filter(provider => {
+        const sourceKey = `${provider.scope}:${provider.source}`
+        if (seenSources.has(sourceKey)) return false
+        seenSources.add(sourceKey)
+        return true
+      })
   }
 
-  markActivated(key: string): void {
-    this.activated.add(key)
+  markActivated(key: string, agentId = 'agent-host'): void {
+    this.activated.add(`${agentId}:${key}`)
   }
 
-  hasBeenActivated(key: string): boolean {
-    return this.activated.has(key)
+  hasBeenActivated(key: string, agentId = 'agent-host'): boolean {
+    return this.activated.has(`${agentId}:${key}`)
   }
 
-  getActivatedKeys(): readonly string[] {
+  getActivatedKeys(agentId?: string): readonly string[] {
+    const prefix = agentId ? `${agentId}:` : ''
     return [...this.activated]
+      .filter(item => !prefix || item.startsWith(prefix))
+      .map(item => prefix ? item.slice(prefix.length) : item)
   }
 }
 
@@ -97,7 +107,7 @@ export class AgentHostApplicationOrchestrator {
     const capability = environment.capabilities.find(item => item.key === capabilityKey)
     if (!capability) throw new Error(`Capability "${capabilityKey}" is unavailable for agent "${environment.manifest.id}"`)
     if (context.agentId !== environment.manifest.id) throw new Error('Agent execution context does not match manifest')
-    this.capabilities.markActivated(capability.key)
+    this.capabilities.markActivated(capability.key, context.agentId)
     return capability.invoke(input, context)
   }
 
@@ -110,7 +120,7 @@ export class AgentHostApplicationOrchestrator {
     const workflow = environment.capabilities.find(item => item.key === workflowKey && item.kind === 'workflow')
     if (!workflow) throw new Error(`Workflow "${workflowKey}" is unavailable for agent "${environment.manifest.id}"`)
     if (context.agentId !== environment.manifest.id) throw new Error('Agent execution context does not match manifest')
-    this.capabilities.markActivated(workflow.key)
+    this.capabilities.markActivated(workflow.key, context.agentId)
     return workflow.invoke(input, context)
   }
 }

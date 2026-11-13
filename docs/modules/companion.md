@@ -10,6 +10,8 @@ Companion 首个 Agent Host Domain Definition 已注册，提供 `companion.runt
 
 生活推进新增 `companion.life.tick` Workflow Capability，复用 `tickActiveRole` 的日剧本、到期事件、投影和 Outbox 链路。
 
+LifeTicker 通过 `runCompanionLifeTickWorkflow` 进入 Agent Host Application，固定调度入口与受控 Workflow 共用同一生活引擎。Agent Host 只保存能力定义和授权结果，人物运行态仍由 Companion Core 与既有存储、事件和投影链路维护。
+
 ## 核心一致性与恢复（2026-11-13）
 
 - `withCompanionUnitOfWork` 将人物世界领域事件和 Outbox 写入置于同一数据库事务，建表初始化不参与业务回滚。

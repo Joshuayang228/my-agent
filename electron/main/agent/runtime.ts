@@ -20,18 +20,10 @@ import { compileMainSystem } from '../prompts/registered-request'
 import { describeCastPresence } from '../companion/cast/availability'
 import { formatSummonSceneBlock } from '../companion/cast/scene-prompts'
 import { summonParentDelegationHint } from '../companion/cast/summon-delegation'
-import { settleConversationCompletion } from './conversation-application-service'
+import { resolveConversationRelationshipHints, settleConversationCompletion } from './conversation-application-service'
 import { getAgentHostContext } from '../agent-host/host'
 import { AgentHostScopedToolCatalog } from '../agent-host/scoped-catalog'
-import { createCompanionAgentManifest } from '../agent-host/builtin-domains'
-import {
-  formatRelationshipStageForPrompt,
-  resolveRelationshipStageForRole,
-} from '../companion/growth/relationship-stage'
-import {
-  getMilestonePromptHint,
-  recordAndBroadcastMilestone,
-} from '../companion/growth/milestones'
+import { loadCompanionAgentManifest } from '../agent-host/builtin-domains'
 import {
   formatExpertiseLevelForPrompt,
   resolveExpertiseLevel,
@@ -362,19 +354,13 @@ class AgentRuntime {
       let milestoneHint: string | undefined
       let expertiseHint: string | undefined
       try {
-        const rel = await resolveRelationshipStageForRole(assembleRoleId, {
+        const relationshipHints = await resolveConversationRelationshipHints({
+          roleId: assembleRoleId,
           sessionKind: isSummon ? 'summon' : 'main',
+          roleDisplayName: character.name,
         })
-        relationshipStageHint = formatRelationshipStageForPrompt(rel)
-        // M30-G1：主会话首次进入默契密度时记里程碑
-        if (!isSummon && rel.stage === 'rapport') {
-          void recordAndBroadcastMilestone(assembleRoleId, 'first_rapport', {
-            roleDisplayName: character.name,
-          }).catch(() => {})
-        }
-        if (!isSummon) {
-          milestoneHint = await getMilestonePromptHint(assembleRoleId)
-        }
+        relationshipStageHint = relationshipHints.relationshipStageHint
+        milestoneHint = relationshipHints.milestoneHint
         // M30-G3：专家度 → 解释粒度
         const profileText = userProfile
           ? [userProfile.identity, userProfile.workflow, userProfile.voice].filter(Boolean).join('\n')
@@ -393,7 +379,7 @@ class AgentRuntime {
           stance: stance.primary,
           tone: tone.register,
           aside: tone.asidePolicy,
-          relationship: rel.stage,
+          relationship: relationshipStageHint,
           expertise: expertise.level,
         })
       } catch (err) {
@@ -472,7 +458,7 @@ class AgentRuntime {
           toolContext,
           interactionSpanId: chatSpan.id,  // 传入父 span ID，使 loop 内的子 span 形成调用链树
           filterTools: (allTools) => {
-            const hostScopedTools = new AgentHostScopedToolCatalog(createCompanionAgentManifest({ id: assembleRoleId, personaKey: `role:${assembleRoleId}` })).filter(allTools)
+            const hostScopedTools = new AgentHostScopedToolCatalog(loadCompanionAgentManifest({ id: assembleRoleId, personaKey: `role:${assembleRoleId}` })).filter(allTools)
             const active = getActiveSkill()
             if (active?.meta.allowed_tools?.length) {
               const allowed = new Set(active.meta.allowed_tools)

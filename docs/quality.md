@@ -1163,7 +1163,7 @@ Agent Host Companion Domain 单测覆盖朋友圈 Workflow Capability 与既有 
 Agent Host Companion Domain 单测覆盖日记 Workflow Capability key 和 Tool 暴露，具体生成、冷却和持久化仍由既有 inner-thought 单测覆盖。
 # 2026-11-14 Agent Host Debug 证据回归
 
-Host Registry 增加 Capability 激活记录，Debug 目录聚合当前 Manifest 和状态证据。后续补充跨角色 Activated 隔离回归。
+Host Registry 增加 Capability 激活记录，Debug 目录聚合当前 Manifest 和状态证据。激活记录按 Agent 隔离，已补充跨角色 Activated 隔离回归。
 # 2026-11-14 Skill Host 同步回归
 
 Skill 初始化完成后的 Host 元数据同步沿主进程启动链路执行，失败不伪造同步成功；Skill 正文、启停和激活行为继续由原有测试覆盖。
@@ -1182,3 +1182,6 @@ Skill Host 同步按 `isSkillEnabled` 过滤，停用 Skill 不伪装成当前�
 # 2026-11-14 Workspace Context Provider 回归
 
 Workspace 后端契约回归继续通过，主角 Companion Context 与 Workspace Provider 作用域隔离，Provider 失败沿 Runtime 原有错误隔离路径处理。
+# 2026-11-14 Context Provider 来源去重回归
+
+Context Provider 必须声明稳定 `source`。同一 `scope + source` 只保留优先级最高的一份，避免同一事实重复注入上下文，并由 Registry 单测验证。

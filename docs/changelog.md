@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-14：Agent Host 架构施工合同完成并冻结。Manifest 统一经过版本化 loader，Persona、Memory、Companion、Workspace 通过 Domain / Capability Registry 接入；Scoped Tool Catalog 按当前 Agent 授权筛选模型能力；生活时钟通过 Host Workflow 进入统一 Application 编排；对话关系阶段与里程碑读取归入 Conversation Application Service；Capability 激活证据按 Agent 隔离，Context Provider 按 `scope + source` 去重。
+
 2026-11-10：日记改为“日记册 → 信件详情”两层阅读，列表只保留封面、标题、日期和摘要，完整正文与感悟进入详情页，并使用阅读字体和返回日记册路径。
 
 2026-11-10：收敛日记与专属信物样式：连续列表改用轻背景与底部分隔，减少卡片边框、阴影和重复引用层级，和朋友圈、文化角、衣柜保持同一浏览节奏。

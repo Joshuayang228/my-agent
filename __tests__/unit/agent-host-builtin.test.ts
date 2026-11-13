@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createCompanionAgentManifest, createCompanionCoreDomain, createMemoryDomain, createPersonaDomain, createWorkspaceDomain } from '../../electron/main/agent-host/builtin-domains'
+import { createCompanionAgentManifest, createCompanionCoreDomain, createMemoryDomain, createPersonaDomain, createWorkspaceDomain, loadCompanionAgentManifest } from '../../electron/main/agent-host/builtin-domains'
 import { capabilityToTool } from '../../electron/main/agent-host/adapter'
 import { getAgentHostToolNamesForRole, getAgentHostTools } from '../../electron/main/agent-host/host'
 import { AgentHostScopedToolCatalog } from '../../electron/main/agent-host/scoped-catalog'
@@ -10,6 +10,12 @@ describe('Agent Host 内置 Domain', () => {
     expect(manifest.id).toBe('lin')
     expect(manifest.personaKey).toBe('role:lin')
     expect(manifest.domainKeys).toEqual(['persona', 'memory', 'companion', 'workspace'])
+  })
+
+  it('生产入口通过版本化 loader 装配 Manifest', () => {
+    const manifest = loadCompanionAgentManifest({ id: 'lin', personaKey: 'role:lin' })
+    expect(manifest.version).toBe(1)
+    expect(manifest.modelPolicyKey).toBe('main')
   })
 
   it('Persona 和 Memory 通过独立 Capability 接入，不复制 Tool 实现', () => {

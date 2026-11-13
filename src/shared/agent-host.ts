@@ -2,6 +2,8 @@
 
 export type AgentHostCapabilityKind = 'query' | 'command' | 'workflow' | 'context' | 'lifecycle'
 
+export const AGENT_HOST_MANIFEST_VERSION = 1
+
 export interface AgentHostExecutionContext {
   agentId: string
   sessionId?: string
@@ -31,6 +33,7 @@ export interface AgentHostCapability {
 export interface AgentHostContextProvider {
   key: string
   domainKey: string
+  source: string
   scope: 'agent' | 'session' | 'turn' | 'task'
   priority: number
   maxChars: number
@@ -40,7 +43,7 @@ export interface AgentHostContextProvider {
 
 export interface AgentHostDomainDefinition {
   key: string
-  version: number
+  version: typeof AGENT_HOST_MANIFEST_VERSION
   dependencies: readonly string[]
   capabilities: readonly AgentHostCapability[]
   contextProviders: readonly AgentHostContextProvider[]

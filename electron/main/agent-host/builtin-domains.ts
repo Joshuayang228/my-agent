@@ -6,6 +6,7 @@ import { companionPostMomentTool } from '../tools/builtins/companion-life'
 import { triggerInnerThought } from '../companion/life/inner-thoughts'
 import { tickActiveRole } from '../companion/life/engine'
 import { buildWorkspaceContextPrompt } from '../prompts/runtime-context'
+import { AGENT_HOST_MANIFEST_VERSION } from '../../../src/shared/agent-host'
 import type { AgentHostDomainDefinition, AgentHostManifest } from '../../../src/shared/agent-host'
 
 export function createCompanionCoreDomain(): AgentHostDomainDefinition {
@@ -73,6 +74,7 @@ export function createCompanionCoreDomain(): AgentHostDomainDefinition {
     contextProviders: [{
       key: 'companion.runtime-context',
       domainKey: 'companion',
+      source: 'companion.runtime-state',
       scope: 'turn',
       priority: 30,
       maxChars: 2_000,
@@ -143,6 +145,7 @@ export function createWorkspaceDomain(): AgentHostDomainDefinition {
     contextProviders: [{
       key: 'workspace.context',
       domainKey: 'workspace',
+      source: 'workspace.session-context',
       scope: 'session',
       priority: 40,
       maxChars: 12_000,
@@ -166,7 +169,7 @@ export function createCompanionAgentManifest(input: {
 }): AgentHostManifest {
   return {
     id: input.id,
-    version: 1,
+    version: AGENT_HOST_MANIFEST_VERSION,
     personaKey: input.personaKey,
     domainKeys: input.domainKeys ?? ['persona', 'memory', 'companion', 'workspace'],
     capabilityPolicy: { allow: input.allowCapabilities ?? ['persona', 'memory', 'companion', 'workspace'], deny: [] },
@@ -174,4 +177,9 @@ export function createCompanionAgentManifest(input: {
     modelPolicyKey: 'main',
     permissionPolicyKey: 'companion-default',
   }
+}
+
+/** 生产 Manifest 的唯一 loader，调用方不直接拼装 Domain、Capability 和策略组合。 */
+export function loadCompanionAgentManifest(input: Parameters<typeof createCompanionAgentManifest>[0]): AgentHostManifest {
+  return createCompanionAgentManifest(input)
 }

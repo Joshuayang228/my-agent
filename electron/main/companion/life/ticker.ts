@@ -8,7 +8,8 @@
 
 import { BrowserWindow } from 'electron'
 import { createLogger } from '../../utils/logger'
-import { tickActiveRole } from './engine'
+import { runCompanionLifeTickWorkflow } from '../../agent-host/host'
+import type { tickActiveRole } from './engine'
 import { maybeProactiveGreeting } from './proactive-greeting'
 import { checkAndProgressAbsorbedResonances } from './chat-resonance'
 import { triggerSpontaneousImpulse } from './spontaneous-impulse'
@@ -92,7 +93,7 @@ export function startLifeTicker(defaultIntervalMs = DEFAULT_INTERVAL_MS): void {
     const now = Date.now()
     let activeRoleId: string | null = null
     try {
-      const r = await tickActiveRole(now)
+      const r = await runCompanionLifeTickWorkflow(now) as Awaited<ReturnType<typeof tickActiveRole>>
       activeRoleId = r.roleId
       const tickRoleId = r.roleId
       if (tickRoleId && !r.paused) {

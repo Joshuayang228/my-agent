@@ -2,7 +2,7 @@
 
 ## Agent Host 契约骨架（2026-11-13）
 
-主进程启动阶段注册 `AgentHostDomainRegistry`、`AgentHostCapabilityRegistry` 和 `AgentHostApplicationOrchestrator`。当前 Persona、Memory、Companion、Workspace 已注册首批查询 Capability，Companion 另外提供 Runtime Context Provider。Manifest 工厂不绑定路飞，可为不同角色创建独立 Agent 实例。现有 Tool / Skill 注册与执行逻辑尚未迁移，下一阶段按合同接入。
+主进程启动阶段注册 `AgentHostDomainRegistry`、`AgentHostCapabilityRegistry` 和 `AgentHostApplicationOrchestrator`。当前 Persona、Memory、Companion、Workspace 已注册首批 Capability，Companion 另外提供 Runtime Context Provider。生产入口通过版本化 Manifest loader 为不同角色创建独立 Agent 实例，Scheduler 的生活推进也通过 Host Workflow 进入统一编排链。
 
 `agent-host/adapter.ts` 提供受控转换，将已授权 Capability 映射为 LLM Tool，Tool 只负责协议和执行上下文转发，不拥有 Domain 业务规则。
 
@@ -10,7 +10,7 @@
 
 Runtime 每轮请求按当前 Agent Manifest 过滤 `capability_*`，再叠加 Skill 的 `allowed_tools` 限制。全局注册表只保存实现，模型请求只接收当前会话可见的能力。
 
-会话级筛选由 `AgentHostScopedToolCatalog` 承担，Runtime 只负责把目录与 Skill 白名单组合，不直接维护 Capability 名称规则。
+会话级筛选由 `AgentHostScopedToolCatalog` 承担，Runtime 只负责把目录与 Skill 白名单组合，不直接维护 Capability 名称规则。Capability 激活状态按 Agent 隔离记录，Debug 读取当前角色的真实激活证据。
 
 Workspace 会话的项目路径、最近对话和焦点内容由 Workspace Context Provider 生成，主 Runtime 只准备作用域输入；主角 Companion Context 不进入 Workspace 会话。
 

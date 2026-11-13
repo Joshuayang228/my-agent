@@ -1,5 +1,5 @@
 import { AgentHostApplicationOrchestrator, AgentHostCapabilityRegistry, AgentHostDomainRegistry } from './domain-catalog'
-import { createCompanionAgentManifest, createCompanionCoreDomain, createMemoryDomain, createPersonaDomain, createWorkspaceDomain } from './builtin-domains'
+import { createCompanionCoreDomain, createMemoryDomain, createPersonaDomain, createWorkspaceDomain, loadCompanionAgentManifest } from './builtin-domains'
 import type { AgentHostExecutionContext } from '../../../src/shared/agent-host'
 import { capabilityToTool } from './adapter'
 import type { SkillDefinition, ToolDefinition } from '../../../src/shared/types'
@@ -24,7 +24,7 @@ export function initializeAgentHost(): void {
 
 export async function getAgentHostContext(input: Omit<AgentHostExecutionContext, 'agentId'> & { roleId: string; domainKeys?: readonly string[] }): Promise<string[]> {
   initializeAgentHost()
-  const manifest = createCompanionAgentManifest({ id: input.roleId, personaKey: `role:${input.roleId}`, domainKeys: input.domainKeys })
+  const manifest = loadCompanionAgentManifest({ id: input.roleId, personaKey: `role:${input.roleId}`, domainKeys: input.domainKeys })
   const environment = agentHostApplication.createEnvironment(manifest)
   const blocks = await Promise.all(environment.contextProviders.map(async provider => provider.provide({ ...input, agentId: manifest.id })))
   return blocks.filter((block): block is string => Boolean(block?.trim()))
@@ -32,17 +32,17 @@ export async function getAgentHostContext(input: Omit<AgentHostExecutionContext,
 
 export function getAgentHostTools(): ToolDefinition[] {
   initializeAgentHost()
-  const manifest = createCompanionAgentManifest({ id: 'agent-host', personaKey: 'agent-host' })
+  const manifest = loadCompanionAgentManifest({ id: 'agent-host', personaKey: 'agent-host' })
   const environment = agentHostApplication.createEnvironment(manifest)
   return environment.capabilities.filter(capability => capability.exposeToTool !== false).map(capability => capabilityToTool(capability, {
     agentId: manifest.id,
-    onActivated: capabilityKey => agentHostCapabilityRegistry.markActivated(capabilityKey),
+    onActivated: (capabilityKey, context) => agentHostCapabilityRegistry.markActivated(capabilityKey, context.roleId ?? context.agentId),
   }))
 }
 
 export function getAgentHostToolNamesForRole(roleId: string): ReadonlySet<string> {
   initializeAgentHost()
-  const manifest = createCompanionAgentManifest({ id: roleId, personaKey: `role:${roleId}` })
+  const manifest = loadCompanionAgentManifest({ id: roleId, personaKey: `role:${roleId}` })
   const environment = agentHostApplication.createEnvironment(manifest)
   return new Set(environment.capabilities.filter(capability => capability.exposeToTool !== false).map(capability => capabilityToTool(capability, { agentId: 'agent-host' }).name))
 }
@@ -57,7 +57,7 @@ export interface AgentHostDebugRecord {
 
 export function getAgentHostDebugRecords(roleId: string): AgentHostDebugRecord[] {
   initializeAgentHost()
-  const manifest = { ...createCompanionAgentManifest({ id: roleId, personaKey: `role:${roleId}` }), skillKeys: registeredSkillKeys }
+  const manifest = { ...loadCompanionAgentManifest({ id: roleId, personaKey: `role:${roleId}` }), skillKeys: registeredSkillKeys }
   const environment = agentHostApplication.createEnvironment(manifest)
   const records: AgentHostDebugRecord[] = [{
     key: `agent-manifest:${manifest.id}`,
@@ -67,7 +67,7 @@ export function getAgentHostDebugRecords(roleId: string): AgentHostDebugRecord[]
   }]
   const available = new Set(environment.capabilities.map(capability => capability.key))
   for (const capability of agentHostCapabilityRegistry.getRegisteredCapabilities()) {
-    const activated = agentHostCapabilityRegistry.hasBeenActivated(capability.key)
+    const activated = agentHostCapabilityRegistry.hasBeenActivated(capability.key, roleId)
     records.push({
       key: `agent-capability:${capability.key}`,
       kind: 'capability',
@@ -95,4 +95,14 @@ export function registerAgentHostTools(toolRegistry: ToolRegistry): void {
 
 export function syncAgentHostSkills(skills: readonly SkillDefinition[]): void {
   registeredSkillKeys = skills.map(skill => skill.meta.name)
+}
+
+export async function runCompanionLifeTickWorkflow(now: number): Promise<unknown> {
+  initializeAgentHost()
+  const manifest = loadCompanionAgentManifest({ id: 'scheduler', personaKey: 'scheduler' })
+  const environment = agentHostApplication.createEnvironment(manifest)
+  return agentHostApplication.runWorkflow(environment, 'companion.life.tick', {}, {
+    agentId: 'scheduler',
+    traceId: `companion-life-tick:${now}`,
+  })
 }

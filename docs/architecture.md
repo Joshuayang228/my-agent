@@ -18,13 +18,13 @@
 
 日记生成 Workflow 复用 `triggerInnerThought` 生活引擎入口，固定生活推进和 LLM Tool 都进入同一日记事实链路。
 
-生活推进增加 `companion.life.tick` Workflow Capability，固定 Scheduler / Headless 入口与受控调用都指向 `tickActiveRole` 生活引擎实现。
+生活推进增加 `companion.life.tick` Workflow Capability，固定 Scheduler 通过 `runCompanionLifeTickWorkflow` 进入 Host Application，再复用 `tickActiveRole` 生活引擎实现；生命周期能力不进入 LLM Tool Catalog。
 
 `companion.life.tick` 标记为 `exposeToTool: false`，只允许固定生命周期入口调用，不把生活时钟控制权交给 LLM。
 
 Debug Model Context 目录现在聚合 Agent Manifest 与 Capability 状态证据，状态来自 Host Registry 和实际激活记录，分别标记 Registered、Available、Activated。
 
-Workspace 的项目路径、最近主对话和当前焦点内容现在由 `workspace.context` Provider 统一注入，Runtime 不再同时拼接第二份 Workspace Prompt。
+Workspace 的项目路径、最近主对话和当前焦点内容现在由 `workspace.context` Provider 统一注入，Runtime 不再同时拼接第二份 Workspace Prompt。Provider 以 `scope + source` 去重并按优先级选择事实来源。
 
 ## 2026-11-13 可靠性收口
 

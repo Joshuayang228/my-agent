@@ -19,6 +19,7 @@ function createDomain() {
     contextProviders: [{
       key: 'memory.recall-context',
       domainKey: 'memory',
+      source: 'memory.recall',
       scope: 'turn' as const,
       priority: 20,
       maxChars: 2_000,
@@ -95,6 +96,24 @@ describe('Agent Host Registry', () => {
     const environment = orchestrator.createEnvironment(manifest)
     expect(registry.hasBeenActivated('memory.search')).toBe(false)
     await orchestrator.invokeCapability(environment, 'memory.search', { query: '海' }, { agentId: 'luffy', traceId: 'activation-1' })
-    expect(registry.hasBeenActivated('memory.search')).toBe(true)
+    expect(registry.hasBeenActivated('memory.search', 'luffy')).toBe(true)
+    expect(registry.hasBeenActivated('memory.search', 'lin')).toBe(false)
+  })
+
+  it('同一 scope 和 source 的 Context Provider 只保留优先级最高的一份', () => {
+    const domains = new AgentHostDomainRegistry()
+    const provider = {
+      key: 'memory.duplicate-context',
+      domainKey: 'memory',
+      source: 'memory.recall',
+      scope: 'turn' as const,
+      priority: 30,
+      maxChars: 500,
+      requires: [],
+      provide: async () => 'duplicate',
+    }
+    domains.register({ ...createDomain(), contextProviders: [...createDomain().contextProviders, provider] })
+    const registry = new AgentHostCapabilityRegistry(domains)
+    expect(registry.getAvailableContextProviders(manifest).map(item => item.key)).toEqual(['memory.duplicate-context'])
   })
 })

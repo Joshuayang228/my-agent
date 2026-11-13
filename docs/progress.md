@@ -1621,6 +1621,10 @@ Debug Model Context 目录新增 Agent Manifest 与 Capability 状态记录，�
 # 2026-11-14 Skill 元数据接入 Agent Host
 
 主进程 Skill 初始化完成后同步 Skill key 与激活工具元数据到 Host，Debug 可以读取 Skill 与 Capability 的可见关系，Skill 正文仍只由 Skill Registry 管理。
+
+# 2026-11-14 Agent Host 可靠性收口
+
+Manifest 生产入口统一经过版本化 loader。Capability 激活证据按 Agent 隔离，避免一个角色的 Tool 调用污染另一个角色的 Debug 状态。Context Provider 以 `scope + source` 去重并按优先级选择唯一事实来源。LifeTicker 通过 `runCompanionLifeTickWorkflow` 进入 Host Application，再复用既有生活引擎。
 # 2026-11-14 Scoped Tool Catalog
 
 新增 `AgentHostScopedToolCatalog`，把 Manifest 授权筛选从 Runtime 条件分支提取为会话级目录对象。全局 ToolRegistry 继续只保存实现，未授权 Capability 不进入模型请求。

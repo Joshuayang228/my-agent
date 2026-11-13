@@ -3,6 +3,8 @@ import { settleVitalsAfterChat } from '../companion/life/world-state'
 import { markResonanceFeedbackDelivered, settleChatResonance } from '../companion/life/chat-resonance'
 import type { LLMConfig } from '../../../src/shared/types'
 import { createLogger } from '../utils/logger'
+import { formatRelationshipStageForPrompt, resolveRelationshipStageForRole } from '../companion/growth/relationship-stage'
+import { getMilestonePromptHint, recordAndBroadcastMilestone } from '../companion/growth/milestones'
 
 const log = createLogger('ConversationApplicationService')
 
@@ -32,5 +34,22 @@ export function settleConversationCompletion(input: {
     markResonanceFeedbackDelivered(input.pendingFeedbackId).catch(error => {
       log.warn('标记心愿反馈已送达失败', { feedbackId: input.pendingFeedbackId, error: error instanceof Error ? error.message : String(error) })
     })
+  }
+}
+
+export async function resolveConversationRelationshipHints(input: {
+  roleId: string
+  sessionKind: 'main' | 'summon'
+  roleDisplayName: string
+}): Promise<{ relationshipStageHint: string; milestoneHint?: string }> {
+  const relationship = await resolveRelationshipStageForRole(input.roleId, { sessionKind: input.sessionKind })
+  if (input.sessionKind === 'main' && relationship.stage === 'rapport') {
+    void recordAndBroadcastMilestone(input.roleId, 'first_rapport', {
+      roleDisplayName: input.roleDisplayName,
+    }).catch(() => {})
+  }
+  return {
+    relationshipStageHint: formatRelationshipStageForPrompt(relationship),
+    milestoneHint: input.sessionKind === 'main' ? await getMilestonePromptHint(input.roleId) : undefined,
   }
 }

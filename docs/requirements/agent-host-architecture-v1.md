@@ -1,7 +1,7 @@
 # My Agent Agent Host 总体架构施工合同 v1
 
-> 状态：进行中
-> 生命周期：进行中，指导 Agent Host 核心抽象、能力接入和现有模块迁移。
+> 状态：已完成施工快照（冻结）
+> 生命周期：已完成施工快照（冻结）。稳定事实已回流模块卡、Architecture、Quality 与 Progress。
 
 ## 1. 需求背景
 
@@ -224,12 +224,14 @@ Debug 必须展示真实的 `Registered`、`Available`、`Activated` 状态。Re
 4. 将 Skill Registry 的元数据和能力关系接入 Capability Registry，禁止重复注册。
 5. 增加 Context Provider 重复事实检测和来源证据。
 
-### P3 · 迁移与收口
+### P3 · 迁移与收口（已完成）
 
 1. 移除 Runtime 中剩余的 Companion 业务判断。
 2. 清理重复的入口级 Domain 调用和第二份能力目录。
 3. 完成多 Agent 隔离、角色切换、后台任务恢复、权限拒绝和跨入口幂等验收。
 4. 回流模块卡、Architecture、Quality、Decisions 和 Progress，冻结本合同。
+
+本合同已完成。Manifest loader、四个首批 Domain、Capability / Context Provider Registry、Scoped Tool Catalog、Conversation Application Service、LifeTicker Workflow、按 Agent 隔离的 Activated 证据和 Provider 来源去重均已落地。固定入口与自然语言 Tool 继续复用同一 Domain / Application 实现，未授权 Domain 不会进入会话上下文或模型 Tool Catalog。
 
 ## 11. 非目标
 
