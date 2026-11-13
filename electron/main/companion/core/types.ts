@@ -61,6 +61,10 @@ export interface CompanionOutboxMessage {
   status: 'pending' | 'processing' | 'delivered' | 'failed'
   attempt: number
   lastError: string | null
+  claimedAt: number | null
+  leaseUntil: number | null
+  nextAttemptAt: number | null
+  maxAttempts: number
   createdAt: number
   deliveredAt: number | null
 }

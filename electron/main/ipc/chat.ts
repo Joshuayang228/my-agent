@@ -6,6 +6,7 @@ import { createLogger } from '../utils/logger'
 import { toAgentError } from '../errs'
 import type { ChatMessage, WorkspaceChatContext } from '../../../src/shared/types'
 import { recordUserActivity } from '../companion/life/host-presence'
+import { assertTrustedIpcSender } from './ipc-security'
 
 const log = createLogger('ChatIPC')
 
@@ -68,15 +69,21 @@ function readWorkspaceChatContext(value: unknown): WorkspaceChatContext | undefi
 }
 
 export function registerChatIPC(toolRegistry: ToolRegistry): void {
-  ipcMain.handle('ping', () => 'pong')
+  const handle = (channel: string, listener: (event: Electron.IpcMainInvokeEvent, ...args: any[]) => unknown): void => {
+    ipcMain.handle(channel, (event, ...args) => {
+      assertTrustedIpcSender(event)
+      return listener(event, ...args)
+    })
+  }
+  handle('ping', () => 'pong')
 
-  ipcMain.handle('chat:abort', (event, sessionId?: string) => {
+  handle('chat:abort', (event, sessionId?: string) => {
     const normalizedSessionId = typeof sessionId === 'string' && sessionId.length <= MAX_CHAT_ID_LENGTH ? sessionId : undefined
     if (!normalizedSessionId || activeChatSenders.get(normalizedSessionId)?.senderId !== event.sender.id) return
     activeChatSenders.get(normalizedSessionId)?.cancel()
   })
 
-  ipcMain.handle('chat:send', async (event, sessionId: string, userMessage: ChatMessage, rawContext?: unknown) => {
+  handle('chat:send', async (event, sessionId: string, userMessage: ChatMessage, rawContext?: unknown) => {
     if (typeof sessionId !== 'string' || sessionId.length === 0 || sessionId.length > MAX_CHAT_ID_LENGTH) {
       throw new Error('会话 ID 无效')
     }

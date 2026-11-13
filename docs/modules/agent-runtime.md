@@ -1,5 +1,11 @@
 # Agent 运行时
 
+## 可靠性边界（2026-11-13）
+
+- 对话完成后的伙伴生活副作用统一由 `conversation-application-service.ts` 编排，Runtime 不再直接依赖生命体征、共鸣和反思服务。
+- Chat、Session 与 Companion 的特权 IPC handler 经过统一主框架来源校验。生成图片入口继续保留异步期间的 frame、导航和销毁复核。
+- sql.js 性能基线通过 `npm run bench:database` 生成，暂不替换存储实现，数据库增长和 `persist()` 全量导出耗时作为后续迁移 WAL 的量化依据。
+
 深夜反思与高光回忆重温（2026-11-09）：
 - 新增 `companion:trigger-nightly-reflection`、`companion:get-nostalgic-reminiscence` IPC 接口与 `companion:nightly-reflection-created` 广播通道；
 - `nightly-reflection.ts` 由生活推进（Life Ticker）在深夜（22:00～04:00）或触发时生成第一人称深夜自省独白，存入 `companion_inner_thoughts` 并将心灵感悟（`epiphany`）同步写入长期记忆 feedback 分桶；

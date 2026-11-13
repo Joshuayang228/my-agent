@@ -1,5 +1,11 @@
 # 系统架构
 
+## 2026-11-13 可靠性收口
+
+人物世界核心写入现在通过 `withCompanionUnitOfWork` 复用数据库事务协调器，建表在事务外完成，领域事件、业务事实与 Outbox 写入在同一事务内提交。Outbox 采用 `claimed_at` / `lease_until` 租约，过期 processing 会被下一轮恢复，失败使用 `next_attempt_at` 退避重试，投递语义为至少一次，消费端必须幂等。
+
+对话完成后的伙伴生活结算由 `conversation-application-service.ts` 负责，Agent Runtime 只保留会话生命周期和 Loop 编排。Chat、Session 与 Companion 的特权 IPC 入口统一经过主框架来源校验，图片读取入口继续保留异步期间的导航复核。sql.js 当前通过 `npm run bench:database` 建立插入与全量导出基线。
+
 ## 人物世界核心层（2026-11-12）
 
 人物世界采用模块化单体内的领域核心。IPC、Chat Tool、LifeTicker 和 Debug 逐步转为 Command Adapter，核心层维护 `companion_runtime_state`、`companion_domain_events`、`companion_execution_runs` 和 `companion_outbox`。`core/commands/gateway.ts` 统一 active role 校验、命令执行账本和 retryable 失败记录，人物世界主要写入 IPC 已经经过该网关。朋友圈、日记、信物、关系和 Prompt 读取面作为投影迁移，旧生活表在迁移期只作为镜像读模型。

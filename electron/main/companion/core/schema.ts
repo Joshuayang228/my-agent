@@ -81,11 +81,23 @@ export async function ensureCompanionCoreSchema(): Promise<void> {
       status TEXT NOT NULL DEFAULT 'pending',
       attempt INTEGER NOT NULL DEFAULT 0,
       last_error TEXT,
+      claimed_at INTEGER,
+      lease_until INTEGER,
+      next_attempt_at INTEGER,
+      max_attempts INTEGER NOT NULL DEFAULT 8,
       created_at INTEGER NOT NULL,
       delivered_at INTEGER,
       UNIQUE(role_id, dedupe_key)
     )
   `)
+  for (const column of [
+    ['claimed_at', 'INTEGER'],
+    ['lease_until', 'INTEGER'],
+    ['next_attempt_at', 'INTEGER'],
+    ['max_attempts', 'INTEGER NOT NULL DEFAULT 8'],
+  ] as const) {
+    try { db.run(`ALTER TABLE companion_outbox ADD COLUMN ${column[0]} ${column[1]}`) } catch { /* 已存在 */ }
+  }
   db.run('CREATE INDEX IF NOT EXISTS idx_companion_outbox_pending ON companion_outbox(status, created_at)')
   db.run(`
     CREATE TABLE IF NOT EXISTS companion_projection_receipts (

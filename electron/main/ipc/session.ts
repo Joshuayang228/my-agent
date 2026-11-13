@@ -4,6 +4,7 @@ import * as store from '../storage/session-store'
 import { createLogger } from '../utils/logger'
 import { deleteChatSession } from './chat'
 import { loadGeneratedImageFile, readGeneratedImage } from '../storage/generated-images'
+import { assertTrustedIpcSender } from './ipc-security'
 
 const log = createLogger('SessionIPC')
 const MAX_ID_LENGTH = 200
@@ -14,6 +15,12 @@ function validId(value: unknown): value is string {
 }
 
 export function registerSessionIPC(): void {
+  const handle = (channel: string, listener: (event: Electron.IpcMainInvokeEvent, ...args: any[]) => unknown): void => {
+    ipcMain.handle(channel, (event, ...args) => {
+      assertTrustedIpcSender(event)
+      return listener(event, ...args)
+    })
+  }
   ipcMain.handle('session:revealGeneratedImage', async (event, sessionId: unknown, imageId: unknown) => {
     try {
       const frame = event.senderFrame
@@ -31,21 +38,21 @@ export function registerSessionIPC(): void {
     if (event.sender.isDestroyed() || !event.senderFrame || event.senderFrame !== event.sender.mainFrame) return { ok: false, error: '当前页面不能读取会话图片。' }
     return readGeneratedImage(sessionId, imageId)
   })
-  ipcMain.handle('session:list', async () => store.listSessions())
+  handle('session:list', async () => store.listSessions())
 
-  ipcMain.handle('session:create', async () => store.createSession())
-    ipcMain.handle('session:createWorkspace', async () => store.createSession(undefined, { title: '工作区对话', sessionKind: 'workspace' }))
-  ipcMain.handle('session:getOrCreateWorkspace', async (_event, parentSessionId: unknown) =>
+  handle('session:create', async () => store.createSession())
+    handle('session:createWorkspace', async () => store.createSession(undefined, { title: '工作区对话', sessionKind: 'workspace' }))
+  handle('session:getOrCreateWorkspace', async (_event, parentSessionId: unknown) =>
     store.getOrCreateWorkspaceSession(validId(parentSessionId) ? parentSessionId : undefined))
-  ipcMain.handle('session:clearWorkspace', async (_event, parentSessionId: unknown) => {
+  handle('session:clearWorkspace', async (_event, parentSessionId: unknown) => {
     if (!validId(parentSessionId)) throw new Error('主会话 ID 无效')
     return store.clearWorkspaceSession(parentSessionId)
   })
 
-  ipcMain.handle('session:get', async (_event, sessionId: unknown) =>
+  handle('session:get', async (_event, sessionId: unknown) =>
     validId(sessionId) ? store.getSession(sessionId) : null)
 
-  ipcMain.handle('session:delete', async (event, sessionId: unknown) => {
+  handle('session:delete', async (event, sessionId: unknown) => {
     if (!validId(sessionId)) throw new Error('会话 ID 无效')
     return deleteChatSession(sessionId, event.sender.id, async () => {
       try {
@@ -57,25 +64,25 @@ export function registerSessionIPC(): void {
     })
   })
 
-  ipcMain.handle('session:rename', async (_event, sessionId: unknown, title: unknown) => {
+  handle('session:rename', async (_event, sessionId: unknown, title: unknown) => {
     if (!validId(sessionId) || typeof title !== 'string' || title.length === 0 || title.length > MAX_TITLE_LENGTH) throw new Error('会话标题参数无效')
     return store.updateSessionTitle(sessionId, title)
   })
 
-  ipcMain.handle('session:fork', async (_event, sessionId: unknown, upToMessageId: unknown) => {
+  handle('session:fork', async (_event, sessionId: unknown, upToMessageId: unknown) => {
     if (!validId(sessionId) || !validId(upToMessageId)) throw new Error('会话分支参数无效')
     return store.forkSession(sessionId, upToMessageId)
   })
 
-  ipcMain.handle('message:delete', async (_event, messageId: unknown) => {
+  handle('message:delete', async (_event, messageId: unknown) => {
     if (!validId(messageId)) throw new Error('消息 ID 无效')
     return store.deleteMessage(messageId)
   })
 
-  ipcMain.handle('session:tokenUsage', async (_event, sessionId: unknown) =>
+  handle('session:tokenUsage', async (_event, sessionId: unknown) =>
     validId(sessionId) ? store.getTokenUsage(sessionId) : { promptTokens: 0, completionTokens: 0 })
 
-  ipcMain.handle('session:regenerateTitle', async (_event, sessionId: unknown) => {
+  handle('session:regenerateTitle', async (_event, sessionId: unknown) => {
     if (!validId(sessionId)) return { success: false, error: '会话 ID 无效' }
     try {
       const session = await store.getSession(sessionId)

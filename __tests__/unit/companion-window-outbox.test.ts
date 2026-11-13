@@ -31,8 +31,18 @@ describe('人物世界窗口 Outbox 适配器', () => {
 
     const send = vi.fn()
     windows = [{ isDestroyed: () => false, webContents: { send } }]
+    memDb.run("UPDATE companion_outbox SET next_attempt_at = 0 WHERE dedupe_key = 'window-test-1'")
     expect(await dispatchCompanionWindowOutbox()).toBe(1)
     expect(send).toHaveBeenCalledWith('companion:test-notification', { ok: true })
     expect(memDb.exec("SELECT status, attempt FROM companion_outbox WHERE dedupe_key = 'window-test-1'")[0]?.values[0]).toEqual(['delivered', 2])
+  })
+
+  it('过期 processing 租约会在下一轮恢复并重新投递', async () => {
+    await enqueueCompanionOutbox({ roleId: 'luffy', kind: 'test-lease', dedupeKey: 'window-lease-1', payload: { ok: true } })
+    memDb.run("UPDATE companion_outbox SET status = 'processing', claimed_at = 1, lease_until = 1 WHERE dedupe_key = 'window-lease-1'")
+    const send = vi.fn()
+    windows = [{ isDestroyed: () => false, webContents: { send } }]
+    expect(await dispatchCompanionWindowOutbox()).toBe(1)
+    expect(send).toHaveBeenCalledWith('companion:test-lease', { ok: true })
   })
 })

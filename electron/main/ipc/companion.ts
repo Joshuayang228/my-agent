@@ -63,6 +63,7 @@ import { readGeneratedImageReference, loadGeneratedImageReference } from '../sto
 import { getHostPresenceStatus, checkAndTriggerHostCare } from '../companion/life/host-presence'
 import { replanRemainingSlots } from '../companion/life/replan'
 import { executeCompanionCommand } from '../companion/core/commands/gateway'
+import { assertTrustedIpcSender } from './ipc-security'
 
 const log = createLogger('CompanionIPC')
 const boundedLimit = (value: unknown, fallback = 50, maximum = 200): number => Number.isSafeInteger(value) ? Math.max(1, Math.min(maximum, value as number)) : fallback
@@ -82,15 +83,21 @@ async function requireActiveWriteRole(roleId?: unknown): Promise<string> {
 }
 
 export function registerCompanionIPC(): void {
-  ipcMain.handle('companion:proactive-greeting-receipt', (event, input: unknown) => acknowledgeProactiveGreeting(event, input))
-  ipcMain.handle('companion:proactive-evidence-query', (_event, input: unknown) => {
+  const handle = (channel: string, listener: (event: Electron.IpcMainInvokeEvent, ...args: any[]) => unknown): void => {
+    ipcMain.handle(channel, (event, ...args) => {
+      assertTrustedIpcSender(event)
+      return listener(event, ...args)
+    })
+  }
+  handle('companion:proactive-greeting-receipt', (event, input: unknown) => acknowledgeProactiveGreeting(event, input))
+  handle('companion:proactive-evidence-query', (_event, input: unknown) => {
     try { return queryProactiveEvidence(input) } catch { throw new Error('无法读取问候记录，请检查人物与查询范围后重试') }
   })
-  ipcMain.handle('companion:list-protagonists', async () => {
+  handle('companion:list-protagonists', async () => {
     const universeId = await settings.getSetting('universeId')
     return listActiveUniverseProtagonists(universeId)
   })
-  ipcMain.handle('companion:list-universes', async () => {
+  handle('companion:list-universes', async () => {
     const active = await settings.getSetting('universeId')
     return listAvailableUniverseIds().map(id => {
       try {
@@ -99,35 +106,35 @@ export function registerCompanionIPC(): void {
       } catch { return { id, title: id, version: 0, defaultProtagonistId: '', active: id === active } }
     })
   })
-  ipcMain.handle('companion:switch-universe', async (_e, universeId: unknown) => {
+  handle('companion:switch-universe', async (_e, universeId: unknown) => {
     if (typeof universeId !== 'string') return { ok: false as const, code: 'INVALID_UNIVERSE' as const }
     try { return await requestUniverseSwitch(universeId) } catch { return { ok: false as const, code: 'SWITCH_FAILED' as const } }
   })
 
-  ipcMain.handle('companion:get-active', async () => getActiveRole())
-  ipcMain.handle('companion:get-role-visuals', async (_e, roleId?: unknown) => {
+  handle('companion:get-active', async () => getActiveRole())
+  handle('companion:get-role-visuals', async (_e, roleId?: unknown) => {
     const target = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : undefined
     return getRoleVisuals(target)
   })
-  ipcMain.handle('companion:claim-first-contact', async () => {
+  handle('companion:claim-first-contact', async () => {
     try { return await claimFirstContact(await getActiveRoleId()) } catch { throw new Error('无法读取人物首次冷启状态') }
   })
 
-  ipcMain.handle('companion:request-switch', async (_e, roleId: string) => {
+  handle('companion:request-switch', async (_e, roleId: string) => {
     if (typeof roleId !== 'string' || !roleId.trim()) {
       return { ok: false, code: 'UNKNOWN_ROLE' as const }
     }
     return requestSwitch(roleId.trim())
   })
 
-  ipcMain.handle('companion:get-mutable', async (_e, roleId?: string) => {
+  handle('companion:get-mutable', async (_e, roleId?: string) => {
     const id = (typeof roleId === 'string' && roleId.trim()) || (await getActiveRoleId())
     const universeId = await settings.getSetting('universeId')
     const body = await getMutable(id, universeId)
     return { roleId: id, body }
   })
 
-  ipcMain.handle(
+  handle(
     'companion:set-mutable',
     async (_e, roleId: string, body: string, summary?: string) => {
       if (typeof roleId !== 'string' || !roleId.trim()) {
@@ -144,12 +151,12 @@ export function registerCompanionIPC(): void {
     },
   )
 
-  ipcMain.handle('companion:list-mutable-versions', async (_e, roleId: string) => {
+  handle('companion:list-mutable-versions', async (_e, roleId: string) => {
     if (typeof roleId !== 'string' || !roleId.trim()) return []
     return listMutableVersions(roleId.trim())
   })
 
-  ipcMain.handle('companion:rollback-mutable', async (_e, roleId: string, toVersion: number) => {
+  handle('companion:rollback-mutable', async (_e, roleId: string, toVersion: number) => {
     if (typeof roleId !== 'string' || !roleId.trim() || !Number.isFinite(toVersion)) {
       return { ok: false as const, error: 'INVALID_ARGS' }
     }
@@ -163,7 +170,7 @@ export function registerCompanionIPC(): void {
   })
 
   /** 朋友圈：仅返回当前活跃主角；用户赞 / 评论不写回动态正文 */
-  ipcMain.handle(
+  handle(
     'companion:get-moments',
     async (_e, opts?: { limit?: number; offset?: number }) => {
       const roleId = await getActiveRoleId()
@@ -187,7 +194,7 @@ export function registerCompanionIPC(): void {
     },
   )
 
-  ipcMain.handle('companion:read-moment-image', async (_e, momentId: unknown, imageId: unknown) => {
+  handle('companion:read-moment-image', async (_e, momentId: unknown, imageId: unknown) => {
     if (typeof momentId !== 'string' || !momentId || momentId.length > 200
       || typeof imageId !== 'string' || !/^[a-f0-9]{64}$/.test(imageId)) return { ok: false as const, error: '图片引用无效。' }
     try {
@@ -199,13 +206,13 @@ export function registerCompanionIPC(): void {
   })
 
   /** 生活切片：事件是事实源，Renderer 不自行拼接跨表关联。 */
-  ipcMain.handle('companion:get-life-slice', async (_e, eventId: unknown) => {
+  handle('companion:get-life-slice', async (_e, eventId: unknown) => {
     if (typeof eventId !== 'string' || !eventId.trim()) return null
     const roleId = await getActiveRoleId()
     return getLifeSliceForRole(roleId, eventId.trim())
   })
 
-  ipcMain.handle('companion:toggle-moment-like', async (_e, momentId: string) => {
+  handle('companion:toggle-moment-like', async (_e, momentId: string) => {
     if (typeof momentId !== 'string' || !momentId.trim()) {
       return { ok: false as const, error: '动态不存在', code: 'INVALID' }
     }
@@ -213,7 +220,7 @@ export function registerCompanionIPC(): void {
     return executeCompanionCommand({ roleId, actionType: 'toggle-moment-like', handler: () => toggleMomentLikeForRole(roleId, momentId.trim()) })
   })
 
-  ipcMain.handle(
+  handle(
     'companion:add-moment-comment',
     async (
       _e,
@@ -229,130 +236,130 @@ export function registerCompanionIPC(): void {
     },
   )
 
-  ipcMain.handle('companion:get-today-timeline', async (_e, roleId?: string) => {
+  handle('companion:get-today-timeline', async (_e, roleId?: string) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     return getTodayTimelineForRole(targetRoleId)
   })
 
-  ipcMain.handle('companion:get-host-presence-status', async () => getHostPresenceStatus())
-  ipcMain.handle('companion:trigger-host-care-check', async (_e, roleId?: unknown, kind?: unknown) => {
+  handle('companion:get-host-presence-status', async () => getHostPresenceStatus())
+  handle('companion:trigger-host-care-check', async (_e, roleId?: unknown, kind?: unknown) => {
     const targetRoleId = await requireActiveWriteRole(roleId)
     if (typeof kind !== 'undefined' && kind !== 'fatigue_break' && kind !== 'late_night_sleep' && kind !== 'welcome_back') return { ok: false as const, error: '关怀类型无效。' }
     return executeCompanionCommand({ roleId: targetRoleId, actionType: 'host-care-check', handler: async () => ({ ok: true as const, care: await checkAndTriggerHostCare(targetRoleId, Date.now(), kind as import('../../../src/shared/types').HostCareKind | undefined) }) })
   })
-  ipcMain.handle('companion:replan-today-slots', async (_e, roleId?: unknown, reason?: unknown) => {
+  handle('companion:replan-today-slots', async (_e, roleId?: unknown, reason?: unknown) => {
     const targetRoleId = await requireActiveWriteRole(roleId)
     if (typeof reason !== 'string' || reason.trim().length === 0 || reason.length > 500) return { ok: false as const, error: '重排原因无效。' }
     return executeCompanionCommand({ roleId: targetRoleId, actionType: 'replan-today-slots', handler: () => replanRemainingSlots(targetRoleId, { trigger: 'manual', reason: reason.trim(), now: Date.now(), preferLlm: true }) })
   })
 
-  ipcMain.handle('companion:list-life-resonances', async (_e, roleId?: string) => {
+  handle('companion:list-life-resonances', async (_e, roleId?: string) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     return listLifeResonances(targetRoleId)
   })
 
-  ipcMain.handle('companion:list-inner-thoughts', async (_e, roleId?: string) => {
+  handle('companion:list-inner-thoughts', async (_e, roleId?: string) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { listInnerThoughts } = await import('../companion/life/inner-thoughts')
     return listInnerThoughts(targetRoleId)
   })
 
-  ipcMain.handle('companion:delete-inner-thought', async (_e, id: string) => {
+  handle('companion:delete-inner-thought', async (_e, id: string) => {
     const { deleteInnerThought } = await import('../companion/life/inner-thoughts')
     const roleId = await getActiveRoleId()
     return executeCompanionCommand({ roleId, actionType: 'delete-inner-thought', handler: () => deleteInnerThought(id) })
   })
 
-  ipcMain.handle('companion:trigger-nightly-reflection', async (_e, roleId?: string, force?: boolean) => {
+  handle('companion:trigger-nightly-reflection', async (_e, roleId?: string, force?: boolean) => {
     const targetRoleId = await requireActiveWriteRole(roleId)
     const { triggerNightlyReflection } = await import('../companion/life/nightly-reflection')
     return executeCompanionCommand({ roleId: targetRoleId, actionType: 'nightly-reflection', handler: () => triggerNightlyReflection(targetRoleId, Date.now(), { force: force === true }) })
   })
 
-  ipcMain.handle('companion:get-nostalgic-reminiscence', async (_e, roleId?: string) => {
+  handle('companion:get-nostalgic-reminiscence', async (_e, roleId?: string) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { pickNostalgicReminiscence } = await import('../companion/life/nostalgia')
     return pickNostalgicReminiscence(targetRoleId, Date.now())
   })
 
-  ipcMain.handle('companion:list-keepsakes', async (_e, roleId?: string) => {
+  handle('companion:list-keepsakes', async (_e, roleId?: string) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { listKeepsakes } = await import('../companion/growth/relationship-keepsake')
     return listKeepsakes(targetRoleId)
   })
 
-  ipcMain.handle('companion:gift-keepsake', async (_e, roleId?: string, keepsakeKey?: string, customReason?: string) => {
+  handle('companion:gift-keepsake', async (_e, roleId?: string, keepsakeKey?: string, customReason?: string) => {
     if (typeof keepsakeKey !== 'undefined' && (typeof keepsakeKey !== 'string' || keepsakeKey.length > 100) || typeof customReason !== 'undefined' && (typeof customReason !== 'string' || customReason.length > 500)) throw new Error('信物信息无效。')
     const targetRoleId = await requireActiveWriteRole(roleId)
     const { triggerGiftKeepsake } = await import('../companion/growth/relationship-keepsake')
     return executeCompanionCommand({ roleId: targetRoleId, actionType: 'gift-keepsake', handler: () => triggerGiftKeepsake(targetRoleId, keepsakeKey, customReason) })
   })
 
-  ipcMain.handle('companion:get-active-vulnerability', async (_e, roleId?: string) => {
+  handle('companion:get-active-vulnerability', async (_e, roleId?: string) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { getActiveVulnerability } = await import('../companion/life/vulnerability')
     return getActiveVulnerability(targetRoleId)
   })
 
-  ipcMain.handle('companion:list-vulnerabilities', async (_e, roleId?: string, limit?: number) => {
+  handle('companion:list-vulnerabilities', async (_e, roleId?: string, limit?: number) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { listVulnerabilities } = await import('../companion/life/vulnerability')
     return listVulnerabilities(targetRoleId, boundedLimit(limit, 20))
   })
 
-  ipcMain.handle('companion:comfort-vulnerability', async (_e, vulnerabilityId: string, comfortText?: string) => {
+  handle('companion:comfort-vulnerability', async (_e, vulnerabilityId: string, comfortText?: string) => {
     if (typeof vulnerabilityId !== 'string' || vulnerabilityId.length === 0 || vulnerabilityId.length > 160 || typeof comfortText !== 'undefined' && (typeof comfortText !== 'string' || comfortText.length > 500)) return { ok: false as const, error: '安慰内容无效。' }
     const { comfortVulnerability } = await import('../companion/life/vulnerability')
     const roleId = await getActiveRoleId()
     return executeCompanionCommand({ roleId, actionType: 'comfort-vulnerability', handler: () => comfortVulnerability(vulnerabilityId, comfortText) })
   })
 
-  ipcMain.handle('companion:trigger-vulnerability', async (_e, roleId?: string, forceContext?: string) => {
+  handle('companion:trigger-vulnerability', async (_e, roleId?: string, forceContext?: string) => {
     if (typeof forceContext !== 'undefined' && (typeof forceContext !== 'string' || forceContext.length > 500)) throw new Error('心境上下文无效。')
     const targetRoleId = await requireActiveWriteRole(roleId)
     const { triggerVulnerability } = await import('../companion/life/vulnerability')
     return executeCompanionCommand({ roleId: targetRoleId, actionType: 'trigger-vulnerability', handler: () => triggerVulnerability(targetRoleId, forceContext) })
   })
 
-  ipcMain.handle('companion:list-available-gifts', async (_e, roleId?: string) => {
+  handle('companion:list-available-gifts', async (_e, roleId?: string) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { listAvailableGifts } = await import('../companion/life/gifting')
     return listAvailableGifts(targetRoleId)
   })
 
-  ipcMain.handle('companion:list-received-gifts', async (_e, roleId?: string, limit?: number) => {
+  handle('companion:list-received-gifts', async (_e, roleId?: string, limit?: number) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { listReceivedGifts } = await import('../companion/life/gifting')
     return listReceivedGifts(targetRoleId, boundedLimit(limit))
   })
 
-  ipcMain.handle('companion:send-gift', async (_e, roleId: string, giftKey: string, userNote?: string) => {
+  handle('companion:send-gift', async (_e, roleId: string, giftKey: string, userNote?: string) => {
     if (typeof giftKey !== 'string' || giftKey.length > 100 || typeof userNote === 'string' && userNote.length > 500) throw new Error('赠礼信息无效。')
     const targetRoleId = await requireActiveWriteRole(roleId)
     const { sendGiftToCompanion } = await import('../companion/life/gifting')
     return executeCompanionCommand({ roleId: targetRoleId, actionType: 'send-gift', handler: () => sendGiftToCompanion(targetRoleId, giftKey, userNote) })
   })
 
-  ipcMain.handle('companion:list-autonomous-dressings', async (_e, roleId?: string, limit?: number) => {
+  handle('companion:list-autonomous-dressings', async (_e, roleId?: string, limit?: number) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { listAutonomousDressings } = await import('../companion/life/autonomous-dressing')
     return listAutonomousDressings(targetRoleId, boundedLimit(limit))
   })
 
-  ipcMain.handle('companion:list-travel-progressions', async (_e, roleId?: string, limit?: number) => {
+  handle('companion:list-travel-progressions', async (_e, roleId?: string, limit?: number) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
     const { listTravelProgressions } = await import('../companion/life/travel-progression')
     return listTravelProgressions(targetRoleId, boundedLimit(limit))
   })
 
-  ipcMain.handle('companion:trigger-travel-progression', async (_e, roleId?: string, customStop?: { name: string; story: string }) => {
+  handle('companion:trigger-travel-progression', async (_e, roleId?: string, customStop?: { name: string; story: string }) => {
     if (typeof customStop !== 'undefined' && (!customStop || typeof customStop !== 'object' || typeof customStop.name !== 'string' || typeof customStop.story !== 'string' || customStop.name.length > 100 || customStop.story.length > 5000)) throw new Error('旅行站点内容无效。')
     const targetRoleId = await requireActiveWriteRole(roleId)
     const { triggerTravelProgression } = await import('../companion/life/travel-progression')
     return executeCompanionCommand({ roleId: targetRoleId, actionType: 'travel-progression', handler: () => triggerTravelProgression(targetRoleId, customStop) })
   })
 
-  ipcMain.handle('companion:catchup-status', async () => {
+  handle('companion:catchup-status', async () => {
     const roleId = await getActiveRoleId()
     const state = await getRoleState(roleId)
     const universeId = await settings.getSetting('universeId')
@@ -368,7 +375,7 @@ export function registerCompanionIPC(): void {
   })
 
   /** 物什（衣柜/书架）：仅活跃主角；空 kind 时播种 starter */
-  ipcMain.handle(
+  handle(
     'companion:get-assets',
     async (_e, opts?: { kind?: string }) => {
       const roleId = await getActiveRoleId()
@@ -380,7 +387,7 @@ export function registerCompanionIPC(): void {
   )
 
   /** 用户主动写入活跃主角生活资产；kind 白名单由 createAsset 校验 */
-  ipcMain.handle(
+  handle(
     'companion:create-asset',
     async (
       _e,
@@ -414,7 +421,7 @@ export function registerCompanionIPC(): void {
   )
 
   /** 显式换装：核对当前角色与页面版本，按完整槽位原子保存。 */
-  ipcMain.handle('companion:change-wardrobe', async (_e, input?: CompanionWardrobeChangeInput) => {
+  handle('companion:change-wardrobe', async (_e, input?: CompanionWardrobeChangeInput) => {
     if (!input || typeof input.roleId !== 'string' || input.roleId.length > 128 || typeof input.assetId !== 'string' || input.assetId.length > 160
       || !Number.isSafeInteger(input.expectedVersion) || input.expectedVersion < 0) return { ok: false as const, code: 'INVALID', error: '换装信息无效，请重新读取衣柜。' }
     const roleId = await getActiveRoleId()
@@ -426,7 +433,7 @@ export function registerCompanionIPC(): void {
   })
 
   /** M25-G1：更新活跃主角资产 */
-  ipcMain.handle(
+  handle(
     'companion:update-asset',
     async (
       _e,
@@ -453,7 +460,7 @@ export function registerCompanionIPC(): void {
   )
 
   /** M25-G1：删除活跃主角资产 */
-  ipcMain.handle('companion:delete-asset', async (_e, assetId: string) => {
+  handle('companion:delete-asset', async (_e, assetId: string) => {
     if (typeof assetId !== 'string' || !assetId.trim()) {
       return { ok: false as const, error: 'INVALID_ID' }
     }
@@ -474,7 +481,7 @@ export function registerCompanionIPC(): void {
    * 意图：只读取活跃角色的持久化资产引用，沿用文件摘要与真实路径校验，而非放开任意路径。
    * 约束：Renderer 只传资产和图片 ID；异步读取后必须再次核对角色与资产图片引用。
    */
-  ipcMain.handle('companion:read-asset-image', async (_e, assetId: unknown, imageId: unknown) => {
+  handle('companion:read-asset-image', async (_e, assetId: unknown, imageId: unknown) => {
     if (typeof assetId !== 'string' || !assetId.trim() || typeof imageId !== 'string') return { ok: false as const, error: '图片引用无效。' }
     const roleId = await getActiveRoleId()
     const asset = await getAsset(assetId.trim())
@@ -486,7 +493,7 @@ export function registerCompanionIPC(): void {
     return result
   })
 
-  ipcMain.handle('companion:reveal-asset-image', async (event, assetId: unknown, imageId: unknown) => {
+  handle('companion:reveal-asset-image', async (event, assetId: unknown, imageId: unknown) => {
     try {
       if (typeof assetId !== 'string' || !assetId.trim() || typeof imageId !== 'string') return { ok: false as const, error: '图片引用无效。' }
       const frame = event.senderFrame
@@ -508,8 +515,8 @@ export function registerCompanionIPC(): void {
   })
 
   /** 名册：以活跃主角为视角的关系短句 + 卡司浅层 */
-  ipcMain.handle('companion:get-roster', async () => getActiveRoster())
-  ipcMain.handle('companion:get-contacts', async () => {
+  handle('companion:get-roster', async () => getActiveRoster())
+  handle('companion:get-contacts', async () => {
     try {
       const roleId = await getActiveRoleId()
       const universeId = await settings.getSetting('universeId')
@@ -523,7 +530,7 @@ export function registerCompanionIPC(): void {
   })
 
   /** 召唤摘要：不含 protected，不启用对方生活世界 */
-  ipcMain.handle('companion:summon-brief', async (_e, roleId: string) => {
+  handle('companion:summon-brief', async (_e, roleId: string) => {
     if (typeof roleId !== 'string' || !roleId.trim()) {
       return { ok: false as const, error: 'INVALID_ROLE' }
     }
@@ -537,7 +544,7 @@ export function registerCompanionIPC(): void {
   })
 
   /** 召唤前忙闲（Alice checkFriendAvailability 对照） */
-  ipcMain.handle('companion:check-cast-availability', async (_e, roleId: string) => {
+  handle('companion:check-cast-availability', async (_e, roleId: string) => {
     if (typeof roleId !== 'string' || !roleId.trim()) {
       return { ok: false as const, error: 'INVALID_ROLE' }
     }
@@ -545,7 +552,7 @@ export function registerCompanionIPC(): void {
   })
 
   /** 召唤子会话：装载对方完整 Pack，不改 active、不启对方生活 */
-  ipcMain.handle(
+  handle(
     'companion:start-summon',
     async (_e, roleId: string, force?: boolean) => {
       if (typeof roleId !== 'string' || !roleId.trim()) {
@@ -556,13 +563,13 @@ export function registerCompanionIPC(): void {
   )
 
   /** 成长反思状态（门闸 + 最近 runs） */
-  ipcMain.handle('companion:reflection-status', async (_e, roleId?: string) => {
+  handle('companion:reflection-status', async (_e, roleId?: string) => {
     const id = (typeof roleId === 'string' && roleId.trim()) || (await getActiveRoleId())
     return getReflectionStatus(id)
   })
 
   /** 立即反思；force 跳过 72h/24h/消息数门闸 */
-  ipcMain.handle(
+  handle(
     'companion:run-reflection',
     async (_e, roleId?: string, force?: boolean) => {
       const id = (typeof roleId === 'string' && roleId.trim()) || (await getActiveRoleId())
@@ -575,7 +582,7 @@ export function registerCompanionIPC(): void {
   )
 
   /** M30-G1：已记录的关系里程碑种类（无成就点数） */
-  ipcMain.handle('companion:list-milestones', async (_e, roleId?: string) => {
+  handle('companion:list-milestones', async (_e, roleId?: string) => {
     const id = (typeof roleId === 'string' && roleId.trim()) || (await getActiveRoleId())
     const { listMilestoneKinds } = await import('../companion/growth/milestones')
     return { roleId: id, kinds: await listMilestoneKinds(id) }

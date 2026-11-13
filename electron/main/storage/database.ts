@@ -42,6 +42,7 @@ export const SCHEMA_VERSION = 25
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
+let transactionDepth = 0
 /** 写盘期间又有人调了 persist → 结束后再写一次最新快照 */
 let persistDirty = false
 
@@ -50,6 +51,24 @@ let persistDirty = false
  * 关键约束：此函数不得打开文件、初始化 schema 或改变单例；业务写入口仍走 getDatabase。
  */
 export function getInitializedDatabase(): SqlJsDatabase | null { return db }
+
+export async function withDatabaseTransaction<T>(work: (database: SqlJsDatabase) => Promise<T>): Promise<T> {
+  const database = await getDatabase()
+  if (transactionDepth > 0) return work(database)
+  transactionDepth += 1
+  database.run('BEGIN')
+  try {
+    const result = await work(database)
+    database.run('COMMIT')
+    persist()
+    return result
+  } catch (error) {
+    try { database.run('ROLLBACK') } catch { /* 原始错误优先 */ }
+    throw error
+  } finally {
+    transactionDepth -= 1
+  }
+}
 
 export async function getDatabase(): Promise<SqlJsDatabase> {
   if (db) return db
@@ -682,6 +701,10 @@ export function atomicWriteFileSync(filePath: string, data: Uint8Array): void {
  */
 export function persist(): void {
   if (!db || !dbPath) return
+  if (transactionDepth > 0) {
+    persistDirty = true
+    return
+  }
 
   if (persisting) {
     persistDirty = true
@@ -720,4 +743,5 @@ export function _resetDatabaseForTests(): void {
   dbPath = ''
   persisting = false
   persistDirty = false
+  transactionDepth = 0
 }

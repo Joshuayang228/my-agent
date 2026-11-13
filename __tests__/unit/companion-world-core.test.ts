@@ -7,6 +7,17 @@ let memDb: InstanceType<typeof SQL.Database>
 vi.mock('../../electron/main/storage/database', () => ({
   getDatabase: vi.fn(async () => memDb),
   persist: vi.fn(),
+  withDatabaseTransaction: vi.fn(async (work: (db: unknown) => Promise<unknown>) => {
+    memDb.run('BEGIN')
+    try {
+      const result = await work(memDb)
+      memDb.run('COMMIT')
+      return result
+    } catch (error) {
+      memDb.run('ROLLBACK')
+      throw error
+    }
+  }),
 }))
 
 vi.mock('../../electron/main/companion/life/store', () => ({
@@ -46,6 +57,7 @@ const { dispatchCompanionOutbox } = await import('../../electron/main/companion/
 const { executeCompanionCommand } = await import('../../electron/main/companion/core/commands/gateway')
 const { recordCompanionProjection } = await import('../../electron/main/companion/core/projections/receipts')
 const { getCompanionRuntimeReadModel } = await import('../../electron/main/companion/core/read-models/runtime-read-model')
+const { withCompanionUnitOfWork } = await import('../../electron/main/companion/core/transaction/unit-of-work')
 
 describe('人物世界核心层', () => {
   beforeEach(() => {
@@ -174,5 +186,19 @@ describe('人物世界核心层', () => {
     expect(await recordCompanionProjection({ projectionName: 'culture-read-model', eventId: 'event-1', appliedAt: 100 })).toBe(true)
     expect(await recordCompanionProjection({ projectionName: 'culture-read-model', eventId: 'event-1', appliedAt: 200 })).toBe(false)
     expect(await recordCompanionProjection({ projectionName: 'gift-read-model', eventId: 'event-1', appliedAt: 200 })).toBe(true)
+  })
+
+  it('本地事务同时回滚领域事件和 Outbox', async () => {
+    await expect(withCompanionUnitOfWork(async () => {
+      const event = await appendCompanionDomainEvent({
+        roleId: 'luffy', universeId: 'default', type: 'transaction_test', sourceType: 'test', sourceId: 'tx-1',
+        causationId: 'tx-1', correlationId: 'tx-1', idempotencyKey: 'transaction-test:tx-1', occurredAt: 100,
+        payload: {}, schemaVersion: 1,
+      })
+      await enqueueCompanionOutbox({ roleId: 'luffy', eventId: event.id, kind: 'test-notification', dedupeKey: 'transaction-test:tx-1', payload: {} })
+      throw new Error('rollback')
+    })).rejects.toThrow('rollback')
+    expect(memDb.exec("SELECT COUNT(*) FROM companion_domain_events WHERE idempotency_key = 'transaction-test:tx-1'")[0]?.values[0][0]).toBe(0)
+    expect(memDb.exec("SELECT COUNT(*) FROM companion_outbox WHERE dedupe_key = 'transaction-test:tx-1'")[0]?.values[0][0]).toBe(0)
   })
 })

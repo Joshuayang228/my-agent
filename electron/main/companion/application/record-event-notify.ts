@@ -2,6 +2,7 @@ import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { getCompanionRuntimeState } from '../core/state/runtime-state'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
+import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 
 /**
  * 记录人物世界事实并投递对应的用户可见通知。
@@ -28,30 +29,33 @@ export async function recordCompanionEventAndNotify(input: {
     payload: Record<string, unknown>
   }>
 }): Promise<{ eventId: string }> {
-  const runtime = await getCompanionRuntimeState(input.roleId)
-  const event = await appendCompanionDomainEvent({
-    roleId: input.roleId,
-    universeId: runtime.universeId,
-    type: input.type,
-    sourceType: input.sourceType,
-    sourceId: input.sourceId,
-    causationId: input.sourceId,
-    correlationId: input.sourceId,
-    idempotencyKey: input.idempotencyKey,
-    occurredAt: input.occurredAt,
-    payload: input.payload,
-    schemaVersion: 1,
-  })
-  const notifications = Array.isArray(input.notification) ? input.notification : [input.notification]
-  for (const notification of notifications) {
-    await enqueueCompanionOutbox({
+  const event = await withCompanionUnitOfWork(async () => {
+    const runtime = await getCompanionRuntimeState(input.roleId)
+    const domainEvent = await appendCompanionDomainEvent({
       roleId: input.roleId,
-      eventId: event.id,
-      kind: notification.kind,
-      dedupeKey: notification.dedupeKey,
-      payload: notification.payload,
+      universeId: runtime.universeId,
+      type: input.type,
+      sourceType: input.sourceType,
+      sourceId: input.sourceId,
+      causationId: input.sourceId,
+      correlationId: input.sourceId,
+      idempotencyKey: input.idempotencyKey,
+      occurredAt: input.occurredAt,
+      payload: input.payload,
+      schemaVersion: 1,
     })
-  }
+    const notifications = Array.isArray(input.notification) ? input.notification : [input.notification]
+    for (const notification of notifications) {
+      await enqueueCompanionOutbox({
+        roleId: input.roleId,
+        eventId: domainEvent.id,
+        kind: notification.kind,
+        dedupeKey: notification.dedupeKey,
+        payload: notification.payload,
+      })
+    }
+    return domainEvent
+  })
   await dispatchCompanionWindowOutbox()
   return { eventId: event.id }
 }

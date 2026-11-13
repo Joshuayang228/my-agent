@@ -20,9 +20,7 @@ import { compileMainSystem } from '../prompts/registered-request'
 import { describeCastPresence } from '../companion/cast/availability'
 import { formatSummonSceneBlock } from '../companion/cast/scene-prompts'
 import { summonParentDelegationHint } from '../companion/cast/summon-delegation'
-import { scheduleReflectionAfterChat } from '../companion/growth/reflection-service'
-import { settleVitalsAfterChat } from '../companion/life/world-state'
-import { settleChatResonance, markResonanceFeedbackDelivered } from '../companion/life/chat-resonance'
+import { settleConversationCompletion } from './conversation-application-service'
 import {
   formatRelationshipStageForPrompt,
   resolveRelationshipStageForRole,
@@ -658,26 +656,7 @@ class AgentRuntime {
     // 只索引用户消息作为语义召回源（Alice Ch.5 陷阱）。
 
     if (companion?.roleId) {
-      void scheduleReflectionAfterChat(
-        companion.roleId,
-        sessionId,
-        llmConfig,
-        { sessionKind: companion.sessionKind },
-      )
-      // 只有与主角本人的主对话才算「聊过」；召唤的朋友会话不应满足主角的社交需求。
-      if (companion.sessionKind === 'main') {
-        settleVitalsAfterChat(companion.roleId).catch(error => {
-          log.warn('对话后结算角色生命体征失败', { roleId: companion.roleId, error: error instanceof Error ? error.message : String(error) })
-        })
-        settleChatResonance(companion.roleId, sessionId, llmConfig).catch(error => {
-          log.warn('对话后提取生活因果反哺失败', { roleId: companion.roleId, error: error instanceof Error ? error.message : String(error) })
-        })
-        if (pendingFeedbackId) {
-          markResonanceFeedbackDelivered(pendingFeedbackId).catch(error => {
-            log.warn('标记心愿反馈已送达失败', { feedbackId: pendingFeedbackId, error: error instanceof Error ? error.message : String(error) })
-          })
-        }
-      }
+      settleConversationCompletion({ roleId: companion.roleId, sessionId, sessionKind: companion.sessionKind, llmConfig, pendingFeedbackId })
     }
   }
 
