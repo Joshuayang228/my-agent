@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createCompanionAgentManifest, createCompanionCoreDomain, createMemoryDomain, createPersonaDomain, createWorkspaceDomain } from '../../electron/main/agent-host/builtin-domains'
 import { capabilityToTool } from '../../electron/main/agent-host/adapter'
 import { getAgentHostToolNamesForRole, getAgentHostTools } from '../../electron/main/agent-host/host'
+import { AgentHostScopedToolCatalog } from '../../electron/main/agent-host/scoped-catalog'
 
 describe('Agent Host 内置 Domain', () => {
   it('以通用 Manifest 工厂创建人物 Agent，不绑定单一角色', () => {
@@ -52,5 +53,17 @@ describe('Agent Host 内置 Domain', () => {
     const names = getAgentHostToolNamesForRole('lin')
     expect(names.has('capability_companion_runtime_read')).toBe(true)
     expect(names.has('capability_memory_profile_read')).toBe(true)
+  })
+
+  it('Scoped Tool Catalog 只返回当前 Manifest 授权的 Host Tool', () => {
+    const manifest = createCompanionAgentManifest({ id: 'lin', personaKey: 'role:lin' })
+    const catalog = new AgentHostScopedToolCatalog(manifest)
+    const tools = [
+      ...getAgentHostTools(),
+      { name: 'unrelated_tool', description: '', parameters: { type: 'object' as const, properties: {} }, metadata: { isReadOnly: true, isDestructive: false, isConcurrencySafe: true }, execute: async () => 'ok' },
+    ]
+    const visible = catalog.filter(tools)
+    expect(visible.some(tool => tool.name === 'unrelated_tool')).toBe(true)
+    expect(visible.some(tool => tool.name === 'companion_post_moment')).toBe(true)
   })
 })

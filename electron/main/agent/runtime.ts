@@ -21,7 +21,9 @@ import { describeCastPresence } from '../companion/cast/availability'
 import { formatSummonSceneBlock } from '../companion/cast/scene-prompts'
 import { summonParentDelegationHint } from '../companion/cast/summon-delegation'
 import { settleConversationCompletion } from './conversation-application-service'
-import { getAgentHostContext, getAgentHostToolNamesForRole } from '../agent-host/host'
+import { getAgentHostContext } from '../agent-host/host'
+import { AgentHostScopedToolCatalog } from '../agent-host/scoped-catalog'
+import { createCompanionAgentManifest } from '../agent-host/builtin-domains'
 import {
   formatRelationshipStageForPrompt,
   resolveRelationshipStageForRole,
@@ -464,8 +466,7 @@ class AgentRuntime {
           toolContext,
           interactionSpanId: chatSpan.id,  // 传入父 span ID，使 loop 内的子 span 形成调用链树
           filterTools: (allTools) => {
-            const availableHostTools = getAgentHostToolNamesForRole(assembleRoleId)
-            const hostScopedTools = allTools.filter(tool => !tool.name.startsWith('capability_') || availableHostTools.has(tool.name))
+            const hostScopedTools = new AgentHostScopedToolCatalog(createCompanionAgentManifest({ id: assembleRoleId, personaKey: `role:${assembleRoleId}` })).filter(allTools)
             const active = getActiveSkill()
             if (active?.meta.allowed_tools?.length) {
               const allowed = new Set(active.meta.allowed_tools)

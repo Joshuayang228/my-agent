@@ -10,6 +10,8 @@
 
 当前会话在 Runtime 的 `filterTools` 阶段根据 role 对应 Manifest 再筛选 `capability_*`，Skill 的 `allowed_tools` 继续在同一过滤器内叠加，未授权能力不会进入模型请求。
 
+该筛选已提取为 `AgentHostScopedToolCatalog`，全局 ToolRegistry 只保存实现，Scoped Catalog 负责生成当前会话可见目录。
+
 固定业务流程通过 Application Orchestrator 的 `runWorkflow` 进入 `kind: 'workflow'` Capability，LLM 只通过 Tool Adapter 选择已授权的 query / command Capability。
 
 朋友圈发布 Workflow 复用既有 `companion_post_moment` Tool 的执行实现，继续沿角色校验、命令网关、领域事件和 Moment 投影链路写入。Host Capability 只提供统一编排入口，不复制朋友圈业务规则。

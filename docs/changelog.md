@@ -1553,3 +1553,6 @@ Playground 提示词管理器 v3 候选：调整文字职责与阅读比例，�
 # 2026-11-14 Skill Host 元数据同步
 
 - Skill Registry 初始化完成后同步 Skill key 和激活工具元数据到 Agent Host，正文和执行仍由 Skill Registry 管理。
+# 2026-11-14 Scoped Tool Catalog
+
+- Agent Host 增加会话级 Tool Catalog，Manifest 授权筛选从 Runtime 条件分支中抽出。

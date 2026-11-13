@@ -1167,3 +1167,6 @@ Host Registry 增加 Capability 激活记录，Debug 目录聚合当前 Manifest
 # 2026-11-14 Skill Host 同步回归
 
 Skill 初始化完成后的 Host 元数据同步沿主进程启动链路执行，失败不伪造同步成功；Skill 正文、启停和激活行为继续由原有测试覆盖。
+# 2026-11-14 Scoped Tool Catalog 回归
+
+新增会话级 Tool 目录单测，覆盖 Host Capability Tool 和普通既有 Tool 的筛选边界。
