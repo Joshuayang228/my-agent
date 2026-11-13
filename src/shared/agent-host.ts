@@ -14,6 +14,11 @@ export interface AgentHostCapability {
   domainKey: string
   kind: AgentHostCapabilityKind
   description: string
+  parameters: {
+    type: 'object'
+    properties: Record<string, { type: string; description?: string }>
+    required?: string[]
+  }
   requiredPermissions: readonly string[]
   invoke(input: unknown, context: AgentHostExecutionContext): Promise<unknown>
 }

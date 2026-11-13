@@ -1585,3 +1585,6 @@ Companion 列表资源上限（2026-11-10）：主进程统一限制多个生活
 
 完成 Agent Host 施工合同和首批契约骨架：Agent Manifest、Domain Registry、Capability Registry、Application Orchestrator、Companion Runtime Capability 与 Context Provider。新增 4 项单测，类型检查和构建通过，现有 Runtime / Tool / Skill 仍保持原入口，后续继续迁移。
 
+# 2026-11-13 Agent Host Capability Adapter
+
+完成首个 Capability → Tool Adapter，固定 LLM Tool 只暴露已授权能力，补充 3 项 Agent Host 单测。Capability 仍由 Registry 按 Manifest 筛选，尚未把全局 ToolRegistry 改成按会话重建。

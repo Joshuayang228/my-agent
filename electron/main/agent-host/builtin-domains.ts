@@ -11,6 +11,7 @@ export function createCompanionCoreDomain(): AgentHostDomainDefinition {
       domainKey: 'companion',
       kind: 'query',
       description: '读取当前人物世界运行态',
+      parameters: { type: 'object', properties: {} },
       requiredPermissions: ['companion.read'],
       invoke: async (_input, context) => {
         if (!context.roleId) throw new Error('Companion capability requires roleId')

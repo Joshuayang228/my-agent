@@ -1134,3 +1134,6 @@ Mock 只允许替代外部 IO 或构造确定性 Eval，不得 Mock 核心业务
 # 2026-11-13 Agent Host 契约门禁
 
 新增 Agent Host Registry 单测，覆盖 Manifest 授权筛选、重复注册、跨 Agent 执行上下文拒绝、Companion Runtime Capability 和 Context Provider。当前单测 4 项通过，构建通过；完整迁移门禁在施工合同完成阶段执行。
+# 2026-11-13 Agent Host Adapter 门禁
+
+新增 Capability Adapter 单测，验证只读元数据、稳定 Tool 名称和执行上下文传递。当前完整迁移仍由 Agent Host 施工合同持续覆盖。

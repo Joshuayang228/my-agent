@@ -4,6 +4,8 @@
 
 主进程启动阶段注册 `AgentHostDomainRegistry`、`AgentHostCapabilityRegistry` 和 `AgentHostApplicationOrchestrator`。当前 Companion 暴露运行态查询 Capability 与 Context Provider，Manifest 工厂不绑定路飞，可为不同角色创建独立 Agent 实例。现有 Tool / Skill 注册与执行逻辑尚未迁移，下一阶段按合同接入。
 
+`agent-host/adapter.ts` 提供受控转换，将已授权 Capability 映射为 LLM Tool，Tool 只负责协议和执行上下文转发，不拥有 Domain 业务规则。
+
 ## 可靠性边界（2026-11-13）
 
 - 对话完成后的伙伴生活副作用统一由 `conversation-application-service.ts` 编排，Runtime 不再直接依赖生命体征、共鸣和反思服务。
