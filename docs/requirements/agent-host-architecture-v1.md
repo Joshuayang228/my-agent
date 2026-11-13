@@ -112,7 +112,7 @@ Manifest 只声明身份、组合和授权，不复制 Prompt 正文、Memory �
 - `Available`：当前会话可以发现和调用对应能力。
 - `Activated`：本轮执行实际使用了能力。
 
-激活 Domain 不等于把全部数据加载到上下文。Memory 激活只执行有界检索，Diary 激活只装配当前 Workflow 所需素材。
+按需激活只针对已授权 Capability，不允许 LLM 自由加载 Domain。激活 Capability 不等于把全部数据加载到上下文。Memory 激活只执行有界检索，Diary 激活只装配当前 Workflow 所需素材。
 
 ### 6.3 Application Orchestrator
 
@@ -125,7 +125,7 @@ Manifest 只声明身份、组合和授权，不复制 Prompt 正文、Memory �
 - 为 Agent Runtime 提供 Tool、Context、Permission 和 Lifecycle 运行环境。
 - 将会话完成、定时任务、恢复和后台事件路由到对应 Workflow / Lifecycle Hook。
 
-Application Orchestrator 不替 LLM 判断自然语言意图，也不实现 Domain 业务规则。
+Application Orchestrator 不替 LLM 判断自然语言意图，也不实现 Domain 业务规则。Agent Host 只负责 Manifest 装配、Domain / Capability 发现、授权和 Execution Environment，日记、朋友圈、生活推进和 Workspace 等固定 Workflow 由 Application 负责，二者不能同时编排同一业务流程。
 
 ## 7. 基础 Domain 与按需 Capability
 
@@ -162,7 +162,29 @@ interface ContextProvider {
 }
 ```
 
-Context 由 Context Compiler 按固定顺序装配：Persona → Session → Permission → 当前任务 → Companion / Workspace 动态切片 → Memory 检索结果 → Tool 环境。Provider 只能返回有界、可追踪来源的内容，不能直接修改 Domain。
+Context 由 Context Compiler 按固定顺序装配：Persona → Session → Permission → 当前任务 → Companion / Workspace 动态切片 → Memory 检索结果 → Tool 环境。Provider 还必须声明稳定 `source`，同一事实只能由一个 Provider 进入同一 scope，重复内容按 source 和优先级去重。Provider 只能返回有界、可追踪来源的内容，不能直接修改 Domain。
+
+## 8.1 Host 与 Application 的边界
+
+Host 只保存 Manifest、Domain Definition、Capability 元数据、授权结果和执行环境。Capability Registry 不能成为第二个 Service Container，不能持有业务状态、数据库连接或隐藏的服务实现。
+
+Application 负责固定 Workflow 的输入校验、业务编排、失败恢复和事实提交。Domain Service 负责业务规则和状态转换。Workflow 与自然语言 Tool 必须调用同一个 Application / Domain 执行实现，不能分别复制朋友圈、日记或 Workspace 写入链路。
+
+## 8.2 Scoped Tool Catalog
+
+当前全局 ToolRegistry 加 Runtime `filterTools` 只作为迁移过渡。目标态是每个会话创建 `Scoped Tool Catalog`，只包含当前 Agent Manifest 授权、当前 Permission Policy 允许、当前 Session 可用的 Tool。Scoped Catalog 不能修改全局 ToolRegistry，也不能把另一个 Agent 的 Capability 带入模型请求。
+
+## 8.3 Manifest 生产事实源
+
+Manifest 必须来自版本化生产事实源，至少记录 Agent 身份、Domain 组合、Capability allow / deny、Skill、Model Policy、Permission Policy 和 Lifecycle Policy。Manifest 不复制 Persona 正文、Memory 数据、会话历史或人物运行态。代码工厂只允许作为生产 Manifest loader，不得成为隐藏的第二份配置。
+
+## 8.4 Skill 与 Capability
+
+Skill Registry 需要向 Capability Registry 提供 Skill 的元数据和允许能力关系。Skill 仍然只负责操作指导和能力组合，不能拥有业务状态、重新实现 Domain 规则或绕过 Permission。Skill 激活工具与 Domain Capability 不能重复注册同名 Tool，已有 Tool 必须通过稳定映射复用。
+
+## 8.5 Debug 能力证据
+
+Debug 必须展示真实的 `Registered`、`Available`、`Activated` 状态。Registered 来自生产 Registry，Available 来自当前 Agent Manifest、Permission Policy 和 Session 作用域，Activated 来自本次实际 Tool / Workflow 调用记录。静态清单不能伪造 Available 或 Activated。
 
 ## 9. 数据与执行不变量
 
@@ -190,12 +212,15 @@ Context 由 Context Compiler 按固定顺序装配：Persona → Session → Per
 2. 将现有 Tool Registry / Skill Registry 接入 Capability Registry，保留既有 Tool key、Prompt 注册和权限门禁。
 3. 将 Companion、Memory、Persona、Workspace 注册为第一批 Domain Definition。
 4. 将固定的日记、朋友圈、生活推进、主会话完成和 Workspace Workflow 接入 Application 层。
+5. 将 Manifest 生产事实源版本化，并建立会话级 Scoped Tool Catalog 的接口。
 
 ### P2 · 渐进式能力暴露
 
 1. 为 Memory、Diary、Moments、Relationship、Workspace 建立按需 Capability。
 2. 增加 Registered / Available / Activated 的 Debug 只读证据。
 3. 增加自然语言 Tool 调用与固定 Workflow 共用 Capability 的 E2E 验收。
+4. 将 Skill Registry 的元数据和能力关系接入 Capability Registry，禁止重复注册。
+5. 增加 Context Provider 重复事实检测和来源证据。
 
 ### P3 · 迁移与收口
 
@@ -210,6 +235,7 @@ Context 由 Context Compiler 按固定顺序装配：Persona → Session → Per
 - 不重新实现 Agent Loop、Tool Runtime、Permission Engine、Skill Registry 或 Companion Core。
 - 不把每个 Domain 做成独立 npm 插件或动态远程代码。
 - 不让 LLM 自由加载未授权 Domain。
+- 不把按需激活实现为 Domain 自由加载，只允许已授权 Capability 激活。
 - 不把用户运行数据、会话历史或人物状态写入静态 Manifest / Registry。
 - 不为抽象而抽象。只有被两个以上入口复用、需要独立授权或需要独立生命周期的能力才进入 Registry。
 
@@ -223,6 +249,8 @@ Context 由 Context Compiler 按固定顺序装配：Persona → Session → Per
 - Agent Manifest、Domain Registry、Capability Registry、Application Orchestrator、Context Provider 的单元测试。
 - 固定 Workflow 与 LLM Tool 共用同一 Domain Capability 的行为测试。
 - 未授权能力拒绝、跨 Agent 数据隔离、角色切换竞态、后台恢复和重复调用幂等测试。
+- UI、Scheduler、LLM Tool 的固定 Workflow 共享同一个 Application / Domain / Event / Outbox 事实链测试。
+- Scoped Tool Catalog、Manifest 版本、Skill 重复注册、Provider 去重和 Debug Registered / Available / Activated 证据测试。
 
 ## 13. 风险与权衡
 
