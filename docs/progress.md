@@ -1600,3 +1600,6 @@ Workspace 已注册 `workspace.root.read` 查询 Capability，默认 Manifest �
 # 2026-11-13 Agent Host Tool 注册
 
 首批 Persona、Memory、Companion、Workspace 查询 Capability 已转换为 `capability_*` Tool 并接入主进程 ToolRegistry。Tool 复用既有 Tool Runtime，当前角色从 ToolContext 传入，后续再按 Agent Manifest 做会话级可见性筛选。
+# 2026-11-13 Agent Host Tool manifest identity
+
+Host Tool 注册使用稳定的宿主 Manifest 身份，实际人物 roleId 继续从 ToolContext 注入，避免把某个角色绑定到 Tool 定义。

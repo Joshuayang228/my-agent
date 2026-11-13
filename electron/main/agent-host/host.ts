@@ -31,7 +31,7 @@ export async function getAgentHostContext(input: Omit<AgentHostExecutionContext,
 
 export function getAgentHostTools(): ToolDefinition[] {
   initializeAgentHost()
-  const manifest = createCompanionAgentManifest({ id: 'agent-host' })
+  const manifest = createCompanionAgentManifest({ id: 'agent-host', personaKey: 'agent-host' })
   const environment = agentHostApplication.createEnvironment(manifest)
   return environment.capabilities.map(capability => capabilityToTool(capability, { agentId: manifest.id }))
 }
