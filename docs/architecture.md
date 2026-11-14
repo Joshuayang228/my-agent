@@ -225,6 +225,8 @@ Companion 迁移期只读路径统一经过 `core/read-models/legacy-companion-r
 
 Agent Runtime 通过 Conversation Application Service 获取伙伴角色校验、卡司在场、召唤场景、委派提示和流式门控，Runtime 不直接依赖这些 Companion 入口。
 
+旧生活表的朋友圈、关系、情绪、事件关联和执行记录写入集中在 `core/projections/legacy-life-projection.ts`，它们作为 Core Event 的查询投影存在。
+
 Runtime 的角色组装输入通过 `ConversationApplicationService.loadConversationAssemblyInput` 进入 Application 层，Runtime 保留会话绑定、取消、Loop 和流式生命周期。
 
 人物 JSON 来源由纯 `companion/identity/source-assets.ts` 工厂投影，Prompt 追踪和伙伴目录共享 canonical key；高层 Debug 聚合去重。LLM 依赖 Prompt 目录时不反向导入 Agent 或生活存储，Role Pack 文本仍从实际 loader 读取。主对话 / Eval 使用 `prompts/compiler.ts`；旧生产组装适配层已移除。

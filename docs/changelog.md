@@ -11,6 +11,7 @@
 2026-11-14：生活 tick、生活信号、自动穿搭和旅行推进改读 Core Runtime State，旧角色状态表只保留迁移期镜像。
 2026-11-14：pause、resume、catch-up 和 tick 停止写旧角色状态表的生命周期字段，Core Runtime State 成为唯一生命周期写入来源。
 2026-11-14：Runtime 的伙伴角色校验、卡司在场、召唤场景、委派提示和流式门控入口统一经过 Conversation Application Service。
+2026-11-14：朋友圈、关系、情绪、事件关联和执行记录的旧查询投影写入统一经过 Core Projection Adapter。
 
 2026-11-14：内容完整性管线完成。新增共享 `ContentProvenance` 来源协议和领域事件校验，事件通知附加来源证据，日记保存来源类型、来源 ID 与 trace，Debug Read Model 展示 provenance，避免无来源或跨角色内容进入人物世界事实链。
 

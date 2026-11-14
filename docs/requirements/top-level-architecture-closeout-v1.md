@@ -52,6 +52,8 @@ P0-1 事务边界继续收口：用户赠礼的业务事实、主会话 Outbox�
 
 Runtime 的伙伴入口已进一步收口：会话角色校验、卡司在场、召唤场景、委派提示和流式门控通过 Conversation Application Service 进入，Runtime 不再直接 import 这些 Companion 入口。
 
+旧生活查询投影写入口已集中到 `core/projections/legacy-life-projection.ts`，朋友圈、关系、情绪、事件关联和执行记录由统一 Projection Adapter 写入，生活服务不再直接触碰旧投影表。
+
 ## 5. 非目标
 
 - 不重写 Agent Loop 算法。

@@ -1702,6 +1702,10 @@ pause、resume、catch-up 和 tick 不再写旧角色状态表的暂停、补叙
 
 会话角色校验、卡司在场、召唤场景、委派提示和流式门控统一由 Conversation Application Service 提供，Runtime 只消费应用边界函数。
 
+# 2026-11-14 顶层架构 P0 Projection 写入口收口
+
+朋友圈、关系、情绪、事件关联和执行记录的旧表写入统一经过 `legacy-life-projection.ts`，生活服务只提交 Domain Event 和 Projection Adapter 调用。
+
 # 2026-11-14 顶层架构 Electron E2E 复核
 
 完整 Electron E2E 集合已运行。Core 事实迁移相关路径通过，朋友圈图片选择器专项已修正并通过；生图导出等待、OAuth 禁止端口、侧聊取消时序和主动问候夹具仍登记为独立稳定性问题。

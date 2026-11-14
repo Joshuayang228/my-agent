@@ -35,6 +35,7 @@ import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { recordCompanionProjection } from '../core/projections/receipts'
 import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
+import { markLegacyEventPublished, projectLegacyEmotionEvent, projectLegacyMoment, projectLegacyRelationshipEvent, recordLegacyEventExecution, replaceLegacyEventLinks } from '../core/projections/legacy-life-projection'
 
 export { formatMomentText } from './moment-format'
 export type { AddMomentCommentOptions } from '../../../../src/shared/types'
@@ -182,7 +183,7 @@ export async function projectMomentFromEvent(
       schemaVersion: 1,
     })
     if (relationship) {
-      await store.recordRelationshipEvent({
+      await projectLegacyRelationshipEvent({
         roleId: event.roleId,
         subjectId: typeof relationship.subjectId === 'string' ? relationship.subjectId : 'user',
         phase: typeof relationship.phase === 'string' ? relationship.phase : undefined,
@@ -192,7 +193,7 @@ export async function projectMomentFromEvent(
       })
     }
     if (mood) {
-      await store.recordEmotionEvent({
+      await projectLegacyEmotionEvent({
         roleId: event.roleId,
         eventId: event.id,
         label: mood,
@@ -201,7 +202,7 @@ export async function projectMomentFromEvent(
       })
     }
     if (opts?.suppressMoment) return { domainEvent, moment: null }
-    let moment = await store.insertMoment({
+    let moment = await projectLegacyMoment({
       roleId: event.roleId,
       eventId: event.id,
       publishedAt: opts?.publishedAt ?? event.scheduledAt,
@@ -225,7 +226,7 @@ export async function projectMomentFromEvent(
       moment = await store.getMomentByEventId(event.roleId, event.id)
       if (!moment) throw new Error('朋友圈投影未生成动态记录。')
     }
-    await store.replaceEventLinks(event.roleId, event.id, links)
+    await replaceLegacyEventLinks(event.roleId, event.id, links)
     await recordCompanionProjection({ projectionName: 'moment-read-model', eventId: domainEvent.id })
     return { domainEvent, moment }
   })
@@ -298,8 +299,8 @@ async function projectRange(
       // 若上一次尝试已经写入 Moment 但在后续步骤失败，按 event_id 恢复已有投影，避免重复写入。
       const persistedMoment = moment ?? await store.getMomentByEventId(ev.roleId, ev.id)
       await withCompanionUnitOfWork(async () => {
-        await store.markEventPublished(ev.id)
-        await store.recordEventExecution({
+        await markLegacyEventPublished(ev.id)
+        await recordLegacyEventExecution({
           roleId,
           eventId: ev.id,
           attemptedAt: toMs,
