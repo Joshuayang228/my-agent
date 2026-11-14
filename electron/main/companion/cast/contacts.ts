@@ -1,7 +1,7 @@
 import { loadRelations } from '../identity/loader'
 import { listRelatedCast } from './roster'
 import { formatRelationSummary } from './relation-summary'
-import { listEvents, listEventLinks, getMomentByEventId } from '../life/store'
+import { listCompanionLegacyEvents as listEvents, listCompanionLegacyEventLinks as listEventLinks, getCompanionLegacyMomentByEventId as getMomentByEventId } from '../core/read-models/legacy-companion-read-model'
 import { listAssets } from '../life/assets'
 import type { CompanionContactsData, CompanionContactExperience } from '../../../../src/shared/types'
 

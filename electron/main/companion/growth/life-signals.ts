@@ -7,7 +7,7 @@
  */
 
 import { listMomentsForRole } from '../life/moments'
-import { getRoleState } from '../life/store'
+import { getCompanionLegacyRoleState as getRoleState } from '../core/read-models/legacy-companion-read-model'
 import { ASSET_KIND_BOOKSHELF, latestReadingNote, listAssets } from '../life/assets'
 
 export const LIFE_SIGNAL_MOMENT_LIMIT = 12

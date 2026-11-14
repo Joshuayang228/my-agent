@@ -1,6 +1,6 @@
 import type { CompanionLifeSlice } from '../../../../src/shared/types'
 import { listAssets } from './assets'
-import { getEventById, getMomentByEventId, listEventLinks } from './store'
+import { getCompanionLegacyEventById as getEventById, getCompanionLegacyMomentByEventId as getMomentByEventId, listCompanionLegacyEventLinks as listEventLinks } from '../core/read-models/legacy-companion-read-model'
 
 /**
  * 背景：生活切片详情需要同时展示事件、朋友圈投影和事件产生的资产，不能由 Renderer 依据多个接口自行猜测关联。

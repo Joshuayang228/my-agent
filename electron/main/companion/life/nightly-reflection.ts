@@ -28,7 +28,7 @@ import { compileNightlyReflectionRequest } from '../../prompts/registered-reques
 import { isActiveRole } from '../../storage/settings-store'
 import { loadRolePack } from '../identity/loader'
 import { ensureWorldState } from './world-state'
-import { listEvents } from './store'
+import { listCompanionLegacyEvents as listEvents } from '../core/read-models/legacy-companion-read-model'
 import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 import { listRecentUserMessagesForRole } from '../../storage/session-store'
 import { addMemory } from '../../storage/memory-store'

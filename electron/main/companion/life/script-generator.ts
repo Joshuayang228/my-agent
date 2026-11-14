@@ -254,7 +254,7 @@ export function parseDayScriptPayload(
 export async function collectDayScriptLifeContext(roleId: string): Promise<string> {
   const parts: string[] = []
   try {
-    const { listEvents } = await import('./store')
+    const { listCompanionLegacyEvents: listEvents } = await import('../core/read-models/legacy-companion-read-model')
     const events = await listEvents(roleId, { status: 'published', limit: 3, order: 'desc' })
     const recentActivities = events
       .map(e => String(e.payload.activity || '').trim())

@@ -1661,6 +1661,10 @@ Runtime 的角色组装输入改由 `ConversationApplicationService.loadConversa
 # 2026-11-14 顶层架构 P0 Runtime State 生命周期字段
 
 Core Runtime State 新增 `lastTickAt`，与暂停时间、追赶摘要一起成为生命周期快照。生活 tick 和 catch-up 会同步更新核心字段，Debug 的最近推进时间改读核心快照；旧 `role_state` 仅保留迁移期镜像。
+
+# 2026-11-14 顶层架构 P0 只读路径收口
+
+通讯录、卡司可用性、生活信号、穿搭、旅行推进、日程时间线、反思和事件切片统一通过 `legacy-companion-read-model` 读取旧生活表。写入路径保持在 Life Domain 内，迁移读边界不承担事实写入。
 # 2026-11-14 Scoped Tool Catalog
 
 新增 `AgentHostScopedToolCatalog`，把 Manifest 授权筛选从 Runtime 条件分支提取为会话级目录对象。全局 ToolRegistry 继续只保存实现，未授权 Capability 不进入模型请求。

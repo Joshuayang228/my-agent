@@ -20,7 +20,7 @@ import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from '../../storage/database'
 import { createLogger } from '../../utils/logger'
 import { toLocalDateString } from './dates'
-import { getRoleState, getDayScript } from './store'
+import { getCompanionLegacyRoleState as getRoleState, getCompanionLegacyDayScript as getDayScript } from '../core/read-models/legacy-companion-read-model'
 import {
   listAssets,
   ensureStarterWardrobe,

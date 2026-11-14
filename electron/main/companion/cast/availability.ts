@@ -8,7 +8,7 @@
 
 import { loadRolePack } from '../identity/loader'
 import { toLocalDateString } from '../life/dates'
-import { getDayScript, listEvents } from '../life/store'
+import { getCompanionLegacyDayScript as getDayScript, listCompanionLegacyEvents as listEvents } from '../core/read-models/legacy-companion-read-model'
 
 export interface BusyProfile {
   /** 0–23 */
