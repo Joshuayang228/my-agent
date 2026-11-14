@@ -1669,6 +1669,10 @@ Core Runtime State 新增 `lastTickAt`，与暂停时间、追赶摘要一起成
 # 2026-11-14 顶层架构 P0 赠礼事务闭环
 
 赠礼事实、主会话消息 Outbox、`gift_received` 领域事件、体征更新和通知 Outbox 统一放入本地 Unit of Work；窗口与会话投递在提交后执行，避免部分成功留下孤儿事实。
+
+# 2026-11-14 顶层架构 P1 写入闭环盘点
+
+审计确认文化心愿完成、朋友圈投影、专属信物、重编排和互动反馈仍存在旧表与 Core 账本分段写入，已登记为下一批事务边界收口项；不把“有事件记录”误判为业务事实已原子提交。
 # 2026-11-14 Scoped Tool Catalog
 
 新增 `AgentHostScopedToolCatalog`，把 Manifest 授权筛选从 Runtime 条件分支提取为会话级目录对象。全局 ToolRegistry 继续只保存实现，未授权 Capability 不进入模型请求。
