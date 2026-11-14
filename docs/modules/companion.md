@@ -20,6 +20,7 @@ Companion Core 迁移期间，Runtime 组装器和 Debug 世界快照通过 `cor
 
 Core Runtime State 现在保存暂停时间、追赶摘要和最近推进时间，pause、resume、catch-up、tick 会同步核心快照，旧角色状态表只承担迁移期镜像。通讯录、卡司可用性、生活信号、穿搭、旅行推进、日程时间线、反思、事件切片、生活时钟和世界体征刷新的旧表读取统一经过 Core 只读迁移适配层。
 用户赠礼的礼物事实、主会话消息、领域事件、体征更新和通知 Outbox 通过同一 Unit of Work 提交，提交前不做窗口或会话外部投递。
+专属信物沿用同一事务边界，信物记录、主会话消息、`keepsake_gifted` 事件和通知 Outbox 一起提交。
 
 主会话角色组装由 Conversation Application Service 作为入口，Companion 负责提供人物资料和生活 Read Model，Runtime 不再直接拥有角色组装业务流程。
 

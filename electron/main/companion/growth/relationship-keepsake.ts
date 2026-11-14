@@ -27,6 +27,8 @@ import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
 import { enqueueCompanionSessionMessage } from '../application/session-outbox'
+import { dispatchCompanionSessionOutbox } from '../adapters/session-outbox-dispatcher'
+import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 import type { CompanionKeepsakeRecord, CompanionKeepsakeGiftEvent, LLMConfig } from '../../../../src/shared/types'
 
 const log = createLogger('RelationshipKeepsake')
@@ -282,49 +284,6 @@ export async function triggerGiftKeepsake(
     return null
   }
 
-  db.run(
-    `INSERT OR REPLACE INTO companion_keepsakes
-     (id, role_id, name, description, lore, gift_message, gift_reason, icon_name, image_url, acquired_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      keepsakeRecord.id,
-      keepsakeRecord.roleId,
-      keepsakeRecord.name,
-      keepsakeRecord.description,
-      keepsakeRecord.lore,
-      keepsakeRecord.giftMessage,
-      keepsakeRecord.giftReason,
-      keepsakeRecord.iconName,
-      null,
-      now,
-    ],
-  )
-  persist()
-
-  // 5. 将赠礼消息作为 assistant 写入该角色的主会话
-  try {
-    const session = await ensureMainSessionForRole(roleId)
-    await enqueueCompanionSessionMessage({
-      roleId,
-      sessionId: session.id,
-      message: {
-      id: randomUUID(),
-      role: 'assistant',
-      content: speech,
-      timestamp: now,
-      },
-    })
-  } catch (err) {
-    db.run('DELETE FROM companion_keepsakes WHERE id = ? AND role_id = ?', [keepsakeRecord.id, roleId])
-    persist()
-    log.warn('Keepsake delivery failed; rolled back keepsake record', { roleId, error: String(err) })
-    return null
-  }
-
-  // 6. 记录关系里程碑
-  await tryRecordMilestone(roleId, 'keepsake_gifted', { roleDisplayName: pack.name, now })
-
-  // 7. 广播事件
   const event: CompanionKeepsakeGiftEvent = {
     roleId,
     keepsake: keepsakeRecord,
@@ -334,30 +293,57 @@ export async function triggerGiftKeepsake(
   }
 
   try {
-    const domainEvent = await appendCompanionDomainEvent({
+    await withCompanionUnitOfWork(async () => {
+      db.run(
+        `INSERT OR REPLACE INTO companion_keepsakes
+         (id, role_id, name, description, lore, gift_message, gift_reason, icon_name, image_url, acquired_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [keepsakeRecord.id, keepsakeRecord.roleId, keepsakeRecord.name, keepsakeRecord.description, keepsakeRecord.lore, keepsakeRecord.giftMessage, keepsakeRecord.giftReason, keepsakeRecord.iconName, null, now],
+      )
+
+      // 5. 将赠礼消息作为 assistant 写入该角色的主会话；事务内只入 Outbox。
+    const session = await ensureMainSessionForRole(roleId)
+    await enqueueCompanionSessionMessage({
       roleId,
-      universeId: 'default',
-      type: 'keepsake_gifted',
-      sourceType: 'relationship_keepsake',
-      sourceId: keepsakeRecord.id,
-      causationId: keepsakeRecord.id,
-      correlationId: keepsakeRecord.id,
-      idempotencyKey: `keepsake-gifted:${keepsakeRecord.id}`,
-      occurredAt: now,
-      payload: event as unknown as Record<string, unknown>,
-      schemaVersion: 1,
+      sessionId: session.id,
+      message: {
+        id: randomUUID(),
+        role: 'assistant',
+        content: speech,
+        timestamp: now,
+      },
+      dispatch: false,
     })
-    await enqueueCompanionOutbox({
-      roleId,
-      eventId: domainEvent.id,
-      kind: 'keepsake-gifted',
-      dedupeKey: `keepsake-gifted:${keepsakeRecord.id}`,
-      payload: event as unknown as Record<string, unknown>,
+      const domainEvent = await appendCompanionDomainEvent({
+        roleId,
+        universeId: 'default',
+        type: 'keepsake_gifted',
+        sourceType: 'relationship_keepsake',
+        sourceId: keepsakeRecord.id,
+        causationId: keepsakeRecord.id,
+        correlationId: keepsakeRecord.id,
+        idempotencyKey: `keepsake-gifted:${keepsakeRecord.id}`,
+        occurredAt: now,
+        payload: event as unknown as Record<string, unknown>,
+        schemaVersion: 1,
+      })
+      await enqueueCompanionOutbox({
+        roleId,
+        eventId: domainEvent.id,
+        kind: 'keepsake-gifted',
+        dedupeKey: `keepsake-gifted:${keepsakeRecord.id}`,
+        payload: event as unknown as Record<string, unknown>,
+      })
     })
     await dispatchCompanionWindowOutbox()
+    await dispatchCompanionSessionOutbox()
   } catch (err) {
-    log.warn('Keepsake notification ledger failed; record remains readable', { roleId, keepsakeId: keepsakeRecord.id, error: String(err) })
+    log.warn('Keepsake transaction failed; no partial record retained', { roleId, keepsakeId: keepsakeRecord.id, error: String(err) })
+    return null
   }
+
+  // 6. 记录关系里程碑
+  await tryRecordMilestone(roleId, 'keepsake_gifted', { roleDisplayName: pack.name, now })
 
   log.info('Keepsake gifted successfully', { roleId, keepsakeId: keepsakeRecord.id, name: keepsakeRecord.name })
   return keepsakeRecord
