@@ -27,8 +27,7 @@ import {
 import { getMutable } from './growth/mutable-store'
 import { runCatchup } from './life/catchup'
 import { pauseRole, resumeRole } from './life/engine'
-import { getRoleState } from './life/store'
-import { listEmotionEvents, listRelationshipStates } from './life/store'
+import { getCompanionLegacyRoleState as getRoleState, listCompanionLegacyEmotionEvents as listEmotionEvents, listCompanionLegacyRelationshipStates as listRelationshipStates, listCompanionLegacyEvents as listEvents } from './core/read-models/legacy-companion-read-model'
 import { getCompanionRuntimeReadModel } from './core/read-models/runtime-read-model'
 import { narrativeMood } from './life/world-codec'
 import { recordAndBroadcastMilestone } from './growth/milestones'
@@ -236,7 +235,7 @@ export async function loadRoleAssembleInput(
   const { ensureWorldState, formatWorldSliceForPrompt } = await import('./life/world-state')
   const { collectRecentMomentsSlice } = await import('./life/moment-consistency')
   const { collectBookshelfSlice, collectLifeAssetsSlice } = await import('./life/assets')
-  const { listEvents, listRelationshipStates, listEmotionEvents } = await import('./life/store')
+  const { listCompanionLegacyEvents: listEvents, listCompanionLegacyRelationshipStates: listRelationshipStates, listCompanionLegacyEmotionEvents: listEmotionEvents } = await import('./core/read-models/legacy-companion-read-model')
   const { getPendingResonanceFeedback } = await import('./life/chat-resonance')
   const { pickNostalgicReminiscence } = await import('./life/nostalgia')
   const world = await ensureWorldState(roleId)

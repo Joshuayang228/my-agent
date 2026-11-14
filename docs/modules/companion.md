@@ -16,6 +16,8 @@ LifeTicker 通过 `runCompanionLifeTickWorkflow` 进入 Agent Host Application�
 
 Memory 反思和 Prompt 动态上下文也沿同一来源协议记录。深夜反思写入反馈记忆时保留来源，主会话只接收带作用域和长度证据的动态切片。
 
+Companion Core 迁移期间，Runtime 组装器和 Debug 世界快照通过 `core/read-models/legacy-companion-read-model.ts` 读取旧日程、事件、关系和情绪表。该适配层只读，新的事实写入仍必须经过 Core Command / Domain Event。
+
 ## 核心一致性与恢复（2026-11-13）
 
 - `withCompanionUnitOfWork` 将人物世界领域事件和 Outbox 写入置于同一数据库事务，建表初始化不参与业务回滚。

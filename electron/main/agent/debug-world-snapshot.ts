@@ -9,7 +9,7 @@
 import { getActiveRole } from '../companion/orchestrator'
 import { loadRolePack } from '../companion/identity/loader'
 import { getMutable, getMutableMeta } from '../companion/growth/mutable-store'
-import { getRoleState, getDayScript, listEvents, listRelationshipStates, listRelationshipEvents, listEmotionEvents, listEventExecutions } from '../companion/life/store'
+import { getCompanionLegacyRoleState as getRoleState, getCompanionLegacyDayScript as getDayScript, listCompanionLegacyEvents as listEvents, listCompanionLegacyRelationshipStates as listRelationshipStates, listCompanionLegacyRelationshipEvents as listRelationshipEvents, listCompanionLegacyEmotionEvents as listEmotionEvents, listCompanionLegacyEventExecutions as listEventExecutions } from '../companion/core/read-models/legacy-companion-read-model'
 import { getCompanionRuntimeReadModel } from '../companion/core/read-models/runtime-read-model'
 import { resolveMomentVisibilityDays } from '../companion/life/moment-visibility'
 import { getSetting } from '../storage/settings-store'

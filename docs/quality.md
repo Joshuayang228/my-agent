@@ -1197,3 +1197,6 @@ Memory 写入入口覆盖用户 IPC、人物 Tool、画像提炼、引用纠错�
 # 2026-11-14 Agent Host Capability 权限门禁
 
 Manifest 的 `grantedPermissions` 与 Capability `requiredPermissions` 在 Application Orchestrator 和 Tool Adapter 双入口校验，单测覆盖缺失权限拒绝。沙箱、命令安全和用户确认仍由 Tool Runtime 继续负责。
+# 2026-11-14 Core Read Model 迁移边界
+
+Runtime 组装器与 Debug 世界快照的旧生活表读取统一经过 `legacy-companion-read-model` 适配层。专项 Companion Core 与 Debug 证据测试通过，适配层不提供写入接口。

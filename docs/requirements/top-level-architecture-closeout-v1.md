@@ -27,6 +27,8 @@
 
 P0-1 已完成：Manifest 现在声明 `grantedPermissions`，Application Orchestrator 和 Capability → Tool Adapter 都会在执行前校验 Capability 的 `requiredPermissions`。Tool Runtime 的沙箱和用户确认继续作为更下层的安全门禁。
 
+P0-2 进入迁移态收口：Runtime 组装器和 Debug 世界快照的旧生活表读取已经集中到 `core/read-models/legacy-companion-read-model.ts`。该适配层只读、不建事实、不写旧表，后续 Core Read Model 替换不再扩散到上层调用方。
+
 ## 4. P1 实施范围
 
 1. 建立统一 Application Context，包含 Agent、Session、Permission、Prompt Context Evidence 和 Domain Read Model。

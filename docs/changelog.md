@@ -8,6 +8,8 @@
 
 2026-11-14：顶层架构 P0 权限门禁落地。Agent Host Manifest 声明 Capability 授权权限，Application Workflow 与 Capability Tool Adapter 在执行前统一校验 `requiredPermissions`，固定 Workflow 不再绕过 Host 层权限声明。
 
+2026-11-14：Companion Core 迁移边界收口。Runtime 组装器和 Debug 世界快照的旧生活表读取统一经过只读 `legacy-companion-read-model` 适配层，为后续 Core Read Model 替换集中迁移入口。
+
 2026-11-14：Agent Host 收口批次完成。会话工具目录统一在 Scoped Tool Catalog 内同时应用 Manifest 授权和 Skill allowlist，Debug 增加 Skill 版本、指纹、启停状态和 Capability 关系证据，Companion 入口继续沿统一 Application / Domain / Event / Outbox 事实链执行。
 
 2026-11-14：Agent Host 架构施工合同完成并冻结。Manifest 统一经过版本化 loader，Persona、Memory、Companion、Workspace 通过 Domain / Capability Registry 接入；Scoped Tool Catalog 按当前 Agent 授权筛选模型能力；生活时钟通过 Host Workflow 进入统一 Application 编排；对话关系阶段与里程碑读取归入 Conversation Application Service；Capability 激活证据按 Agent 隔离，Context Provider 按 `scope + source` 去重。
