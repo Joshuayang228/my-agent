@@ -1208,6 +1208,7 @@ pause、resume、catch-up、tick 回归覆盖 Core Runtime State 的暂停时间
 专属信物回归覆盖信物记录、会话消息 Outbox、领域事件和窗口通知 Outbox 的同一事务路径，并验证失败时不保留信物记录。
 文化心愿完成、朋友圈投影和自动回复回归覆盖旧读模型事实、Core 事件、投影回执、动态关联和通知 Outbox 的提交顺序。
 朋友圈发布回归覆盖投影成功后的事件状态与执行账本原子提交，以及投影失败时 planned 状态保留。
+日剧本与生活事件回归覆盖 Application Gateway 的 Core Domain Event 和旧查询投影双写，以及重复事件 ID 的幂等行为。
 # 2026-11-14 Conversation Application 边界
 
 角色组装输入通过 Conversation Application Service 进入 Runtime，现有会话生命周期、取消、Loop 和流式事件测试继续通过。

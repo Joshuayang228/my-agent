@@ -46,6 +46,8 @@ P0-1 事务边界继续收口：用户赠礼的业务事实、主会话 Outbox�
 
 事件发布收尾也已收口：`markEventPublished` 与 `recordEventExecution` 在同一 Unit of Work 内提交，投影失败时 planned 事件继续保持可重试状态。
 
+事件事实入口已迁移：日剧本和生活事件的生产写入统一经过 `createCompanionDayScript` 与 `createCompanionLifeEvent`，旧 `companion_day_scripts` 与 `companion_events` 只承担当前查询投影。
+
 ## 5. 非目标
 
 - 不重写 Agent Loop 算法。

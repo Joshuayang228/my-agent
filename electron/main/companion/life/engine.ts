@@ -26,6 +26,8 @@ import { resolveDayScript } from './script-generator'
 import { refreshSituationFromLife } from './world-state'
 import * as store from './store'
 import { updateCompanionRuntimeLifecycle } from '../core/state/runtime-state'
+import { createCompanionLifeEvent } from '../application/life-event'
+import { createCompanionDayScript } from '../application/day-script'
 
 /** 解析当前活跃主角（不经过 orchestrator，避免 life ↔ orchestrator 循环依赖） */
 async function resolveActiveRoleId(): Promise<string> {
@@ -96,7 +98,7 @@ export async function ensureDayScripts(
       universeId: opts?.universeId,
     })
     if (source === 'llm') llmDays += 1
-    const row = await store.insertDayScript(roleId, date, payload)
+    const row = await createCompanionDayScript({ roleId, universeId: opts?.universeId, date, payload })
     await materializePlannedEvents(roleId, row.id, payload)
     created += 1
   }
@@ -127,7 +129,7 @@ async function materializePlannedEvents(
       })
         ? await pickBookshelfAssetId(roleId, scheduledAt + 17)
         : null
-    await store.insertEvent({
+    await createCompanionLifeEvent({
       roleId,
       scheduledAt,
       status: 'planned',

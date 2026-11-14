@@ -29,7 +29,7 @@ import {
   compileCultureReviewRequest,
 } from '../../prompts/registered-request'
 import { createAsset, deleteAsset, getAsset, updateAsset, ASSET_KIND_CULTURE } from './assets'
-import { getEventById, getMomentByEventId, insertEvent, insertMoment, recordEventExecution } from './store'
+import { getMomentByEventId, insertMoment, recordEventExecution } from './store'
 import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { executeCompanionCommand } from '../core/commands/gateway'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
@@ -38,6 +38,7 @@ import { recordCompanionEventAndNotify } from '../application/record-event-notif
 import { recordCompanionProjection } from '../core/projections/receipts'
 import { linkCompanionExecutionEvent } from '../core/execution/ledger'
 import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
+import { createCompanionLifeEvent } from '../application/life-event'
 
 const log = createLogger('ChatResonance')
 
@@ -560,9 +561,10 @@ export async function completeCultureResonance(
       const momentText = parsedReview.momentText
       const eventId = `resonance-${currentResonance.id}`
       await withCompanionUnitOfWork(async () => {
-        const event = await getEventById(eventId) ?? await insertEvent({
+        const event = await createCompanionLifeEvent({
           id: eventId,
           roleId,
+          universeId: 'default',
           scheduledAt: now,
           status: 'published',
           type: 'moment',

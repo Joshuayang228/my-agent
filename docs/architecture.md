@@ -219,6 +219,8 @@ Companion 迁移期只读路径统一经过 `core/read-models/legacy-companion-r
 
 赠礼写入已形成完整本地事务：`companion_received_gifts`、主会话消息 Outbox、`gift_received` Domain Event、Runtime State 体征更新和窗口 / 时间线 Outbox 在同一 Unit of Work 内提交，真实窗口投递只发生在提交之后。
 
+日剧本和生活事件通过 Companion Application Gateway 创建。Gateway 在同一 Unit of Work 内写 Core Domain Event 和旧查询投影，生产代码不再直接把 `life/store.insertDayScript` 或 `insertEvent` 当作事实入口。
+
 Runtime 的角色组装输入通过 `ConversationApplicationService.loadConversationAssemblyInput` 进入 Application 层，Runtime 保留会话绑定、取消、Loop 和流式生命周期。
 
 人物 JSON 来源由纯 `companion/identity/source-assets.ts` 工厂投影，Prompt 追踪和伙伴目录共享 canonical key；高层 Debug 聚合去重。LLM 依赖 Prompt 目录时不反向导入 Agent 或生活存储，Role Pack 文本仍从实际 loader 读取。主对话 / Eval 使用 `prompts/compiler.ts`；旧生产组装适配层已移除。
