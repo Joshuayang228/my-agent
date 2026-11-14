@@ -179,6 +179,7 @@ export async function tickActiveRole(now: number): Promise<{
       // M23-G2：用最近 published 事件刷新短期情境（居所/时区保持稳定）
       await refreshSituationFromLife(roleId, now)
       await store.touchLastTick(roleId, now)
+      await updateCompanionRuntimeLifecycle({ roleId, lastTickAt: now, updatedAt: now })
       // M31-G1：有新投影时可选应用内轻提示（失败不阻断 tick）
       if (published > 0) {
         try {

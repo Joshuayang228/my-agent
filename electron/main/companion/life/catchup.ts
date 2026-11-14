@@ -183,7 +183,7 @@ export async function runCatchup(
 
   const published = await publishAndProjectRange(roleId, fineStart, now, { automatic: true })
   await store.clearPausedAt(roleId)
-  await updateCompanionRuntimeLifecycle({ roleId, pausedAt: null, updatedAt: now })
+  await updateCompanionRuntimeLifecycle({ roleId, pausedAt: null, lastTickAt: now, updatedAt: now })
   await store.touchLastTick(roleId, now)
 
   log.info('Catch-up done', {

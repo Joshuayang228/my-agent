@@ -31,6 +31,8 @@ P0-2 进入迁移态收口：Runtime 组装器和 Debug 世界快照的旧生活
 
 P0-3 已完成：Runtime 的角色组装输入通过 `ConversationApplicationService.loadConversationAssemblyInput` 进入 Application 边界，Runtime 保留会话生命周期和 Loop 编排，不再直接 import 伙伴组装器。
 
+P0-2 继续收口：Core Runtime State 现在承载 `pausedAt`、`catchupSummary` 和 `lastTickAt` 三个生命周期字段；pause、resume、catch-up 和生活 tick 会同步更新核心快照，Debug 与主会话组装优先读取核心状态。旧 `role_state` 仅保留迁移期镜像，尚未删除。
+
 ## 4. P1 实施范围
 
 1. 建立统一 Application Context，包含 Agent、Session、Permission、Prompt Context Evidence 和 Domain Read Model。

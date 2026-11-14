@@ -48,6 +48,7 @@ vi.mock('../../electron/main/companion/life/store', () => ({
 const {
   getCompanionRuntimeState,
   applyCompanionRuntimeDelta,
+  updateCompanionRuntimeLifecycle,
   resetCompanionCoreSchemaForTesting,
 } = await import('../../electron/main/companion/core/state/runtime-state')
 const { appendCompanionDomainEvent } = await import('../../electron/main/companion/core/events/domain-events')
@@ -70,6 +71,10 @@ describe('人物世界核心层', () => {
     expect(first.mood).toBe(64)
     expect(first.home).toBe('千里阳光号')
     expect(first.version).toBe(0)
+    expect(first.lastTickAt).toBe(0)
+
+    const ticked = await updateCompanionRuntimeLifecycle({ roleId: 'luffy', lastTickAt: 300, updatedAt: 300 })
+    expect(ticked.lastTickAt).toBe(300)
 
     const next = await applyCompanionRuntimeDelta({
       roleId: 'luffy',

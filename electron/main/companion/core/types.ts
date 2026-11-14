@@ -15,6 +15,7 @@ export interface CompanionRuntimeState {
   situation: string
   pausedAt: number | null
   catchupSummary: string
+  lastTickAt: number
   version: number
   updatedAt: number
   lastEventId: string | null

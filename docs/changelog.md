@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-14：顶层架构继续收口。Core Runtime State 承载 `lastTickAt`，生活 tick、catch-up、Debug 和世界快照统一使用核心生命周期状态。
+
 2026-11-14：内容完整性管线完成。新增共享 `ContentProvenance` 来源协议和领域事件校验，事件通知附加来源证据，日记保存来源类型、来源 ID 与 trace，Debug Read Model 展示 provenance，避免无来源或跨角色内容进入人物世界事实链。
 
 2026-11-14：内容完整性继续收口。Memory 持久化来源证据，用户、人物 Tool、画像提炼、引用纠错和深夜反思统一标记来源；Registered Model Request 冻结动态 Prompt 上下文的来源、作用域和长度元数据。

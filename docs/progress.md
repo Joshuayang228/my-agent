@@ -1657,6 +1657,10 @@ Core Runtime State 新增暂停时间和追赶摘要，角色切换、主会话�
 # 2026-11-14 顶层架构 P0 Application 边界
 
 Runtime 的角色组装输入改由 `ConversationApplicationService.loadConversationAssemblyInput` 提供，Runtime 不再直接 import 伙伴组装器。会话生命周期和 Agent Loop 仍由 Runtime 管理，产品上下文装配进入 Application 边界。
+
+# 2026-11-14 顶层架构 P0 Runtime State 生命周期字段
+
+Core Runtime State 新增 `lastTickAt`，与暂停时间、追赶摘要一起成为生命周期快照。生活 tick 和 catch-up 会同步更新核心字段，Debug 的最近推进时间改读核心快照；旧 `role_state` 仅保留迁移期镜像。
 # 2026-11-14 Scoped Tool Catalog
 
 新增 `AgentHostScopedToolCatalog`，把 Manifest 授权筛选从 Runtime 条件分支提取为会话级目录对象。全局 ToolRegistry 继续只保存实现，未授权 Capability 不进入模型请求。

@@ -27,6 +27,7 @@ export async function ensureCompanionCoreSchema(): Promise<void> {
       situation TEXT NOT NULL DEFAULT '',
       paused_at INTEGER,
       catchup_summary TEXT NOT NULL DEFAULT '',
+      last_tick_at INTEGER NOT NULL DEFAULT 0,
       version INTEGER NOT NULL DEFAULT 0,
       updated_at INTEGER NOT NULL,
       last_event_id TEXT
@@ -34,6 +35,7 @@ export async function ensureCompanionCoreSchema(): Promise<void> {
   `)
   try { db.run('ALTER TABLE companion_runtime_state ADD COLUMN paused_at INTEGER') } catch { /* 已存在 */ }
   try { db.run("ALTER TABLE companion_runtime_state ADD COLUMN catchup_summary TEXT NOT NULL DEFAULT ''") } catch { /* 已存在 */ }
+  try { db.run('ALTER TABLE companion_runtime_state ADD COLUMN last_tick_at INTEGER NOT NULL DEFAULT 0') } catch { /* 已存在 */ }
   db.run(`
     CREATE TABLE IF NOT EXISTS companion_domain_events (
       id TEXT PRIMARY KEY,

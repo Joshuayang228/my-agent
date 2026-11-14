@@ -18,7 +18,7 @@ Memory 反思和 Prompt 动态上下文也沿同一来源协议记录。深夜�
 
 Companion Core 迁移期间，Runtime 组装器和 Debug 世界快照通过 `core/read-models/legacy-companion-read-model.ts` 读取旧日程、事件、关系和情绪表。该适配层只读，新的事实写入仍必须经过 Core Command / Domain Event。
 
-Core Runtime State 现在保存暂停时间和追赶摘要，pause、resume、catch-up 会同步核心快照，旧角色状态表只承担迁移期镜像。
+Core Runtime State 现在保存暂停时间、追赶摘要和最近推进时间，pause、resume、catch-up、tick 会同步核心快照，旧角色状态表只承担迁移期镜像。
 
 主会话角色组装由 Conversation Application Service 作为入口，Companion 负责提供人物资料和生活 Read Model，Runtime 不再直接拥有角色组装业务流程。
 

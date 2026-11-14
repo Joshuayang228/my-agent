@@ -29,6 +29,7 @@ function rowToState(row: Record<string, unknown>): CompanionRuntimeState {
     situation: String(row.situation ?? ''),
     pausedAt: row.paused_at == null ? null : Number(row.paused_at),
     catchupSummary: String(row.catchup_summary ?? ''),
+    lastTickAt: Number(row.last_tick_at) || 0,
     version: Number(row.version) || 0,
     updatedAt: Number(row.updated_at) || 0,
     lastEventId: row.last_event_id == null ? null : String(row.last_event_id),
@@ -47,7 +48,7 @@ export async function getCompanionRuntimeState(roleId: string, universeId = 'def
   const db = await getDatabase()
   const existing = db.exec('SELECT * FROM companion_runtime_state WHERE role_id = ?', [roleId])[0]?.values[0]
   if (existing) {
-    const columns = ['role_id', 'universe_id', 'mood', 'energy', 'social_need', 'hunger', 'sleepiness', 'home', 'timezone', 'current_activity', 'current_location', 'location_detail', 'status_tags_json', 'situation', 'paused_at', 'catchup_summary', 'version', 'updated_at', 'last_event_id']
+    const columns = ['role_id', 'universe_id', 'mood', 'energy', 'social_need', 'hunger', 'sleepiness', 'home', 'timezone', 'current_activity', 'current_location', 'location_detail', 'status_tags_json', 'situation', 'paused_at', 'catchup_summary', 'last_tick_at', 'version', 'updated_at', 'last_event_id']
     return rowToState(Object.fromEntries(columns.map((key, index) => [key, existing[index]])))
   }
 
@@ -72,6 +73,7 @@ export async function getCompanionRuntimeState(roleId: string, universeId = 'def
     situation: world.situation || '',
     pausedAt: roleState?.pausedAt ?? null,
     catchupSummary: roleState?.catchupSummary ?? '',
+    lastTickAt: roleState?.lastTickAt ?? 0,
     version: 0,
     updatedAt: world.updatedAt || now,
     lastEventId: null,
@@ -87,6 +89,7 @@ export async function replaceCompanionRuntimeState(state: CompanionRuntimeState)
     ...state,
     pausedAt: state.pausedAt ?? null,
     catchupSummary: state.catchupSummary ?? '',
+    lastTickAt: state.lastTickAt ?? 0,
     mood: clamp(state.mood),
     energy: clamp(state.energy),
     socialNeed: clamp(state.socialNeed),
@@ -95,8 +98,8 @@ export async function replaceCompanionRuntimeState(state: CompanionRuntimeState)
   }
   db.run(`
     INSERT INTO companion_runtime_state
-      (role_id, universe_id, mood, energy, social_need, hunger, sleepiness, home, timezone, current_activity, current_location, location_detail, status_tags_json, situation, paused_at, catchup_summary, version, updated_at, last_event_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (role_id, universe_id, mood, energy, social_need, hunger, sleepiness, home, timezone, current_activity, current_location, location_detail, status_tags_json, situation, paused_at, catchup_summary, last_tick_at, version, updated_at, last_event_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(role_id) DO UPDATE SET
       universe_id = excluded.universe_id,
       mood = excluded.mood,
@@ -113,10 +116,11 @@ export async function replaceCompanionRuntimeState(state: CompanionRuntimeState)
       situation = excluded.situation,
       paused_at = excluded.paused_at,
       catchup_summary = excluded.catchup_summary,
+      last_tick_at = excluded.last_tick_at,
       version = excluded.version,
       updated_at = excluded.updated_at,
       last_event_id = excluded.last_event_id
-  `, [next.roleId, next.universeId, next.mood, next.energy, next.socialNeed, next.hunger, next.sleepiness, next.home, next.timezone, next.currentActivity, next.currentLocation, next.locationDetail, JSON.stringify(next.statusTags), next.situation, next.pausedAt, next.catchupSummary, next.version, next.updatedAt, next.lastEventId])
+  `, [next.roleId, next.universeId, next.mood, next.energy, next.socialNeed, next.hunger, next.sleepiness, next.home, next.timezone, next.currentActivity, next.currentLocation, next.locationDetail, JSON.stringify(next.statusTags), next.situation, next.pausedAt, next.catchupSummary, next.lastTickAt, next.version, next.updatedAt, next.lastEventId])
   persist()
   const legacy = await lifeStore.getRoleState(next.roleId)
   const legacyWorld = legacy?.world ?? defaultWorldState(next.roleId)
@@ -171,6 +175,7 @@ export async function updateCompanionRuntimeLifecycle(input: {
   roleId: string
   pausedAt?: number | null
   catchupSummary?: string
+  lastTickAt?: number
   updatedAt?: number
 }): Promise<CompanionRuntimeState> {
   const current = await getCompanionRuntimeState(input.roleId)
@@ -178,6 +183,7 @@ export async function updateCompanionRuntimeLifecycle(input: {
     ...current,
     pausedAt: input.pausedAt === undefined ? current.pausedAt : input.pausedAt,
     catchupSummary: input.catchupSummary === undefined ? current.catchupSummary : input.catchupSummary,
+    lastTickAt: input.lastTickAt === undefined ? current.lastTickAt : input.lastTickAt,
     updatedAt: input.updatedAt ?? Date.now(),
   })
 }

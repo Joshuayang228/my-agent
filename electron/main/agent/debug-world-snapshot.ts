@@ -232,7 +232,7 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
     life: state
       ? {
           pausedAt: runtimeState.pausedAt,
-          lastTickAt: state.lastTickAt,
+          lastTickAt: runtimeState.lastTickAt,
           catchupSummary: clip(catchup, CATCHUP_MAX),
           catchupTruncated: catchup.length > CATCHUP_MAX,
         }

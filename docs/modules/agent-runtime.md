@@ -18,7 +18,7 @@ Runtime 每轮请求按当前 Agent Manifest 过滤 `capability_*`，再叠加 S
 
 Runtime 组装和 Debug 世界快照读取旧 Companion 表时统一经过 `legacy-companion-read-model` 只读适配层，Runtime 不再直接依赖 `companion/life/store`。
 
-暂停时间和追赶摘要从 Core Runtime State 读取，角色切换和主会话组装不再直接查询旧 `role_state` 生命周期字段。
+暂停时间、追赶摘要和最近推进时间从 Core Runtime State 读取，角色切换和主会话组装不再直接查询旧 `role_state` 生命周期字段。
 
 角色组装输入通过 `ConversationApplicationService.loadConversationAssemblyInput` 提供，Runtime 只保留会话生命周期、取消、Loop 和流式事件编排。
 
