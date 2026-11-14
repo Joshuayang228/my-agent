@@ -7,7 +7,7 @@
  */
 
 import { listMomentsForRole } from '../life/moments'
-import { getCompanionLegacyRoleState as getRoleState } from '../core/read-models/legacy-companion-read-model'
+import { getCompanionRuntimeReadModel } from '../core/read-models/runtime-read-model'
 import { ASSET_KIND_BOOKSHELF, latestReadingNote, listAssets } from '../life/assets'
 
 export const LIFE_SIGNAL_MOMENT_LIMIT = 12
@@ -81,7 +81,7 @@ export async function collectLifeSignalsForRole(
 ): Promise<string> {
   const limit = opts?.limit ?? LIFE_SIGNAL_MOMENT_LIMIT
   const [state, moments, bookshelf] = await Promise.all([
-    getRoleState(roleId),
+    getCompanionRuntimeReadModel(roleId),
     listMomentsForRole(roleId, { limit }),
     listAssets(roleId, { kind: ASSET_KIND_BOOKSHELF, limit: 6 }),
   ])

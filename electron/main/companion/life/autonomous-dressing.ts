@@ -20,7 +20,8 @@ import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from '../../storage/database'
 import { createLogger } from '../../utils/logger'
 import { toLocalDateString } from './dates'
-import { getCompanionLegacyRoleState as getRoleState, getCompanionLegacyDayScript as getDayScript } from '../core/read-models/legacy-companion-read-model'
+import { getCompanionLegacyDayScript as getDayScript } from '../core/read-models/legacy-companion-read-model'
+import { getCompanionRuntimeReadModel } from '../core/read-models/runtime-read-model'
 import {
   listAssets,
   ensureStarterWardrobe,
@@ -163,8 +164,8 @@ export async function shouldPerformContextualDressing(
   await ensureAutonomousDressingTable()
   const db = await getDatabase()
 
-  const state = await getRoleState(roleId)
-  if (state?.pausedAt != null) {
+  const state = await getCompanionRuntimeReadModel(roleId)
+  if (state.pausedAt != null) {
     return { shouldDress: false, reason: 'role_paused' }
   }
 

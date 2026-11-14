@@ -24,6 +24,7 @@ Core Runtime State 现在保存暂停时间、追赶摘要和最近推进时间�
 文化心愿完成、朋友圈投影、文化心愿生成的动态和自动回复也沿本地事务提交，模型调用结束后才落 Core 事件与旧读模型投影。
 朋友圈事件完成投影后，事件状态和执行账本一起提交，失败时保留可重试状态。
 日剧本和生活事件统一由 Application Gateway 创建并登记 Core Domain Event，旧事件表只承担当前查询投影。
+生活 tick、生活信号、自动穿搭和旅行推进统一读取 Core Runtime State，旧角色状态表不再作为这些功能的运行态来源。
 
 主会话角色组装由 Conversation Application Service 作为入口，Companion 负责提供人物资料和生活 Read Model，Runtime 不再直接拥有角色组装业务流程。
 

@@ -21,7 +21,7 @@ import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from '../../storage/database'
 import { createLogger } from '../../utils/logger'
 import { toLocalDateString } from './dates'
-import { getCompanionLegacyRoleState as getRoleState } from '../core/read-models/legacy-companion-read-model'
+import { getCompanionRuntimeReadModel } from '../core/read-models/runtime-read-model'
 import {
   listAssets,
   ensureStarterFootprints,
@@ -160,8 +160,8 @@ export async function shouldProgressTravelJourney(
   await ensureTravelProgressionTable()
   const db = await getDatabase()
 
-  const state = await getRoleState(roleId)
-  if (state?.pausedAt != null) {
+  const state = await getCompanionRuntimeReadModel(roleId)
+  if (state.pausedAt != null) {
     return { shouldProgress: false, reason: 'role_paused' }
   }
 

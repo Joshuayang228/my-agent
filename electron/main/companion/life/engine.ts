@@ -28,6 +28,7 @@ import * as store from './store'
 import { updateCompanionRuntimeLifecycle } from '../core/state/runtime-state'
 import { createCompanionLifeEvent } from '../application/life-event'
 import { createCompanionDayScript } from '../application/day-script'
+import { getCompanionRuntimeReadModel } from '../core/read-models/runtime-read-model'
 
 /** 解析当前活跃主角（不经过 orchestrator，避免 life ↔ orchestrator 循环依赖） */
 async function resolveActiveRoleId(): Promise<string> {
@@ -160,9 +161,9 @@ export async function tickActiveRole(now: number): Promise<{
   paused: boolean
 }> {
   const roleId = await resolveActiveRoleId()
-  const state = await store.getRoleState(roleId)
-  if (state?.pausedAt != null) {
-    log.debug('Skip tick: active role still paused', { roleId, pausedAt: state.pausedAt })
+  const runtimeState = await getCompanionRuntimeReadModel(roleId)
+  if (runtimeState.pausedAt != null) {
+    log.debug('Skip tick: active role still paused', { roleId, pausedAt: runtimeState.pausedAt })
     return { roleId, published: 0, scriptsCreated: 0, paused: true }
   }
 
