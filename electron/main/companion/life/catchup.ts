@@ -20,6 +20,7 @@ import { ensureDayScripts } from './engine'
 import { publishAndProjectRange } from './moments'
 import * as store from './store'
 import { ensureWorldState } from './world-state'
+import { updateCompanionRuntimeLifecycle } from '../core/state/runtime-state'
 
 const log = createLogger('Catchup')
 
@@ -169,6 +170,7 @@ export async function runCatchup(
       universeId: opts?.universeId,
     })
     await store.setCatchupSummary(roleId, resolved.summary)
+    await updateCompanionRuntimeLifecycle({ roleId, catchupSummary: resolved.summary })
     summaryUpdated = true
     summarySource = resolved.source
   }
@@ -181,6 +183,7 @@ export async function runCatchup(
 
   const published = await publishAndProjectRange(roleId, fineStart, now, { automatic: true })
   await store.clearPausedAt(roleId)
+  await updateCompanionRuntimeLifecycle({ roleId, pausedAt: null, updatedAt: now })
   await store.touchLastTick(roleId, now)
 
   log.info('Catch-up done', {

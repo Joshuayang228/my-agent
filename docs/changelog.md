@@ -10,6 +10,8 @@
 
 2026-11-14：Companion Core 迁移边界收口。Runtime 组装器和 Debug 世界快照的旧生活表读取统一经过只读 `legacy-companion-read-model` 适配层，为后续 Core Read Model 替换集中迁移入口。
 
+2026-11-14：Companion Core Runtime State 扩展暂停时间和追赶摘要。角色切换、主会话组装和 Debug 生命周期读取优先使用核心快照，pause、resume、catch-up 会同步更新 Core State。
+
 2026-11-14：Runtime 与 Application 边界继续收口。角色组装输入改由 ConversationApplicationService 提供，Runtime 保留会话生命周期和 Agent Loop 编排。
 
 2026-11-14：Agent Host 收口批次完成。会话工具目录统一在 Scoped Tool Catalog 内同时应用 Manifest 授权和 Skill allowlist，Debug 增加 Skill 版本、指纹、启停状态和 Capability 关系证据，Companion 入口继续沿统一 Application / Domain / Event / Outbox 事实链执行。

@@ -27,7 +27,7 @@ import {
 import { getMutable } from './growth/mutable-store'
 import { runCatchup } from './life/catchup'
 import { pauseRole, resumeRole } from './life/engine'
-import { getCompanionLegacyRoleState as getRoleState, listCompanionLegacyEmotionEvents as listEmotionEvents, listCompanionLegacyRelationshipStates as listRelationshipStates, listCompanionLegacyEvents as listEvents } from './core/read-models/legacy-companion-read-model'
+import { listCompanionLegacyEmotionEvents as listEmotionEvents, listCompanionLegacyRelationshipStates as listRelationshipStates, listCompanionLegacyEvents as listEvents } from './core/read-models/legacy-companion-read-model'
 import { getCompanionRuntimeReadModel } from './core/read-models/runtime-read-model'
 import { narrativeMood } from './life/world-codec'
 import { recordAndBroadcastMilestone } from './growth/milestones'
@@ -228,7 +228,7 @@ export async function loadRoleAssembleInput(
   const uid = universeId ?? (await settings.getSetting('universeId'))
   const pack = identity.loadRolePack(roleId, uid)
   const mutableBody = await getMutable(roleId, uid)
-  const state = await getRoleState(roleId)
+  const state = await getCompanionRuntimeReadModel(roleId)
   const catchupSummary = state?.catchupSummary?.trim() || undefined
   const roster = formatRosterForPrompt(buildRosterLines(roleId, uid))
   // 延迟 import，避免 orchestrator ↔ life 启动环
@@ -525,7 +525,7 @@ export async function requestSwitch(roleId: string): Promise<SwitchResult> {
   const now = Date.now()
   await pauseRole(current, now)
 
-  const targetPrev = await getRoleState(roleId)
+  const targetPrev = await getCompanionRuntimeReadModel(roleId)
   const pausedAt = targetPrev?.pausedAt ?? null
 
   let catchupQueued = false

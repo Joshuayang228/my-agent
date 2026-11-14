@@ -13,6 +13,8 @@ export interface CompanionRuntimeState {
   locationDetail: string
   statusTags: string[]
   situation: string
+  pausedAt: number | null
+  catchupSummary: string
   version: number
   updatedAt: number
   lastEventId: string | null

@@ -196,7 +196,7 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
     updatedAt: m.updatedAt,
   }))
 
-  const catchup = state?.catchupSummary ?? ''
+  const catchup = runtimeState?.catchupSummary ?? ''
   const snap: DebugWorldSnapshot = {
     role: {
       id: role.id,
@@ -231,7 +231,7 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
       : null,
     life: state
       ? {
-          pausedAt: state.pausedAt,
+          pausedAt: runtimeState.pausedAt,
           lastTickAt: state.lastTickAt,
           catchupSummary: clip(catchup, CATCHUP_MAX),
           catchupTruncated: catchup.length > CATCHUP_MAX,

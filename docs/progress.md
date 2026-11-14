@@ -1650,6 +1650,10 @@ Agent Host Manifest 新增 `grantedPermissions`，Application Orchestrator 和 C
 
 新增 `legacy-companion-read-model.ts` 迁移适配层，Runtime 组装器和 Debug 世界快照的旧生活表读取统一从该层进入。旧表仍是迁移期读模型，Core Read Model 替换路径已集中，不再扩散到上层。
 
+# 2026-11-14 顶层架构 P0 Runtime State 迁移
+
+Core Runtime State 新增暂停时间和追赶摘要，角色切换、主会话组装和 Debug 生命周期读取优先使用核心快照。pause、resume 和 catch-up 会同步更新 Core State，旧 `role_state` 继续保留迁移期镜像。
+
 # 2026-11-14 顶层架构 P0 Application 边界
 
 Runtime 的角色组装输入改由 `ConversationApplicationService.loadConversationAssemblyInput` 提供，Runtime 不再直接 import 伙伴组装器。会话生命周期和 Agent Loop 仍由 Runtime 管理，产品上下文装配进入 Application 边界。

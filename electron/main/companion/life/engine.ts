@@ -25,6 +25,7 @@ import { maybeNotifyNewMoments } from './moment-tips'
 import { resolveDayScript } from './script-generator'
 import { refreshSituationFromLife } from './world-state'
 import * as store from './store'
+import { updateCompanionRuntimeLifecycle } from '../core/state/runtime-state'
 
 /** 解析当前活跃主角（不经过 orchestrator，避免 life ↔ orchestrator 循环依赖） */
 async function resolveActiveRoleId(): Promise<string> {
@@ -38,12 +39,14 @@ const log = createLogger('LifeEngine')
 
 export async function pauseRole(roleId: string, at: number): Promise<void> {
   await store.writePausedAt(roleId, at)
+  await updateCompanionRuntimeLifecycle({ roleId, pausedAt: at, updatedAt: at })
   log.info('Role paused', { roleId, at })
 }
 
 /** W2：清除暂停。完整 Catch-up 由 W3 runCatchup 接管。 */
 export async function resumeRole(roleId: string): Promise<void> {
   await store.clearPausedAt(roleId)
+  await updateCompanionRuntimeLifecycle({ roleId, pausedAt: null })
   log.info('Role resumed (pause cleared)', { roleId })
 }
 

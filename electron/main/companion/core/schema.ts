@@ -25,11 +25,15 @@ export async function ensureCompanionCoreSchema(): Promise<void> {
       location_detail TEXT NOT NULL DEFAULT '',
       status_tags_json TEXT NOT NULL DEFAULT '[]',
       situation TEXT NOT NULL DEFAULT '',
+      paused_at INTEGER,
+      catchup_summary TEXT NOT NULL DEFAULT '',
       version INTEGER NOT NULL DEFAULT 0,
       updated_at INTEGER NOT NULL,
       last_event_id TEXT
     )
   `)
+  try { db.run('ALTER TABLE companion_runtime_state ADD COLUMN paused_at INTEGER') } catch { /* 已存在 */ }
+  try { db.run("ALTER TABLE companion_runtime_state ADD COLUMN catchup_summary TEXT NOT NULL DEFAULT ''") } catch { /* 已存在 */ }
   db.run(`
     CREATE TABLE IF NOT EXISTS companion_domain_events (
       id TEXT PRIMARY KEY,

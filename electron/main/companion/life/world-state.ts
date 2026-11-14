@@ -54,6 +54,8 @@ function worldToRuntimeState(
     locationDetail: world.locationDetail,
     statusTags: world.statusTags,
     situation: world.situation,
+    pausedAt: runtime.pausedAt,
+    catchupSummary: runtime.catchupSummary,
     version: runtime.version + 1,
     updatedAt: world.updatedAt,
     lastEventId: runtime.lastEventId,

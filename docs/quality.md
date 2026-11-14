@@ -1200,6 +1200,9 @@ Manifest 的 `grantedPermissions` 与 Capability `requiredPermissions` 在 Appli
 # 2026-11-14 Core Read Model 迁移边界
 
 Runtime 组装器与 Debug 世界快照的旧生活表读取统一经过 `legacy-companion-read-model` 适配层。专项 Companion Core 与 Debug 证据测试通过，适配层不提供写入接口。
+# 2026-11-14 Core Runtime State 生命周期字段
+
+pause、resume、catch-up 回归覆盖 Core Runtime State 的暂停时间和追赶摘要同步，角色切换、主会话组装和 Debug 生命周期读取继续通过现有测试。
 # 2026-11-14 Conversation Application 边界
 
 角色组装输入通过 Conversation Application Service 进入 Runtime，现有会话生命周期、取消、Loop 和流式事件测试继续通过。

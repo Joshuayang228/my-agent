@@ -7,7 +7,9 @@ import { formatRelationshipStageForPrompt, resolveRelationshipStageForRole } fro
 import { getMilestonePromptHint, recordAndBroadcastMilestone } from '../companion/growth/milestones'
 import { loadRoleAssembleInput } from '../companion/orchestrator'
 
-export const loadConversationAssemblyInput = loadRoleAssembleInput
+export async function loadConversationAssemblyInput(...args: Parameters<typeof loadRoleAssembleInput>): ReturnType<typeof loadRoleAssembleInput> {
+  return loadRoleAssembleInput(...args)
+}
 
 const log = createLogger('ConversationApplicationService')
 

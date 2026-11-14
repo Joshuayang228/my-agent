@@ -213,6 +213,8 @@ Agent Host Manifest 现在同时声明 `grantedPermissions`。Application Orches
 
 Companion 旧生活表读取已集中到 `core/read-models/legacy-companion-read-model.ts` 迁移适配层。Runtime 组装器和 Debug 世界快照不再直接 import `life/store`，适配层只读旧事实，不允许新增旁路写入。
 
+暂停时间和追赶摘要已进入 Core Runtime State，角色切换、主会话组装和 Debug 生命周期读取优先使用核心快照；旧 `role_state` 仍保留迁移期镜像和 last tick 读取。
+
 Runtime 的角色组装输入通过 `ConversationApplicationService.loadConversationAssemblyInput` 进入 Application 层，Runtime 保留会话绑定、取消、Loop 和流式生命周期。
 
 人物 JSON 来源由纯 `companion/identity/source-assets.ts` 工厂投影，Prompt 追踪和伙伴目录共享 canonical key；高层 Debug 聚合去重。LLM 依赖 Prompt 目录时不反向导入 Agent 或生活存储，Role Pack 文本仍从实际 loader 读取。主对话 / Eval 使用 `prompts/compiler.ts`；旧生产组装适配层已移除。
