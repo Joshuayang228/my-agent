@@ -96,7 +96,7 @@ test('正式朋友圈赞评经数据页备份到新目录、重启展示且重�
     await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
     const card = page.getByTestId('moment-post').filter({ hasText: '今天读完了一本书。' }).first()
     await expect(card).toBeVisible()
-    await expect.poll(() => card.locator('img').evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(24)
+    await expect.poll(() => card.getByTestId('moment-media-image').evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(24)
     await card.getByRole('button', { name: /预览/ }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
     await page.getByRole('dialog').getByRole('button', { name: '关闭图片预览', exact: true }).click()

@@ -1212,6 +1212,8 @@ pause、resume、catch-up、tick 回归覆盖 Core Runtime State 的暂停时间
 生命周期读取回归覆盖生活 tick、生活信号、自动穿搭和旅行推进从 Core Runtime State 获取暂停状态。
 生命周期写入回归覆盖 pause、resume、catch-up 和 tick 不再更新旧角色状态表的生命周期字段。
 Runtime Application 边界回归覆盖会话角色校验、卡司在场、召唤场景、委派提示和流式门控的统一入口。
+
+2026-11-14 Electron E2E 迁移回归：完整 Electron 集合完成 46 项，其中 35 项通过、5 项跳过、6 项失败。失败集中在生图导出状态等待、Chrome 禁止端口 OAuth 夹具、侧聊流取消时序、主动问候夹具回调和朋友圈图片选择器。朋友圈图片选择器已修正，专项测试通过。其余失败未落在本轮 Companion Core 事实迁移路径，待独立稳定性批次处理。
 # 2026-11-14 Conversation Application 边界
 
 角色组装输入通过 Conversation Application Service 进入 Runtime，现有会话生命周期、取消、Loop 和流式事件测试继续通过。
