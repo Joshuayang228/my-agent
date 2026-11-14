@@ -20,7 +20,7 @@ import { checkAndTriggerVulnerability } from './vulnerability'
 import { checkAndTriggerNightlyReflection } from './nightly-reflection'
 import { checkAndReplanIfExhausted } from './replan'
 import { checkAndTriggerHostCare } from './host-presence'
-import * as store from './store'
+import { listCompanionLegacyEvents as listEvents } from '../core/read-models/legacy-companion-read-model'
 import { isActiveRole } from '../../storage/settings-store'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
 import { executeCompanionCommand } from '../core/commands/gateway'
@@ -72,7 +72,7 @@ export async function getNextPlannedEventDelay(
   maxIntervalMs = DEFAULT_INTERVAL_MS,
 ): Promise<number> {
   try {
-    const planned = await store.listEvents(roleId, { status: 'planned', order: 'asc', limit: 10 })
+    const planned = await listEvents(roleId, { status: 'planned', order: 'asc', limit: 10 })
     const upcoming = planned.find((e) => e.scheduledAt > now)
     if (upcoming) {
       const diff = upcoming.scheduledAt - now + 500

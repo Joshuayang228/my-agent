@@ -1,7 +1,8 @@
 import type { GeneratedImageReadResult } from '../../../../src/shared/types'
 import { getDatabase } from '../../storage/database'
 import { readGeneratedImageReference } from '../../storage/generated-images'
-import { getEventById, getMomentById, listEventLinks, replaceEventLinks } from './store'
+import { getCompanionLegacyEventById as getEventById, listCompanionLegacyEventLinks as listEventLinks } from '../core/read-models/legacy-companion-read-model'
+import { getMomentById, replaceEventLinks } from './store'
 import { readStoredMomentMedia } from './moment-media-store'
 
 export type MomentImageTarget =

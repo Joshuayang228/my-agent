@@ -1203,7 +1203,7 @@ Runtime 组装器与 Debug 世界快照的旧生活表读取统一经过 `legacy
 # 2026-11-14 Core Runtime State 生命周期字段
 
 pause、resume、catch-up、tick 回归覆盖 Core Runtime State 的暂停时间、追赶摘要和最近推进时间同步，角色切换、主会话组装和 Debug 生命周期读取继续通过现有测试。
-只读迁移适配层回归覆盖通讯录、卡司可用性、生活信号、穿搭、旅行推进、日程时间线、反思和事件切片，确保只改变读取入口，不新增写入副作用。
+只读迁移适配层回归覆盖通讯录、卡司可用性、生活信号、穿搭、旅行推进、日程时间线、反思、事件切片、生活时钟和世界体征刷新，确保只改变读取入口，不新增写入副作用。
 # 2026-11-14 Conversation Application 边界
 
 角色组装输入通过 Conversation Application Service 进入 Runtime，现有会话生命周期、取消、Loop 和流式事件测试继续通过。

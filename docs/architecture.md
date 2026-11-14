@@ -215,7 +215,7 @@ Companion 旧生活表读取已集中到 `core/read-models/legacy-companion-read
 
 暂停时间、追赶摘要和最近推进时间已进入 Core Runtime State，角色切换、主会话组装和 Debug 生命周期读取优先使用核心快照；旧 `role_state` 仍保留迁移期镜像。
 
-Companion 迁移期只读路径统一经过 `core/read-models/legacy-companion-read-model.ts`：通讯录、卡司可用性、生活信号、穿搭、旅行推进、日程时间线、反思和事件切片不再各自直接 import `life/store`。该边界不承载写入，避免读适配器扩散成第二事实源。
+Companion 迁移期只读路径统一经过 `core/read-models/legacy-companion-read-model.ts`：通讯录、卡司可用性、生活信号、穿搭、旅行推进、日程时间线、反思、事件切片、生活时钟和世界体征刷新不再各自直接 import `life/store`。该边界不承载写入，避免读适配器扩散成第二事实源。
 
 Runtime 的角色组装输入通过 `ConversationApplicationService.loadConversationAssemblyInput` 进入 Application 层，Runtime 保留会话绑定、取消、Loop 和流式生命周期。
 

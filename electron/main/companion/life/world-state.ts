@@ -11,7 +11,7 @@ import {
   defaultWorldState,
   formatWorldSliceForPrompt,
 } from './world-codec'
-import * as store from './store'
+import { listCompanionLegacyEvents as listEvents } from '../core/read-models/legacy-companion-read-model'
 import { applyVitalsDelta, deriveVitalsDelta, releaseSocialNeedAfterChat } from './world-vitals'
 import {
   getCompanionRuntimeState,
@@ -94,7 +94,7 @@ export async function refreshSituationFromLife(
   now: number,
 ): Promise<CompanionWorldState> {
   const world = await ensureWorldState(roleId)
-  const events = await store.listEvents(roleId, { status: 'published' })
+  const events = await listEvents(roleId, { status: 'published' })
   const due = events
     .filter((e) => e.scheduledAt <= now)
     .sort((a, b) => b.scheduledAt - a.scheduledAt)

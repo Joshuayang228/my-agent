@@ -33,7 +33,7 @@ P0-3 已完成：Runtime 的角色组装输入通过 `ConversationApplicationSer
 
 P0-2 继续收口：Core Runtime State 现在承载 `pausedAt`、`catchupSummary` 和 `lastTickAt` 三个生命周期字段；pause、resume、catch-up 和生活 tick 会同步更新核心快照，Debug 与主会话组装优先读取核心状态。旧 `role_state` 仅保留迁移期镜像，尚未删除。
 
-P0-2 只读路径继续收口：通讯录、卡司可用性、生活信号、穿搭、旅行推进、日程时间线、反思和事件切片等读取者统一通过 `legacy-companion-read-model` 进入旧表；写入路径仍由 Life Domain 自己持有，避免把迁移读适配器误当成事实写入口。
+P0-2 只读路径继续收口：通讯录、卡司可用性、生活信号、穿搭、旅行推进、日程时间线、反思、事件切片、生活时钟和世界体征刷新等读取者统一通过 `legacy-companion-read-model` 进入旧表；写入路径仍由 Life Domain 自己持有，避免把迁移读适配器误当成事实写入口。
 
 ## 4. P1 实施范围
 

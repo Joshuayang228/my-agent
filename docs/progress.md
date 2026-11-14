@@ -1664,7 +1664,7 @@ Core Runtime State 新增 `lastTickAt`，与暂停时间、追赶摘要一起成
 
 # 2026-11-14 顶层架构 P0 只读路径收口
 
-通讯录、卡司可用性、生活信号、穿搭、旅行推进、日程时间线、反思和事件切片统一通过 `legacy-companion-read-model` 读取旧生活表。写入路径保持在 Life Domain 内，迁移读边界不承担事实写入。
+通讯录、卡司可用性、生活信号、穿搭、旅行推进、日程时间线、反思、事件切片、生活时钟和世界体征刷新统一通过 `legacy-companion-read-model` 读取旧生活表。写入路径保持在 Life Domain 内，迁移读边界不承担事实写入。
 # 2026-11-14 Scoped Tool Catalog
 
 新增 `AgentHostScopedToolCatalog`，把 Manifest 授权筛选从 Runtime 条件分支提取为会话级目录对象。全局 ToolRegistry 继续只保存实现，未授权 Capability 不进入模型请求。
