@@ -6,9 +6,34 @@ import { createLogger } from '../utils/logger'
 import { formatRelationshipStageForPrompt, resolveRelationshipStageForRole } from '../companion/growth/relationship-stage'
 import { getMilestonePromptHint, recordAndBroadcastMilestone } from '../companion/growth/milestones'
 import { loadRoleAssembleInput } from '../companion/orchestrator'
+import { assertSessionRole } from '../companion/orchestrator'
+import { describeCastPresence } from '../companion/cast/availability'
+import { formatSummonSceneBlock } from '../companion/cast/scene-prompts'
+import { summonParentDelegationHint } from '../companion/cast/summon-delegation'
+import { registerStreamingProbe } from '../companion/streaming-gate'
 
 export async function loadConversationAssemblyInput(...args: Parameters<typeof loadRoleAssembleInput>): ReturnType<typeof loadRoleAssembleInput> {
   return loadRoleAssembleInput(...args)
+}
+
+export async function assertConversationSessionRole(sessionRoleId: string | undefined | null): ReturnType<typeof assertSessionRole> {
+  return assertSessionRole(sessionRoleId)
+}
+
+export async function resolveConversationCastPresence(roleId: string): ReturnType<typeof describeCastPresence> {
+  return describeCastPresence(roleId)
+}
+
+export function formatConversationSummonScene(roleId: string): ReturnType<typeof formatSummonSceneBlock> {
+  return formatSummonSceneBlock(roleId)
+}
+
+export function getConversationDelegationHint(): string {
+  return summonParentDelegationHint()
+}
+
+export function registerConversationStreamingProbe(probe: () => boolean): void {
+  registerStreamingProbe(probe)
 }
 
 const log = createLogger('ConversationApplicationService')

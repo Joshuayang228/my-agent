@@ -17,10 +17,7 @@ import { agentLoop } from './loop'
 import { characterDefinitionFromRolePack } from '../prompts/compiler'
 import { buildSummonContextPrompt, buildActiveSkillPrompt } from '../prompts/runtime-context'
 import { compileMainSystem } from '../prompts/registered-request'
-import { describeCastPresence } from '../companion/cast/availability'
-import { formatSummonSceneBlock } from '../companion/cast/scene-prompts'
-import { summonParentDelegationHint } from '../companion/cast/summon-delegation'
-import { loadConversationAssemblyInput, resolveConversationRelationshipHints, settleConversationCompletion } from './conversation-application-service'
+import { loadConversationAssemblyInput, resolveConversationRelationshipHints, settleConversationCompletion, assertConversationSessionRole, resolveConversationCastPresence, formatConversationSummonScene, getConversationDelegationHint, registerConversationStreamingProbe } from './conversation-application-service'
 import { getAgentHostContext } from '../agent-host/host'
 import { AgentHostScopedToolCatalog } from '../agent-host/scoped-catalog'
 import { loadCompanionAgentManifest } from '../agent-host/builtin-domains'
@@ -28,8 +25,6 @@ import {
   formatExpertiseLevelForPrompt,
   resolveExpertiseLevel,
 } from './expertise-level'
-import { assertSessionRole } from '../companion/orchestrator'
-import { registerStreamingProbe } from '../companion/streaming-gate'
 import { maybeExtractProfile } from './profile-extractor'
 import { setQuerySource } from './context-manager'
 import { checkBudget, recordDailyUsage } from './token-budget'
@@ -88,7 +83,7 @@ class AgentRuntime {
 
   constructor() {
     // 供 Companion Orchestrator 门控换角，避免 companion import agent
-    registerStreamingProbe(() => this.activeControllers.size > 0)
+    registerConversationStreamingProbe(() => this.activeControllers.size > 0)
   }
 
   /** 检查某会话是否正在执行 */
@@ -224,7 +219,7 @@ class AgentRuntime {
       const expertiseOverride = await settings.getSetting('userExpertiseLevel')
       // 会话绑定 role_id 优先；与 active 不一致时仍按会话组装（禁止中途换角偷换人设）
       const sessionMeta = await store.getSession(sessionId)
-      const { assembleRoleId, activeRoleId, mismatch } = await assertSessionRole(sessionMeta?.roleId)
+      const { assembleRoleId, activeRoleId, mismatch } = await assertConversationSessionRole(sessionMeta?.roleId)
       const isSummon = sessionMeta?.sessionKind === 'summon'
       const isWorkspace = sessionMeta?.sessionKind === 'workspace'
       if (mismatch) {
@@ -291,7 +286,7 @@ class AgentRuntime {
       if (isSummon) {
         let presenceLine = ''
         try {
-          const presence = await describeCastPresence(assembleRoleId)
+          const presence = await resolveConversationCastPresence(assembleRoleId)
           if (presence) {
             presenceLine = presence
           }
@@ -299,9 +294,9 @@ class AgentRuntime {
         // M26-G3：互动/执行场景组（NPC 有专文；主角走派生默认）
         let sceneBlock = ''
         try {
-          sceneBlock = formatSummonSceneBlock(assembleRoleId)
+          sceneBlock = formatConversationSummonScene(assembleRoleId)
         } catch { /* ignore */ }
-        summonNote = buildSummonContextPrompt(presenceLine, summonParentDelegationHint(), sceneBlock)
+        summonNote = buildSummonContextPrompt(presenceLine, getConversationDelegationHint(), sceneBlock)
       }
       const sessionInfoParts = [summonNote].filter(Boolean)
       if (isWorkspace) {

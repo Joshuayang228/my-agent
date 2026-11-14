@@ -50,6 +50,8 @@ P0-1 事务边界继续收口：用户赠礼的业务事实、主会话 Outbox�
 
 生命周期读写已迁移：生活 tick、生活信号、自动穿搭和旅行推进统一读取 Core Runtime Read Model，pause、resume、catch-up 和 tick 不再写旧 `companion_role_state` 的生命周期字段，旧表只保留世界投影和历史迁移入口。
 
+Runtime 的伙伴入口已进一步收口：会话角色校验、卡司在场、召唤场景、委派提示和流式门控通过 Conversation Application Service 进入，Runtime 不再直接 import 这些 Companion 入口。
+
 ## 5. 非目标
 
 - 不重写 Agent Loop 算法。

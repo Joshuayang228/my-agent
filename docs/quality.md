@@ -1211,6 +1211,7 @@ pause、resume、catch-up、tick 回归覆盖 Core Runtime State 的暂停时间
 日剧本与生活事件回归覆盖 Application Gateway 的 Core Domain Event 和旧查询投影双写，以及重复事件 ID 的幂等行为。
 生命周期读取回归覆盖生活 tick、生活信号、自动穿搭和旅行推进从 Core Runtime State 获取暂停状态。
 生命周期写入回归覆盖 pause、resume、catch-up 和 tick 不再更新旧角色状态表的生命周期字段。
+Runtime Application 边界回归覆盖会话角色校验、卡司在场、召唤场景、委派提示和流式门控的统一入口。
 # 2026-11-14 Conversation Application 边界
 
 角色组装输入通过 Conversation Application Service 进入 Runtime，现有会话生命周期、取消、Loop 和流式事件测试继续通过。
