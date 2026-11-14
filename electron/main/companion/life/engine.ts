@@ -41,14 +41,12 @@ async function resolveActiveRoleId(): Promise<string> {
 const log = createLogger('LifeEngine')
 
 export async function pauseRole(roleId: string, at: number): Promise<void> {
-  await store.writePausedAt(roleId, at)
   await updateCompanionRuntimeLifecycle({ roleId, pausedAt: at, updatedAt: at })
   log.info('Role paused', { roleId, at })
 }
 
 /** W2：清除暂停。完整 Catch-up 由 W3 runCatchup 接管。 */
 export async function resumeRole(roleId: string): Promise<void> {
-  await store.clearPausedAt(roleId)
   await updateCompanionRuntimeLifecycle({ roleId, pausedAt: null })
   log.info('Role resumed (pause cleared)', { roleId })
 }
@@ -181,7 +179,6 @@ export async function tickActiveRole(now: number): Promise<{
       const published = await publishAndProjectDue(roleId, now, span.id)
       // M23-G2：用最近 published 事件刷新短期情境（居所/时区保持稳定）
       await refreshSituationFromLife(roleId, now)
-      await store.touchLastTick(roleId, now)
       await updateCompanionRuntimeLifecycle({ roleId, lastTickAt: now, updatedAt: now })
       // M31-G1：有新投影时可选应用内轻提示（失败不阻断 tick）
       if (published > 0) {

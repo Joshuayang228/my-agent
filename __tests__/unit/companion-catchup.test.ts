@@ -59,6 +59,7 @@ const { localDateTimeMs, toLocalDateString, eachLocalDateInclusive } =
 const { __lifeStore, pauseRole, tickActiveRole } =
   await import('../../electron/main/companion/life/engine')
 const { listMomentsForRole } = await import('../../electron/main/companion/life/moments')
+const { getCompanionRuntimeState } = await import('../../electron/main/companion/core/state/runtime-state')
 
 describe('Catch-up + Moments', () => {
   beforeEach(() => {
@@ -85,7 +86,7 @@ describe('Catch-up + Moments', () => {
     expect(result.fineDays).toBeGreaterThanOrEqual(7)
     expect(result.fineDays).toBeLessThanOrEqual(8)
 
-    const state = await __lifeStore.getRoleState('luffy')
+    const state = await getCompanionRuntimeState('luffy')
     expect(state?.pausedAt).toBeNull()
     expect(state?.catchupSummary).toContain('生活追赶摘要')
     expect(state?.catchupSummary.length).toBeGreaterThan(10)
@@ -102,7 +103,7 @@ describe('Catch-up + Moments', () => {
     const pausedAt = localDateTimeMs('2026-08-10', 12, 0)
     const result = await runCatchup('luffy', pausedAt, now)
     expect(result.summaryUpdated).toBe(false)
-    const state = await __lifeStore.getRoleState('luffy')
+    const state = await getCompanionRuntimeState('luffy')
     expect(state?.catchupSummary ?? '').toBe('')
     expect(await __lifeStore.countDayScripts('luffy')).toBe(result.fineDays)
   })

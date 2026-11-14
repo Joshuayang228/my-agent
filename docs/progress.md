@@ -1693,6 +1693,10 @@ Core Runtime State 新增 `lastTickAt`，与暂停时间、追赶摘要一起成
 # 2026-11-14 顶层架构 P0 生命周期读取迁移
 
 生活 tick、生活信号、自动穿搭和旅行推进统一读取 Core Runtime Read Model，旧角色状态表不再作为这些功能的运行态读取来源。
+
+# 2026-11-14 顶层架构 P0 生命周期写入迁移
+
+pause、resume、catch-up 和 tick 不再写旧角色状态表的暂停、补叙和最近推进字段，Core Runtime State 成为生命周期唯一写入来源。
 # 2026-11-14 Scoped Tool Catalog
 
 新增 `AgentHostScopedToolCatalog`，把 Manifest 授权筛选从 Runtime 条件分支提取为会话级目录对象。全局 ToolRegistry 继续只保存实现，未授权 Capability 不进入模型请求。

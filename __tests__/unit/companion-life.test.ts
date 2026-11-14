@@ -71,6 +71,7 @@ const { generateDayScript } = await import('../../electron/main/companion/life/s
 const { requestSwitch } = await import('../../electron/main/companion/orchestrator')
 const { getLifeSliceForRole } = await import('../../electron/main/companion/life/slices')
 const lifeStore = await import('../../electron/main/companion/life/store')
+const { getCompanionRuntimeState } = await import('../../electron/main/companion/core/state/runtime-state')
 const { createAsset } = await import('../../electron/main/companion/life/assets')
 const { projectMomentFromEvent, publishAndProjectDue } = await import('../../electron/main/companion/life/moments')
 const { registerStreamingProbe } = await import('../../electron/main/companion/streaming-gate')
@@ -323,12 +324,12 @@ describe('LifeEngine', () => {
     expect(await lifeStore.listMomentUserInteractions('luffy')).toEqual([])
   })
 
-  it('pause / resume 读写 paused_at', async () => {
+  it('pause / resume 读写 Core Runtime State', async () => {
     const at = 1_700_000_000_000
     await pauseRole('luffy', at)
-    expect((await __lifeStore.getRoleState('luffy'))?.pausedAt).toBe(at)
+    expect((await getCompanionRuntimeState('luffy')).pausedAt).toBe(at)
     await resumeRole('luffy')
-    expect((await __lifeStore.getRoleState('luffy'))?.pausedAt).toBeNull()
+    expect((await getCompanionRuntimeState('luffy')).pausedAt).toBeNull()
   })
 
   it('tickActiveRole 仅为 active 生成/推进；非活跃不新增', async () => {
@@ -374,16 +375,16 @@ describe('LifeEngine', () => {
       expect(r1.reacquaint.toast).toContain('又见面了')
       expect(r1.reacquaint.body).toMatch(/不是教程重开|成长与记忆/)
     }
-    expect((await __lifeStore.getRoleState('luffy'))?.pausedAt).not.toBeNull()
-    expect((await __lifeStore.getRoleState('other'))?.pausedAt).toBeNull()
+    expect((await getCompanionRuntimeState('luffy')).pausedAt).not.toBeNull()
+    expect((await getCompanionRuntimeState('other')).pausedAt).toBeNull()
 
     const r2 = await requestSwitch('luffy')
     expect(r2).toMatchObject({ ok: true, catchupQueued: true })
     if (r2.ok) {
       expect(r2.reacquaint.toast).toContain('成长未重置')
     }
-    expect((await __lifeStore.getRoleState('other'))?.pausedAt).not.toBeNull()
-    expect((await __lifeStore.getRoleState('luffy'))?.pausedAt).toBeNull()
+    expect((await getCompanionRuntimeState('other')).pausedAt).not.toBeNull()
+    expect((await getCompanionRuntimeState('luffy')).pausedAt).toBeNull()
 
     spy.mockRestore()
   })

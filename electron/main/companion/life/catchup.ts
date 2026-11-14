@@ -169,7 +169,6 @@ export async function runCatchup(
       llmConfig: opts?.llmConfig,
       universeId: opts?.universeId,
     })
-    await store.setCatchupSummary(roleId, resolved.summary)
     await updateCompanionRuntimeLifecycle({ roleId, catchupSummary: resolved.summary })
     summaryUpdated = true
     summarySource = resolved.source
@@ -182,9 +181,7 @@ export async function runCatchup(
   const fineDays = eachLocalDateInclusive(fromDate, toDate).length
 
   const published = await publishAndProjectRange(roleId, fineStart, now, { automatic: true })
-  await store.clearPausedAt(roleId)
   await updateCompanionRuntimeLifecycle({ roleId, pausedAt: null, lastTickAt: now, updatedAt: now })
-  await store.touchLastTick(roleId, now)
 
   log.info('Catch-up done', {
     roleId,

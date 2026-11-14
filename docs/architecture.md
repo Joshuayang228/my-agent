@@ -221,7 +221,7 @@ Companion 迁移期只读路径统一经过 `core/read-models/legacy-companion-r
 
 日剧本和生活事件通过 Companion Application Gateway 创建。Gateway 在同一 Unit of Work 内写 Core Domain Event 和旧查询投影，生产代码不再直接把 `life/store.insertDayScript` 或 `insertEvent` 当作事实入口。
 
-生活 tick、生活信号、自动穿搭和旅行推进通过 Core Runtime Read Model 读取暂停与运行态，`companion_role_state` 的 lifecycle 字段只作为迁移期镜像保留。
+生活 tick、生活信号、自动穿搭和旅行推进通过 Core Runtime Read Model 读取暂停与运行态，pause、resume、catch-up 和 tick 只写 Core Runtime State，`companion_role_state` 的 lifecycle 字段只作为历史迁移入口。
 
 Runtime 的角色组装输入通过 `ConversationApplicationService.loadConversationAssemblyInput` 进入 Application 层，Runtime 保留会话绑定、取消、Loop 和流式生命周期。
 

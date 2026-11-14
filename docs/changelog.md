@@ -9,6 +9,7 @@
 2026-11-14：朋友圈事件发布收尾统一提交事件状态和执行账本，投影失败时保留 planned 状态用于重试。
 2026-11-14：日剧本和生活事件的生产写入迁移到 Application Gateway，并同步登记 Core Domain Event，旧事件表保留为查询投影。
 2026-11-14：生活 tick、生活信号、自动穿搭和旅行推进改读 Core Runtime State，旧角色状态表只保留迁移期镜像。
+2026-11-14：pause、resume、catch-up 和 tick 停止写旧角色状态表的生命周期字段，Core Runtime State 成为唯一生命周期写入来源。
 
 2026-11-14：内容完整性管线完成。新增共享 `ContentProvenance` 来源协议和领域事件校验，事件通知附加来源证据，日记保存来源类型、来源 ID 与 trace，Debug Read Model 展示 provenance，避免无来源或跨角色内容进入人物世界事实链。
 

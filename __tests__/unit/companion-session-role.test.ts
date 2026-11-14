@@ -44,7 +44,7 @@ vi.mock('../../electron/main/storage/settings-store', () => ({
 
 const { assertSessionRole, loadRoleAssembleInput } =
   await import('../../electron/main/companion/orchestrator')
-const { setCatchupSummary } = await import('../../electron/main/companion/life/store')
+const { updateCompanionRuntimeLifecycle } = await import('../../electron/main/companion/core/state/runtime-state')
 
 describe('assertSessionRole', () => {
   beforeEach(() => {
@@ -69,7 +69,7 @@ describe('assertSessionRole', () => {
   })
 
   it('catchupSummary 进入 Assemble Prompt', async () => {
-    await setCatchupSummary('lin', '【生活追赶摘要】测试摘要正文')
+    await updateCompanionRuntimeLifecycle({ roleId: 'lin', catchupSummary: '【生活追赶摘要】测试摘要正文' })
     const { pack, mutableBody, catchupSummary } = await loadRoleAssembleInput('lin')
     expect(catchupSummary).toContain('生活追赶摘要')
     const prompt = buildSystemPrompt({

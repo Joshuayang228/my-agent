@@ -48,7 +48,7 @@ P0-1 事务边界继续收口：用户赠礼的业务事实、主会话 Outbox�
 
 事件事实入口已迁移：日剧本和生活事件的生产写入统一经过 `createCompanionDayScript` 与 `createCompanionLifeEvent`，旧 `companion_day_scripts` 与 `companion_events` 只承担当前查询投影。
 
-生命周期读取已迁移：生活 tick、生活信号、自动穿搭和旅行推进统一读取 Core Runtime Read Model，旧 `companion_role_state` 只保留迁移期镜像写入。
+生命周期读写已迁移：生活 tick、生活信号、自动穿搭和旅行推进统一读取 Core Runtime Read Model，pause、resume、catch-up 和 tick 不再写旧 `companion_role_state` 的生命周期字段，旧表只保留世界投影和历史迁移入口。
 
 ## 5. 非目标
 

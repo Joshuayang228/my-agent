@@ -373,78 +373,6 @@ export async function getRoleState(roleId: string): Promise<CompanionRoleState |
   }
 }
 
-/** 暂停：写入 paused_at（覆盖） */
-export async function writePausedAt(roleId: string, at: number): Promise<void> {
-  await ensureTables()
-  const db = await getDatabase()
-  const now = Date.now()
-  const existing = await getRoleState(roleId)
-  const lastTick = existing?.lastTickAt ?? 0
-  const summary = existing?.catchupSummary ?? ''
-  const worldJson = serializeWorldState(existing?.world ?? defaultWorldState(roleId))
-  db.run(
-    `INSERT INTO companion_role_state
-       (role_id, paused_at, last_tick_at, catchup_summary, world_json, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)
-     ON CONFLICT(role_id) DO UPDATE SET
-       paused_at = excluded.paused_at,
-       updated_at = excluded.updated_at`,
-    [roleId, at, lastTick, summary, worldJson, now],
-  )
-  persist()
-}
-
-/** 清除暂停并可选更新 catchup_summary / last_tick */
-export async function clearPausedAt(
-  roleId: string,
-  opts?: { catchupSummary?: string; lastTickAt?: number },
-): Promise<void> {
-  await ensureTables()
-  const db = await getDatabase()
-  const now = Date.now()
-  const existing = await getRoleState(roleId)
-  const summary = opts?.catchupSummary ?? existing?.catchupSummary ?? ''
-  const lastTick = opts?.lastTickAt ?? existing?.lastTickAt ?? 0
-  const worldJson = serializeWorldState(existing?.world ?? defaultWorldState(roleId))
-  db.run(
-    `INSERT INTO companion_role_state
-       (role_id, paused_at, last_tick_at, catchup_summary, world_json, updated_at)
-     VALUES (?, NULL, ?, ?, ?, ?)
-     ON CONFLICT(role_id) DO UPDATE SET
-       paused_at = NULL,
-       last_tick_at = excluded.last_tick_at,
-       catchup_summary = excluded.catchup_summary,
-       updated_at = excluded.updated_at`,
-    [roleId, lastTick, summary, worldJson, now],
-  )
-  persist()
-}
-
-export async function touchLastTick(roleId: string, at: number): Promise<void> {
-  await ensureTables()
-  const db = await getDatabase()
-  const now = Date.now()
-  const existing = await getRoleState(roleId)
-  const worldJson = serializeWorldState(existing?.world ?? defaultWorldState(roleId))
-  db.run(
-    `INSERT INTO companion_role_state
-       (role_id, paused_at, last_tick_at, catchup_summary, world_json, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)
-     ON CONFLICT(role_id) DO UPDATE SET
-       last_tick_at = excluded.last_tick_at,
-       updated_at = excluded.updated_at`,
-    [
-      roleId,
-      existing?.pausedAt ?? null,
-      at,
-      existing?.catchupSummary ?? '',
-      worldJson,
-      now,
-    ],
-  )
-  persist()
-}
-
 export async function getDayScript(
   roleId: string,
   date: string,
@@ -620,31 +548,6 @@ export async function hasEventsForScript(dayScriptId: string): Promise<boolean> 
   const ok = stmt.step()
   stmt.free()
   return ok
-}
-
-export async function setCatchupSummary(roleId: string, summary: string): Promise<void> {
-  await ensureTables()
-  const db = await getDatabase()
-  const now = Date.now()
-  const existing = await getRoleState(roleId)
-  const worldJson = serializeWorldState(existing?.world ?? defaultWorldState(roleId))
-  db.run(
-    `INSERT INTO companion_role_state
-       (role_id, paused_at, last_tick_at, catchup_summary, world_json, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)
-     ON CONFLICT(role_id) DO UPDATE SET
-       catchup_summary = excluded.catchup_summary,
-       updated_at = excluded.updated_at`,
-    [
-      roleId,
-      existing?.pausedAt ?? null,
-      existing?.lastTickAt ?? 0,
-      summary,
-      worldJson,
-      now,
-    ],
-  )
-  persist()
 }
 
 /** M23-G2：写入世界状态薄片 */
