@@ -35,6 +35,8 @@ P0-2 继续收口：Core Runtime State 现在承载 `pausedAt`、`catchupSummary
 
 P0-2 只读路径继续收口：通讯录、卡司可用性、生活信号、穿搭、旅行推进、日程时间线、反思、事件切片、生活时钟和世界体征刷新等读取者统一通过 `legacy-companion-read-model` 进入旧表；写入路径仍由 Life Domain 自己持有，避免把迁移读适配器误当成事实写入口。
 
+P0-1 事务边界继续收口：用户赠礼的业务事实、主会话 Outbox、Core Domain Event、体征更新和通知 Outbox 现在在同一 `withCompanionUnitOfWork` 本地事务中提交；窗口和会话投递都延迟到提交后，避免外部副作用进入事务。
+
 ## 4. P1 实施范围
 
 1. 建立统一 Application Context，包含 Agent、Session、Permission、Prompt Context Evidence 和 Domain Read Model。

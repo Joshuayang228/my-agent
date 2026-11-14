@@ -7,6 +7,7 @@ export async function enqueueCompanionSessionMessage(input: {
   eventId?: string | null
   sessionId: string
   message: ChatMessage
+  dispatch?: boolean
 }): Promise<void> {
   await enqueueCompanionOutbox({
     roleId: input.roleId,
@@ -15,5 +16,5 @@ export async function enqueueCompanionSessionMessage(input: {
     dedupeKey: `main-session-message:${input.message.id}`,
     payload: { sessionId: input.sessionId, message: input.message },
   })
-  await dispatchCompanionSessionOutbox()
+  if (input.dispatch !== false) await dispatchCompanionSessionOutbox()
 }

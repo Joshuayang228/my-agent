@@ -217,6 +217,8 @@ Companion 旧生活表读取已集中到 `core/read-models/legacy-companion-read
 
 Companion 迁移期只读路径统一经过 `core/read-models/legacy-companion-read-model.ts`：通讯录、卡司可用性、生活信号、穿搭、旅行推进、日程时间线、反思、事件切片、生活时钟和世界体征刷新不再各自直接 import `life/store`。该边界不承载写入，避免读适配器扩散成第二事实源。
 
+赠礼写入已形成完整本地事务：`companion_received_gifts`、主会话消息 Outbox、`gift_received` Domain Event、Runtime State 体征更新和窗口 / 时间线 Outbox 在同一 Unit of Work 内提交，真实窗口投递只发生在提交之后。
+
 Runtime 的角色组装输入通过 `ConversationApplicationService.loadConversationAssemblyInput` 进入 Application 层，Runtime 保留会话绑定、取消、Loop 和流式生命周期。
 
 人物 JSON 来源由纯 `companion/identity/source-assets.ts` 工厂投影，Prompt 追踪和伙伴目录共享 canonical key；高层 Debug 聚合去重。LLM 依赖 Prompt 目录时不反向导入 Agent 或生活存储，Role Pack 文本仍从实际 loader 读取。主对话 / Eval 使用 `prompts/compiler.ts`；旧生产组装适配层已移除。

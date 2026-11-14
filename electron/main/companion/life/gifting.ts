@@ -19,7 +19,7 @@
  */
 
 import { randomUUID } from 'crypto'
-import { getDatabase, persist } from '../../storage/database'
+import { getDatabase } from '../../storage/database'
 import { createLogger } from '../../utils/logger'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
@@ -33,6 +33,8 @@ import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
 import { enqueueCompanionSessionMessage } from '../application/session-outbox'
+import { dispatchCompanionSessionOutbox } from '../adapters/session-outbox-dispatcher'
+import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 import type {
   CompanionGiftItem,
   CompanionGiftRecord,
@@ -272,26 +274,15 @@ export async function sendGiftToCompanion(
   const recordId = `gift-${now}-${randomUUID().slice(0, 8)}`
   const buffJson = giftDef.vitalsBuff ? JSON.stringify(giftDef.vitalsBuff) : null
 
-  db.run(
-    `INSERT INTO companion_received_gifts
-     (id, role_id, gift_key, gift_name, category, user_note, companion_reaction, vitals_buff_json, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      recordId,
-      roleId,
-      giftDef.key,
-      giftDef.name,
-      giftDef.category,
-      userNote || null,
-      reactionText,
-      buffJson,
-      now,
-    ],
-  )
-  persist()
+  const record = await withCompanionUnitOfWork(async () => {
+    db.run(
+      `INSERT INTO companion_received_gifts
+       (id, role_id, gift_key, gift_name, category, user_note, companion_reaction, vitals_buff_json, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [recordId, roleId, giftDef.key, giftDef.name, giftDef.category, userNote || null, reactionText, buffJson, now],
+    )
 
-  // 2. 反应写入角色主会话留痕
-  try {
+    // 2. 反应写入角色主会话留痕；事务内只入 Outbox，提交后再投递。
     const mainSession = await ensureMainSessionForRole(roleId)
     if (mainSession) {
       const giftMessageContent = userNote
@@ -301,35 +292,29 @@ export async function sendGiftToCompanion(
         roleId,
         sessionId: mainSession.id,
         message: {
-        id: randomUUID(),
-        role: 'assistant',
-        content: giftMessageContent,
-        timestamp: now,
+          id: randomUUID(),
+          role: 'assistant',
+          content: giftMessageContent,
+          timestamp: now,
         },
+        dispatch: false,
       })
       log.info('Recorded gift reaction in main session', { roleId, sessionId: mainSession.id })
     }
-  } catch (err) {
-    db.run('DELETE FROM companion_received_gifts WHERE id = ? AND role_id = ?', [recordId, roleId])
-    persist()
-    log.warn('Gift reaction delivery failed; rolled back gift record', { roleId, error: String(err) })
-    throw new Error('赠礼暂时未能完成，请稍后重试。')
-  }
 
-  const record: CompanionGiftRecord = {
-    id: recordId,
-    roleId,
-    giftKey: giftDef.key,
-    giftName: giftDef.name,
-    category: giftDef.category,
-    userNote: userNote || undefined,
-    companionReaction: reactionText,
-    createdAt: now,
-    vitalsBuff: giftDef.vitalsBuff,
-  }
+    const record: CompanionGiftRecord = {
+      id: recordId,
+      roleId,
+      giftKey: giftDef.key,
+      giftName: giftDef.name,
+      category: giftDef.category,
+      userNote: userNote || undefined,
+      companionReaction: reactionText,
+      createdAt: now,
+      vitalsBuff: giftDef.vitalsBuff,
+    }
 
-  // 3. 提升角色生命体征
-  try {
+    // 3. 提升角色生命体征、写领域事件和出站消息，和赠礼事实共享本地事务。
     const world = await getCompanionRuntimeState(roleId)
     const domainEvent = await appendCompanionDomainEvent({
       roleId,
@@ -370,11 +355,11 @@ export async function sendGiftToCompanion(
       dedupeKey: `gift-timeline:${recordId}`,
       payload: { roleId, now },
     })
-    await dispatchCompanionWindowOutbox()
     log.info('Recorded gift domain event', { roleId, mood: next.mood, energy: next.energy })
-  } catch (err) {
-    log.warn('Failed to record gift domain event', { roleId, error: String(err) })
-  }
+    return record
+  })
+  await dispatchCompanionWindowOutbox()
+  await dispatchCompanionSessionOutbox()
 
   // 4. 记录关系成长里程碑
   try {
