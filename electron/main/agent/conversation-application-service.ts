@@ -5,6 +5,9 @@ import type { LLMConfig } from '../../../src/shared/types'
 import { createLogger } from '../utils/logger'
 import { formatRelationshipStageForPrompt, resolveRelationshipStageForRole } from '../companion/growth/relationship-stage'
 import { getMilestonePromptHint, recordAndBroadcastMilestone } from '../companion/growth/milestones'
+import { loadRoleAssembleInput } from '../companion/orchestrator'
+
+export const loadConversationAssemblyInput = loadRoleAssembleInput
 
 const log = createLogger('ConversationApplicationService')
 

@@ -20,7 +20,7 @@ import { compileMainSystem } from '../prompts/registered-request'
 import { describeCastPresence } from '../companion/cast/availability'
 import { formatSummonSceneBlock } from '../companion/cast/scene-prompts'
 import { summonParentDelegationHint } from '../companion/cast/summon-delegation'
-import { resolveConversationRelationshipHints, settleConversationCompletion } from './conversation-application-service'
+import { loadConversationAssemblyInput, resolveConversationRelationshipHints, settleConversationCompletion } from './conversation-application-service'
 import { getAgentHostContext } from '../agent-host/host'
 import { AgentHostScopedToolCatalog } from '../agent-host/scoped-catalog'
 import { loadCompanionAgentManifest } from '../agent-host/builtin-domains'
@@ -28,7 +28,7 @@ import {
   formatExpertiseLevelForPrompt,
   resolveExpertiseLevel,
 } from './expertise-level'
-import { assertSessionRole, loadRoleAssembleInput } from '../companion/orchestrator'
+import { assertSessionRole } from '../companion/orchestrator'
 import { registerStreamingProbe } from '../companion/streaming-gate'
 import { maybeExtractProfile } from './profile-extractor'
 import { setQuerySource } from './context-manager'
@@ -249,7 +249,7 @@ class AgentRuntime {
         rosterLines,
         relationshipSummary,
         emotionSummary,
-      } = await loadRoleAssembleInput(assembleRoleId)
+      } = await loadConversationAssemblyInput(assembleRoleId)
       pendingFeedbackId = pendingResonanceFeedbackId
       const character = characterDefinitionFromRolePack(pack, mutableBody)
 

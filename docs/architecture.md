@@ -213,6 +213,8 @@ Agent Host Manifest 现在同时声明 `grantedPermissions`。Application Orches
 
 Companion 旧生活表读取已集中到 `core/read-models/legacy-companion-read-model.ts` 迁移适配层。Runtime 组装器和 Debug 世界快照不再直接 import `life/store`，适配层只读旧事实，不允许新增旁路写入。
 
+Runtime 的角色组装输入通过 `ConversationApplicationService.loadConversationAssemblyInput` 进入 Application 层，Runtime 保留会话绑定、取消、Loop 和流式生命周期。
+
 人物 JSON 来源由纯 `companion/identity/source-assets.ts` 工厂投影，Prompt 追踪和伙伴目录共享 canonical key；高层 Debug 聚合去重。LLM 依赖 Prompt 目录时不反向导入 Agent 或生活存储，Role Pack 文本仍从实际 loader 读取。主对话 / Eval 使用 `prompts/compiler.ts`；旧生产组装适配层已移除。
 
 人物世界六面共用纯展示画廊，正式加载 / 写入由各面板和 companion IPC 管理；Playground 通过隔离 props 注入样张，不改变生产默认数据。world-records 负责结构校验，资产服务负责同角色引用与同步换装版本校验；通讯录从已发布事件与 event_links 派生关系经历，足迹仅消费已出发旅行。schema 18 保存事件关联；关联替换与事件投影删除使用 SAVEPOINT 整组回滚。用户资料不是内置生产资产，Debug 静态目录仍只登记 Role Pack 与 starter 定义。

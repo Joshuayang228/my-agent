@@ -18,6 +18,8 @@ Memory 反思和 Prompt 动态上下文也沿同一来源协议记录。深夜�
 
 Companion Core 迁移期间，Runtime 组装器和 Debug 世界快照通过 `core/read-models/legacy-companion-read-model.ts` 读取旧日程、事件、关系和情绪表。该适配层只读，新的事实写入仍必须经过 Core Command / Domain Event。
 
+主会话角色组装由 Conversation Application Service 作为入口，Companion 负责提供人物资料和生活 Read Model，Runtime 不再直接拥有角色组装业务流程。
+
 ## 核心一致性与恢复（2026-11-13）
 
 - `withCompanionUnitOfWork` 将人物世界领域事件和 Outbox 写入置于同一数据库事务，建表初始化不参与业务回滚。

@@ -29,6 +29,8 @@ P0-1 已完成：Manifest 现在声明 `grantedPermissions`，Application Orches
 
 P0-2 进入迁移态收口：Runtime 组装器和 Debug 世界快照的旧生活表读取已经集中到 `core/read-models/legacy-companion-read-model.ts`。该适配层只读、不建事实、不写旧表，后续 Core Read Model 替换不再扩散到上层调用方。
 
+P0-3 已完成：Runtime 的角色组装输入通过 `ConversationApplicationService.loadConversationAssemblyInput` 进入 Application 边界，Runtime 保留会话生命周期和 Loop 编排，不再直接 import 伙伴组装器。
+
 ## 4. P1 实施范围
 
 1. 建立统一 Application Context，包含 Agent、Session、Permission、Prompt Context Evidence 和 Domain Read Model。
