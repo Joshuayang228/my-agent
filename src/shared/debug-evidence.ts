@@ -1,3 +1,5 @@
+import type { ContentProvenance } from './content-integrity'
+
 export const DEBUG_EVIDENCE_VIEWS = ['schedule', 'recent', 'activity', 'now', 'character', 'location', 'residence', 'footprints', 'growth', 'moments', 'relations', 'proactive', 'wardrobe', 'items', 'links', 'context', 'profile', 'memories'] as const
 export type DebugEvidenceView = typeof DEBUG_EVIDENCE_VIEWS[number]
 export interface DebugEvidenceQuery {
@@ -17,6 +19,7 @@ export interface DebugEvidenceRecord {
   status: string
   body: string
   data: Record<string, unknown>
+  provenance?: ContentProvenance
   source: string
   truncated: boolean
   links: Array<{ view: DebugEvidenceView; id: string; label: string }>

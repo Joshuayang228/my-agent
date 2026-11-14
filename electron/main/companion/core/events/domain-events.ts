@@ -2,8 +2,11 @@ import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from '../../../storage/database'
 import { ensureCompanionCoreSchema } from '../schema'
 import type { CompanionDomainEvent } from '../types'
+import { contentIntegrityError } from '../../../../../src/shared/content-integrity'
 
 export async function appendCompanionDomainEvent(input: Omit<CompanionDomainEvent, 'id'>): Promise<CompanionDomainEvent> {
+  const integrityError = contentIntegrityError(input)
+  if (integrityError) throw new Error(integrityError)
   await ensureCompanionCoreSchema()
   const db = await getDatabase()
   const existing = db.exec('SELECT id, role_id, universe_id, type, source_type, source_id, causation_id, correlation_id, idempotency_key, occurred_at, payload_json, schema_version FROM companion_domain_events WHERE role_id = ? AND idempotency_key = ?', [input.roleId, input.idempotencyKey])[0]?.values[0]

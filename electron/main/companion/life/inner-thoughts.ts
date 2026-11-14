@@ -27,6 +27,7 @@ import { loadRolePack } from '../identity/loader'
 import { ensureWorldState } from './world-state'
 import type { CompanionInnerThoughtRecord, LLMConfig } from '../../../../src/shared/types'
 import { recordCompanionEventAndNotify } from '../application/record-event-notify'
+import { contentProvenanceFromEvent, type ContentOrigin } from '../../../../src/shared/content-integrity'
 
 const log = createLogger('InnerThoughts')
 
@@ -46,6 +47,16 @@ interface InnerThoughtDbRow {
   created_at: number
   thought_type?: string | null
   epiphany?: string | null
+  source_type?: string | null
+  source_id?: string | null
+  trace_id?: string | null
+}
+
+function originForThoughtSource(sourceType: string): ContentOrigin {
+  if (sourceType === 'role-pack') return 'role-pack'
+  if (sourceType === 'agent') return 'agent'
+  if (sourceType === 'user') return 'user'
+  return 'derived'
 }
 
 function rowToRecord(row: InnerThoughtDbRow): CompanionInnerThoughtRecord {
@@ -62,6 +73,13 @@ function rowToRecord(row: InnerThoughtDbRow): CompanionInnerThoughtRecord {
     createdAt: row.created_at,
     thoughtType: (row.thought_type as 'general' | 'nightly_reflection') || 'general',
     epiphany: row.epiphany || undefined,
+    provenance: contentProvenanceFromEvent({
+      origin: originForThoughtSource(row.source_type || 'legacy-inner-thought'),
+      sourceType: row.source_type || 'legacy-inner-thought',
+      sourceId: row.source_id || row.id,
+      traceId: row.trace_id || undefined,
+      occurredAt: row.created_at,
+    }),
   }
 }
 
@@ -120,7 +138,10 @@ export async function ensureInnerThoughtTable(): Promise<void> {
       is_favorite INTEGER DEFAULT 0,
       created_at  INTEGER NOT NULL,
       thought_type TEXT NOT NULL DEFAULT 'general',
-      epiphany    TEXT
+      epiphany    TEXT,
+      source_type TEXT NOT NULL DEFAULT 'legacy-inner-thought',
+      source_id   TEXT,
+      trace_id    TEXT
     )
   `)
   try {
@@ -133,6 +154,9 @@ export async function ensureInnerThoughtTable(): Promise<void> {
   } catch {
     // 列已存在
   }
+  try { db.run(`ALTER TABLE companion_inner_thoughts ADD COLUMN source_type TEXT NOT NULL DEFAULT 'legacy-inner-thought'`) } catch { /* 列已存在 */ }
+  try { db.run(`ALTER TABLE companion_inner_thoughts ADD COLUMN source_id TEXT`) } catch { /* 列已存在 */ }
+  try { db.run(`ALTER TABLE companion_inner_thoughts ADD COLUMN trace_id TEXT`) } catch { /* 列已存在 */ }
   db.run(`
     CREATE INDEX IF NOT EXISTS idx_companion_inner_thoughts_role_time
       ON companion_inner_thoughts(role_id, created_at DESC)
@@ -153,8 +177,8 @@ export async function ensureInnerThoughtTable(): Promise<void> {
       const id = `thought-starter-${randomUUID().slice(0, 8)}`
       db.run(
         `INSERT INTO companion_inner_thoughts
-         (id, role_id, title, content, mood, weather, location, activity, is_favorite, created_at, thought_type, epiphany)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, role_id, title, content, mood, weather, location, activity, is_favorite, created_at, thought_type, epiphany, source_type, source_id, trace_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           item.roleId,
@@ -167,7 +191,10 @@ export async function ensureInnerThoughtTable(): Promise<void> {
           item.isFavorite ? 1 : 0,
           now - item.offsetMs,
           item.thoughtType || 'general',
-          item.epiphany || null,
+           item.epiphany || null,
+           'role-pack',
+           `starter:${id}`,
+           null,
         ],
       )
     }
@@ -343,9 +370,9 @@ export async function triggerInnerThought(
   }
   db.run(
     `INSERT INTO companion_inner_thoughts
-     (id, role_id, title, content, mood, weather, location, activity, is_favorite, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id, roleId, title, content, mood, weather, location, activity, 0, now],
+     (id, role_id, title, content, mood, weather, location, activity, is_favorite, created_at, source_type, source_id, trace_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, roleId, title, content, mood, weather, location, activity, 0, now, 'agent', id, null],
   )
   persist()
 
@@ -360,6 +387,7 @@ export async function triggerInnerThought(
     activity,
     isFavorite: false,
     createdAt: now,
+    provenance: contentProvenanceFromEvent({ origin: 'agent', sourceType: 'agent', sourceId: id, occurredAt: now }),
   }
 
   await recordCompanionEventAndNotify({

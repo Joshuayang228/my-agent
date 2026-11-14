@@ -20,6 +20,7 @@
 
 ## 进行中
 
+
 人物世界引擎统一与旅程闭环：[companion-engine-unification-v1.md](./companion-engine-unification-v1.md)，审查并修复事件、状态、投影、主动行为和用户旅程之间的断点。
 
 生活引擎因果与现实锚点：[life-engine-causality-and-real-world-anchor-v1.md](./life-engine-causality-and-real-world-anchor-v1.md)，针对日内事件离散割裂缺乏状态因果重编排（问题4）以及宿主环境专注度/空闲现实关切感知（问题6）的系统化重塑。
@@ -57,6 +58,8 @@
 Agent Host 总体架构：[agent-host-architecture-v1.md](./agent-host-architecture-v1.md)，已完成 Agent Manifest、Domain Registry、Capability Registry、Application Orchestrator、Context Provider、Scoped Tool Catalog 与固定 Workflow / 自然语言 Tool 统一入口。
 
 Agent Host 架构收口：[agent-host-architecture-closeout-v2.md](./agent-host-architecture-closeout-v2.md)，已完成会话唯一工具目录、Skill 元数据关系、Companion 跨入口事实链和恢复隔离收口。
+
+内容完整性管线：[content-integrity-pipeline-v1.md](./content-integrity-pipeline-v1.md)，已完成人物世界内容的来源协议、写入校验、连续性边界和 Debug 证据收口。
 
 架构可靠性加固：[architecture-reliability-hardening-v1.md](./architecture-reliability-hardening-v1.md)，已完成 Companion 事务边界、Outbox 恢复、IPC sender 安全、Conversation Application Service、存储基准与五边界审计。
 

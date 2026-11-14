@@ -3,6 +3,7 @@ import { getCompanionRuntimeState } from '../core/state/runtime-state'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
 import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
+import { attachContentProvenance, contentProvenanceFromEvent } from '../../../../src/shared/content-integrity'
 
 /**
  * 记录人物世界事实并投递对应的用户可见通知。
@@ -41,7 +42,12 @@ export async function recordCompanionEventAndNotify(input: {
       correlationId: input.sourceId,
       idempotencyKey: input.idempotencyKey,
       occurredAt: input.occurredAt,
-      payload: input.payload,
+      payload: attachContentProvenance(input.payload, contentProvenanceFromEvent({
+        origin: 'derived',
+        sourceType: input.sourceType,
+        sourceId: input.sourceId,
+        occurredAt: input.occurredAt,
+      })),
       schemaVersion: 1,
     })
     const notifications = Array.isArray(input.notification) ? input.notification : [input.notification]

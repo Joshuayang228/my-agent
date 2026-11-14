@@ -1402,6 +1402,7 @@ export interface CompanionInnerThoughtRecord {
   createdAt: number
   thoughtType?: 'general' | 'nightly_reflection'
   epiphany?: string
+  provenance?: import('./content-integrity').ContentProvenance
 }
 
 export interface CompanionNostalgiaItem {

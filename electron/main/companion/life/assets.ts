@@ -117,6 +117,8 @@ export async function addAsset(input: {
 }): Promise<CompanionAsset> {
   await ensureTables()
   const db = await getDatabase()
+  const id = input.id || randomUUID()
+  const acquiredAt = input.acquiredAt ?? Date.now()
   // 内部播种和事件发放也会进入六面；只规范新登记字段，保留旧正文而不套用短标签截断。
   // 引用校验与 INSERT 同步执行；非法发放可被明确跳过，真实数据库失败不得被吞掉。
   const payload = { ...input.payload }
@@ -136,8 +138,6 @@ export async function addAsset(input: {
     payload.outfitVersion = 1
     delete payload.imageOutfitVersion
   }
-  const id = input.id || randomUUID()
-  const acquiredAt = input.acquiredAt ?? Date.now()
   db.run(
     `INSERT INTO companion_assets
        (id, role_id, kind, name, payload_json, acquired_at, source_event_id)

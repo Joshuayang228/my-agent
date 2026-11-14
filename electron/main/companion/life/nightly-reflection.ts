@@ -35,6 +35,7 @@ import { addMemory } from '../../storage/memory-store'
 import { recordAssetUsage } from '../../utils/asset-usage'
 import { ensureInnerThoughtTable } from './inner-thoughts'
 import type { CompanionInnerThoughtRecord, LLMConfig } from '../../../../src/shared/types'
+import { contentProvenanceFromEvent } from '../../../../src/shared/content-integrity'
 
 const log = createLogger('NightlyReflection')
 
@@ -189,8 +190,8 @@ export async function triggerNightlyReflection(
 
   db.run(
     `INSERT INTO companion_inner_thoughts
-     (id, role_id, title, content, mood, weather, location, activity, is_favorite, created_at, thought_type, epiphany)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, role_id, title, content, mood, weather, location, activity, is_favorite, created_at, thought_type, epiphany, source_type, source_id, trace_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       roleId,
@@ -204,6 +205,9 @@ export async function triggerNightlyReflection(
       now,
       'nightly_reflection',
       result.epiphany,
+      'agent',
+      id,
+      null,
     ],
   )
   persist()
@@ -229,6 +233,7 @@ export async function triggerNightlyReflection(
     createdAt: now,
     thoughtType: 'nightly_reflection',
     epiphany: result.epiphany,
+    provenance: contentProvenanceFromEvent({ origin: 'agent', sourceType: 'nightly_reflection', sourceId: id, occurredAt: now }),
   }
 
   await recordCompanionEventAndNotify({

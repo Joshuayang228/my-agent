@@ -1629,6 +1629,10 @@ Manifest 生产入口统一经过版本化 loader。Capability 激活证据按 A
 # 2026-11-14 Agent Host 架构收口 v2 完成
 
 完成 Session Catalog 与 Skill 版本、指纹、启停、允许能力关系接入。Agent Loop 的会话工具目录不再由调用方分别筛选，Companion 写入口继续统一经过 Command Gateway，LifeTicker、Chat 完成结算和 Host Workflow 共用 Application / Domain / Event / Outbox 事实链。SQLite 存储替换仍按可靠性合同的独立性能基准边界管理。
+
+# 2026-11-14 内容完整性管线完成
+
+新增共享 `ContentProvenance` 协议和领域事件完整性校验，事件通知统一附加来源证据，日记持久化来源类型、来源 ID 与 trace，Debug Read Model 展示 provenance。跨角色、缺来源、缺关联、缺幂等和无效时间的内容事实会在写入前拒绝，既有 Companion Domain 组合不变量继续作为事实写入门禁。
 # 2026-11-14 Scoped Tool Catalog
 
 新增 `AgentHostScopedToolCatalog`，把 Manifest 授权筛选从 Runtime 条件分支提取为会话级目录对象。全局 ToolRegistry 继续只保存实现，未授权 Capability 不进入模型请求。

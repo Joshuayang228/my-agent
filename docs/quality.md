@@ -1188,3 +1188,6 @@ Context Provider 必须声明稳定 `source`。同一 `scope + source` 只保留
 # 2026-11-14 Agent Host 收口 v2 回归
 
 Scoped Tool Catalog 现在在同一入口内完成 Host Manifest 授权和 Skill `allowed_tools` 过滤。Host Debug 记录 Skill 版本、指纹、启停状态和 Capability 关系，相关单测覆盖目录唯一性与元数据证据。
+# 2026-11-14 内容完整性回归
+
+新增 `content-integrity.test.ts`，覆盖内容事实的来源、关联、幂等、时间校验和来源证据拒绝覆盖。领域事件、事件通知、日记、Debug provenance 和生活资产回归继续通过，模型质量仍沿现有 Companion Eval 与真实模型评估门禁处理。

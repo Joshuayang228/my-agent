@@ -12,6 +12,8 @@ Companion 首个 Agent Host Domain Definition 已注册，提供 `companion.runt
 
 LifeTicker 通过 `runCompanionLifeTickWorkflow` 进入 Agent Host Application，固定调度入口与受控 Workflow 共用同一生活引擎。Agent Host 只保存能力定义和授权结果，人物运行态仍由 Companion Core 与既有存储、事件和投影链路维护。
 
+内容完整性现在由共享 `ContentProvenance` 和领域事件校验器收口。朋友圈、关系、生活资产和通知事件沿既有来源 ID / `sourceEventId` 追踪，日记记录额外保存来源类型、来源 ID 和调用链；模型生成的内容先经过 Application / Domain 校验，再进入事实、事件和 Outbox。
+
 ## 核心一致性与恢复（2026-11-13）
 
 - `withCompanionUnitOfWork` 将人物世界领域事件和 Outbox 写入置于同一数据库事务，建表初始化不参与业务回滚。

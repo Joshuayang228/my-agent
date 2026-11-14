@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-14：内容完整性管线完成。新增共享 `ContentProvenance` 来源协议和领域事件校验，事件通知附加来源证据，日记保存来源类型、来源 ID 与 trace，Debug Read Model 展示 provenance，避免无来源或跨角色内容进入人物世界事实链。
+
 2026-11-14：Agent Host 收口批次完成。会话工具目录统一在 Scoped Tool Catalog 内同时应用 Manifest 授权和 Skill allowlist，Debug 增加 Skill 版本、指纹、启停状态和 Capability 关系证据，Companion 入口继续沿统一 Application / Domain / Event / Outbox 事实链执行。
 
 2026-11-14：Agent Host 架构施工合同完成并冻结。Manifest 统一经过版本化 loader，Persona、Memory、Companion、Workspace 通过 Domain / Capability Registry 接入；Scoped Tool Catalog 按当前 Agent 授权筛选模型能力；生活时钟通过 Host Workflow 进入统一 Application 编排；对话关系阶段与里程碑读取归入 Conversation Application Service；Capability 激活证据按 Agent 隔离，Context Provider 按 `scope + source` 去重。

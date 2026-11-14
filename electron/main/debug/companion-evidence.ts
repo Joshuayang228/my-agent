@@ -6,6 +6,7 @@ import { formatRelationSummary } from '../companion/cast/relation-summary'
 import { parseWorldJson } from '../companion/life/world-codec'
 import { DEBUG_EVIDENCE_VIEWS, type DebugEvidenceQuery, type DebugEvidenceRecord, type DebugEvidenceResult, type DebugEvidenceScope } from '../../../src/shared/debug-evidence'
 import { detectSensitiveKinds } from '../../../src/shared/sensitive-memory'
+import { contentProvenanceFromEvent, contentProvenanceSchema } from '../../../src/shared/content-integrity'
 
 const querySchema = z.object({ view: z.enum(DEBUG_EVIDENCE_VIEWS), roleId: z.string().min(1).max(80), date: z.iso.date().optional(), limit: z.number().int().min(1).max(100).default(50), cursor: z.string().max(1024).optional(), recordId: z.string().min(1).max(200).optional() }).strict().refine(query => !(query.recordId && query.cursor))
 type Row = Record<string, unknown>
@@ -84,8 +85,13 @@ function record(row: Row, source: string, owner: string): DebugEvidenceRecord {
     status: text(row.status), body: text(data.text) || text(data.content) || text(data.body) || text(payload.story) || text(payload.description),
     data, source, truncated: state.truncated, links: [],
   }
+  const storedProvenance = contentProvenanceSchema.safeParse(data.contentProvenance)
+  if (storedProvenance.success) result.provenance = storedProvenance.data
   const eventId = text(row.source_event_id) || text(row.event_id)
   if (eventId) result.links.push({ view: 'recent', id: eventId, label: '来源生活事件' })
+  if (!result.provenance && eventId) {
+    result.provenance = contentProvenanceFromEvent({ origin: 'derived', sourceType: source, sourceId: eventId, eventId, occurredAt: result.time ?? Date.now() })
+  }
   return result
 }
 
