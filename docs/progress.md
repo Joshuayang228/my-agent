@@ -1637,6 +1637,10 @@ Manifest 生产入口统一经过版本化 loader。Capability 激活证据按 A
 # 2026-11-14 内容完整性全链路收口完成
 
 架构审计发现的 Memory 和 Prompt 动态上下文来源缺口已补齐。Memory provenance 已覆盖用户、人物 Tool、画像提炼、引用纠错和深夜反思；Registered System / Model Request 已冻结动态上下文来源元数据。全量内容入口完成盘点，跨入口一致性沿现有 Companion、Memory、Prompt、Debug 和 Electron 门禁验证。
+
+# 2026-11-14 顶层架构审计启动
+
+新审计确认 Agent Loop、Runtime、Application、Agent Host、Capability、Domain、Memory、Storage 和外部适配器的总体方向合理，但 Capability 权限门禁和 Companion Core 与旧生活表的并行迁移仍未完全收口。已新增顶层架构收口施工合同，后续按 P0 优先处理。
 # 2026-11-14 Scoped Tool Catalog
 
 新增 `AgentHostScopedToolCatalog`，把 Manifest 授权筛选从 Runtime 条件分支提取为会话级目录对象。全局 ToolRegistry 继续只保存实现，未授权 Capability 不进入模型请求。

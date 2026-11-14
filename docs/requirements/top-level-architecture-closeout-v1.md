@@ -1,0 +1,47 @@
+# 顶层架构收口施工合同 v1
+
+> 状态：进行中
+> 生命周期：进行中，指导 Agent Loop 到 Domain 的顶层边界收口。
+
+## 1. 审计结论
+
+当前模块化单体和 Agent Host 方向合理，但顶层架构仍有三类迁移态边界。
+
+- Agent Runtime 仍直接依赖部分 Companion 业务组装器，通用执行器和产品应用编排没有完全分离。
+- Agent Host Capability 已声明 `requiredPermissions`，Application Orchestrator 和固定 Workflow 尚未使用同一权限判定契约。
+- Companion Core 与旧生活表并行存在，部分读模型和投影仍直接读取旧表，核心事实源尚未完全唯一化。
+
+## 2. 目标
+
+- Agent Loop 只负责 Think / Act / Observe、取消、压缩、工具执行和流式事件。
+- Agent Runtime 只负责会话生命周期和通用上下文编排，产品语义由 Application Service / Domain 提供。
+- Capability 的固定入口和 Tool 入口共享 Manifest、Permission、Execution Context 和失败语义。
+- Companion Core 成为生活事实的唯一写入与事件来源，旧表只作为明确登记的投影或历史读取面。
+- Prompt Context、Memory、Companion 和 Workspace 通过统一 Application Context 进入模型请求。
+
+## 3. P0 实施范围
+
+1. 为 Agent Host 增加 Capability Permission Gate，固定 Workflow、Tool Adapter 和 Headless 入口统一执行。
+2. 把 Runtime 中剩余的 Companion 关系、生活上下文和生命周期调用收进 Conversation Application Service / Host Context Provider。
+3. 盘点 Companion 旧表直接读取和写入，禁止新增旁路写入，优先将主会话、Debug 和 Prompt 读取切到 Core Read Model。
+
+## 4. P1 实施范围
+
+1. 建立统一 Application Context，包含 Agent、Session、Permission、Prompt Context Evidence 和 Domain Read Model。
+2. 统一固定 Workflow、Scheduler、IPC、LLM Tool 和 Headless 的 trace、幂等和失败恢复字段。
+3. 建立 Core Event 到旧读模型的投影清单，完成可删除旁路的识别和测试。
+
+## 5. 非目标
+
+- 不重写 Agent Loop 算法。
+- 不拆微服务，不引入远程 Domain 插件。
+- 不在本合同中迁移 sql.js 到原生 SQLite。
+- 不改变现有产品 UI 语义和 Tool key。
+
+## 6. 验收
+
+- Capability Permission Gate 覆盖固定 Workflow、Tool Adapter、Headless 和 Scheduler。
+- Runtime 不再直接承担新增 Companion 业务策略。
+- Companion Core 旁路写入为零，旧读路径有登记、有投影依据、有隔离测试。
+- Agent Loop、Runtime、Application、Host、Domain 和 Infrastructure 依赖方向通过静态审计。
+- 全量 Unit、类型检查、构建、Electron E2E、资产和文档门禁通过。

@@ -20,6 +20,8 @@
 
 ## 进行中
 
+顶层架构收口：[top-level-architecture-closeout-v1.md](./top-level-architecture-closeout-v1.md)，收口 Runtime 与 Application、Capability 权限门禁以及 Companion Core 与旧生活表的并行迁移边界。
+
 
 
 人物世界引擎统一与旅程闭环：[companion-engine-unification-v1.md](./companion-engine-unification-v1.md)，审查并修复事件、状态、投影、主动行为和用户旅程之间的断点。
