@@ -297,16 +297,18 @@ async function projectRange(
       // 事件状态必须在投影完成后提交。投影失败时保留 planned，下一次 tick 才能重试。
       // 若上一次尝试已经写入 Moment 但在后续步骤失败，按 event_id 恢复已有投影，避免重复写入。
       const persistedMoment = moment ?? await store.getMomentByEventId(ev.roleId, ev.id)
-      await store.markEventPublished(ev.id)
-      if (persistedMoment) span.setAttribute('momentId', persistedMoment.id)
-      await store.recordEventExecution({
-        roleId,
-        eventId: ev.id,
-        attemptedAt: toMs,
-        action: persistedMoment ? 'published' : 'skipped',
-        reason: opts?.automatic && selected && ev.id !== selected.id ? 'not-selected' : decision.reason,
-        momentId: persistedMoment?.id ?? null,
+      await withCompanionUnitOfWork(async () => {
+        await store.markEventPublished(ev.id)
+        await store.recordEventExecution({
+          roleId,
+          eventId: ev.id,
+          attemptedAt: toMs,
+          action: persistedMoment ? 'published' : 'skipped',
+          reason: opts?.automatic && selected && ev.id !== selected.id ? 'not-selected' : decision.reason,
+          momentId: persistedMoment?.id ?? null,
+        })
       })
+      if (persistedMoment) span.setAttribute('momentId', persistedMoment.id)
       span.end()
     } catch (error) { span.end('error'); throw error }
     n += 1

@@ -1681,6 +1681,10 @@ Core Runtime State 新增 `lastTickAt`，与暂停时间、追赶摘要一起成
 # 2026-11-14 顶层架构 P0 文化心愿与朋友圈投影事务闭环
 
 文化心愿完成状态和 Core 体验事件统一提交。朋友圈投影的领域事件、关系与情绪投影、动态、关联和投影回执统一提交。自动回复的评论记录和通知事件统一提交，通知在提交后投递。
+
+# 2026-11-14 顶层架构 P0 事件发布收尾
+
+朋友圈投影成功后的事件状态更新与执行账本写入统一提交，投影失败不会提前把 planned 事件标记为 published。
 # 2026-11-14 Scoped Tool Catalog
 
 新增 `AgentHostScopedToolCatalog`，把 Manifest 授权筛选从 Runtime 条件分支提取为会话级目录对象。全局 ToolRegistry 继续只保存实现，未授权 Capability 不进入模型请求。
