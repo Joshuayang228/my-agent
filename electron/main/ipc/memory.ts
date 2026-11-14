@@ -30,6 +30,7 @@ export function registerMemoryIPC(): void {
       }
       return memory.addMemory(category, content, {
         roleId: typeof roleId === 'string' && roleId.length <= MAX_MEMORY_ID_LENGTH ? roleId : undefined,
+        provenance: { origin: 'user', sourceType: 'memory-ipc', sourceId: category, occurredAt: Date.now() },
       })
     },
   )
@@ -43,7 +44,7 @@ export function registerMemoryIPC(): void {
     if (!isBoundedString(id, MAX_MEMORY_ID_LENGTH) || !isBoundedString(content, MAX_MEMORY_CONTENT_LENGTH)) {
       throw new Error('记忆参数无效或内容过长')
     }
-    return memory.updateMemory(id, content)
+    return memory.updateMemory(id, content, { origin: 'user', sourceType: 'memory-ipc-update', sourceId: id, occurredAt: Date.now() })
   })
 
   /** M29-G2：对话内对本轮引用一键纠错（忘/改） */

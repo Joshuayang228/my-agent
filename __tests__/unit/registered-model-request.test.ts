@@ -77,6 +77,21 @@ describe('注册编译请求的模型边界', () => {
     expect(started).not.toHaveBeenCalled()
   })
 
+  it('主 System 保留动态上下文来源证据', () => {
+    const pack = loadRolePack('luffy')
+    const systemPrompt = compileMainSystem(pack, pack.mutableDefault, {
+      platform: { toolNames: [] },
+      behavior: {},
+      situation: {
+        worldSlice: '甲板上有风。',
+        contextEvidence: [{ key: 'world', source: 'companion.runtime-state', scope: 'turn', maxChars: 4000 }],
+      },
+      currentDate: '2026-10-13',
+    })
+    const request = compileAgentRequest({ systemPrompt, messages: [message('system', systemPrompt.text, 'system')], deniedTools: [], deniedCommands: [] })
+    expect(readRegisteredModelRequest(request, 'main').contextEvidence).toEqual([{ key: 'world', source: 'companion.runtime-state', scope: 'turn', maxChars: 4000 }])
+  })
+
   it('主 System 来源无法用字符串或结构复制冒充', () => {
     expect(() => readRegisteredSystemText('任意正文' as unknown as RegisteredSystemPrompt)).toThrow('编译入口')
     expect(() => compileAgentRequest({ systemPrompt: { ...compileDefaultSystem() }, messages: [], deniedTools: [], deniedCommands: [] })).toThrow('编译入口')

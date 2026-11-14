@@ -150,6 +150,7 @@ export async function maybeExtractProfile(
 
       await addMemory(item.category as MemoryCategory, item.content, {
         roleId: item.category === 'feedback' ? opts?.roleId : undefined,
+        ...(opts?.sessionId ? { provenance: { origin: 'derived' as const, sourceType: 'profile-extraction', sourceId: opts.sessionId, traceId: opts.sessionId, occurredAt: Date.now() } } : {}),
       })
       added++
       log.info('Profile item added', { category: item.category, contentLength: item.content.length })

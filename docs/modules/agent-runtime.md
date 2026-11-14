@@ -14,6 +14,8 @@ Runtime 每轮请求按当前 Agent Manifest 过滤 `capability_*`，再叠加 S
 
 当前收口批次中，Scoped Catalog 同时接收当前 Skill 的 `allowed_tools`，并成为 Agent Loop 的唯一会话工具目录。Host Debug 记录 Skill 的版本、指纹、启停状态和 Capability 关系，Skill Registry 仍拥有正文与生命周期事实。
 
+主对话动态上下文的来源、作用域和长度元数据现在随 Registered System / Model Request 冻结保存，来源证据不混入人物自然语言正文。Memory 写入沿用户、Tool、画像提炼、纠错和反思入口统一记录 provenance。
+
 Workspace 会话的项目路径、最近对话和焦点内容由 Workspace Context Provider 生成，主 Runtime 只准备作用域输入；主角 Companion Context 不进入 Workspace 会话。
 
 Debug Model Context 目录聚合 Host Manifest 和 Capability 状态，Registered 来自 Registry，Available 来自当前 Manifest，Activated 来自真实 Tool / Workflow 调用标记。

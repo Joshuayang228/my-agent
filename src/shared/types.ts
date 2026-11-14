@@ -918,12 +918,22 @@ export interface RegisteredSystemPrompt {
   readonly text: string
   readonly promptAssetKeys: PromptAssetKeyList
   readonly scope: 'production' | 'eval'
+  readonly contextEvidence?: readonly PromptContextEvidence[]
 }
 export interface RegisteredModelRequest {
   readonly [registeredRequestBrand]: true
   readonly messages: readonly ChatMessage[]
   readonly promptAssetKeys: PromptAssetKeyList
   readonly scope: 'production' | 'playground' | 'eval'
+  readonly contextEvidence?: readonly PromptContextEvidence[]
+}
+
+export interface PromptContextEvidence {
+  key: string
+  source: string
+  scope: 'agent' | 'session' | 'turn' | 'task'
+  maxChars: number
+  occurredAt?: number
 }
 
 export interface AgentLoopOptions {
@@ -1162,6 +1172,7 @@ export interface MemoryEntry {
    * 空字符串 = 未分桶（旧数据或全局类记忆）。
    */
   roleId?: string
+  provenance?: import('./content-integrity').ContentProvenance
 }
 
 // ── 后台任务（M11 任务生命周期）──

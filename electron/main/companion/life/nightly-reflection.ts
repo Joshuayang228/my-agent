@@ -214,7 +214,10 @@ export async function triggerNightlyReflection(
 
   // 同步将心灵感悟写入长期记忆的 feedback（我们之间）分桶
   try {
-    await addMemory('feedback', `[深夜感悟] ${result.epiphany}`, { roleId })
+    await addMemory('feedback', `[深夜感悟] ${result.epiphany}`, {
+      roleId,
+      provenance: contentProvenanceFromEvent({ origin: 'agent', sourceType: 'nightly-reflection', sourceId: id, occurredAt: now }),
+    })
     log.info('Nightly reflection epiphany added to long-term memory feedback bucket', { roleId, epiphany: result.epiphany })
   } catch (memErr) {
     log.warn('Failed to add epiphany to memory store', { roleId, error: String(memErr) })

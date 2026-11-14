@@ -80,7 +80,10 @@ export const rememberTool = buildTool({
       return `已经记住： "${content}"`
     }
 
-    const entry = await addMemory(category as MemoryCategory, content, { roleId })
+    const entry = await addMemory(category as MemoryCategory, content, {
+      roleId,
+      provenance: { origin: 'agent', sourceType: 'memory-tool', sourceId: ctx?.sessionId || undefined, occurredAt: Date.now() },
+    })
     const note = formatSensitiveRememberNote(sensitive)
     return `已记住 [${category}]: "${content}" (id: ${entry.id})${note}`
   },

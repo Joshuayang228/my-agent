@@ -6,6 +6,7 @@ import { recordAssetUsage } from '../utils/asset-usage'
 import { MEMORY_STRATEGY_ASSET_KEYS } from '../memory/asset-keys'
 import { detectSensitiveKinds } from '../../../src/shared/sensitive-memory'
 import type { Database } from 'sql.js'
+import { contentProvenanceSchema, type ContentProvenance } from '../../../src/shared/content-integrity'
 
 const log = createLogger('MemoryStore')
 
@@ -65,6 +66,7 @@ export type { MemoryCategory, MemoryEntry }
 export interface AddMemoryOpts {
   /** feedback 等应按主角分桶；其它类别可省略（全局） */
   roleId?: string
+  provenance?: ContentProvenance
 }
 
 async function ensureTable(): Promise<void> {
@@ -77,6 +79,7 @@ async function ensureTable(): Promise<void> {
       createdAt INTEGER NOT NULL,
       updatedAt INTEGER NOT NULL,
       role_id   TEXT NOT NULL DEFAULT ''
+      ,provenance_json TEXT
     )
   `)
   // 旧库由 schema v9 加列；新库 CREATE 已含列。幂等补齐。
@@ -85,6 +88,7 @@ async function ensureTable(): Promise<void> {
   } catch {
     /* already exists */
   }
+  try { db.run(`ALTER TABLE memories ADD COLUMN provenance_json TEXT`) } catch { /* already exists */ }
   db.run(`
     CREATE INDEX IF NOT EXISTS idx_memories_category_role
       ON memories(category, role_id)
@@ -93,6 +97,13 @@ async function ensureTable(): Promise<void> {
 
 function rowToEntry(row: Record<string, unknown>): MemoryEntry {
   const roleId = typeof row.role_id === 'string' ? row.role_id : ''
+  let provenance: ContentProvenance | undefined
+  if (typeof row.provenance_json === 'string') {
+    try {
+      const parsed = contentProvenanceSchema.safeParse(JSON.parse(row.provenance_json))
+      if (parsed.success) provenance = parsed.data
+    } catch { provenance = undefined }
+  }
   return {
     id: row.id as string,
     category: row.category as MemoryEntry['category'],
@@ -100,6 +111,7 @@ function rowToEntry(row: Record<string, unknown>): MemoryEntry {
     createdAt: row.createdAt as number,
     updatedAt: row.updatedAt as number,
     ...(roleId ? { roleId } : {}),
+    ...(provenance ? { provenance } : {}),
   }
 }
 
@@ -189,12 +201,21 @@ export function writeMemoryToDatabase(db: Database, category: MemoryCategory, co
 
   const now = Date.now()
   const id = `mem-${randomUUID()}`
-
-  db.run(
-    'INSERT INTO memories (id, category, content, createdAt, updatedAt, role_id) VALUES (?, ?, ?, ?, ?, ?)',
-    [id, category, content, now, now, roleId],
-  )
-  const entry: MemoryEntry = { id, category, content, createdAt: now, updatedAt: now, ...(roleId ? { roleId } : {}) }
+  const canInspectSchema = typeof (db as unknown as { exec?: unknown }).exec === 'function'
+  const hasProvenanceColumn = canInspectSchema && db.exec("PRAGMA table_info(memories)")[0]?.values.some(row => row[1] === 'provenance_json')
+  if (opts?.provenance && canInspectSchema && !hasProvenanceColumn) throw new Error('记忆存储缺少来源证据字段，请先完成数据库初始化。')
+  if (hasProvenanceColumn) {
+    db.run(
+      'INSERT INTO memories (id, category, content, createdAt, updatedAt, role_id, provenance_json) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [id, category, content, now, now, roleId, opts?.provenance ? JSON.stringify(opts.provenance) : null],
+    )
+  } else {
+    db.run(
+      'INSERT INTO memories (id, category, content, createdAt, updatedAt, role_id) VALUES (?, ?, ?, ?, ?, ?)',
+      [id, category, content, now, now, roleId],
+    )
+  }
+  const entry: MemoryEntry = { id, category, content, createdAt: now, updatedAt: now, ...(roleId ? { roleId } : {}), ...(opts?.provenance ? { provenance: opts.provenance } : {}) }
   return { entry, inserted: true, afterCommit: () => {
     log.info('Memory added', { id, category, roleId: roleId || undefined })
     void recordAssetUsage({
@@ -291,25 +312,25 @@ export async function deleteMemory(id: string): Promise<void> {
   db.run('DELETE FROM memories WHERE id = ?', [id])
   try { persist() }
   catch (error) {
-    if (before) db.run('INSERT INTO memories (id, category, content, createdAt, updatedAt, role_id) VALUES (?, ?, ?, ?, ?, ?)',
-      [before.id, before.category, before.content, before.createdAt, before.updatedAt, before.roleId || ''])
+    if (before) db.run('INSERT INTO memories (id, category, content, createdAt, updatedAt, role_id, provenance_json) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [before.id, before.category, before.content, before.createdAt, before.updatedAt, before.roleId || '', before.provenance ? JSON.stringify(before.provenance) : null])
     throw error
   }
   log.info('Memory deleted', { id })
   notifyMemoryCommitted()
 }
 
-export async function updateMemory(id: string, content: string): Promise<void> {
+export async function updateMemory(id: string, content: string, provenance?: ContentProvenance): Promise<void> {
   assertMemoryContentAllowed(content)
   await ensureTable()
   const db = await getDatabase()
   const before = readMemoryFromDatabase(db, id)
   if (!before) return
   const now = Date.now()
-  db.run('UPDATE memories SET content = ?, updatedAt = ? WHERE id = ?', [content, now, id])
+  db.run('UPDATE memories SET content = ?, updatedAt = ?, provenance_json = ? WHERE id = ?', [content, now, provenance ? JSON.stringify(provenance) : before.provenance ? JSON.stringify(before.provenance) : null, id])
   try { persist() }
   catch (error) {
-    db.run('UPDATE memories SET content = ?, updatedAt = ? WHERE id = ?', [before.content, before.updatedAt, id])
+    db.run('UPDATE memories SET content = ?, updatedAt = ?, provenance_json = ? WHERE id = ?', [before.content, before.updatedAt, before.provenance ? JSON.stringify(before.provenance) : null, id])
     throw error
   }
   log.info('Memory updated', { id })

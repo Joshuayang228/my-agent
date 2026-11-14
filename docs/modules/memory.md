@@ -2,6 +2,8 @@
 
 内容完整性与记忆边界（2026-11-14）：Memory 继续只保存用户画像、偏好和已确认长期事实。人物世界事件、日记和生活资产通过 `ContentProvenance` 标记来源后才能作为候选材料进入记忆提炼，模型推断不直接覆盖 Persona 或长期事实。
 
+Memory 写入现在持久化 `provenance_json`。用户 IPC、人物 Tool、画像提炼、引用纠错和深夜反思分别记录来源类型、来源 ID、时间和可选会话 trace；旧记忆没有来源时保留读取能力，但不会被伪装成新生成事实。
+
 深夜反思与高光回忆重温（2026-11-09）：深夜反思引擎（`nightly-reflection.ts`）在角色深夜产生领悟时，将心灵感悟通过既有 `addMemory('feedback', ...)` 写入角色专属 feedback 桶（“我们之间”），并由高光回忆重温引擎（`nostalgia.ts`）在主对话装配前夕按 4 小时冷却检索并作为【高光回忆羁绊】注入提示词，不改变底层向量同步、语义去重或敏感词过滤规则。
 
 工作区侧聊会话持久化（2026-11-09）：会话存储与数据库升级至 schema 25，新增 `parent_session_id` 列并提供 `getOrCreateWorkspaceSession` / `clearWorkspaceSession`，隔离主会话列表与侧聊历史，不改变长期记忆存储、向量同步、画像提炼或角色分桶策略。

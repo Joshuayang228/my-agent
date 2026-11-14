@@ -1191,3 +1191,6 @@ Scoped Tool Catalog 现在在同一入口内完成 Host Manifest 授权和 Skill
 # 2026-11-14 内容完整性回归
 
 新增 `content-integrity.test.ts`，覆盖内容事实的来源、关联、幂等、时间校验和来源证据拒绝覆盖。领域事件、事件通知、日记、Debug provenance 和生活资产回归继续通过，模型质量仍沿现有 Companion Eval 与真实模型评估门禁处理。
+# 2026-11-14 Memory 与 Prompt 来源证据回归
+
+Memory 写入入口覆盖用户 IPC、人物 Tool、画像提炼、引用纠错和深夜反思的 provenance。Registered System / Model Request 保留动态上下文来源证据，测试覆盖签发、读取副本和来源元数据不进入自然语言正文。

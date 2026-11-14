@@ -63,14 +63,16 @@ export async function correctCitedMemory(
   const plan = planCitationCorrection(Boolean(existing), opts?.replacement)
 
   if (plan.action === 'update-sqlite') {
-    await updateMemory(memId, opts!.replacement!.trim())
+    await updateMemory(memId, opts!.replacement!.trim(), { origin: 'user', sourceType: 'memory-citation-correction', sourceId: memId, occurredAt: Date.now() })
     recordCorrection('update')
     return { ok: true, action: 'updated', id: memId }
   }
 
   if (plan.action === 'replace-as-fact') {
     await removeFromVectorStore(memId)
-    const entry = await addMemory('fact', opts!.replacement!.trim())
+    const entry = await addMemory('fact', opts!.replacement!.trim(), {
+      provenance: { origin: 'user', sourceType: 'memory-citation-correction', sourceId: memId, occurredAt: Date.now() },
+    })
     recordCorrection('replace')
     return { ok: true, action: 'replaced', id: memId, newId: entry.id }
   }

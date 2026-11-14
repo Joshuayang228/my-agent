@@ -1,5 +1,5 @@
 import { extractTemplatePlaceholders } from '../../../src/shared/prompt-template'
-import type { PromptSlot } from '../../../src/shared/types'
+import type { PromptContextEvidence, PromptSlot } from '../../../src/shared/types'
 /**
  * Prompt 语义编译器。
  *
@@ -83,6 +83,7 @@ export interface PromptSituationContext {
   rosterLines?: string
   relationshipSummary?: string
   emotionSummary?: string
+  contextEvidence?: readonly PromptContextEvidence[]
 }
 
 export interface MainChatPromptRequest {

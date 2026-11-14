@@ -20,7 +20,7 @@ import { buildHostCarePrompt, type HostCarePromptInput } from './host-care'
  * 而不是相信调用方提供的正文、key 或 TypeScript 类型断言。
  * 关键约束：禁止导出通用签发器；实验来源不能冒充生产，消息和来源必须一同冻结。
  */
-import type { ChatMessage, PromptAssetKey, PromptAssetKeyList, RegisteredModelRequest, RegisteredSystemPrompt } from '../../../src/shared/types'
+import type { ChatMessage, PromptAssetKey, PromptAssetKeyList, PromptContextEvidence, RegisteredModelRequest, RegisteredSystemPrompt } from '../../../src/shared/types'
 import type { ImageAttachment } from '../../../src/shared/types'
 import type { RolePack } from '../companion/types'
 import { characterDefinitionFromRolePack, compileMainChatPrompt, type MainChatPromptRequest } from './compiler'
@@ -39,8 +39,8 @@ import { buildEvalJudgePrompt } from './eval-judge'
 import { composeFeaturePrompt } from './composition'
 
 type SimpleMessage = { role: ChatMessage['role']; content: string }
-type RequestSnapshot = { messages: ChatMessage[]; promptAssetKeys: PromptAssetKeyList; scope: RegisteredModelRequest['scope']; callers: readonly string[] }
-const systemProofs = new WeakMap<RegisteredSystemPrompt, { text: string; promptAssetKeys: PromptAssetKeyList; scope: RegisteredSystemPrompt['scope'] }>()
+type RequestSnapshot = { messages: ChatMessage[]; promptAssetKeys: PromptAssetKeyList; scope: RegisteredModelRequest['scope']; callers: readonly string[]; contextEvidence?: readonly PromptContextEvidence[] }
+const systemProofs = new WeakMap<RegisteredSystemPrompt, { text: string; promptAssetKeys: PromptAssetKeyList; scope: RegisteredSystemPrompt['scope']; contextEvidence?: readonly PromptContextEvidence[] }>()
 const requestProofs = new WeakMap<RegisteredModelRequest, RequestSnapshot>()
 const contextProofs = new WeakMap<ChatMessage, string>()
 
@@ -53,18 +53,18 @@ function freezeDeep<T>(value: T): T {
 }
 
 /** 背景：Loop 会复用 System；意图：正文和来源一起冻结；约束：签发器私有，不能给任意外部正文挂生产 key。 */
-function signSystem(text: string, keys: PromptAssetKeyList, scope: RegisteredSystemPrompt['scope'] = 'production'): RegisteredSystemPrompt {
-  const snapshot = freezeDeep({ text, promptAssetKeys: [keys[0], ...[...new Set(keys)].filter(key => key !== keys[0])] as PromptAssetKeyList, scope })
+function signSystem(text: string, keys: PromptAssetKeyList, scope: RegisteredSystemPrompt['scope'] = 'production', contextEvidence?: readonly PromptContextEvidence[]): RegisteredSystemPrompt {
+  const snapshot = freezeDeep({ text, promptAssetKeys: [keys[0], ...[...new Set(keys)].filter(key => key !== keys[0])] as PromptAssetKeyList, scope, ...(contextEvidence?.length ? { contextEvidence: [...contextEvidence] } : {}) })
   const proof = snapshot as RegisteredSystemPrompt
   systemProofs.set(proof, snapshot)
   return proof
 }
 
 /** 背景：输入历史会继续变化；意图：签发时复制消息并冻结，避免校验后替换正文；约束：只由本文件固定配方调用，实验调用行为不能放宽。 */
-function signRequest(messages: Array<SimpleMessage | ChatMessage>, keys: PromptAssetKeyList, callers: readonly string[], scope: RegisteredModelRequest['scope'] = 'production'): RegisteredModelRequest {
+function signRequest(messages: Array<SimpleMessage | ChatMessage>, keys: PromptAssetKeyList, callers: readonly string[], scope: RegisteredModelRequest['scope'] = 'production', contextEvidence?: readonly PromptContextEvidence[]): RegisteredModelRequest {
   const normalized = messages.map((m, i) => ({ id: `compiled-${i}`, timestamp: Date.now(), ...m }))
-  const snapshot = freezeDeep({ messages: structuredClone(normalized), promptAssetKeys: [keys[0], ...[...new Set(keys)].filter(key => key !== keys[0])] as PromptAssetKeyList, scope, callers: [...callers] })
-  const proof = Object.freeze({ messages: snapshot.messages, promptAssetKeys: snapshot.promptAssetKeys, scope }) as unknown as RegisteredModelRequest
+  const snapshot = freezeDeep({ messages: structuredClone(normalized), promptAssetKeys: [keys[0], ...[...new Set(keys)].filter(key => key !== keys[0])] as PromptAssetKeyList, scope, callers: [...callers], ...(contextEvidence?.length ? { contextEvidence: [...contextEvidence] } : {}) })
+  const proof = Object.freeze({ messages: snapshot.messages, promptAssetKeys: snapshot.promptAssetKeys, scope, ...(snapshot.contextEvidence ? { contextEvidence: snapshot.contextEvidence } : {}) }) as unknown as RegisteredModelRequest
   requestProofs.set(proof, snapshot)
   return proof
 }
@@ -74,7 +74,7 @@ export function readRegisteredModelRequest(request: RegisteredModelRequest, call
   const snapshot = requestProofs.get(request)
   if (!snapshot) throw new Error('模型请求必须由已注册的编译入口生成')
   if (caller !== undefined && !snapshot.callers.includes(caller)) throw new Error('模型请求来源与调用行为不一致')
-  return structuredClone({ messages: snapshot.messages, promptAssetKeys: snapshot.promptAssetKeys, scope: snapshot.scope })
+  return structuredClone({ messages: snapshot.messages, promptAssetKeys: snapshot.promptAssetKeys, scope: snapshot.scope, ...(snapshot.contextEvidence ? { contextEvidence: snapshot.contextEvidence } : {}) })
 }
 
 export function readRegisteredSystemText(prompt: RegisteredSystemPrompt): string {
@@ -123,7 +123,7 @@ export function compileMainSystem(pack: RolePack, growth: string, input: MainRun
     runtimeData: input.situation ?? {},
     outputRules: '沿用主对话编译器的自然语言、工具调用和协议输出规则。',
   })
-  return signSystem(layered, keys)
+  return signSystem(layered, keys, 'production', input.situation?.contextEvidence)
 }
 
 export function compileSubagentSystem(role: string, sessionKind?: string): RegisteredSystemPrompt {
@@ -175,7 +175,7 @@ export function compileAgentRequest(input: {
     last.content = buildTimeContextPrompt(input.time, last.content)
     keys.push(PROMPT_KEYS.loopTimeContext)
   }
-  return signRequest(messages, keys, [base.scope === 'eval' ? 'eval-agent' : 'main'], base.scope)
+  return signRequest(messages, keys, [base.scope === 'eval' ? 'eval-agent' : 'main'], base.scope, base.contextEvidence)
 }
 
 type BehaviorInput<F extends (...args: never[]) => string> = Omit<Parameters<F>[0], 'character' | 'behaviorPrompt'>
