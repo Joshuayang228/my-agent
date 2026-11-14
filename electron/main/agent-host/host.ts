@@ -38,6 +38,7 @@ export function getAgentHostTools(): ToolDefinition[] {
   const environment = agentHostApplication.createEnvironment(manifest)
   return environment.capabilities.filter(capability => capability.exposeToTool !== false).map(capability => capabilityToTool(capability, {
     agentId: manifest.id,
+    grantedPermissions: manifest.grantedPermissions,
     onActivated: (capabilityKey, context) => agentHostCapabilityRegistry.markActivated(capabilityKey, context.roleId ?? context.agentId),
   }))
 }
@@ -46,7 +47,7 @@ export function getAgentHostToolNamesForRole(roleId: string): ReadonlySet<string
   initializeAgentHost()
   const manifest = loadCompanionAgentManifest({ id: roleId, personaKey: `role:${roleId}` })
   const environment = agentHostApplication.createEnvironment(manifest)
-  return new Set(environment.capabilities.filter(capability => capability.exposeToTool !== false).map(capability => capabilityToTool(capability, { agentId: 'agent-host' }).name))
+  return new Set(environment.capabilities.filter(capability => capability.exposeToTool !== false).map(capability => capabilityToTool(capability, { agentId: 'agent-host', grantedPermissions: manifest.grantedPermissions }).name))
 }
 
 export interface AgentHostDebugRecord {
@@ -65,7 +66,7 @@ export function getAgentHostDebugRecords(roleId: string): AgentHostDebugRecord[]
     key: `agent-manifest:${manifest.id}`,
     kind: 'manifest',
     status: 'registered',
-    details: { version: manifest.version, domains: manifest.domainKeys, allow: manifest.capabilityPolicy.allow, deny: manifest.capabilityPolicy.deny },
+    details: { version: manifest.version, domains: manifest.domainKeys, allow: manifest.capabilityPolicy.allow, deny: manifest.capabilityPolicy.deny, grantedPermissions: manifest.grantedPermissions },
   }]
   const available = new Set(environment.capabilities.map(capability => capability.key))
   for (const capability of agentHostCapabilityRegistry.getRegisteredCapabilities()) {

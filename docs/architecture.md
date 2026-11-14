@@ -209,6 +209,8 @@ Agent Host 收口后，`AgentHostScopedToolCatalog` 是 Agent Loop 的会话级�
 
 主对话动态上下文的来源证据随 `RegisteredSystemPrompt` / `RegisteredModelRequest` 冻结保存，包含上下文 key、来源、作用域和长度上限。来源证据作为模型请求元数据传递，不混入人物自然语言正文。
 
+Agent Host Manifest 现在同时声明 `grantedPermissions`。Application Orchestrator 和 Capability Tool Adapter 在执行前校验 `requiredPermissions`，再交给 Tool Runtime 的沙箱、确认和命令安全门禁，固定 Workflow 不再绕过 Host 层权限声明。
+
 人物 JSON 来源由纯 `companion/identity/source-assets.ts` 工厂投影，Prompt 追踪和伙伴目录共享 canonical key；高层 Debug 聚合去重。LLM 依赖 Prompt 目录时不反向导入 Agent 或生活存储，Role Pack 文本仍从实际 loader 读取。主对话 / Eval 使用 `prompts/compiler.ts`；旧生产组装适配层已移除。
 
 人物世界六面共用纯展示画廊，正式加载 / 写入由各面板和 companion IPC 管理；Playground 通过隔离 props 注入样张，不改变生产默认数据。world-records 负责结构校验，资产服务负责同角色引用与同步换装版本校验；通讯录从已发布事件与 event_links 派生关系经历，足迹仅消费已出发旅行。schema 18 保存事件关联；关联替换与事件投影删除使用 SAVEPOINT 整组回滚。用户资料不是内置生产资产，Debug 静态目录仍只登记 Role Pack 与 starter 定义。

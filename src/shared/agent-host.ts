@@ -73,6 +73,7 @@ export interface AgentHostManifest {
   skillKeys: readonly string[]
   modelPolicyKey: string
   permissionPolicyKey: string
+  grantedPermissions: readonly string[]
   lifecyclePolicyKey?: string
 }
 

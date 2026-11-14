@@ -1194,3 +1194,6 @@ Scoped Tool Catalog 现在在同一入口内完成 Host Manifest 授权和 Skill
 # 2026-11-14 Memory 与 Prompt 来源证据回归
 
 Memory 写入入口覆盖用户 IPC、人物 Tool、画像提炼、引用纠错和深夜反思的 provenance。Registered System / Model Request 保留动态上下文来源证据，测试覆盖签发、读取副本和来源元数据不进入自然语言正文。
+# 2026-11-14 Agent Host Capability 权限门禁
+
+Manifest 的 `grantedPermissions` 与 Capability `requiredPermissions` 在 Application Orchestrator 和 Tool Adapter 双入口校验，单测覆盖缺失权限拒绝。沙箱、命令安全和用户确认仍由 Tool Runtime 继续负责。

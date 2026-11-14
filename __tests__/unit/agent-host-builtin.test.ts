@@ -36,7 +36,7 @@ describe('Agent Host 内置 Domain', () => {
       ...createCompanionCoreDomain().capabilities[0],
       invoke: vi.fn(async () => ({ currentLocation: '甲板' })),
     }
-    const tool = capabilityToTool(capability, { agentId: 'lin', roleId: 'lin' })
+    const tool = capabilityToTool(capability, { agentId: 'lin', roleId: 'lin', grantedPermissions: ['companion.read'] })
     expect(tool.name).toBe('capability_companion_runtime_read')
     expect(tool.metadata.isReadOnly).toBe(true)
     await expect(tool.execute({}, { workdir: '.', sessionId: 'session-1', roleId: 'lin' })).resolves.toMatchObject({ content: expect.stringContaining('甲板') })

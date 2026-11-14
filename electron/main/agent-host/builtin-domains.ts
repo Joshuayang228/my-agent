@@ -176,6 +176,7 @@ export function createCompanionAgentManifest(input: {
     skillKeys: [],
     modelPolicyKey: 'main',
     permissionPolicyKey: 'companion-default',
+    grantedPermissions: ['persona.read', 'memory.read', 'workspace.read', 'companion.read', 'companion.write'],
   }
 }
 

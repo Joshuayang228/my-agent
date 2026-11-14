@@ -38,6 +38,7 @@ const manifest = {
   skillKeys: [],
   modelPolicyKey: 'main',
   permissionPolicyKey: 'companion-default',
+  grantedPermissions: ['memory.read', 'companion.write'],
 }
 
 describe('Agent Host Registry', () => {
@@ -98,6 +99,15 @@ describe('Agent Host Registry', () => {
     await orchestrator.invokeCapability(environment, 'memory.search', { query: '海' }, { agentId: 'luffy', traceId: 'activation-1' })
     expect(registry.hasBeenActivated('memory.search', 'luffy')).toBe(true)
     expect(registry.hasBeenActivated('memory.search', 'lin')).toBe(false)
+  })
+
+  it('固定 Capability 入口拒绝缺失 requiredPermissions 的 Agent', async () => {
+    const domains = new AgentHostDomainRegistry()
+    domains.register(createDomain())
+    const registry = new AgentHostCapabilityRegistry(domains)
+    const orchestrator = new AgentHostApplicationOrchestrator(registry)
+    const environment = orchestrator.createEnvironment({ ...manifest, grantedPermissions: [] })
+    await expect(orchestrator.invokeCapability(environment, 'memory.search', {}, { agentId: 'luffy', traceId: 'permission-1' })).rejects.toThrow('lacks required permissions')
   })
 
   it('同一 scope 和 source 的 Context Provider 只保留优先级最高的一份', () => {

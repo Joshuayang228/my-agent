@@ -1641,6 +1641,10 @@ Manifest 生产入口统一经过版本化 loader。Capability 激活证据按 A
 # 2026-11-14 顶层架构审计启动
 
 新审计确认 Agent Loop、Runtime、Application、Agent Host、Capability、Domain、Memory、Storage 和外部适配器的总体方向合理，但 Capability 权限门禁和 Companion Core 与旧生活表的并行迁移仍未完全收口。已新增顶层架构收口施工合同，后续按 P0 优先处理。
+
+# 2026-11-14 顶层架构 P0 权限门禁
+
+Agent Host Manifest 新增 `grantedPermissions`，Application Orchestrator 和 Capability Tool Adapter 在执行前统一校验 `requiredPermissions`。固定 Workflow 不再只依赖 Tool Runtime 的后置门禁，沙箱和用户确认仍作为下层安全边界保留。
 # 2026-11-14 Scoped Tool Catalog
 
 新增 `AgentHostScopedToolCatalog`，把 Manifest 授权筛选从 Runtime 条件分支提取为会话级目录对象。全局 ToolRegistry 继续只保存实现，未授权 Capability 不进入模型请求。

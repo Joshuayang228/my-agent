@@ -25,6 +25,8 @@
 2. 把 Runtime 中剩余的 Companion 关系、生活上下文和生命周期调用收进 Conversation Application Service / Host Context Provider。
 3. 盘点 Companion 旧表直接读取和写入，禁止新增旁路写入，优先将主会话、Debug 和 Prompt 读取切到 Core Read Model。
 
+P0-1 已完成：Manifest 现在声明 `grantedPermissions`，Application Orchestrator 和 Capability → Tool Adapter 都会在执行前校验 Capability 的 `requiredPermissions`。Tool Runtime 的沙箱和用户确认继续作为更下层的安全门禁。
+
 ## 4. P1 实施范围
 
 1. 建立统一 Application Context，包含 Agent、Session、Permission、Prompt Context Evidence 和 Domain Read Model。

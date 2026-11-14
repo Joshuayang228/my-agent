@@ -5,6 +5,7 @@ import type { AgentHostCapability } from '../../../src/shared/agent-host'
 export function capabilityToTool(capability: AgentHostCapability, input: {
   agentId: string
   roleId?: string
+  grantedPermissions: readonly string[]
   onActivated?: (capabilityKey: string, context: { agentId: string; roleId?: string; sessionId?: string; traceId: string }) => void
 }): ToolDefinition {
   return {
@@ -23,6 +24,8 @@ export function capabilityToTool(capability: AgentHostCapability, input: {
         sessionId: context?.sessionId,
         traceId: context?.parentSpanId ?? `tool:${capability.key}`,
       }
+      const missingPermissions = capability.requiredPermissions.filter(permission => !input.grantedPermissions.includes(permission))
+      if (missingPermissions.length > 0) throw new Error(`Capability "${capability.key}" lacks required permissions: ${missingPermissions.join(', ')}`)
       input.onActivated?.(capability.key, executionContext)
       const result = await capability.invoke(args, executionContext)
       return { content: typeof result === 'string' ? result : JSON.stringify(result) }

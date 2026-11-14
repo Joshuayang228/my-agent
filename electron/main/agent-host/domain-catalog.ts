@@ -107,6 +107,7 @@ export class AgentHostApplicationOrchestrator {
     const capability = environment.capabilities.find(item => item.key === capabilityKey)
     if (!capability) throw new Error(`Capability "${capabilityKey}" is unavailable for agent "${environment.manifest.id}"`)
     if (context.agentId !== environment.manifest.id) throw new Error('Agent execution context does not match manifest')
+    this.assertPermissions(environment.manifest.grantedPermissions, capability.requiredPermissions, capability.key)
     this.capabilities.markActivated(capability.key, context.agentId)
     return capability.invoke(input, context)
   }
@@ -120,7 +121,14 @@ export class AgentHostApplicationOrchestrator {
     const workflow = environment.capabilities.find(item => item.key === workflowKey && item.kind === 'workflow')
     if (!workflow) throw new Error(`Workflow "${workflowKey}" is unavailable for agent "${environment.manifest.id}"`)
     if (context.agentId !== environment.manifest.id) throw new Error('Agent execution context does not match manifest')
+    this.assertPermissions(environment.manifest.grantedPermissions, workflow.requiredPermissions, workflow.key)
     this.capabilities.markActivated(workflow.key, context.agentId)
     return workflow.invoke(input, context)
+  }
+
+  private assertPermissions(granted: readonly string[], required: readonly string[], capabilityKey: string): void {
+    const allowed = new Set(granted)
+    const missing = required.filter(permission => !allowed.has(permission))
+    if (missing.length > 0) throw new Error(`Capability "${capabilityKey}" lacks required permissions: ${missing.join(', ')}`)
   }
 }
