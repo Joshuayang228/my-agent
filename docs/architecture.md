@@ -704,3 +704,5 @@ Renderer 通过 preload 调用宿主作息和计划重排通道，主进程 IPC 
 通用 IPC handler 通过 `registerSecureIpcHandler` 统一检查 sender 生命周期和主框架来源。MCP、Settings、Terminal、Browser 与生成图片读取保留各自的 OAuth、请求租约、导航、销毁窗口和凭据隔离复核，并调用同一 `assertTrustedIpcSender`。这层校验只负责入口可信性，人物、会话和工具权限仍由应用层与 Permission Engine 决定。
 
 Skill Registry 初始化完成后同步 Skill key 与激活工具元数据到 Host，Skill 正文和实际激活继续由既有 Skill Registry 管理，Host 不复制 Skill 正文或业务实现。
+
+侧边聊天是工作区内的临时会话：Renderer 只发起 `session.delete`，IPC/Application 层负责取消流、等待 Runtime 收尾和删除会话的串行门禁。备份层只收集用户生成媒体；Role Pack 的静态 `companion-media` 图片由资源包在目标环境重物化。

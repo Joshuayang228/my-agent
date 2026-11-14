@@ -1215,6 +1215,7 @@ Runtime Application 边界回归覆盖会话角色校验、卡司在场、召唤
 Projection Adapter 回归覆盖朋友圈、关系、情绪、事件关联和执行记录写入均在 Core Event Unit of Work 内完成。
 
 2026-11-14 Electron E2E 迁移回归：完整 Electron 集合完成 46 项，其中 35 项通过、5 项跳过、6 项失败。失败集中在生图导出状态等待、Chrome 禁止端口 OAuth 夹具、侧聊流取消时序、主动问候夹具回调和朋友圈图片选择器。朋友圈图片选择器已修正，专项测试通过。其余失败未落在本轮 Companion Core 事实迁移路径，待独立稳定性批次处理。
+2026-11-14 Electron E2E 稳定性批次：侧边聊天关闭改为复用主进程 `session.delete` 门禁，确保流中止、收尾和临时会话删除串行完成；生图备份排除可由 Role Pack 重物化的 `companion-media` 出厂图片，仅保留用户生成媒体。侧聊生命周期专项 2 项、生图完整备份恢复专项 1 项通过；剩余 OAuth 禁止端口、主动问候夹具和原始全量 E2E 统计需独立处理。
 # 2026-11-14 Conversation Application 边界
 
 角色组装输入通过 Conversation Application Service 进入 Runtime，现有会话生命周期、取消、Loop 和流式事件测试继续通过。

@@ -222,7 +222,13 @@ function assetImageReference(payload: Record<string, unknown>): GeneratedImageRe
 function exportableAssetImageReference(asset: BackupLivingAsset): GeneratedImageReference | null {
   const image = assetImageReference(asset.payload)
   if (!image) return null
-  if (isStarterVisualImage(asset.roleId, asset.payload, image)) return null
+  // 角色包出厂配图是可重物化的静态资源，不应占用用户备份的媒体配额；
+  // 运行时若重新生成配图会保留原有 visualPath，但 seededFrom 会被清除，仍需随备份导出。
+  // 另外保留受控 companion-media 目录判定，覆盖旧库中缺少 seededFrom 或无法重解析 Role Pack 的记录；
+  // 用户生成图片通常位于项目 / 用户图片目录，不会命中该路径。
+  if (isStarterVisualImage(asset.roleId, asset.payload, image)
+    || String(asset.payload.seededFrom ?? '').startsWith('role-pack:')
+    || (typeof asset.payload.visualPath === 'string' && image.path.replaceAll('\\', '/').includes('/companion-media/images/'))) return null
   return image
 }
 

@@ -1709,6 +1709,10 @@ pause、resume、catch-up 和 tick 不再写旧角色状态表的暂停、补叙
 # 2026-11-14 顶层架构 Electron E2E 复核
 
 完整 Electron E2E 集合已运行。Core 事实迁移相关路径通过，朋友圈图片选择器专项已修正并通过；生图导出等待、OAuth 禁止端口、侧聊取消时序和主动问候夹具仍登记为独立稳定性问题。
+
+# 2026-11-14 Electron E2E 稳定性收口
+
+侧边聊天关闭现在通过 `session.delete` 统一完成取消流、等待 Runtime 收尾和删除临时工作区会话；关闭侧聊与切换主会话两个真实 Electron 用例通过。生图备份过滤可由 Role Pack 重物化的 `companion-media` 出厂图片，完整生图备份、删除、恢复和重启用例通过。剩余 OAuth 夹具端口和主动问候夹具问题未宣称完成。
 # 2026-11-14 Scoped Tool Catalog
 
 新增 `AgentHostScopedToolCatalog`，把 Manifest 授权筛选从 Runtime 条件分支提取为会话级目录对象。全局 ToolRegistry 继续只保存实现，未授权 Capability 不进入模型请求。

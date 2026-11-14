@@ -1599,3 +1599,8 @@ Playground 提示词管理器 v3 候选：调整文字职责与阅读比例，�
 # 2026-11-14 Workspace Context Provider
 
 - Workspace 会话的项目、最近对话和焦点上下文统一由 Agent Host Provider 注入。
+
+# 2026-11-14 侧边聊天与媒体备份稳定性
+
+- 侧边聊天关闭复用 `session.delete` 的主进程门禁，串行完成流中止、Runtime 收尾和临时会话删除。
+- 数据备份排除可由 Role Pack 重物化的 `companion-media` 出厂图片，避免静态资源占用用户媒体配额；用户生成图片仍随备份保存。

@@ -82,9 +82,16 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
     void start()
     return () => {
       disposed = true
+      const activeSessionId = sessionRef.current
+      // 背景：侧边聊天依附于工作区，面板关闭时用户已经结束这次临时交互；若只解绑监听，
+      // 主进程仍会继续持有流并在后台写入已不可见的响应。
+      // 设计意图：复用主进程已有的删除门禁，由它串行完成中止、等待收尾和删除；放弃让渲染层
+      // 分别调用 abort 与 delete，因为两次 IPC 会在流收尾时产生竞态。
+      // 关键约束：仅针对当前侧聊会话调用删除，不能影响主会话或其他工作区；删除失败必须留给
+      // 主进程日志和后续重试处理，不能阻塞 React 卸载。
+      if (activeSessionId) void window.electronAPI?.session.delete(activeSessionId).catch(() => undefined)
       cleanup?.()
       sessionRef.current = null
-      // 背景：工作区侧聊依附于主会话并持久化留存；组件折叠或隐藏时不销毁会话，保留用户的工程讨论记录。
     }
   }, [parentSessionId, initializationAttempt])
 
