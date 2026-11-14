@@ -29,6 +29,7 @@ export async function recordCompanionEventAndNotify(input: {
     dedupeKey: string
     payload: Record<string, unknown>
   }>
+  dispatch?: boolean
 }): Promise<{ eventId: string }> {
   const event = await withCompanionUnitOfWork(async () => {
     const runtime = await getCompanionRuntimeState(input.roleId)
@@ -62,6 +63,6 @@ export async function recordCompanionEventAndNotify(input: {
     }
     return domainEvent
   })
-  await dispatchCompanionWindowOutbox()
+  if (input.dispatch !== false) await dispatchCompanionWindowOutbox()
   return { eventId: event.id }
 }

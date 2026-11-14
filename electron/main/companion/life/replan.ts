@@ -28,6 +28,8 @@ import { ensureWorldState } from './world-state'
 import * as store from './store'
 import { isActiveRole } from '../../storage/settings-store'
 import { recordCompanionEventAndNotify } from '../application/record-event-notify'
+import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
+import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
 
 const log = createLogger('LifeReplan')
 
@@ -205,32 +207,58 @@ export async function replanRemainingSlots(
   if (!(await isActiveRole(roleId))) {
     return { ok: false, roleId, replannedCount: 0, trigger: options.trigger, reason: '伙伴已切换', adjustedSlots: [] }
   }
-  const adjustedSlots: ReplanResult['adjustedSlots'] = []
-  for (let i = 0; i < upcomingPlanned.length; i++) {
-    const ev = upcomingPlanned[i]
-    const adapted = adaptedList[i] || adaptedList[adaptedList.length - 1]
-    const updatedPayload: Record<string, unknown> = {
-      ...ev.payload,
-      activity: adapted.activity,
-      mood: adapted.mood,
-      ...(adapted.location ? { location: adapted.location } : {}),
-      causedBy: {
-        trigger: options.trigger,
-        reason: options.reason,
-        previousActivity: typeof ev.payload.activity === 'string' ? ev.payload.activity : undefined,
-        at: now,
-      },
+  const adjustedSlots = await withCompanionUnitOfWork(async () => {
+    const next: ReplanResult['adjustedSlots'] = []
+    for (let i = 0; i < upcomingPlanned.length; i++) {
+      const ev = upcomingPlanned[i]
+      const adapted = adaptedList[i] || adaptedList[adaptedList.length - 1]
+      const updatedPayload: Record<string, unknown> = {
+        ...ev.payload,
+        activity: adapted.activity,
+        mood: adapted.mood,
+        ...(adapted.location ? { location: adapted.location } : {}),
+        causedBy: {
+          trigger: options.trigger,
+          reason: options.reason,
+          previousActivity: typeof ev.payload.activity === 'string' ? ev.payload.activity : undefined,
+          at: now,
+        },
+      }
+      await store.updateEventPayload(ev.id, updatedPayload)
+      next.push({
+        eventId: ev.id,
+        hour: adapted.hour,
+        minute: adapted.minute,
+        activity: adapted.activity,
+        mood: adapted.mood,
+        location: adapted.location,
+      })
     }
-    await store.updateEventPayload(ev.id, updatedPayload)
-    adjustedSlots.push({
-      eventId: ev.id,
-      hour: adapted.hour,
-      minute: adapted.minute,
-      activity: adapted.activity,
-      mood: adapted.mood,
-      location: adapted.location,
+    const result: ReplanResult = {
+      ok: true,
+      roleId,
+      replannedCount: next.length,
+      trigger: options.trigger,
+      reason: options.reason,
+      adjustedSlots: next,
+    }
+    const sourceId = `replan:${roleId}:${now}`
+    await recordCompanionEventAndNotify({
+      roleId,
+      type: 'life_slots_replanned',
+      sourceType: 'life_replan',
+      sourceId,
+      idempotencyKey: sourceId,
+      occurredAt: now,
+      payload: result as unknown as Record<string, unknown>,
+      notification: [
+        { kind: 'slots-replanned', dedupeKey: sourceId, payload: result as unknown as Record<string, unknown> },
+        { kind: 'timeline-updated', dedupeKey: `${sourceId}:timeline`, payload: { roleId, now } },
+      ],
+      dispatch: false,
     })
-  }
+    return next
+  })
 
   log.info('Remaining slots replanned successfully', {
     roleId,
@@ -239,7 +267,6 @@ export async function replanRemainingSlots(
     reason: options.reason,
   })
 
-  // 5. 广播通知
   const result: ReplanResult = {
     ok: true,
     roleId,
@@ -249,20 +276,7 @@ export async function replanRemainingSlots(
     adjustedSlots,
   }
 
-  const sourceId = `replan:${roleId}:${now}`
-  await recordCompanionEventAndNotify({
-    roleId,
-    type: 'life_slots_replanned',
-    sourceType: 'life_replan',
-    sourceId,
-    idempotencyKey: sourceId,
-    occurredAt: now,
-    payload: result as unknown as Record<string, unknown>,
-    notification: [
-      { kind: 'slots-replanned', dedupeKey: sourceId, payload: result as unknown as Record<string, unknown> },
-      { kind: 'timeline-updated', dedupeKey: `${sourceId}:timeline`, payload: { roleId, now } },
-    ],
-  })
+  await dispatchCompanionWindowOutbox()
 
   return result
 }

@@ -1206,6 +1206,7 @@ pause、resume、catch-up、tick 回归覆盖 Core Runtime State 的暂停时间
 只读迁移适配层回归覆盖通讯录、卡司可用性、生活信号、穿搭、旅行推进、日程时间线、反思、事件切片、生活时钟和世界体征刷新，确保只改变读取入口，不新增写入副作用。
 赠礼回归覆盖礼物记录、会话消息 Outbox、领域事件、体征更新和通知 Outbox 的同一事务路径，并确认投递发生在事务提交后。
 专属信物回归覆盖信物记录、会话消息 Outbox、领域事件和窗口通知 Outbox 的同一事务路径，并验证失败时不保留信物记录。
+文化心愿完成、朋友圈投影和自动回复回归覆盖旧读模型事实、Core 事件、投影回执、动态关联和通知 Outbox 的提交顺序。
 # 2026-11-14 Conversation Application 边界
 
 角色组装输入通过 Conversation Application Service 进入 Runtime，现有会话生命周期、取消、Loop 和流式事件测试继续通过。

@@ -33,6 +33,8 @@ import { generateAutomaticMomentMedia } from './automatic-moment-media'
 import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { recordCompanionProjection } from '../core/projections/receipts'
+import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
+import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
 
 export { formatMomentText } from './moment-format'
 export type { AddMomentCommentOptions } from '../../../../src/shared/types'
@@ -57,43 +59,10 @@ export async function projectMomentFromEvent(
   opts?: ProjectMomentOpts,
 ): Promise<CompanionMoment | null> {
   if (event.status !== 'published') return null
-  const domainEvent = await appendCompanionDomainEvent({
-    roleId: event.roleId,
-    universeId: opts?.universeId ?? 'default',
-    type: event.type === 'moment' ? 'moment_published' : 'life_event_published',
-    sourceType: 'companion_event',
-    sourceId: event.id,
-    causationId: event.id,
-    correlationId: event.id,
-    idempotencyKey: `life-event-published:${event.id}`,
-    occurredAt: opts?.publishedAt ?? event.scheduledAt,
-    payload: event.payload,
-    schemaVersion: 1,
-  })
   const relationship = event.payload.relationship && typeof event.payload.relationship === 'object' && !Array.isArray(event.payload.relationship)
     ? event.payload.relationship as Record<string, unknown>
     : undefined
-  if (relationship) {
-    await store.recordRelationshipEvent({
-      roleId: event.roleId,
-      subjectId: typeof relationship.subjectId === 'string' ? relationship.subjectId : 'user',
-      phase: typeof relationship.phase === 'string' ? relationship.phase : undefined,
-      note: typeof relationship.note === 'string' ? relationship.note : undefined,
-      delta: typeof relationship.delta === 'number' ? relationship.delta : 1,
-      sourceEventId: event.id,
-    })
-  }
   const mood = typeof event.payload.mood === 'string' ? event.payload.mood.trim() : ''
-  if (mood) {
-    await store.recordEmotionEvent({
-      roleId: event.roleId,
-      eventId: event.id,
-      label: mood,
-      intensity: typeof event.payload.moodIntensity === 'number' ? event.payload.moodIntensity : 50,
-      note: typeof event.payload.activity === 'string' ? event.payload.activity : '',
-    })
-  }
-  if (opts?.suppressMoment) return null
   let outfitName: string | undefined
   let bookName: string | undefined
   const assetId = typeof event.payload.assetId === 'string' ? event.payload.assetId : null
@@ -198,32 +167,70 @@ export async function projectMomentFromEvent(
     })
   }
 
-  let moment = await store.insertMoment({
-    roleId: event.roleId,
-    eventId: event.id,
-    publishedAt: opts?.publishedAt ?? event.scheduledAt,
-    text,
-    meta: {
-      type: event.type,
-      mood: event.payload.mood,
-      location: event.payload.location,
-      theme: event.payload.theme,
-      assetId: assetId ?? undefined,
-      outfit: outfitName,
-      bookAssetId: bookAssetId ?? undefined,
-      book: bookName,
-      textSource: source,
-      ...(interactions.length ? { interactions } : {}),
-      ...(participantIds.length ? { participantIds } : {}),
-      ...(relationship ? { relationship } : {}),
-    },
+  const projected = await withCompanionUnitOfWork(async () => {
+    const domainEvent = await appendCompanionDomainEvent({
+      roleId: event.roleId,
+      universeId: opts?.universeId ?? 'default',
+      type: event.type === 'moment' ? 'moment_published' : 'life_event_published',
+      sourceType: 'companion_event',
+      sourceId: event.id,
+      causationId: event.id,
+      correlationId: event.id,
+      idempotencyKey: `life-event-published:${event.id}`,
+      occurredAt: opts?.publishedAt ?? event.scheduledAt,
+      payload: event.payload,
+      schemaVersion: 1,
+    })
+    if (relationship) {
+      await store.recordRelationshipEvent({
+        roleId: event.roleId,
+        subjectId: typeof relationship.subjectId === 'string' ? relationship.subjectId : 'user',
+        phase: typeof relationship.phase === 'string' ? relationship.phase : undefined,
+        note: typeof relationship.note === 'string' ? relationship.note : undefined,
+        delta: typeof relationship.delta === 'number' ? relationship.delta : 1,
+        sourceEventId: event.id,
+      })
+    }
+    if (mood) {
+      await store.recordEmotionEvent({
+        roleId: event.roleId,
+        eventId: event.id,
+        label: mood,
+        intensity: typeof event.payload.moodIntensity === 'number' ? event.payload.moodIntensity : 50,
+        note: typeof event.payload.activity === 'string' ? event.payload.activity : '',
+      })
+    }
+    if (opts?.suppressMoment) return { domainEvent, moment: null }
+    let moment = await store.insertMoment({
+      roleId: event.roleId,
+      eventId: event.id,
+      publishedAt: opts?.publishedAt ?? event.scheduledAt,
+      text,
+      meta: {
+        type: event.type,
+        mood: event.payload.mood,
+        location: event.payload.location,
+        theme: event.payload.theme,
+        assetId: assetId ?? undefined,
+        outfit: outfitName,
+        bookAssetId: bookAssetId ?? undefined,
+        book: bookName,
+        textSource: source,
+        ...(interactions.length ? { interactions } : {}),
+        ...(participantIds.length ? { participantIds } : {}),
+        ...(relationship ? { relationship } : {}),
+      },
+    })
+    if (!moment) {
+      moment = await store.getMomentByEventId(event.roleId, event.id)
+      if (!moment) throw new Error('朋友圈投影未生成动态记录。')
+    }
+    await store.replaceEventLinks(event.roleId, event.id, links)
+    await recordCompanionProjection({ projectionName: 'moment-read-model', eventId: domainEvent.id })
+    return { domainEvent, moment }
   })
-  if (!moment) {
-    moment = await store.getMomentByEventId(event.roleId, event.id)
-    if (!moment) return null
-  }
-  await store.replaceEventLinks(event.roleId, event.id, links)
-  await recordCompanionProjection({ projectionName: 'moment-read-model', eventId: domainEvent.id })
+  const moment = projected.moment
+  if (!moment) return null
   if (opts?.automatic && (await getSetting('companionMomentImagePolicy')) === 'generated') {
     await generateAutomaticMomentMedia(event.roleId, event, moment)
   }
@@ -467,6 +474,52 @@ function parseAutonomousReply(raw: string, defaultRoleId: string, defaultName: s
   }
 }
 
+async function persistMomentReplyAndNotify(input: {
+  roleId: string
+  momentId: string
+  parentInteractionId: string
+  responderId: string
+  responderName: string
+  actorType: 'protagonist' | 'cast'
+  reply: string
+  occurredAt: number
+}): Promise<void> {
+  const replyPayload = {
+    momentId: input.momentId,
+    roleId: input.roleId,
+    reply: { actorName: input.responderName, text: input.reply },
+  }
+  await withCompanionUnitOfWork(async () => {
+    await store.insertMomentUserInteraction({
+      momentId: input.momentId,
+      roleId: input.roleId,
+      kind: 'comment',
+      actorId: input.responderId,
+      actorType: input.actorType,
+      actorName: input.responderName,
+      parentInteractionId: input.parentInteractionId,
+      replyToActorName: MOMENT_USER_ACTOR_NAME,
+      text: input.reply,
+    })
+    await recordCompanionEventAndNotify({
+      roleId: input.roleId,
+      type: 'moment_comment_replied',
+      sourceType: 'moment_comment',
+      sourceId: input.parentInteractionId,
+      idempotencyKey: `moment-comment-reply:${input.parentInteractionId}`,
+      occurredAt: input.occurredAt,
+      payload: replyPayload,
+      notification: {
+        kind: 'moment-updated',
+        dedupeKey: `moment-comment-reply:${input.parentInteractionId}`,
+        payload: replyPayload,
+      },
+      dispatch: false,
+    })
+  })
+  await dispatchCompanionWindowOutbox()
+}
+
 export async function addMomentCommentForRole(
   roleId: string,
   momentId: string,
@@ -528,49 +581,28 @@ export async function addMomentCommentForRole(
       const decision = parseAutonomousReply(raw, roleId, pack.name)
       if (decision && decision.shouldReply) {
         if (opts?.immediate || decision.delaySeconds <= 0) {
-          await store.insertMomentUserInteraction({
-            momentId: id,
+          await persistMomentReplyAndNotify({
             roleId,
-            kind: 'comment',
-            actorId: decision.responderId,
-            actorType: decision.actorType,
-            actorName: decision.responderName,
+            momentId: id,
             parentInteractionId: inserted.id,
-            replyToActorName: MOMENT_USER_ACTOR_NAME,
-            text: decision.reply,
+            responderId: decision.responderId,
+            responderName: decision.responderName,
+            actorType: decision.actorType,
+            reply: decision.reply,
+            occurredAt: Date.now(),
           })
         } else {
           setTimeout(async () => {
             try {
-              await store.insertMomentUserInteraction({
-                momentId: id,
+              await persistMomentReplyAndNotify({
                 roleId,
-                kind: 'comment',
-                actorId: decision.responderId,
-                actorType: decision.actorType,
-                actorName: decision.responderName,
+                momentId: id,
                 parentInteractionId: inserted.id,
-                replyToActorName: MOMENT_USER_ACTOR_NAME,
-                text: decision.reply,
-              })
-              const replyPayload = {
-                momentId: id,
-                roleId,
-                reply: { actorName: decision.responderName, text: decision.reply },
-              }
-              await recordCompanionEventAndNotify({
-                roleId,
-                type: 'moment_comment_replied',
-                sourceType: 'moment_comment',
-                sourceId: inserted.id,
-                idempotencyKey: `moment-comment-reply:${inserted.id}`,
+                responderId: decision.responderId,
+                responderName: decision.responderName,
+                actorType: decision.actorType,
+                reply: decision.reply,
                 occurredAt: Date.now(),
-                payload: replyPayload,
-                notification: {
-                  kind: 'moment-updated',
-                  dedupeKey: `moment-comment-reply:${inserted.id}`,
-                  payload: replyPayload,
-                },
               })
             } catch {
               // 异步回复落盘失败静默忽略

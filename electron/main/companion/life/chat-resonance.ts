@@ -37,6 +37,7 @@ import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatc
 import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 import { recordCompanionProjection } from '../core/projections/receipts'
 import { linkCompanionExecutionEvent } from '../core/execution/ledger'
+import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 
 const log = createLogger('ChatResonance')
 
@@ -494,15 +495,6 @@ export async function completeCultureResonance(
     }
   }
 
-  // 2. 更新 companion_life_resonances
-  db.run(
-    `UPDATE companion_life_resonances
-     SET status = 'completed', completed_at = ?, feedback_text = ?
-     WHERE id = ?`,
-    [now, parsedReview.chatOpener, currentResonance.id],
-  )
-  persist()
-
   const updatedResonance: CompanionLifeResonance = {
     ...currentResonance,
     status: 'completed',
@@ -511,46 +503,55 @@ export async function completeCultureResonance(
   }
   const notificationMessage = `${pack.name} 已经体验完了「${currentResonance.targetName}」！`
 
-  // 核心层记录一次可追溯的文化体验完成事实；旧文化表仍保留作当前读模型，迁移完成后由投影替代。
+  // 2. 旧文化状态和 Core 体验事实共享本地事务，避免状态已完成但事件账本缺失。
   try {
-    await executeCompanionCommand({
-      roleId,
-      actionType: 'culture-experience-completed',
-      correlationId: currentResonance.id,
-      handler: async (context) => {
-        const domainEvent = await appendCompanionDomainEvent({
-          roleId,
-          universeId: 'default',
-          type: 'culture_experience_completed',
-          sourceType: 'chat_resonance',
-          sourceId: currentResonance.id,
-          causationId: currentResonance.id,
-          correlationId: context.correlationId,
-          idempotencyKey: `culture-experience-completed:${currentResonance.id}`,
-          occurredAt: now,
-          payload: {
-            resonanceId: currentResonance.id,
-            assetId: currentResonance.assetId,
-            targetName: currentResonance.targetName,
-            reviewText: parsedReview.reviewText,
-            chatOpener: parsedReview.chatOpener,
-          },
-          schemaVersion: 1,
-        })
-        await linkCompanionExecutionEvent({ executionId: context.executionId, eventId: domainEvent.id })
-        await recordCompanionProjection({ projectionName: 'legacy-culture-resonance', eventId: domainEvent.id })
-        await enqueueCompanionOutbox({
-          roleId,
-          eventId: domainEvent.id,
-          kind: 'resonance-completed',
-          dedupeKey: `resonance-completed:${currentResonance.id}`,
-          payload: { roleId, resonance: updatedResonance, message: notificationMessage },
-        })
-      },
+    await withCompanionUnitOfWork(async () => {
+      db.run(
+        `UPDATE companion_life_resonances
+         SET status = 'completed', completed_at = ?, feedback_text = ?
+         WHERE id = ?`,
+        [now, parsedReview.chatOpener, currentResonance.id],
+      )
+      await executeCompanionCommand({
+        roleId,
+        actionType: 'culture-experience-completed',
+        correlationId: currentResonance.id,
+        handler: async (context) => {
+          const domainEvent = await appendCompanionDomainEvent({
+            roleId,
+            universeId: 'default',
+            type: 'culture_experience_completed',
+            sourceType: 'chat_resonance',
+            sourceId: currentResonance.id,
+            causationId: currentResonance.id,
+            correlationId: context.correlationId,
+            idempotencyKey: `culture-experience-completed:${currentResonance.id}`,
+            occurredAt: now,
+            payload: {
+              resonanceId: currentResonance.id,
+              assetId: currentResonance.assetId,
+              targetName: currentResonance.targetName,
+              reviewText: parsedReview.reviewText,
+              chatOpener: parsedReview.chatOpener,
+            },
+            schemaVersion: 1,
+          })
+          await linkCompanionExecutionEvent({ executionId: context.executionId, eventId: domainEvent.id })
+          await recordCompanionProjection({ projectionName: 'legacy-culture-resonance', eventId: domainEvent.id })
+          await enqueueCompanionOutbox({
+            roleId,
+            eventId: domainEvent.id,
+            kind: 'resonance-completed',
+            dedupeKey: `resonance-completed:${currentResonance.id}`,
+            payload: { roleId, resonance: updatedResonance, message: notificationMessage },
+          })
+        },
+      })
     })
     await dispatchCompanionWindowOutbox()
   } catch (err) {
-    log.warn('Core culture completion ledger failed; legacy read model remains available', { roleId, resonanceId: currentResonance.id, error: String(err) })
+    log.warn('Culture completion transaction failed; status remains retryable', { roleId, resonanceId: currentResonance.id, error: String(err) })
+    return { ok: false, error: '文化体验记录暂时未完成，请稍后重试。' }
   }
 
   // 3. 若有朋友圈分享意向，插入 Moment
