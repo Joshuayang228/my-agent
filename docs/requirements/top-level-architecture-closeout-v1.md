@@ -42,7 +42,7 @@ P0-1 事务边界继续收口：用户赠礼的业务事实、主会话 Outbox�
 1. 建立统一 Application Context，包含 Agent、Session、Permission、Prompt Context Evidence 和 Domain Read Model。
 2. 统一固定 Workflow、Scheduler、IPC、LLM Tool 和 Headless 的 trace、幂等和失败恢复字段。
 3. 建立 Core Event 到旧读模型的投影清单，完成可删除旁路的识别和测试。
-4. 收口剩余混合写入路径：朋友圈自动互动的用户首条评论、文化心愿完成、朋友圈投影、重编排和互动反馈等流程仍需把旧表事实、Core Event、Runtime State、Execution Ledger 与 Outbox 按动作拆成完整本地事务；外部模型调用必须留在事务外。专属信物和自动回复落库已完成这一收口。
+4. 收口剩余混合写入路径：文化心愿完成、朋友圈投影、重编排和自动回复落库已完成本地事务收口。用户首条评论属于用户交互记录，由互动表单直接写入，自动回复产生的角色事实再进入 Core Event 与 Outbox 事务。外部模型调用必须留在事务外。
 
 ## 5. 非目标
 
