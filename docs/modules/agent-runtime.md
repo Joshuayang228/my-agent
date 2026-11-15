@@ -669,4 +669,6 @@ Companion 的 Chat 发布、文化回响和重排写入通过 Application Gatewa
 
 人物世界查询工具的动态读取经过 Legacy Read Model，工具实现不再直接 import 旧生活存储。
 
+LifeTicker 每轮命令使用稳定幂等键接入 Companion Execution Ledger，重复调度会复用已完成结果。
+
 Skill Registry 初始化完成后同步 Skill key 与激活工具元数据到 Host，Skill 正文和实际激活继续由既有 Skill Registry 管理。

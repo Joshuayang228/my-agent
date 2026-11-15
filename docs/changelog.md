@@ -1617,3 +1617,4 @@ Playground 提示词管理器 v3 候选：调整文字职责与阅读比例，�
 
 - Chat 朋友圈发布、文化回响、日内重排、失败清理和旧关系读取统一经过 Application Gateway、Projection Adapter 或 Legacy Read Model。
 - Chat 人物世界查询工具的朋友圈读取统一经过 Legacy Read Model。
+- LifeTicker 每轮动作和 Outbox 投递增加稳定幂等键，重复触发会复用已完成执行结果。

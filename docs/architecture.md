@@ -714,3 +714,5 @@ Skill Registry 初始化完成后同步 Skill key 与激活工具元数据到 Ho
 Companion 的生产写入边界已进一步收口。Chat 发布朋友圈通过 Life Event Application Gateway 创建事件，文化回响使用 Projection Adapter 写入动态和执行回执，日内重排通过 Adapter 更新旧查询投影，IPC 只通过 Legacy Read Model 读取旧关系与生命周期数据。
 
 Chat 人物世界查询工具也通过 Legacy Read Model 读取动态，避免工具层直接依赖旧生活存储。
+
+LifeTicker 的每个动作和 Outbox 投递使用 `roleId + label + tickAt` 作为执行幂等键，重复调度沿 Execution Ledger 返回已有结果。

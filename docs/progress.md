@@ -1729,6 +1729,8 @@ pause、resume、catch-up 和 tick 不再写旧角色状态表的暂停、补叙
 Chat 发布朋友圈、文化心愿回响、日内重排、失败清理和 Companion IPC 的旧生活表访问统一经过 Life Event Application Gateway、Projection Adapter 或 Legacy Read Model。生产代码中不再保留这些路径对 `life/store` 的直接旁路写入。
 
 Chat 人物世界查询工具的朋友圈读取统一经过 Legacy Read Model。
+
+LifeTicker 每轮人物动作和 Outbox 投递现在使用角色、动作与 tick 时间组成的幂等键，重复 tick 不会重复执行同一轮命令。
 # 2026-11-14 Scoped Tool Catalog
 
 新增 `AgentHostScopedToolCatalog`，把 Manifest 授权筛选从 Runtime 条件分支提取为会话级目录对象。全局 ToolRegistry 继续只保存实现，未授权 Capability 不进入模型请求。

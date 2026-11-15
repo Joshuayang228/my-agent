@@ -841,3 +841,5 @@ published event（事件事实）
 固定 scheduler Manifest 显式拥有 `companion.lifecycle`，Workflow 带入 active role。主进程启动后首轮生活 tick 按默认周期调度，避免人物世界恢复阶段发生后台写入竞争。
 
 Chat 发布朋友圈、文化回响、日内重排和失败清理已经统一经过 Life Event Application Gateway 或 `legacy-life-projection`，IPC 的旧关系和生命周期读取经过 `legacy-companion-read-model`。
+
+LifeTicker 每轮动作和 Outbox 投递使用稳定幂等键，重复 tick 不重复执行同一轮命令。

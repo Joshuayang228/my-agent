@@ -30,10 +30,15 @@ const log = createLogger('LifeTicker')
 
 const DEFAULT_INTERVAL_MS = 5 * 60 * 1000
 
-async function runForActiveRole(roleId: string, label: string, action: () => Promise<unknown>): Promise<{ ok: boolean; result?: unknown }> {
+async function runForActiveRole(roleId: string, label: string, tickId: number, action: () => Promise<unknown>): Promise<{ ok: boolean; result?: unknown }> {
   if (!(await isActiveRole(roleId))) return { ok: false }
   try {
-    const result = await executeCompanionCommand({ roleId, actionType: `life-ticker:${label}`, handler: action })
+    const result = await executeCompanionCommand({
+      roleId,
+      actionType: `life-ticker:${label}`,
+      idempotencyKey: `life-tick:${roleId}:${label}:${tickId}`,
+      handler: action,
+    })
     return { ok: true, result }
   } catch (err) {
     log.warn(`${label} failed`, { roleId, error: String(err) })
@@ -114,12 +119,12 @@ export function startLifeTicker(defaultIntervalMs = DEFAULT_INTERVAL_MS): void {
         let userFacingDelivered = false
         for (const item of actions) {
           if (item.userFacing && userFacingDelivered) continue
-          const outcome = await runForActiveRole(tickRoleId, item.label, item.action)
+          const outcome = await runForActiveRole(tickRoleId, item.label, now, item.action)
           if (!outcome.ok) break
           if (item.userFacing && didDeliverUserFacingAction(outcome.result)) userFacingDelivered = true
         }
-        await runForActiveRole(tickRoleId, 'companion outbox delivery', () => dispatchCompanionWindowOutbox())
-        await runForActiveRole(tickRoleId, 'companion session outbox delivery', () => dispatchCompanionSessionOutbox())
+        await runForActiveRole(tickRoleId, 'companion outbox delivery', now, () => dispatchCompanionWindowOutbox())
+        await runForActiveRole(tickRoleId, 'companion session outbox delivery', now, () => dispatchCompanionSessionOutbox())
       }
     } catch (err) {
       log.warn('tickActiveRole failed', { error: String(err) })
