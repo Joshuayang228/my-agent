@@ -18,7 +18,6 @@ import { compileCatchupRequest } from '../../prompts/registered-request'
 import { eachLocalDateInclusive, toLocalDateString } from './dates'
 import { ensureDayScripts } from './engine'
 import { publishAndProjectRange } from './moments'
-import * as store from './store'
 import { ensureWorldState } from './world-state'
 import { updateCompanionRuntimeLifecycle } from '../core/state/runtime-state'
 

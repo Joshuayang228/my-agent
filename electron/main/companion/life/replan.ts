@@ -25,12 +25,12 @@ import { compileReplanSlotsRequest } from '../../prompts/registered-request'
 import { loadRolePack } from '../identity/loader'
 import { toLocalDateString } from './dates'
 import { ensureWorldState } from './world-state'
-import * as store from './store'
 import { isActiveRole } from '../../storage/settings-store'
 import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 import { updateLegacyEventPayload } from '../core/projections/legacy-life-projection'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
+import { listCompanionLegacyEvents } from '../core/read-models/legacy-companion-read-model'
 
 const log = createLogger('LifeReplan')
 
@@ -138,7 +138,7 @@ export async function replanRemainingSlots(
   const today = toLocalDateString(now)
 
   // 1. 读取角色当日所有待发布的 planned 槽位
-  const allPlanned = await store.listEvents(roleId, { status: 'planned', order: 'asc', limit: 20 })
+  const allPlanned = await listCompanionLegacyEvents(roleId, { status: 'planned', order: 'asc', limit: 20 })
   const upcomingPlanned = allPlanned.filter((e) => {
     const isFuture = e.scheduledAt > now
     const eventDate = typeof e.payload.date === 'string' ? e.payload.date : toLocalDateString(e.scheduledAt)
@@ -297,7 +297,7 @@ export async function checkAndReplanIfExhausted(
 
   // 查重：若今日未来槽位已有 causedBy.trigger === 'vitals_exhaustion'，不重复调整
   const today = toLocalDateString(now)
-  const planned = await store.listEvents(roleId, { status: 'planned', order: 'asc', limit: 10 })
+  const planned = await listCompanionLegacyEvents(roleId, { status: 'planned', order: 'asc', limit: 10 })
   const alreadyReplanned = planned.some((e) => {
     const causedBy = e.payload.causedBy as Record<string, unknown> | undefined
     return causedBy?.trigger === 'vitals_exhaustion' && (e.payload.date === today || toLocalDateString(e.scheduledAt) === today)

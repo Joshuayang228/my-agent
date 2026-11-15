@@ -6,6 +6,7 @@
 2026-11-15：朋友圈图片关联收口到迁移边界。图片目标读取走 Legacy Read Model，事件链接写入走 Projection Adapter 与本地 Unit of Work。
 2026-11-15：Core Runtime State 收口旧状态镜像边界。核心状态回填和 `role_state` 镜像更新改走统一 Read Model / Projection Adapter。
 2026-11-15：生活引擎旧查询边界继续收口。日剧本补齐和朋友圈发布流程改用 Legacy Read Model 读取旧事件与动态。
+2026-11-15：日内重排服务改用 Legacy Read Model 查询待处理事件，清理旧 store 的生产查询旁路。
 
 2026-11-14：顶层架构继续收口。Core Runtime State 承载 `lastTickAt`，生活 tick、catch-up、Debug 和世界快照统一使用核心生命周期状态。
 2026-11-14：Companion 只读迁移边界继续收口。通讯录、卡司可用性、生活信号、穿搭、旅行推进、日程时间线、反思、事件切片、生活时钟和世界体征刷新统一经过 Core 只读适配层。

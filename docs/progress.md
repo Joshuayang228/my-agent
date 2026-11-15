@@ -1580,6 +1580,7 @@ Companion 迁移边界继续收口：日剧本与生活事件 Application Gatewa
 朋友圈图片关联继续收口：目标动态读取统一走 Legacy Read Model，事件链接写入经过 Projection Adapter 的 Unit of Work；Chat Resonance 的动态读取也已移出旧 store 直连。
 Core Runtime State 迁移边界继续收口：旧 `role_state` 回填与镜像更新已移到统一 Read Model / Projection Adapter，核心状态模块不再直接 import `life/store`。
 生活引擎查询继续收口：日剧本补齐和朋友圈发布流程的旧事件、动态读取已迁移到 Legacy Read Model，`life/store` 仅保留测试播种和用户互动事实入口。
+日内重排查询也已迁移到 Legacy Read Model，生产重排路径不再直接依赖旧 store。
 
 # 2026-11-13 IPC 可信发送方收口
 

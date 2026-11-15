@@ -28,6 +28,7 @@ Core Runtime State 现在保存暂停时间、追赶摘要和最近推进时间�
 朋友圈图片关联同样通过 Read Model 查询、Projection Adapter 写入，并在本地 Unit of Work 内提交。
 Core Runtime State 的旧 `role_state` 回填和镜像更新经过同一 Read Model / Projection Adapter 边界。
 生活引擎的剧本补齐和朋友圈发布查询也经过 Legacy Read Model，`life/store` 只保留测试播种和用户互动事实入口。
+日内重排服务读取待处理事件也经过 Legacy Read Model。
 生活 tick、生活信号、自动穿搭和旅行推进统一读取 Core Runtime State，pause、resume、catch-up 和 tick 只写 Core Runtime State，旧角色状态表不再作为运行态来源。
 朋友圈、关系、情绪、事件关联和执行记录的旧表写入统一经过 Core Projection Adapter。
 

@@ -42,3 +42,4 @@ Projection / Dispatcher / Session Store
 
 旧生活表的查询统一经过 `legacy-companion-read-model`，投影写入统一经过 `legacy-life-projection`；Application Gateway 不再直接依赖 `life/store`，避免事实入口和迁移投影入口重新耦合。
 生活引擎的剧本补齐和朋友圈投影查询也使用同一 Read Model，用户互动表保持独立事实边界。
+日内重排读取待处理事件时也使用同一 Read Model，旧 store 只保留明确的测试和交互边界。
