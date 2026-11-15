@@ -29,7 +29,7 @@ export async function getAgentHostContext(input: Omit<AgentHostExecutionContext,
   initializeAgentHost()
   const manifest = loadCompanionAgentManifest({ id: input.roleId, personaKey: `role:${input.roleId}`, domainKeys: input.domainKeys })
   const environment = agentHostApplication.createEnvironment(manifest)
-  const blocks = await Promise.all(environment.contextProviders.map(async provider => provider.provide({ ...input, agentId: manifest.id })))
+  const blocks = await Promise.all(environment.contextProviders.map(provider => agentHostApplication.provideContext(environment, provider.key, { ...input, agentId: manifest.id })))
   return blocks.filter((block): block is string => Boolean(block?.trim()))
 }
 

@@ -110,6 +110,19 @@ describe('Agent Host Registry', () => {
     await expect(orchestrator.invokeCapability(environment, 'memory.search', {}, { agentId: 'luffy', traceId: 'permission-1' })).rejects.toThrow('lacks required permissions')
   })
 
+  it('Context Provider 按 requires 权限筛选并在实际读取时再次校验', async () => {
+    const domains = new AgentHostDomainRegistry()
+    domains.register(createDomain())
+    const registry = new AgentHostCapabilityRegistry(domains)
+    const orchestrator = new AgentHostApplicationOrchestrator(registry)
+    const deniedEnvironment = orchestrator.createEnvironment({ ...manifest, grantedPermissions: [] })
+    expect(deniedEnvironment.contextProviders).toEqual([])
+
+    const allowedEnvironment = orchestrator.createEnvironment(manifest)
+    await expect(orchestrator.provideContext(allowedEnvironment, 'memory.recall-context', { agentId: 'other', traceId: 'context-1' })).rejects.toThrow('does not match')
+    await expect(orchestrator.provideContext(allowedEnvironment, 'memory.recall-context', { agentId: 'luffy', traceId: 'context-2' })).resolves.toBe('memory context')
+  })
+
   it('同一 scope 和 source 的 Context Provider 只保留优先级最高的一份', () => {
     const domains = new AgentHostDomainRegistry()
     const provider = {

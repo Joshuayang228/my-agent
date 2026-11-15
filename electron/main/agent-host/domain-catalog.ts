@@ -60,6 +60,7 @@ export class AgentHostCapabilityRegistry {
       .flatMap(domain => domain.contextProviders)
       .filter(provider => {
         if (denied.has(provider.key) || denied.has(provider.domainKey)) return false
+        if (provider.requires.some(permission => !manifest.grantedPermissions.includes(permission))) return false
         return allowed.has('*') || allowed.has(provider.key) || allowed.has(provider.domainKey)
       })
       .sort((left, right) => right.priority - left.priority)
@@ -124,6 +125,25 @@ export class AgentHostApplicationOrchestrator {
     this.assertPermissions(environment.manifest.grantedPermissions, workflow.requiredPermissions, workflow.key)
     this.capabilities.markActivated(workflow.key, context.agentId)
     return workflow.invoke(input, context)
+  }
+
+  /**
+   * 通过 Host 权限边界提供动态上下文。
+   *
+   * 背景：Context Provider 会把领域数据送入 Prompt，若只在环境创建时筛选而直接调用 provider，权限策略就会出现旁路。
+   * 设计意图：让上下文读取和 Capability、Workflow 共享 Agent 身份与 required permissions 校验，放弃调用方直接持有 provider 实现。
+   * 关键约束：provider 必须属于当前环境，context.agentId 必须匹配 Manifest，缺权限时不得执行 provider。
+   */
+  async provideContext(
+    environment: AgentHostExecutionEnvironment,
+    providerKey: string,
+    context: AgentHostExecutionContext,
+  ): Promise<string | null> {
+    const provider = environment.contextProviders.find(item => item.key === providerKey)
+    if (!provider) throw new Error(`Context provider "${providerKey}" is unavailable for agent "${environment.manifest.id}"`)
+    if (context.agentId !== environment.manifest.id) throw new Error('Agent execution context does not match manifest')
+    this.assertPermissions(environment.manifest.grantedPermissions, provider.requires, provider.key)
+    return provider.provide(context)
   }
 
   private assertPermissions(granted: readonly string[], required: readonly string[], capabilityKey: string): void {

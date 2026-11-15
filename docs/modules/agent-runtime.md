@@ -30,6 +30,7 @@ Debug Model Context 目录聚合 Host Manifest 和 Capability 状态，Registere
 Application Orchestrator 另提供 `runWorkflow`，只接受 `kind: 'workflow'` 的 Capability。固定入口可以直接编排 Workflow，LLM 仍通过 Tool Adapter 选择 query / command 能力。
 
 主角主会话已通过 `getAgentHostContext` 读取已授权 Context Provider，结果进入会话信息区并保留失败隔离。召唤与 Workspace 会话不注入主角 Agent Host 动态上下文。
+Context Provider 与 Capability、Workflow 共用 Manifest 权限门禁，`requires` 缺失时既不会进入会话环境，也不会执行 provider。
 
 ## 可靠性边界（2026-11-13）
 

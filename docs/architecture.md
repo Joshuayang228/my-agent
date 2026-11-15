@@ -211,6 +211,8 @@ Agent Host 收口后，`AgentHostScopedToolCatalog` 是 Agent Loop 的会话级�
 
 Agent Host Manifest 现在同时声明 `grantedPermissions`。Application Orchestrator 和 Capability Tool Adapter 在执行前校验 `requiredPermissions`，再交给 Tool Runtime 的沙箱、确认和命令安全门禁，固定 Workflow 不再绕过 Host 层权限声明。
 
+Context Provider 的 `requires` 也由 Agent Host 环境筛选和实际读取入口共同校验，未授权的动态领域上下文不会进入 Prompt。
+
 Companion 旧生活表读取已集中到 `core/read-models/legacy-companion-read-model.ts` 迁移适配层。Runtime 组装器和 Debug 世界快照不再直接 import `life/store`，适配层只读旧事实，不允许新增旁路写入。
 
 暂停时间、追赶摘要和最近推进时间已进入 Core Runtime State，角色切换、主会话组装和 Debug 生命周期读取优先使用核心快照；旧 `role_state` 仍保留迁移期镜像。
