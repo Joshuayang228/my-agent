@@ -843,3 +843,5 @@ published event（事件事实）
 Chat 发布朋友圈、文化回响、日内重排和失败清理已经统一经过 Life Event Application Gateway 或 `legacy-life-projection`，IPC 的旧关系和生命周期读取经过 `legacy-companion-read-model`。
 
 LifeTicker 每轮动作和 Outbox 投递使用稳定幂等键，重复 tick 不重复执行同一轮命令。
+
+Chat 朋友圈发布把事件创建与动态投影放在同一 Unit of Work，失败时 Core 事件和旧投影一起回滚。

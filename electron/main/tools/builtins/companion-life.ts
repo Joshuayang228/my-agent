@@ -4,7 +4,7 @@ import { createAsset, getAsset, listAssets, updateAsset } from '../../companion/
 import { addMomentCommentForRole, projectMomentFromEvent } from '../../companion/life/moments'
 import { listCompanionLegacyMoments as listMoments } from '../../companion/core/read-models/legacy-companion-read-model'
 import { createCompanionLifeEvent } from '../../companion/application/life-event'
-import { deleteLegacyEvent } from '../../companion/core/projections/legacy-life-projection'
+import { withCompanionUnitOfWork } from '../../companion/core/transaction/unit-of-work'
 import { getSession } from '../../storage/session-store'
 import { loadRelations } from '../../companion/identity/loader'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
@@ -188,7 +188,7 @@ export const companionPostMomentTool = buildTool({
     return executeCompanionCommand({
       roleId,
       actionType: 'post-moment',
-      handler: async () => {
+      handler: () => withCompanionUnitOfWork(async () => {
         const event = await createCompanionLifeEvent({
           roleId,
           scheduledAt: Date.now(),
@@ -209,10 +209,9 @@ export const companionPostMomentTool = buildTool({
           if (!moment) throw new Error('朋友圈投影未创建')
           return `已发布朋友圈（动态 ID：${moment.id}）。${imageIds.length ? `已附 ${imageIds.length} 张图片。` : ''}`
         } catch (error) {
-          await deleteLegacyEvent(roleId, event.id)
-          return `朋友圈发布失败，已撤销未完成的记录：${error instanceof Error ? error.message : '投影失败'}`
+          throw new Error(`朋友圈发布失败，已回滚未完成的记录：${error instanceof Error ? error.message : '投影失败'}`)
         }
-      },
+      }),
     })
   },
 })

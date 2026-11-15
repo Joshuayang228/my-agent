@@ -716,3 +716,5 @@ Companion 的生产写入边界已进一步收口。Chat 发布朋友圈通过 L
 Chat 人物世界查询工具也通过 Legacy Read Model 读取动态，避免工具层直接依赖旧生活存储。
 
 LifeTicker 的每个动作和 Outbox 投递使用 `roleId + label + tickAt` 作为执行幂等键，重复调度沿 Execution Ledger 返回已有结果。
+
+Chat 朋友圈发布在同一 Unit of Work 内创建 Core 事件并投影旧查询动态，模型等待位于事务之外，投影失败回滚本地事实。

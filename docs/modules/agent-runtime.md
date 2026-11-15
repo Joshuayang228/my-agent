@@ -671,4 +671,6 @@ Companion 的 Chat 发布、文化回响和重排写入通过 Application Gatewa
 
 LifeTicker 每轮命令使用稳定幂等键接入 Companion Execution Ledger，重复调度会复用已完成结果。
 
+Chat 朋友圈 Tool 的事件创建和投影共用本地 Unit of Work，避免投影失败留下不可见的孤立生活事实。
+
 Skill Registry 初始化完成后同步 Skill key 与激活工具元数据到 Host，Skill 正文和实际激活继续由既有 Skill Registry 管理。
