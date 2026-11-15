@@ -1583,6 +1583,7 @@ Core Runtime State 迁移边界继续收口：旧 `role_state` 回填与镜像�
 日内重排查询也已迁移到 Legacy Read Model，生产重排路径不再直接依赖旧 store。
 Scheduler Headless 入口已补统一执行上下文：同一调度时刻复用稳定 trace / 幂等键，单次尝试保留 runId，Runtime 在同一 trace context 内执行。
 Headless Runtime 已注册 Agent Host Capability，后台会话现在与主会话共享 Manifest 筛选和 Capability 权限门禁。
+存量数据库兼容性收口：执行账本升级前会整理旧重复幂等键，保留历史记录并恢复唯一约束，避免存量库启动失败。
 
 # 2026-11-15 顶层架构收口合同完成验收
 
