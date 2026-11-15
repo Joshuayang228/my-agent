@@ -8,6 +8,7 @@
 2026-11-15：生活引擎旧查询边界继续收口。日剧本补齐和朋友圈发布流程改用 Legacy Read Model 读取旧事件与动态。
 2026-11-15：日内重排服务改用 Legacy Read Model 查询待处理事件，清理旧 store 的生产查询旁路。
 2026-11-15：Scheduler Headless 执行接入统一上下文。每个调度时刻拥有稳定 trace / 幂等键和独立 runId，并沿 trace context 进入 Agent Runtime。
+2026-11-15：Headless Runtime 接入 Agent Host Capability 注册，后台会话沿用 Manifest 筛选、Capability 权限和只读自动批准边界。
 
 2026-11-14：顶层架构继续收口。Core Runtime State 承载 `lastTickAt`，生活 tick、catch-up、Debug 和世界快照统一使用核心生命周期状态。
 2026-11-14：Companion 只读迁移边界继续收口。通讯录、卡司可用性、生活信号、穿搭、旅行推进、日程时间线、反思、事件切片、生活时钟和世界体征刷新统一经过 Core 只读适配层。

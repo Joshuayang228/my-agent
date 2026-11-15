@@ -711,6 +711,7 @@ Skill Registry 初始化完成后同步 Skill key 与激活工具元数据到 Ho
 
 固定生活时钟通过 scheduler Agent Host Manifest 执行 `companion.life.tick`，Manifest 显式授予 `companion.lifecycle`，Workflow 上下文带入当前 active role，Domain 层不再依赖隐式角色推断。
 Scheduler Headless 任务为每个任务和调度时刻生成稳定 trace / 幂等键与独立 runId，再由 Runtime 传播到 Agent Loop 的 Trace Context。
+Headless Runtime 会注册 Agent Host Capability，再由会话级 Manifest 筛选和 Headless 只读策略共同约束后台工具调用。
 
 生活时钟启动时先等待默认周期，再进入动态计划调度，确保数据库、设置和人物世界完成恢复后才产生后台领域写入。
 

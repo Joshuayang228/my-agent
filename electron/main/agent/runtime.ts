@@ -18,7 +18,7 @@ import { characterDefinitionFromRolePack } from '../prompts/compiler'
 import { buildSummonContextPrompt, buildActiveSkillPrompt } from '../prompts/runtime-context'
 import { compileMainSystem } from '../prompts/registered-request'
 import { loadConversationAssemblyInput, createConversationApplicationContext, attachConversationPromptContext, buildConversationContextEvidence, resolveConversationRelationshipHints, settleConversationCompletion, assertConversationSessionRole, resolveConversationCastPresence, formatConversationSummonScene, getConversationDelegationHint, registerConversationStreamingProbe } from './conversation-application-service'
-import { getAgentHostContext } from '../agent-host/host'
+import { getAgentHostContext, registerAgentHostTools } from '../agent-host/host'
 import { AgentHostScopedToolCatalog } from '../agent-host/scoped-catalog'
 import { loadCompanionAgentManifest } from '../agent-host/builtin-domains'
 import {
@@ -720,6 +720,7 @@ class AgentRuntime {
     for (const tool of builtinTools) {
       toolRegistry.register(tool)
     }
+    registerAgentHostTools(toolRegistry)
 
     let resultText = ''
 

@@ -67,7 +67,7 @@ Runtime 的伙伴入口已进一步收口：会话角色校验、卡司在场、
 
 ## 6. 验收
 
-- Capability Permission Gate 覆盖固定 Workflow、Tool Adapter、Headless 和 Scheduler。
+- Capability Permission Gate 覆盖固定 Workflow、Tool Adapter、Headless 和 Scheduler。Headless Runtime 已注册 Agent Host Capability，实际可见能力由会话 Manifest 筛选，执行仍经过 Capability 权限和 Headless 只读策略。
 - Runtime 不再直接承担新增 Companion 业务策略。
 - Companion Core 旁路写入为零，旧读路径有登记、有投影依据、有隔离测试。
 - Agent Loop、Runtime、Application、Host、Domain 和 Infrastructure 依赖方向通过静态审计。

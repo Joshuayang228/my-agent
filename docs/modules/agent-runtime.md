@@ -32,6 +32,7 @@ Application Orchestrator 另提供 `runWorkflow`，只接受 `kind: 'workflow'` 
 主角主会话已通过 `getAgentHostContext` 读取已授权 Context Provider，结果进入会话信息区并保留失败隔离。召唤与 Workspace 会话不注入主角 Agent Host 动态上下文。
 Context Provider 与 Capability、Workflow 共用 Manifest 权限门禁，`requires` 缺失时既不会进入会话环境，也不会执行 provider。
 Scheduler Headless 执行通过统一上下文携带稳定 trace / 幂等键和独立 runId，Runtime 在同一 trace context 内运行后台 Agent Loop。
+Headless 会话与主会话共享 Agent Host Capability 注册和 Manifest 筛选，后台确认策略继续限制可自动执行的工具范围。
 
 ## 可靠性边界（2026-11-13）
 
