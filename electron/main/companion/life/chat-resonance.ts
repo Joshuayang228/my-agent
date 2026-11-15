@@ -29,7 +29,7 @@ import {
   compileCultureReviewRequest,
 } from '../../prompts/registered-request'
 import { createAsset, deleteAsset, getAsset, updateAsset, ASSET_KIND_CULTURE } from './assets'
-import { getMomentByEventId, insertMoment, recordEventExecution } from './store'
+import { getMomentByEventId } from './store'
 import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { executeCompanionCommand } from '../core/commands/gateway'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
@@ -38,6 +38,7 @@ import { recordCompanionEventAndNotify } from '../application/record-event-notif
 import { recordCompanionProjection } from '../core/projections/receipts'
 import { linkCompanionExecutionEvent } from '../core/execution/ledger'
 import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
+import { projectLegacyMoment, recordLegacyEventExecution } from '../core/projections/legacy-life-projection'
 import { createCompanionLifeEvent } from '../application/life-event'
 
 const log = createLogger('ChatResonance')
@@ -577,14 +578,14 @@ export async function completeCultureResonance(
             kind: currentResonance.kind,
           },
         })
-        const moment = await insertMoment({
+        const moment = await projectLegacyMoment({
           roleId,
           eventId: event.id,
           publishedAt: now,
           text: momentText,
           meta: { resonanceId: currentResonance.id, targetName: currentResonance.targetName, kind: currentResonance.kind },
         }) ?? await getMomentByEventId(roleId, event.id)
-        await recordEventExecution({ roleId, eventId: event.id, attemptedAt: now, action: 'published', reason: 'culture-resonance-completed', momentId: moment?.id ?? null })
+        await recordLegacyEventExecution({ roleId, eventId: event.id, attemptedAt: now, action: 'published', reason: 'culture-resonance-completed', momentId: moment?.id ?? null })
       })
     } catch (err) {
       log.warn('Failed to insert moment from resonance review', { roleId, error: String(err) })

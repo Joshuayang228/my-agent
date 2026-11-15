@@ -50,7 +50,8 @@ import {
   toggleMomentLikeForRole,
 } from '../companion/life/moments'
 import { describeMomentSocial } from '../../../src/shared/moment-user-interactions'
-import { claimFirstContact, getRoleState, listRelationshipStates } from '../companion/life/store'
+import { claimFirstContact } from '../companion/life/store'
+import { getCompanionLegacyRoleState as getRoleState, listCompanionLegacyRelationshipStates as listRelationshipStates } from '../companion/core/read-models/legacy-companion-read-model'
 import { resolveMomentVisibilityDays } from '../companion/life/moment-visibility'
 import { getLifeSliceForRole } from '../companion/life/slices'
 import { getTodayTimelineForRole } from '../companion/life/timeline'

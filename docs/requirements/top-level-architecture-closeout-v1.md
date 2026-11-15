@@ -5,11 +5,11 @@
 
 ## 1. 审计结论
 
-当前模块化单体和 Agent Host 方向合理，但顶层架构仍有三类迁移态边界。
+当前模块化单体和 Agent Host 方向已完成 P0 边界收口，仍保留迁移期旧表镜像和部分 P1 统一上下文工作。
 
-- Agent Runtime 仍直接依赖部分 Companion 业务组装器，通用执行器和产品应用编排没有完全分离。
-- Agent Host Capability 已声明 `requiredPermissions`，Application Orchestrator 和固定 Workflow 尚未使用同一权限判定契约。
-- Companion Core 与旧生活表并行存在，部分读模型和投影仍直接读取旧表，核心事实源尚未完全唯一化。
+- Agent Runtime 的 Companion 入口已通过 Conversation Application Service 收口。
+- Agent Host Capability、固定 Workflow 和 Tool Adapter 已使用统一 Manifest 权限门禁，scheduler 额外拥有生命周期权限并携带 active role。
+- Companion Core 已成为领域事件、运行态和业务写入入口，旧生活表只保留登记过的读模型适配和投影镜像。
 
 ## 2. 目标
 
@@ -31,7 +31,7 @@ P0-2 进入迁移态收口：Runtime 组装器和 Debug 世界快照的旧生活
 
 P0-3 已完成：Runtime 的角色组装输入通过 `ConversationApplicationService.loadConversationAssemblyInput` 进入 Application 边界，Runtime 保留会话生命周期和 Loop 编排，不再直接 import 伙伴组装器。
 
-P0-2 继续收口：Core Runtime State 现在承载 `pausedAt`、`catchupSummary` 和 `lastTickAt` 三个生命周期字段；pause、resume、catch-up 和生活 tick 会同步更新核心快照，Debug 与主会话组装优先读取核心状态。旧 `role_state` 仅保留迁移期镜像，尚未删除。
+P0-2 已完成迁移期收口：Core Runtime State 现在承载 `pausedAt`、`catchupSummary` 和 `lastTickAt` 三个生命周期字段；pause、resume、catch-up 和生活 tick 会同步更新核心快照，Debug 与主会话组装优先读取核心状态。旧 `role_state` 保留为受控世界投影镜像。
 
 P0-2 只读路径继续收口：通讯录、卡司可用性、生活信号、穿搭、旅行推进、日程时间线、反思、事件切片、生活时钟和世界体征刷新等读取者统一通过 `legacy-companion-read-model` 进入旧表；写入路径仍由 Life Domain 自己持有，避免把迁移读适配器误当成事实写入口。
 
@@ -52,7 +52,7 @@ P0-1 事务边界继续收口：用户赠礼的业务事实、主会话 Outbox�
 
 Runtime 的伙伴入口已进一步收口：会话角色校验、卡司在场、召唤场景、委派提示和流式门控通过 Conversation Application Service 进入，Runtime 不再直接 import 这些 Companion 入口。
 
-旧生活查询投影写入口已集中到 `core/projections/legacy-life-projection.ts`，朋友圈、关系、情绪、事件关联和执行记录由统一 Projection Adapter 写入，生活服务不再直接触碰旧投影表。
+旧生活查询投影写入口已集中到 `core/projections/legacy-life-projection.ts`，朋友圈、关系、情绪、事件关联、执行记录、重排事件更新和失败清理由统一 Projection Adapter 写入，生活服务不再直接触碰旧投影表。Chat 发布朋友圈也通过 Life Event Application Gateway 创建事实事件。
 
 ## 5. 非目标
 

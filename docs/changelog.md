@@ -1612,3 +1612,7 @@ Playground 提示词管理器 v3 候选：调整文字职责与阅读比例，�
 # 2026-11-15 生活时钟启动时序
 
 - 应用启动后生活时钟按默认周期进入首轮调度，避免恢复阶段与人物世界初始化并发写入。
+
+# 2026-11-15 Companion 写入旁路收口
+
+- Chat 朋友圈发布、文化回响、日内重排、失败清理和旧关系读取统一经过 Application Gateway、Projection Adapter 或 Legacy Read Model。

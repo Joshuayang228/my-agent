@@ -29,6 +29,7 @@ import * as store from './store'
 import { isActiveRole } from '../../storage/settings-store'
 import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
+import { updateLegacyEventPayload } from '../core/projections/legacy-life-projection'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
 
 const log = createLogger('LifeReplan')
@@ -224,7 +225,7 @@ export async function replanRemainingSlots(
           at: now,
         },
       }
-      await store.updateEventPayload(ev.id, updatedPayload)
+      await updateLegacyEventPayload(ev.id, updatedPayload)
       next.push({
         eventId: ev.id,
         hour: adapted.hour,

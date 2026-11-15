@@ -31,3 +31,11 @@ export async function markLegacyEventPublished(eventId: string): Promise<void> {
 export async function recordLegacyEventExecution(input: Parameters<typeof legacyStore.recordEventExecution>[0]): ReturnType<typeof legacyStore.recordEventExecution> {
   return legacyStore.recordEventExecution(input)
 }
+
+export async function updateLegacyEventPayload(eventId: string, payload: Record<string, unknown>): Promise<void> {
+  await legacyStore.updateEventPayload(eventId, payload)
+}
+
+export async function deleteLegacyEvent(roleId: string, eventId: string): Promise<boolean> {
+  return legacyStore.deleteEvent(roleId, eventId)
+}

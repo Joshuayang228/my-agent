@@ -665,4 +665,6 @@ Runtime、IPC、Context、Memory、Persona 和 Permission 边界审计完成。C
 
 主进程启动时生活时钟首轮按默认周期等待，避免恢复阶段与人物世界初始化产生并发生活写入。
 
+Companion 的 Chat 发布、文化回响和重排写入通过 Application Gateway 与 Projection Adapter 收口，Runtime 与 IPC 不再直接调用旧生活写表函数。
+
 Skill Registry 初始化完成后同步 Skill key 与激活工具元数据到 Host，Skill 正文和实际激活继续由既有 Skill Registry 管理。
