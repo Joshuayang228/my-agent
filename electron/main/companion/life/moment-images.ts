@@ -1,8 +1,9 @@
 import type { GeneratedImageReadResult } from '../../../../src/shared/types'
 import { getDatabase } from '../../storage/database'
 import { readGeneratedImageReference } from '../../storage/generated-images'
-import { getCompanionLegacyEventById as getEventById, listCompanionLegacyEventLinks as listEventLinks } from '../core/read-models/legacy-companion-read-model'
-import { getMomentById, replaceEventLinks } from './store'
+import { getCompanionLegacyEventById as getEventById, getCompanionLegacyMomentById as getMomentById, listCompanionLegacyEventLinks as listEventLinks } from '../core/read-models/legacy-companion-read-model'
+import { replaceLegacyEventLinks } from '../core/projections/legacy-life-projection'
+import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 import { readStoredMomentMedia } from './moment-media-store'
 
 export type MomentImageTarget =
@@ -40,14 +41,14 @@ export async function attachMomentImageForRole(roleId: string, momentId: string,
   const target = await prepareMomentImageTarget(roleId, momentId)
   if (!target.ok) return target
   const links = await listEventLinks(roleId, target.eventId)
-  await replaceEventLinks(roleId, target.eventId, [...links, {
+  await withCompanionUnitOfWork(() => replaceLegacyEventLinks(roleId, target.eventId, [...links, {
     eventId: target.eventId,
     roleId,
     targetType: 'image',
     targetId: imageId,
     relation: 'depicts',
     metadata: { position: target.position },
-  }])
+  }]))
   return target
 }
 

@@ -18,4 +18,5 @@ export function listCompanionLegacyEventExecutions(...args: Parameters<typeof le
 export function getCompanionLegacyEventById(...args: Parameters<typeof legacyStore.getEventById>): ReturnType<typeof legacyStore.getEventById> { return legacyStore.getEventById(...args) }
 export function listCompanionLegacyEventLinks(...args: Parameters<typeof legacyStore.listEventLinks>): ReturnType<typeof legacyStore.listEventLinks> { return legacyStore.listEventLinks(...args) }
 export function listCompanionLegacyMoments(...args: Parameters<typeof legacyStore.listMoments>): ReturnType<typeof legacyStore.listMoments> { return legacyStore.listMoments(...args) }
+export function getCompanionLegacyMomentById(...args: Parameters<typeof legacyStore.getMomentById>): ReturnType<typeof legacyStore.getMomentById> { return legacyStore.getMomentById(...args) }
 export function getCompanionLegacyMomentByEventId(...args: Parameters<typeof legacyStore.getMomentByEventId>): ReturnType<typeof legacyStore.getMomentByEventId> { return legacyStore.getMomentByEventId(...args) }

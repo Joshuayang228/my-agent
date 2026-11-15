@@ -29,7 +29,7 @@ import {
   compileCultureReviewRequest,
 } from '../../prompts/registered-request'
 import { createAsset, deleteAsset, getAsset, updateAsset, ASSET_KIND_CULTURE } from './assets'
-import { getMomentByEventId } from './store'
+import { getCompanionLegacyMomentByEventId as getMomentByEventId } from '../core/read-models/legacy-companion-read-model'
 import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { executeCompanionCommand } from '../core/commands/gateway'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
