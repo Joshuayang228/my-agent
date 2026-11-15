@@ -33,6 +33,7 @@ Core Runtime State 现在保存暂停时间、追赶摘要和最近推进时间�
 
 - `withCompanionUnitOfWork` 将人物世界领域事件和 Outbox 写入置于同一数据库事务，建表初始化不参与业务回滚。
 - Outbox 记录带处理租约、重试时间和最大尝试次数。进程在 processing 阶段崩溃后，过期租约可恢复，失败投递按退避时间再次领取。
+- 执行账本在读取幂等命令前回收超过租约窗口的 `running` 记录为 `retryable`，允许进程崩溃后的命令恢复重试，不把未完成执行伪装成成功。
 - 主会话通知通过 `main-session-message` Outbox 进入 session store，窗口通知与会话落盘分离，二者都能在重启后按幂等键恢复。
 
 ## 核心引擎重构进行中

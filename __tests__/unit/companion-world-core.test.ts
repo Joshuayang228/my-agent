@@ -52,7 +52,7 @@ const {
   resetCompanionCoreSchemaForTesting,
 } = await import('../../electron/main/companion/core/state/runtime-state')
 const { appendCompanionDomainEvent } = await import('../../electron/main/companion/core/events/domain-events')
-const { startCompanionExecution, finishCompanionExecution, linkCompanionExecutionEvent } = await import('../../electron/main/companion/core/execution/ledger')
+const { startCompanionExecution, finishCompanionExecution, linkCompanionExecutionEvent, recoverStaleCompanionExecutions } = await import('../../electron/main/companion/core/execution/ledger')
 const { enqueueCompanionOutbox } = await import('../../electron/main/companion/core/outbox/outbox')
 const { dispatchCompanionOutbox } = await import('../../electron/main/companion/core/outbox/outbox')
 const { executeCompanionCommand } = await import('../../electron/main/companion/core/commands/gateway')
@@ -137,6 +137,20 @@ describe('人物世界核心层', () => {
     await finishCompanionExecution({ executionId: run.id, status: 'retryable', errorCode: 'ASSET_WRITE_FAILED', errorMessage: '重试' })
     const row = memDb.exec('SELECT event_id, status, error_code, error_message FROM companion_execution_runs WHERE id = ?', [run.id])[0]?.values[0]
     expect(row).toEqual(['event-1', 'retryable', 'ASSET_WRITE_FAILED', '重试'])
+  })
+
+  it('恢复过期 running 账本为 retryable，近期运行保持不变', async () => {
+    const now = 20_000
+    await startCompanionExecution({ roleId: 'luffy', idempotencyKey: 'stale-run', actionType: 'stale-test' })
+    await startCompanionExecution({ roleId: 'luffy', idempotencyKey: 'fresh-run', actionType: 'fresh-test' })
+    memDb.run('UPDATE companion_execution_runs SET started_at = ? WHERE idempotency_key = ?', [1, 'stale-run'])
+
+    expect(await recoverStaleCompanionExecutions({ now, staleAfterMs: 10_000 })).toBe(1)
+    const rows = memDb.exec('SELECT idempotency_key, status, error_code FROM companion_execution_runs WHERE action_type IN (?, ?) ORDER BY action_type', ['fresh-test', 'stale-test'])[0]?.values
+    expect(rows).toEqual([
+      ['fresh-run', 'running', null],
+      ['stale-run', 'retryable', 'EXECUTION_INTERRUPTED'],
+    ])
   })
 
   it('命令网关在 handler 失败时记录 retryable，不伪造完成', async () => {

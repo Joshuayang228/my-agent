@@ -6,6 +6,8 @@
 
 对话 Application Context 收口门禁（2026-11-15）：`conversation-application-context.test.ts` 验证 Agent、Session、trace、权限策略、领域读模型和 Prompt Context Evidence 由同一 Application Context 承载，并验证主会话与召唤会话的生活读模型边界；全量 Unit 280 文件 / 1768 项通过，Eval、Skill Eval、类型检查、构建和 Electron E2E 通过。
 
+Companion 执行恢复门禁（2026-11-15）：`companion-world-core.test.ts` 验证超过恢复窗口的 `running` 账本转为 `retryable` 并记录 `EXECUTION_INTERRUPTED`，近期运行保持 `running`，防止崩溃后同一幂等键永久阻塞。
+
 人物世界核心层 P0 门禁（2026-11-12）：`companion-world-core.test.ts` 覆盖旧 world state 回填统一运行态、状态 delta 有界与版本递增、领域事件幂等、投影回执幂等、Outbox 去重、投递成功 / 失败状态、窗口不可用重试语义、命令网关失败记录和执行账本失败状态；`world-state.test.ts`、`companion-life.test.ts`、`gifting.test.ts`、`relationship-keepsake.test.ts`、`vulnerability.test.ts`、`travel-progression.test.ts` 与 `replan.test.ts` 验证生活行为通过核心运行态和 Outbox 工作；IPC handler 通过类型检查、构建和全量行为测试门禁。
 Chat Tool 核心入口回归（2026-11-12）：`companion-life-tools.test.ts` 覆盖发朋友圈、评论、资产和阅读笔记写入经过命令网关后的角色隔离、失败语义与真实 ID 链路。
 生活事件投影回归（2026-11-12）：`companion-life.test.ts` 覆盖 published 事件到 Moment、关系、情绪与事件关联的投影链路，核心事件与投影回执在同一测试数据库中验证。
