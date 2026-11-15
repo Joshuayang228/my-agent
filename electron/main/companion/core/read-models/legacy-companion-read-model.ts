@@ -10,6 +10,7 @@ import * as legacyStore from '../../life/store'
 
 export function getCompanionLegacyRoleState(...args: Parameters<typeof legacyStore.getRoleState>): ReturnType<typeof legacyStore.getRoleState> { return legacyStore.getRoleState(...args) }
 export function getCompanionLegacyDayScript(...args: Parameters<typeof legacyStore.getDayScript>): ReturnType<typeof legacyStore.getDayScript> { return legacyStore.getDayScript(...args) }
+export function hasCompanionLegacyEventsForScript(...args: Parameters<typeof legacyStore.hasEventsForScript>): ReturnType<typeof legacyStore.hasEventsForScript> { return legacyStore.hasEventsForScript(...args) }
 export function listCompanionLegacyEvents(...args: Parameters<typeof legacyStore.listEvents>): ReturnType<typeof legacyStore.listEvents> { return legacyStore.listEvents(...args) }
 export function listCompanionLegacyRelationshipStates(...args: Parameters<typeof legacyStore.listRelationshipStates>): ReturnType<typeof legacyStore.listRelationshipStates> { return legacyStore.listRelationshipStates(...args) }
 export function listCompanionLegacyRelationshipEvents(...args: Parameters<typeof legacyStore.listRelationshipEvents>): ReturnType<typeof legacyStore.listRelationshipEvents> { return legacyStore.listRelationshipEvents(...args) }

@@ -36,6 +36,7 @@ import { recordCompanionProjection } from '../core/projections/receipts'
 import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
 import { markLegacyEventPublished, projectLegacyEmotionEvent, projectLegacyMoment, projectLegacyRelationshipEvent, recordLegacyEventExecution, replaceLegacyEventLinks } from '../core/projections/legacy-life-projection'
+import { getCompanionLegacyEventById, getCompanionLegacyMomentByEventId, getCompanionLegacyMomentById, listCompanionLegacyEvents, listCompanionLegacyMoments } from '../core/read-models/legacy-companion-read-model'
 
 export { formatMomentText } from './moment-format'
 export type { AddMomentCommentOptions } from '../../../../src/shared/types'
@@ -223,7 +224,7 @@ export async function projectMomentFromEvent(
       },
     })
     if (!moment) {
-      moment = await store.getMomentByEventId(event.roleId, event.id)
+      moment = await getCompanionLegacyMomentByEventId(event.roleId, event.id)
       if (!moment) throw new Error('朋友圈投影未生成动态记录。')
     }
     await replaceLegacyEventLinks(event.roleId, event.id, links)
@@ -271,7 +272,7 @@ async function projectRange(
   toMs: number,
   opts?: ProjectMomentOpts,
 ): Promise<number> {
-  const planned = await store.listEvents(roleId, { status: 'planned' })
+  const planned = await listCompanionLegacyEvents(roleId, { status: 'planned' })
   const candidates = planned.filter(event => event.scheduledAt >= fromMs && event.scheduledAt <= toMs)
   // 离线恢复只分享一个最近片段，生活事实仍逐条推进。每次 tick 按实际时刻重新校验预算。
   const selected = opts?.automatic ? [...candidates].reverse().find(event => event.type === 'moment' && event.scheduledAt >= toMs - 24 * 60 * 60_000) : undefined
@@ -297,7 +298,7 @@ async function projectRange(
       })
       // 事件状态必须在投影完成后提交。投影失败时保留 planned，下一次 tick 才能重试。
       // 若上一次尝试已经写入 Moment 但在后续步骤失败，按 event_id 恢复已有投影，避免重复写入。
-      const persistedMoment = moment ?? await store.getMomentByEventId(ev.roleId, ev.id)
+      const persistedMoment = moment ?? await getCompanionLegacyMomentByEventId(ev.roleId, ev.id)
       await withCompanionUnitOfWork(async () => {
         await markLegacyEventPublished(ev.id)
         await recordLegacyEventExecution({
@@ -334,13 +335,13 @@ async function canAutomaticallyPost(roleId: string, now: number, candidate: Comp
   const cooldownMinutes = Math.max(0, Math.min(24 * 60, Number.parseInt(await getSetting('companionMomentCooldownMinutes'), 10) || 240))
   const start = new Date(now)
   start.setHours(0, 0, 0, 0)
-  const recent = await store.listMoments(roleId, { limit: 500 })
+  const recent = await listCompanionLegacyMoments(roleId, { limit: 500 })
   const todayCount = recent.filter(moment => moment.publishedAt >= start.getTime() && moment.publishedAt <= now).length
   const lastPublishedAt = recent.reduce((latest, moment) => Math.max(latest, moment.publishedAt), 0)
   if (todayCount >= (cadence === 'low' ? 1 : maxPerDay)) return { allow: false, reason: 'daily-limit' }
   if (lastPublishedAt && now - lastPublishedAt < cooldownMinutes * 60_000) return { allow: false, reason: 'cooldown' }
   const latest = recent[0]
-  const lastEvent = latest ? await store.getEventById(latest.eventId) : null
+  const lastEvent = latest ? await getCompanionLegacyEventById(latest.eventId) : null
   // 相同活动与地点只保留最近一次分享，新的关系事实仍允许作为独立事件表达。
   const distinct = Boolean(candidate.payload.relationship) || !lastEvent
     || candidate.payload.activity !== lastEvent.payload.activity
@@ -358,7 +359,7 @@ export async function listMomentsForRole(
   opts?: { limit?: number; offset?: number },
 ): Promise<CompanionMoment[]> {
   await ensureStarterMoments(roleId)
-  return store.listMoments(roleId, opts)
+  return listCompanionLegacyMoments(roleId, opts)
 }
 
 
@@ -385,7 +386,7 @@ export async function toggleMomentLikeForRole(
 ): Promise<MomentSocialMutationResult> {
   const id = typeof momentId === 'string' ? momentId.trim() : ''
   if (!id) return { ok: false, code: 'INVALID', error: '动态不存在' }
-  const moment = await store.getMomentById(id)
+  const moment = await getCompanionLegacyMomentById(id)
   if (!moment) return { ok: false, code: 'NOT_FOUND', error: '动态不存在' }
   if (moment.roleId !== roleId) return { ok: false, code: 'ROLE_MISMATCH', error: '只能互动当前主角的动态' }
   const existing = await store.findMomentUserLike(id, MOMENT_USER_ACTOR_ID)
@@ -533,7 +534,7 @@ export async function addMomentCommentForRole(
   if (!id) return { ok: false, code: 'INVALID', error: '动态不存在' }
   const normalized = normalizeMomentCommentText(text)
   if (!normalized.ok) return { ok: false, code: 'INVALID', error: normalized.error }
-  const moment = await store.getMomentById(id)
+  const moment = await getCompanionLegacyMomentById(id)
   if (!moment) return { ok: false, code: 'NOT_FOUND', error: '动态不存在' }
   if (moment.roleId !== roleId) return { ok: false, code: 'ROLE_MISMATCH', error: '只能互动当前主角的动态' }
   const inserted = await store.insertMomentUserInteraction({

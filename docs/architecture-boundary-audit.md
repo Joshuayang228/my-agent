@@ -41,3 +41,4 @@ Projection / Dispatcher / Session Store
 执行账本的 `running`、`completed` 和 `retryable` 是跨外部等待的生命周期元数据。领域事件、Runtime State、Outbox 及执行与事件的关联在本地 Unit of Work 内提交，外部模型、网络、窗口和文件等待不进入事务。该边界由 DEC-2026-11-13-01 固定，后续用例不得持有事务跨越外部等待。
 
 旧生活表的查询统一经过 `legacy-companion-read-model`，投影写入统一经过 `legacy-life-projection`；Application Gateway 不再直接依赖 `life/store`，避免事实入口和迁移投影入口重新耦合。
+生活引擎的剧本补齐和朋友圈投影查询也使用同一 Read Model，用户互动表保持独立事实边界。

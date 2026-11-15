@@ -29,6 +29,7 @@ import { updateCompanionRuntimeLifecycle } from '../core/state/runtime-state'
 import { createCompanionLifeEvent } from '../application/life-event'
 import { createCompanionDayScript } from '../application/day-script'
 import { getCompanionRuntimeReadModel } from '../core/read-models/runtime-read-model'
+import { getCompanionLegacyDayScript, hasCompanionLegacyEventsForScript } from '../core/read-models/legacy-companion-read-model'
 
 /** 解析当前活跃主角（不经过 orchestrator，避免 life ↔ orchestrator 循环依赖） */
 async function resolveActiveRoleId(): Promise<string> {
@@ -83,10 +84,10 @@ export async function ensureDayScripts(
     }
   }
   for (const date of dates) {
-    const existing = await store.getDayScript(roleId, date)
+    const existing = await getCompanionLegacyDayScript(roleId, date)
     if (existing) {
       // 剧本已在但事件缺失时补事件（幂等）
-      if (!(await store.hasEventsForScript(existing.id))) {
+      if (!(await hasCompanionLegacyEventsForScript(existing.id))) {
         await materializePlannedEvents(roleId, existing.id, existing.payload)
       }
       continue
