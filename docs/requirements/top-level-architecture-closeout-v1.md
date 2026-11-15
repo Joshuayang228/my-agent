@@ -44,6 +44,10 @@ P0-1 事务边界继续收口：用户赠礼的业务事实、主会话 Outbox�
 3. 建立 Core Event 到旧读模型的投影清单，完成可删除旁路的识别和测试。
 4. 收口剩余混合写入路径：文化心愿完成、朋友圈投影、重编排和自动回复落库已完成本地事务收口。用户首条评论属于用户交互记录，由互动表单直接写入，自动回复产生的角色事实再进入 Core Event 与 Outbox 事务。外部模型调用必须留在事务外。
 
+P1-1 已落地：`ConversationApplicationContext` 统一承载 Agent、Session、权限策略、Domain Read Model 和 Prompt Context Evidence。Runtime 通过 Conversation Application Service 创建上下文，Prompt 编译只消费上下文生成的证据集合。
+
+P1-2 已在 Companion 入口收口：Agent Host 使用 trace context，Command Gateway 使用 command / correlation / execution 字段，LifeTicker 使用稳定幂等键，Domain Event 和 Outbox 使用 source / idempotency 字段。外部模型、窗口和会话投递继续在本地事务外执行。
+
 事件发布收尾也已收口：`markEventPublished` 与 `recordEventExecution` 在同一 Unit of Work 内提交，投影失败时 planned 事件继续保持可重试状态。
 
 事件事实入口已迁移：日剧本和生活事件的生产写入统一经过 `createCompanionDayScript` 与 `createCompanionLifeEvent`，旧 `companion_day_scripts` 与 `companion_events` 只承担当前查询投影。

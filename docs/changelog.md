@@ -1619,3 +1619,4 @@ Playground 提示词管理器 v3 候选：调整文字职责与阅读比例，�
 - Chat 人物世界查询工具的朋友圈读取统一经过 Legacy Read Model。
 - LifeTicker 每轮动作和 Outbox 投递增加稳定幂等键，重复触发会复用已完成执行结果。
 - Chat 朋友圈发布把事件创建和动态投影放入同一事务，投影失败不会留下孤立事件。
+- Runtime 通过 `ConversationApplicationContext` 统一组织 Agent、Session、权限策略、Domain Read Model 和 Prompt Context Evidence。

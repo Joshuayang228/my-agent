@@ -1733,6 +1733,8 @@ Chat 人物世界查询工具的朋友圈读取统一经过 Legacy Read Model。
 LifeTicker 每轮人物动作和 Outbox 投递现在使用角色、动作与 tick 时间组成的幂等键，重复 tick 不会重复执行同一轮命令。
 
 Chat 朋友圈发布的事件创建与动态投影现在共享同一 Unit of Work，投影失败会回滚 Core 事件和旧查询投影。
+
+`ConversationApplicationContext` 已接入 Runtime，统一承载 Agent、Session、权限策略、Domain Read Model 和 Prompt Context Evidence，新增 Unit 覆盖主会话与召唤会话的证据边界。
 # 2026-11-14 Scoped Tool Catalog
 
 新增 `AgentHostScopedToolCatalog`，把 Manifest 授权筛选从 Runtime 条件分支提取为会话级目录对象。全局 ToolRegistry 继续只保存实现，未授权 Capability 不进入模型请求。

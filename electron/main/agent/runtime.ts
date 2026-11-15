@@ -17,7 +17,7 @@ import { agentLoop } from './loop'
 import { characterDefinitionFromRolePack } from '../prompts/compiler'
 import { buildSummonContextPrompt, buildActiveSkillPrompt } from '../prompts/runtime-context'
 import { compileMainSystem } from '../prompts/registered-request'
-import { loadConversationAssemblyInput, resolveConversationRelationshipHints, settleConversationCompletion, assertConversationSessionRole, resolveConversationCastPresence, formatConversationSummonScene, getConversationDelegationHint, registerConversationStreamingProbe } from './conversation-application-service'
+import { loadConversationAssemblyInput, createConversationApplicationContext, attachConversationPromptContext, buildConversationContextEvidence, resolveConversationRelationshipHints, settleConversationCompletion, assertConversationSessionRole, resolveConversationCastPresence, formatConversationSummonScene, getConversationDelegationHint, registerConversationStreamingProbe } from './conversation-application-service'
 import { getAgentHostContext } from '../agent-host/host'
 import { AgentHostScopedToolCatalog } from '../agent-host/scoped-catalog'
 import { loadCompanionAgentManifest } from '../agent-host/builtin-domains'
@@ -231,6 +231,7 @@ class AgentRuntime {
       }
       // feedback 按会话主角分桶注入（M22-G2）
       const userProfile = isWorkspace ? null : await memory.buildUserProfile(assembleRoleId)
+      const domainInput = await loadConversationAssemblyInput(assembleRoleId)
       const {
         pack,
         mutableBody,
@@ -244,12 +245,21 @@ class AgentRuntime {
         rosterLines,
         relationshipSummary,
         emotionSummary,
-      } = await loadConversationAssemblyInput(assembleRoleId)
+      } = domainInput
       pendingFeedbackId = pendingResonanceFeedbackId
       const character = characterDefinitionFromRolePack(pack, mutableBody)
 
       const chatSpan = startSpan('chat', 'main', 'interaction', undefined, { sessionId, roleId: character.id, model: llmConfig.model })
       errorSpan = chatSpan
+      const applicationContext = createConversationApplicationContext({
+        agentId: character.id,
+        sessionId,
+        sessionKind: sessionMeta?.sessionKind || 'main',
+        traceId: chatSpan.id,
+        permissionPolicyKey: 'companion-default',
+        executionMode,
+        domain: domainInput,
+      })
       // 供后台 task linked span 追溯（非父子，不拉长主对话耗时）
       updateTraceContext({ interactionSpanId: chatSpan.id, roleId: character.id })
 
@@ -386,6 +396,16 @@ class AgentRuntime {
         })
       }
 
+      const promptContextEvidence = [
+        ...(userProfile ? [{ key: 'memory.user-profile', source: 'memory.user-profile', scope: 'turn' as const, maxChars: 4000 }] : []),
+        ...buildConversationContextEvidence({
+          domain: applicationContext.domain,
+          includeLifeContext: !isSummon,
+          hasSessionContext: sessionInfoParts.length > 0,
+          sessionContextSource: isWorkspace ? 'workspace.session-context' : 'agent-host.context-providers',
+        }),
+      ]
+      const promptContext = attachConversationPromptContext(applicationContext, promptContextEvidence)
       const systemPrompt = compileMainSystem(pack, mutableBody, {
         platform: {
           toolNames: toolRegistry.getAll().map(t => t.name),
@@ -415,19 +435,7 @@ class AgentRuntime {
           rosterLines,
           relationshipSummary,
           emotionSummary: isSummon ? undefined : emotionSummary,
-          contextEvidence: [
-            ...(userProfile ? [{ key: 'memory.user-profile', source: 'memory.user-profile', scope: 'turn' as const, maxChars: 4000 }] : []),
-            ...(!isSummon && worldSlice ? [{ key: 'companion.world-state', source: 'companion.runtime-state', scope: 'turn' as const, maxChars: 4000 }] : []),
-            ...(!isSummon && recentMomentsSlice ? [{ key: 'companion.recent-moments', source: 'companion.moments-read-model', scope: 'turn' as const, maxChars: 4000 }] : []),
-            ...(!isSummon && lifeAssetsSlice ? [{ key: 'companion.life-assets', source: 'companion.assets-read-model', scope: 'turn' as const, maxChars: 4000 }] : []),
-            ...(!isSummon && conversationImpulse ? [{ key: 'companion.conversation-impulse', source: 'companion.relationship-and-memory', scope: 'turn' as const, maxChars: 4000 }] : []),
-            ...(!isSummon && catchupSummary ? [{ key: 'companion.catchup', source: 'companion.catchup-read-model', scope: 'turn' as const, maxChars: 4000 }] : []),
-            ...(!isSummon && bookshelfSlice ? [{ key: 'companion.bookshelf', source: 'companion.bookshelf-read-model', scope: 'turn' as const, maxChars: 4000 }] : []),
-            ...(rosterLines ? [{ key: 'companion.roster', source: 'companion.roster-read-model', scope: 'agent' as const, maxChars: 4000 }] : []),
-            ...(relationshipSummary ? [{ key: 'companion.relationship', source: 'companion.relationship-state', scope: 'turn' as const, maxChars: 4000 }] : []),
-            ...(emotionSummary ? [{ key: 'companion.emotion', source: 'companion.emotion-events', scope: 'turn' as const, maxChars: 4000 }] : []),
-            ...(sessionInfoParts.length ? [{ key: 'session.context', source: isWorkspace ? 'workspace.session-context' : 'agent-host.context-providers', scope: 'session' as const, maxChars: 12000 }] : []),
-          ],
+          contextEvidence: promptContext.prompt.contextEvidence,
         },
         currentDate: new Date().toLocaleDateString('sv-SE'),
       }, isSummon ? 'summon' : isWorkspace ? 'workspace' : 'main')

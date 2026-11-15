@@ -718,3 +718,5 @@ Chat 人物世界查询工具也通过 Legacy Read Model 读取动态，避免�
 LifeTicker 的每个动作和 Outbox 投递使用 `roleId + label + tickAt` 作为执行幂等键，重复调度沿 Execution Ledger 返回已有结果。
 
 Chat 朋友圈发布在同一 Unit of Work 内创建 Core 事件并投影旧查询动态，模型等待位于事务之外，投影失败回滚本地事实。
+
+对话 Application Context 统一承载 Agent、Session、权限策略、Domain Read Model 和 Prompt Context Evidence，Runtime 不再单独拼接 Prompt 证据列表。

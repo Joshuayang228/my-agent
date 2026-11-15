@@ -673,4 +673,6 @@ LifeTicker 每轮命令使用稳定幂等键接入 Companion Execution Ledger，
 
 Chat 朋友圈 Tool 的事件创建和投影共用本地 Unit of Work，避免投影失败留下不可见的孤立生活事实。
 
+Runtime 的主会话与召唤会话都通过 `ConversationApplicationContext` 进入 Prompt 编译，权限策略、领域读取和上下文证据由 Application 边界统一组织。
+
 Skill Registry 初始化完成后同步 Skill key 与激活工具元数据到 Host，Skill 正文和实际激活继续由既有 Skill Registry 管理。
