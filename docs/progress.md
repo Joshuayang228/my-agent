@@ -1713,6 +1713,16 @@ pause、resume、catch-up 和 tick 不再写旧角色状态表的暂停、补叙
 # 2026-11-14 Electron E2E 稳定性收口
 
 侧边聊天关闭现在通过 `session.delete` 统一完成取消流、等待 Runtime 收尾和删除临时工作区会话；关闭侧聊与切换主会话两个真实 Electron 用例通过。生图备份过滤可由 Role Pack 重物化的 `companion-media` 出厂图片，完整生图备份、删除、恢复和重启用例通过。剩余 OAuth 夹具端口和主动问候夹具问题未宣称完成。
+
+# 2026-11-14 Agent Host 生命周期权限与测试夹具收口
+
+固定 scheduler Manifest 获得 `companion.lifecycle`，生活时钟 Workflow 使用当前 active role 执行，主动问候证据专项通过。主动问候 E2E 夹具改为捕获动态 `setTimeout` ticker，OAuth 浏览器夹具增加对授权页对话框的容错，OAuth 专项通过。
+
+# 2026-11-15 生活时钟启动隔离
+
+生活时钟首轮不再在主进程启动瞬间执行，改为进入默认周期后再运行，避免设置、人物世界和备份恢复尚未完成时被后台生活动作并发修改。索引恢复、人物世界六面、衣柜和主动问候专项回归通过。
+
+完整 Electron E2E 最终回归通过 41 项，5 项按真实模型环境条件跳过，OAuth、生图、备份恢复、生活资产、侧聊和主动问候链路均已通过。
 # 2026-11-14 Scoped Tool Catalog
 
 新增 `AgentHostScopedToolCatalog`，把 Manifest 授权筛选从 Runtime 条件分支提取为会话级目录对象。全局 ToolRegistry 继续只保存实现，未授权 Capability 不进入模型请求。

@@ -836,3 +836,6 @@ published event（事件事实）
 # 可靠性施工完成（2026-11-13）
 
 人物世界核心事务、Outbox 租约恢复、主会话消息幂等落盘和 IPC 入口可信 sender 校验完成。事件、事实、Outbox 与执行事件关联在本地事务内提交，执行生命周期状态不跨外部等待持有事务。
+# 2026-11-15 生活时钟启动与 Host 权限
+
+固定 scheduler Manifest 显式拥有 `companion.lifecycle`，Workflow 带入 active role。主进程启动后首轮生活 tick 按默认周期调度，避免人物世界恢复阶段发生后台写入竞争。

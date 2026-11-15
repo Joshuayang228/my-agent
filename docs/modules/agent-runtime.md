@@ -661,4 +661,8 @@ Runtime、IPC、Context、Memory、Persona 和 Permission 边界审计完成。C
 
 侧边聊天关闭时由 Renderer 调用既有 `session.delete` 应用入口，主进程先取消对应 Runtime 流并等待收尾，再删除临时工作区会话；Runtime 不接收 UI 关闭语义。
 
+固定生活时钟由 scheduler Manifest 调用 Agent Host Workflow，并显式携带 active role 上下文与 `companion.lifecycle` 权限，保持调度入口和人物领域执行边界一致。
+
+主进程启动时生活时钟首轮按默认周期等待，避免恢复阶段与人物世界初始化产生并发生活写入。
+
 Skill Registry 初始化完成后同步 Skill key 与激活工具元数据到 Host，Skill 正文和实际激活继续由既有 Skill Registry 管理。

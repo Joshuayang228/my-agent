@@ -136,7 +136,11 @@ export function startLifeTicker(defaultIntervalMs = DEFAULT_INTERVAL_MS): void {
     }
   }
 
-  timer = setTimeout(executeTick, 0)
+  // 背景：主进程启动时窗口、设置和人物世界仍在恢复，立即推进会与初始化写入并发，
+  // 产生用户尚未打开应用就被生活动作改写的状态。
+  // 设计意图：首轮沿默认周期进入统一调度，后续仍按下一条计划动态缩短等待；显式生命周期入口可随时触发即时推进。
+  // 关键约束：timer 必须先写入再等待，stopLifeTicker 才能取消首轮；不能用 Promise 直接启动后台 tick。
+  timer = setTimeout(executeTick, defaultIntervalMs)
   log.info('Life ticker started with dynamic clock triggers', { defaultIntervalMs })
 }
 

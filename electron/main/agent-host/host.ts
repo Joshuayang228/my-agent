@@ -6,6 +6,7 @@ import { capabilityToTool } from './adapter'
 import type { SkillDefinition, ToolDefinition } from '../../../src/shared/types'
 import type { ToolRegistry } from '../tools/registry'
 import { isSkillEnabled } from '../skills/registry'
+import { getSetting } from '../storage/settings-store'
 
 export const agentHostDomainRegistry = new AgentHostDomainRegistry()
 export const agentHostCapabilityRegistry = new AgentHostCapabilityRegistry(agentHostDomainRegistry)
@@ -127,8 +128,10 @@ export async function runCompanionLifeTickWorkflow(now: number): Promise<unknown
   initializeAgentHost()
   const manifest = loadCompanionAgentManifest({ id: 'scheduler', personaKey: 'scheduler' })
   const environment = agentHostApplication.createEnvironment(manifest)
+  const roleId = (await getSetting('activeRoleId')).trim() || 'luffy'
   return agentHostApplication.runWorkflow(environment, 'companion.life.tick', {}, {
     agentId: 'scheduler',
+    roleId,
     traceId: `companion-life-tick:${now}`,
   })
 }

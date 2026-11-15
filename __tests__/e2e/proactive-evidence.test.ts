@@ -20,7 +20,7 @@ test('真实问候呈现回执、重复 tick 与重启保留名额', async ({}, 
   let presentationProbe: unknown
   let checkedRoleId = ''
   const entry = pathToFileURL(path.resolve('dist-electron/index.js')).href
-  await writeFile(bootstrap, `const original = global.setInterval; global.setInterval = (fn,ms,...args) => { if (ms === 300000) global.__testLifeTick=fn; return original(fn,ms,...args) }; import(${JSON.stringify(entry)});`)
+  await writeFile(bootstrap, `const original = global.setTimeout; global.setTimeout = (fn,ms,...args) => { if (typeof fn === 'function' && (ms === 0 || ms >= 300000)) global.__testLifeTick=fn; return original(fn,ms,...args) }; import(${JSON.stringify(entry)});`)
   const launch = async () => {
     const launched = await electron.launch({ args: [bootstrap, `--user-data-dir=${root}`, '--no-sandbox'], env: { ...process.env, NODE_ENV: 'production', VITE_DEV_SERVER_URL: '', LLM_API_KEY: '', LLM_BASE_URL: '', LLM_MODEL: '' } })
     launched.process().stdout?.on('data', data => { mainOutput = (mainOutput + String(data)).slice(-24000) })

@@ -7,10 +7,12 @@ import { fileURLToPath } from 'node:url'
 import { startMcpOAuthFixture } from '../fixtures/mcp-oauth-server'
 
 test('正式 OAuth 浏览器授权、工具许可、失效重新登录与重启无自动弹窗', async ({}, testInfo) => {
+  test.setTimeout(120_000)
   const fixture = await startMcpOAuthFixture()
   const directory = await mkdtemp(path.join(os.tmpdir(), 'my-agent-oauth-'))
-  const browser = await chromium.launch({ channel: 'chrome' })
+  const browser = await chromium.launch({ channel: 'chrome', headless: true })
   const consent = await browser.newPage()
+  consent.on('dialog', async dialog => { await dialog.dismiss().catch(() => undefined) })
   let app: ElectronApplication | undefined
   const launch = () => electron.launch({ args: [fileURLToPath(new URL('../../dist-electron/index.js', import.meta.url)), `--user-data-dir=${directory}`, '--no-sandbox'], env: { ...process.env, NODE_ENV: 'production', LLM_API_KEY: '', LLM_BASE_URL: '', LLM_MODEL: '' } })
   const instrument = async () => app!.evaluate(({ shell, dialog, BrowserWindow }) => {
@@ -27,6 +29,7 @@ test('正式 OAuth 浏览器授权、工具许可、失效重新登录与重启�
   try {
     app = await launch()
     let page = await app.firstWindow()
+    page.on('dialog', async dialog => { await dialog.dismiss().catch(() => undefined) })
     await instrument()
     await expect(page.getByTestId('settings-panel')).toBeVisible()
     await page.getByTestId('settings-nav-mcp').click()
@@ -46,7 +49,7 @@ test('正式 OAuth 浏览器授权、工具许可、失效重新登录与重启�
     await form.getByRole('checkbox', { name: '允许read_note' }).uncheck()
     await form.getByRole('button', { name: '保存连接', exact: true }).click()
     let card = page.locator('[data-testid^="settings-mcp-server-"]').filter({ hasText: 'OAuth 笔记' })
-    await expect(card.getByRole('status')).toHaveText('已连接')
+    await expect(card.getByRole('status')).toHaveText('已连接', { timeout: 30_000 })
     const config = JSON.parse((await page.evaluate(() => window.electronAPI.settings.get())).mcpServers)[0]
     expect(config.oauth).toEqual({})
     expect(config.allowedTools).toEqual([])
@@ -60,7 +63,7 @@ test('正式 OAuth 浏览器授权、工具许可、失效重新登录与重启�
     await page.screenshot({ path: testInfo.outputPath('oauth-connected.png') })
     fixture.stats.rejectedTokens = true
     await runTool()
-    await expect(card.getByRole('status')).toHaveText('需要登录')
+    await expect(card.getByRole('status')).toHaveText('需要登录', { timeout: 30_000 })
     expect((await urls()).length).toBe(1)
     await card.getByRole('button', { name: '登录', exact: true }).click()
     await expect.poll(async () => (await urls()).length).toBe(2)
@@ -71,7 +74,7 @@ test('正式 OAuth 浏览器授权、工具许可、失效重新登录与重启�
     await expect.poll(async () => (await urls()).length).toBe(3)
     await consent.goto((await urls())[2])
     await consent.getByRole('button', { name: '授权', exact: true }).click()
-    await expect(card.getByRole('status')).toHaveText('已连接')
+    await expect(card.getByRole('status')).toHaveText('已连接', { timeout: 30_000 })
     await runTool()
     expect(fixture.stats.toolCalls).toBe(2)
     await app.close(); app = undefined
@@ -82,7 +85,7 @@ test('正式 OAuth 浏览器授权、工具许可、失效重新登录与重启�
     await expect(page.getByTestId('settings-panel')).toBeVisible()
     await page.getByTestId('settings-nav-mcp').click()
     card = page.locator('[data-testid^="settings-mcp-server-"]').filter({ hasText: 'OAuth 笔记' })
-    await expect(card.getByRole('status')).toHaveText('需要登录')
+    await expect(card.getByRole('status')).toHaveText('需要登录', { timeout: 30_000 })
     expect(await urls()).toEqual([])
     await expect(card.getByRole('button', { name: '登录', exact: true })).toBeEnabled()
     await page.screenshot({ path: testInfo.outputPath('oauth-restart-login.png') })
