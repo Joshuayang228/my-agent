@@ -1584,6 +1584,10 @@ Core Runtime State 迁移边界继续收口：旧 `role_state` 回填与镜像�
 Scheduler Headless 入口已补统一执行上下文：同一调度时刻复用稳定 trace / 幂等键，单次尝试保留 runId，Runtime 在同一 trace context 内执行。
 Headless Runtime 已注册 Agent Host Capability，后台会话现在与主会话共享 Manifest 筛选和 Capability 权限门禁。
 
+# 2026-11-15 顶层架构收口合同完成验收
+
+Agent Loop、Runtime、Application、Agent Host、Capability、Companion Domain、Memory、Storage 和外部适配器完成本轮边界审计。统一 Application Context、Companion 事务与 Outbox 恢复、执行账本恢复、Context Provider 权限门禁、旧生活 Read Model / Projection 边界、Scheduler Headless trace / 幂等上下文和 Headless Capability 接线均已落地。全量 Unit 1771 项通过、Eval 23 项通过、Skill Eval 1 项通过、类型检查、构建、资产审计、文档门禁和完整 Electron E2E 41 项通过、5 项条件跳过。施工合同冻结为已完成施工快照。
+
 # 2026-11-13 IPC 可信发送方收口
 
 通用 IPC 注册器已统一经过 `registerSecureIpcHandler`，Browser、MCP、Settings、Terminal 和图片读取保留各自的导航、窗口归属与请求租约复核，并复用统一 sender 检查。五边界审计记录到 `docs/architecture-boundary-audit.md`，施工合同仍因执行账本与领域事实提交边界未完全合并而保持进行中。

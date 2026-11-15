@@ -1,6 +1,8 @@
 # 五边界架构审计
 
-## 审计结论（2026-11-13）
+## 审计结论（2026-11-15）
+
+Agent Loop、Runtime、Application、Agent Host、Capability、Companion Domain、Memory、Storage 和外部适配器的边界已完成本轮收口。Headless、Scheduler、IPC、LLM Tool 和 Companion 写入路径均有统一的权限、trace、幂等和恢复证据，旧生活表访问集中在 Read Model / Projection Adapter。
 
 ### Context
 

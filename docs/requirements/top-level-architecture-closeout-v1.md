@@ -1,11 +1,11 @@
 # 顶层架构收口施工合同 v1
 
-> 状态：进行中
-> 生命周期：进行中，指导 Agent Loop 到 Domain 的顶层边界收口。
+> 状态：已完成施工快照
+> 生命周期：已完成施工快照（冻结），稳定事实已吸收到架构、模块卡和质量文档。
 
 ## 1. 审计结论
 
-当前模块化单体和 Agent Host 方向已完成 P0 边界收口，仍保留迁移期旧表镜像和部分 P1 统一上下文工作。
+当前模块化单体和 Agent Host 方向已完成 P0 / P1 边界收口，保留的旧表仅承担登记过的读取投影和镜像职责。
 
 - Agent Runtime 的 Companion 入口已通过 Conversation Application Service 收口。
 - Agent Host Capability、固定 Workflow 和 Tool Adapter 已使用统一 Manifest 权限门禁，scheduler 额外拥有生命周期权限并携带 active role。
