@@ -26,6 +26,7 @@ Core Runtime State 现在保存暂停时间、追赶摘要和最近推进时间�
 日剧本和生活事件统一由 Application Gateway 创建并登记 Core Domain Event，旧事件表只承担当前查询投影。
 日剧本和生活事件 Gateway 的旧表读写分别经过 `legacy-companion-read-model` 与 `legacy-life-projection`，不再直接依赖 `life/store`。
 朋友圈图片关联同样通过 Read Model 查询、Projection Adapter 写入，并在本地 Unit of Work 内提交。
+Core Runtime State 的旧 `role_state` 回填和镜像更新经过同一 Read Model / Projection Adapter 边界。
 生活 tick、生活信号、自动穿搭和旅行推进统一读取 Core Runtime State，pause、resume、catch-up 和 tick 只写 Core Runtime State，旧角色状态表不再作为运行态来源。
 朋友圈、关系、情绪、事件关联和执行记录的旧表写入统一经过 Core Projection Adapter。
 

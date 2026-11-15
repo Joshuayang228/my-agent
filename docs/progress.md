@@ -1578,6 +1578,7 @@ Companion 列表资源上限（2026-11-10）：主进程统一限制多个生活
 Agent Host 上下文权限收口：Context Provider 的 `requires` 由环境筛选和实际读取入口共同校验，未获授权的动态领域上下文不会进入 Prompt；补充 Agent 身份不匹配和缺权限反例测试。
 Companion 迁移边界继续收口：日剧本与生活事件 Application Gateway 的旧表读写已分别改走 `legacy-companion-read-model` 和 `legacy-life-projection`，Application 层不再直接 import `life/store`。
 朋友圈图片关联继续收口：目标动态读取统一走 Legacy Read Model，事件链接写入经过 Projection Adapter 的 Unit of Work；Chat Resonance 的动态读取也已移出旧 store 直连。
+Core Runtime State 迁移边界继续收口：旧 `role_state` 回填与镜像更新已移到统一 Read Model / Projection Adapter，核心状态模块不再直接 import `life/store`。
 
 # 2026-11-13 IPC 可信发送方收口
 

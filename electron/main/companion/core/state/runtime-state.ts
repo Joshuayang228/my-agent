@@ -1,9 +1,10 @@
 import { getDatabase, persist } from '../../../storage/database'
-import * as lifeStore from '../../life/store'
 import { defaultWorldState } from '../../life/world-codec'
 import { ensureCompanionCoreSchema } from '../schema'
 import type { CompanionRuntimeState } from '../types'
 import type { CompanionWorldState } from '../../types'
+import { getCompanionLegacyRoleState } from '../read-models/legacy-companion-read-model'
+import { projectLegacyWorldState } from '../projections/legacy-life-projection'
 
 export { resetCompanionCoreSchemaForTesting } from '../schema'
 
@@ -52,7 +53,7 @@ export async function getCompanionRuntimeState(roleId: string, universeId = 'def
     return rowToState(Object.fromEntries(columns.map((key, index) => [key, existing[index]])))
   }
 
-  const roleState = await lifeStore.getRoleState(roleId)
+  const roleState = await getCompanionLegacyRoleState(roleId)
   const world = roleState?.world ?? defaultWorldState(roleId)
   const now = Date.now()
   const legacyWorld = world as CompanionWorldState & Partial<Pick<CompanionRuntimeState, 'hunger' | 'sleepiness'>>
@@ -122,24 +123,22 @@ export async function replaceCompanionRuntimeState(state: CompanionRuntimeState)
       last_event_id = excluded.last_event_id
   `, [next.roleId, next.universeId, next.mood, next.energy, next.socialNeed, next.hunger, next.sleepiness, next.home, next.timezone, next.currentActivity, next.currentLocation, next.locationDetail, JSON.stringify(next.statusTags), next.situation, next.pausedAt, next.catchupSummary, next.lastTickAt, next.version, next.updatedAt, next.lastEventId])
   persist()
-  const legacy = await lifeStore.getRoleState(next.roleId)
+  const legacy = await getCompanionLegacyRoleState(next.roleId)
   const legacyWorld = legacy?.world ?? defaultWorldState(next.roleId)
-  if (typeof lifeStore.setWorldState === 'function') {
-    await lifeStore.setWorldState(next.roleId, {
-      ...legacyWorld,
-      home: next.home,
-      timezone: next.timezone,
-      mood: next.mood,
-      energy: next.energy,
-      socialNeed: next.socialNeed,
-      currentActivity: next.currentActivity,
-      currentLocation: next.currentLocation,
-      locationDetail: next.locationDetail,
-      situation: next.situation,
-      statusTags: next.statusTags,
-      updatedAt: next.updatedAt,
-    })
-  }
+  await projectLegacyWorldState(next.roleId, {
+    ...legacyWorld,
+    home: next.home,
+    timezone: next.timezone,
+    mood: next.mood,
+    energy: next.energy,
+    socialNeed: next.socialNeed,
+    currentActivity: next.currentActivity,
+    currentLocation: next.currentLocation,
+    locationDetail: next.locationDetail,
+    situation: next.situation,
+    statusTags: next.statusTags,
+    updatedAt: next.updatedAt,
+  })
   return next
 }
 

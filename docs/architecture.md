@@ -714,6 +714,7 @@ Skill Registry 初始化完成后同步 Skill key 与激活工具元数据到 Ho
 生活时钟启动时先等待默认周期，再进入动态计划调度，确保数据库、设置和人物世界完成恢复后才产生后台领域写入。
 
 Companion 的生产写入边界已进一步收口。Chat 发布朋友圈通过 Life Event Application Gateway 创建事件，文化回响使用 Projection Adapter 写入动态和执行回执，日内重排通过 Adapter 更新旧查询投影，IPC 只通过 Legacy Read Model 读取旧关系与生命周期数据。日剧本和生活事件 Application Gateway 的旧表查询、投影写入也统一经过 Core Read Model / Projection Adapter，Application 层不再直接依赖 `life/store`。
+Core Runtime State 回填和旧 `role_state` 镜像也分别通过 Legacy Read Model 与 Projection Adapter 访问，核心状态模块不再直接依赖 `life/store`。
 
 Chat 人物世界查询工具也通过 Legacy Read Model 读取动态，避免工具层直接依赖旧生活存储。
 朋友圈图片关联的读取通过 Legacy Read Model，写入通过 Projection Adapter 的 Unit of Work，避免生图完成后的事件关联绕过迁移边界。

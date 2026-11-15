@@ -20,6 +20,10 @@ export async function projectLegacyLifeEvent(...args: Parameters<typeof legacySt
   return legacyStore.insertEvent(...args)
 }
 
+export async function projectLegacyWorldState(...args: Parameters<typeof legacyStore.setWorldState>): ReturnType<typeof legacyStore.setWorldState> {
+  return legacyStore.setWorldState(...args)
+}
+
 export async function projectLegacyRelationshipEvent(input: Parameters<typeof legacyStore.recordRelationshipEvent>[0]): ReturnType<typeof legacyStore.recordRelationshipEvent> {
   return legacyStore.recordRelationshipEvent(input)
 }
