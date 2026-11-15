@@ -4,7 +4,7 @@
 
 ### Context
 
-上下文由会话历史、Persona、Memory、Companion 世界切片、Workspace 和 Tool 环境组成。生产 Prompt 通过 `registered-request.ts` 和运行时上下文编译器装配，动态生活状态不写入稳定 Persona。当前缺口是继续把 Runtime 内部的上下文分支收拢为显式 Context Compiler 配方，暂不改变现有 Prompt key。
+上下文由会话历史、Persona、Memory、Companion 世界切片、Workspace 和 Tool 环境组成。生产 Prompt 通过 `registered-request.ts` 和运行时上下文编译器装配，动态生活状态不写入稳定 Persona。`ConversationApplicationContext` 现在承载 Agent、Session、权限策略、Domain Read Model 和 Prompt Context Evidence，Runtime 内部只保留会话编排。
 
 ### Memory
 
@@ -20,14 +20,14 @@ Tool Registry、Permission Engine 和文件 / Shell / MCP 沙箱仍位于 Agent 
 
 ### Runtime
 
-Agent Runtime 保留 Loop、取消、流式生命周期、Context 装配和后台任务。对话完成后的伙伴生活结算已经迁移到 `conversation-application-service.ts`。仍需后续按会话类型完善主角、召唤、Workspace 和 Headless 的应用配方，当前不再向 Runtime 添加新的 Companion 业务判断。
+Agent Runtime 保留 Loop、取消、流式生命周期、Context 装配和后台任务。对话完成后的伙伴生活结算已经迁移到 `conversation-application-service.ts`。主角、召唤和 Workspace 的领域证据边界由 Application Context 生成，Headless / Scheduler 继续通过 Agent Host Workflow 进入统一执行链。
 
 ## 数据流不变量
 
 ```text
 Renderer / Tool / Ticker
         ↓
-Application / Command Gateway
+Application / Agent Host / Command Gateway
         ↓
 BEGIN
   Domain Fact + Domain Event + Execution Ledger + Outbox
@@ -39,3 +39,5 @@ Projection / Dispatcher / Session Store
 模型、网络、窗口通知和文件副作用不进入本地事务。Outbox 采用至少一次投递，消费者按稳定消息 ID 幂等。SQLite 基准命令 `npm run bench:database` 记录写入、导出、重载和 Outbox 批处理耗时。
 
 执行账本的 `running`、`completed` 和 `retryable` 是跨外部等待的生命周期元数据。领域事件、Runtime State、Outbox 及执行与事件的关联在本地 Unit of Work 内提交，外部模型、网络、窗口和文件等待不进入事务。该边界由 DEC-2026-11-13-01 固定，后续用例不得持有事务跨越外部等待。
+
+旧生活表的查询统一经过 `legacy-companion-read-model`，投影写入统一经过 `legacy-life-projection`；Application Gateway 不再直接依赖 `life/store`，避免事实入口和迁移投影入口重新耦合。

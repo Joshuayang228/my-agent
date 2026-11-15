@@ -1576,6 +1576,7 @@ Companion 列表资源上限（2026-11-10）：主进程统一限制多个生活
 执行账本恢复补齐：超过租约窗口的 `running` 记录在下次命令读取前转为 `retryable` 并记录 `EXECUTION_INTERRUPTED`，近期运行保持不变，崩溃后的幂等命令可以恢复重试。
 
 Agent Host 上下文权限收口：Context Provider 的 `requires` 由环境筛选和实际读取入口共同校验，未获授权的动态领域上下文不会进入 Prompt；补充 Agent 身份不匹配和缺权限反例测试。
+Companion 迁移边界继续收口：日剧本与生活事件 Application Gateway 的旧表读写已分别改走 `legacy-companion-read-model` 和 `legacy-life-projection`，Application 层不再直接 import `life/store`。
 
 # 2026-11-13 IPC 可信发送方收口
 

@@ -12,6 +12,14 @@ export async function projectLegacyMoment(input: Parameters<typeof legacyStore.i
   return legacyStore.insertMoment(input)
 }
 
+export async function projectLegacyDayScript(...args: Parameters<typeof legacyStore.insertDayScript>): ReturnType<typeof legacyStore.insertDayScript> {
+  return legacyStore.insertDayScript(...args)
+}
+
+export async function projectLegacyLifeEvent(...args: Parameters<typeof legacyStore.insertEvent>): ReturnType<typeof legacyStore.insertEvent> {
+  return legacyStore.insertEvent(...args)
+}
+
 export async function projectLegacyRelationshipEvent(input: Parameters<typeof legacyStore.recordRelationshipEvent>[0]): ReturnType<typeof legacyStore.recordRelationshipEvent> {
   return legacyStore.recordRelationshipEvent(input)
 }

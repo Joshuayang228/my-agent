@@ -9,6 +9,7 @@
 Companion 执行恢复门禁（2026-11-15）：`companion-world-core.test.ts` 验证超过恢复窗口的 `running` 账本转为 `retryable` 并记录 `EXECUTION_INTERRUPTED`，近期运行保持 `running`，防止崩溃后同一幂等键永久阻塞。
 
 Agent Host 上下文权限门禁（2026-11-15）：`agent-host-registry.test.ts` 验证 Context Provider 的 `requires` 缺失时不会进入执行环境，实际读取还会校验 Agent 身份与权限，避免动态领域上下文绕过 Capability 权限边界。
+Companion 迁移边界门禁（2026-11-15）：日剧本与生活事件 Application Gateway 的旧表访问统一经过 Read Model / Projection Adapter，静态调用链不再从 Application 层直接进入 `life/store`。
 
 人物世界核心层 P0 门禁（2026-11-12）：`companion-world-core.test.ts` 覆盖旧 world state 回填统一运行态、状态 delta 有界与版本递增、领域事件幂等、投影回执幂等、Outbox 去重、投递成功 / 失败状态、窗口不可用重试语义、命令网关失败记录和执行账本失败状态；`world-state.test.ts`、`companion-life.test.ts`、`gifting.test.ts`、`relationship-keepsake.test.ts`、`vulnerability.test.ts`、`travel-progression.test.ts` 与 `replan.test.ts` 验证生活行为通过核心运行态和 Outbox 工作；IPC handler 通过类型检查、构建和全量行为测试门禁。
 Chat Tool 核心入口回归（2026-11-12）：`companion-life-tools.test.ts` 覆盖发朋友圈、评论、资产和阅读笔记写入经过命令网关后的角色隔离、失败语义与真实 ID 链路。

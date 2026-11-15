@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import type { CompanionEvent, CompanionEventStatus } from '../types'
-import * as legacyStore from '../life/store'
 import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 import { attachContentProvenance, contentProvenanceFromEvent } from '../../../../src/shared/content-integrity'
+import { getCompanionLegacyEventById } from '../core/read-models/legacy-companion-read-model'
+import { projectLegacyLifeEvent } from '../core/projections/legacy-life-projection'
 
 /**
  * 创建生活事件并登记 Core 事实。
@@ -24,9 +25,9 @@ export async function createCompanionLifeEvent(input: {
 }): Promise<CompanionEvent> {
   const eventId = input.id ?? randomUUID()
   return withCompanionUnitOfWork(async () => {
-    const existing = await legacyStore.getEventById(eventId)
+    const existing = await getCompanionLegacyEventById(eventId)
     if (existing) return existing
-    const event = await legacyStore.insertEvent({
+    const event = await projectLegacyLifeEvent({
       id: eventId,
       roleId: input.roleId,
       scheduledAt: input.scheduledAt,

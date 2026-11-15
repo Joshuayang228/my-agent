@@ -1,8 +1,9 @@
 import type { DayScriptPayload, DayScriptRow } from '../types'
-import * as legacyStore from '../life/store'
 import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 import { attachContentProvenance, contentProvenanceFromEvent } from '../../../../src/shared/content-integrity'
+import { getCompanionLegacyDayScript } from '../core/read-models/legacy-companion-read-model'
+import { projectLegacyDayScript } from '../core/projections/legacy-life-projection'
 
 /**
  * 创建日剧本并登记 Core 事实。
@@ -18,9 +19,9 @@ export async function createCompanionDayScript(input: {
   payload: DayScriptPayload
 }): Promise<DayScriptRow> {
   return withCompanionUnitOfWork(async () => {
-    const existing = await legacyStore.getDayScript(input.roleId, input.date)
+    const existing = await getCompanionLegacyDayScript(input.roleId, input.date)
     if (existing) return existing
-    const row = await legacyStore.insertDayScript(input.roleId, input.date, input.payload)
+    const row = await projectLegacyDayScript(input.roleId, input.date, input.payload)
     await appendCompanionDomainEvent({
       roleId: input.roleId,
       universeId: input.universeId ?? 'default',
