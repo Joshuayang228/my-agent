@@ -50,6 +50,7 @@ import { getWorkspaceRoot } from './project-memory'
 import { createLogger, hashForLog } from '../utils/logger'
 import {
   DEFAULT_TRACE_USER_ID,
+  runWithTraceContext,
   runWithTraceContextAsyncGen,
   updateTraceContext,
 } from '../utils/trace-context'
@@ -57,6 +58,7 @@ import { startSpan } from '../utils/tracer'
 import { AgentErrorCode, toAgentError } from '../errs'
 import type { ChatMessage, LLMConfig, ExecutionMode, AgentStreamEvent, ToolContext, WorkspaceChatContext, TerminalReason } from '../../../src/shared/types'
 import { taskQueue } from '../services/task-queue'
+import type { HeadlessExecutionContext } from '../scheduler'
 
 const log = createLogger('Runtime')
 
@@ -699,12 +701,12 @@ class AgentRuntime {
    * Headless 执行 — 无 UI 运行 Agent（用于定时任务/后台任务）。
    * 创建临时会话，执行 Agent Loop，收集结果文本并返回。
    */
-  async runHeadless(prompt: string, taskName?: string): Promise<string> {
+  async runHeadless(prompt: string, taskName?: string, executionContext?: HeadlessExecutionContext): Promise<string> {
     const label = taskName || 'headless'
     const labelMeta = { labelHash: hashForLog(label), labelLength: label.length }
     const session = await store.createSession()
     const sessionId = session.id
-    log.info('Headless run starting', { sessionId, ...labelMeta })
+    log.info('Headless run starting', { sessionId, ...labelMeta, runId: executionContext?.runId, traceId: executionContext?.traceId, idempotencyKey: executionContext?.idempotencyKey })
 
     const userMsg: ChatMessage = {
       id: `headless-user-${Date.now()}`,
@@ -733,13 +735,15 @@ class AgentRuntime {
     }
 
     try {
-      for await (const event of this.chat(sessionId, userMsg, toolRegistry, headlessConfirm)) {
-        if (event.type === 'text') resultText += event.content
-        if (event.type === 'error') {
-          const errorMessage = String((event as Record<string, unknown>).message || '')
-          log.error('Headless agent event error', { ...labelMeta, errorType: 'agent_event', errorLength: errorMessage.length })
+      await runWithTraceContext({ sessionId, userId: DEFAULT_TRACE_USER_ID, traceId: executionContext?.traceId }, async () => {
+        for await (const event of this.chat(sessionId, userMsg, toolRegistry, headlessConfirm)) {
+          if (event.type === 'text') resultText += event.content
+          if (event.type === 'error') {
+            const errorMessage = String((event as Record<string, unknown>).message || '')
+            log.error('Headless agent event error', { ...labelMeta, errorType: 'agent_event', errorLength: errorMessage.length, traceId: executionContext?.traceId })
+          }
         }
-      }
+      })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err)
       log.error('Headless run failed', { ...labelMeta, errorType: err instanceof Error ? err.name : 'unknown', errorLength: errorMessage.length })
@@ -764,4 +768,4 @@ export const runtime = new AgentRuntime()
 // Register headless runner with Scheduler
 import { setHeadlessRunner } from '../scheduler/index'
 import { shouldAutoApproveHeadlessTool } from './headless-policy'
-setHeadlessRunner((prompt, taskName) => runtime.runHeadless(prompt, taskName))
+setHeadlessRunner((prompt, taskName, executionContext) => runtime.runHeadless(prompt, taskName, executionContext))

@@ -1,5 +1,16 @@
 import { describe, it, expect } from 'vitest'
-import { parseCronNextRun, rowToTask, validateScheduledTaskInput } from '../../electron/main/scheduler/index'
+import { createHeadlessExecutionContext, parseCronNextRun, rowToTask, validateScheduledTaskInput } from '../../electron/main/scheduler/index'
+
+describe('createHeadlessExecutionContext', () => {
+  it('为同一调度时刻生成稳定 trace 和幂等键，并保留独立 runId', () => {
+    const first = createHeadlessExecutionContext('task-1', 1718700000000, 'run-a')
+    const second = createHeadlessExecutionContext('task-1', 1718700000000, 'run-b')
+    expect(first.traceId).toBe('scheduler:task-1:1718700000000')
+    expect(first.idempotencyKey).toBe(second.idempotencyKey)
+    expect(first.runId).toBe('run-a')
+    expect(second.runId).toBe('run-b')
+  })
+})
 
 describe('parseCronNextRun', () => {
   it('返回下一个匹配时间（明确分钟和小时）', () => {

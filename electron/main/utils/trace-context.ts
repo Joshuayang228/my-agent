@@ -12,6 +12,7 @@ export interface TraceIdentity {
   sessionId?: string
   roleId?: string
   userId?: string
+  traceId?: string
   /** 当前主对话 interaction span，供后台 linked span 追溯（非 parent） */
   interactionSpanId?: string
 }
@@ -26,6 +27,7 @@ function stripEmpty(ctx: TraceIdentity): TraceIdentity {
   if (ctx.sessionId?.trim()) out.sessionId = ctx.sessionId.trim()
   if (ctx.roleId?.trim()) out.roleId = ctx.roleId.trim()
   if (ctx.userId?.trim()) out.userId = ctx.userId.trim()
+  if (ctx.traceId?.trim()) out.traceId = ctx.traceId.trim()
   if (ctx.interactionSpanId?.trim()) out.interactionSpanId = ctx.interactionSpanId.trim()
   return out
 }
@@ -81,5 +83,6 @@ export function traceContextAttributes(): Record<string, unknown> {
   if (ctx.sessionId) attrs.sessionId = ctx.sessionId
   if (ctx.roleId) attrs.roleId = ctx.roleId
   if (ctx.userId) attrs.userId = ctx.userId
+  if (ctx.traceId) attrs.traceId = ctx.traceId
   return attrs
 }

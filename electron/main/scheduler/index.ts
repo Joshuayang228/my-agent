@@ -11,9 +11,22 @@ const log = createLogger('Scheduler')
  * When set, Scheduler triggers Agent loop directly in main process
  * instead of just notifying the renderer.
  */
-let headlessRunner: ((prompt: string, taskName: string) => Promise<string>) | null = null
+export interface HeadlessExecutionContext {
+  taskId: string
+  runId: string
+  scheduledAt: number
+  traceId: string
+  idempotencyKey: string
+}
 
-export function setHeadlessRunner(runner: (prompt: string, taskName: string) => Promise<string>): void {
+export function createHeadlessExecutionContext(taskId: string, scheduledAt: number, runId = randomUUID()): HeadlessExecutionContext {
+  const stableKey = `scheduler:${taskId}:${scheduledAt}`
+  return { taskId, runId, scheduledAt, traceId: stableKey, idempotencyKey: stableKey }
+}
+
+let headlessRunner: ((prompt: string, taskName: string, context: HeadlessExecutionContext) => Promise<string>) | null = null
+
+export function setHeadlessRunner(runner: (prompt: string, taskName: string, context: HeadlessExecutionContext) => Promise<string>): void {
   headlessRunner = runner
 }
 
@@ -95,9 +108,10 @@ function scheduleNext(task: ScheduledTask) {
 
     // Headless execution: run Agent loop directly in main process
     if (headlessRunner) {
+      const executionContext = createHeadlessExecutionContext(task.id, nextRun)
       try {
-        const result = await headlessRunner(task.prompt, task.name)
-        log.info('Headless task completed', { taskNameHash: hashForLog(task.name), taskNameLength: task.name.length, resultLength: result.length })
+        const result = await headlessRunner(task.prompt, task.name, executionContext)
+        log.info('Headless task completed', { taskNameHash: hashForLog(task.name), taskNameLength: task.name.length, resultLength: result.length, runId: executionContext.runId, idempotencyKey: executionContext.idempotencyKey })
 
         // Notify user via OS notification
         if (Notification.isSupported()) {
@@ -108,7 +122,7 @@ function scheduleNext(task: ScheduledTask) {
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : String(err)
-        log.error('Headless task failed', { taskNameHash: hashForLog(task.name), taskNameLength: task.name.length, errorType: err instanceof Error ? err.name : 'unknown', errorLength: errorMessage.length })
+        log.error('Headless task failed', { taskNameHash: hashForLog(task.name), taskNameLength: task.name.length, errorType: err instanceof Error ? err.name : 'unknown', errorLength: errorMessage.length, runId: executionContext.runId, idempotencyKey: executionContext.idempotencyKey })
       }
     }
 

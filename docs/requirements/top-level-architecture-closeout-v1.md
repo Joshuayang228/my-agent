@@ -46,7 +46,7 @@ P0-1 事务边界继续收口：用户赠礼的业务事实、主会话 Outbox�
 
 P1-1 已落地：`ConversationApplicationContext` 统一承载 Agent、Session、权限策略、Domain Read Model 和 Prompt Context Evidence。Runtime 通过 Conversation Application Service 创建上下文，Prompt 编译只消费上下文生成的证据集合。
 
-P1-2 已在 Companion 入口收口：Agent Host 使用 trace context，Command Gateway 使用 command / correlation / execution 字段，LifeTicker 使用稳定幂等键，Domain Event 和 Outbox 使用 source / idempotency 字段。外部模型、窗口和会话投递继续在本地事务外执行。
+P1-2 已在后台与 Companion 入口收口：Agent Host 使用 trace context，Scheduler Headless 为每个调度时刻生成稳定 trace / 幂等键并保留独立 runId，Command Gateway 使用 command / correlation / execution 字段，LifeTicker 使用稳定幂等键，Domain Event 和 Outbox 使用 source / idempotency 字段。外部模型、窗口和会话投递继续在本地事务外执行。
 
 事件发布收尾也已收口：`markEventPublished` 与 `recordEventExecution` 在同一 Unit of Work 内提交，投影失败时 planned 事件继续保持可重试状态。
 

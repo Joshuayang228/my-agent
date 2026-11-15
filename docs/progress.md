@@ -1581,6 +1581,7 @@ Companion 迁移边界继续收口：日剧本与生活事件 Application Gatewa
 Core Runtime State 迁移边界继续收口：旧 `role_state` 回填与镜像更新已移到统一 Read Model / Projection Adapter，核心状态模块不再直接 import `life/store`。
 生活引擎查询继续收口：日剧本补齐和朋友圈发布流程的旧事件、动态读取已迁移到 Legacy Read Model，`life/store` 仅保留测试播种和用户互动事实入口。
 日内重排查询也已迁移到 Legacy Read Model，生产重排路径不再直接依赖旧 store。
+Scheduler Headless 入口已补统一执行上下文：同一调度时刻复用稳定 trace / 幂等键，单次尝试保留 runId，Runtime 在同一 trace context 内执行。
 
 # 2026-11-13 IPC 可信发送方收口
 

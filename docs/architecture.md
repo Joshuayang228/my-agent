@@ -710,6 +710,7 @@ Skill Registry 初始化完成后同步 Skill key 与激活工具元数据到 Ho
 侧边聊天是工作区内的临时会话：Renderer 只发起 `session.delete`，IPC/Application 层负责取消流、等待 Runtime 收尾和删除会话的串行门禁。备份层只收集用户生成媒体；Role Pack 的静态 `companion-media` 图片由资源包在目标环境重物化。
 
 固定生活时钟通过 scheduler Agent Host Manifest 执行 `companion.life.tick`，Manifest 显式授予 `companion.lifecycle`，Workflow 上下文带入当前 active role，Domain 层不再依赖隐式角色推断。
+Scheduler Headless 任务为每个任务和调度时刻生成稳定 trace / 幂等键与独立 runId，再由 Runtime 传播到 Agent Loop 的 Trace Context。
 
 生活时钟启动时先等待默认周期，再进入动态计划调度，确保数据库、设置和人物世界完成恢复后才产生后台领域写入。
 
