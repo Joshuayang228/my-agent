@@ -15,6 +15,7 @@ Core Runtime State 迁移门禁（2026-11-15）：核心状态回填读取和旧
 生活引擎旧查询门禁（2026-11-15）：日剧本补齐和朋友圈发布流程的旧事件、动态查询统一经过 Legacy Read Model，用户互动写入继续保留独立交互事实入口。
 日内重排查询门禁（2026-11-15）：重排服务读取待处理事件统一经过 Legacy Read Model，旧 `life/store` 依赖不再进入生产重排路径。
 Scheduler Headless 上下文门禁（2026-11-15）：`scheduler.test.ts` 验证同一任务和调度时刻生成稳定 trace / 幂等键，同时保留独立 runId；Runtime 会在同一 trace context 内运行 Headless Agent Loop。
+顶层架构回归（2026-11-15）：Headless 上下文收口后完整 Electron E2E 41 项通过、5 项条件跳过，覆盖备份恢复、凭据、Debug、图片、Chat Tool、MCP、记忆索引、工作区和主动生活路径。
 
 人物世界核心层 P0 门禁（2026-11-12）：`companion-world-core.test.ts` 覆盖旧 world state 回填统一运行态、状态 delta 有界与版本递增、领域事件幂等、投影回执幂等、Outbox 去重、投递成功 / 失败状态、窗口不可用重试语义、命令网关失败记录和执行账本失败状态；`world-state.test.ts`、`companion-life.test.ts`、`gifting.test.ts`、`relationship-keepsake.test.ts`、`vulnerability.test.ts`、`travel-progression.test.ts` 与 `replan.test.ts` 验证生活行为通过核心运行态和 Outbox 工作；IPC handler 通过类型检查、构建和全量行为测试门禁。
 Chat Tool 核心入口回归（2026-11-12）：`companion-life-tools.test.ts` 覆盖发朋友圈、评论、资产和阅读笔记写入经过命令网关后的角色隔离、失败语义与真实 ID 链路。
