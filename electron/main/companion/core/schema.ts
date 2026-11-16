@@ -74,18 +74,6 @@ export async function ensureCompanionCoreSchema(): Promise<void> {
   `)
   try { db.run('ALTER TABLE companion_execution_runs ADD COLUMN idempotency_key TEXT') } catch { /* 已存在 */ }
   try { db.run('ALTER TABLE companion_execution_runs ADD COLUMN result_json TEXT') } catch { /* 已存在 */ }
-  // 兼容早期没有唯一索引的存量账本。保留最早一条幂等记录，重复历史行清空幂等键以保留诊断数据并让唯一索引可以建立。
-  db.run(`
-    UPDATE companion_execution_runs
-    SET idempotency_key = NULL
-    WHERE idempotency_key IS NOT NULL
-      AND rowid NOT IN (
-        SELECT MIN(rowid)
-        FROM companion_execution_runs
-        WHERE idempotency_key IS NOT NULL
-        GROUP BY role_id, action_type, idempotency_key
-      )
-  `)
   db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_companion_execution_idempotency ON companion_execution_runs(role_id, action_type, idempotency_key) WHERE idempotency_key IS NOT NULL')
   db.run('CREATE INDEX IF NOT EXISTS idx_companion_execution_role_time ON companion_execution_runs(role_id, started_at DESC)')
   db.run(`

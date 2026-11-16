@@ -51,7 +51,6 @@ const {
   updateCompanionRuntimeLifecycle,
   resetCompanionCoreSchemaForTesting,
 } = await import('../../electron/main/companion/core/state/runtime-state')
-const { ensureCompanionCoreSchema } = await import('../../electron/main/companion/core/schema')
 const { appendCompanionDomainEvent } = await import('../../electron/main/companion/core/events/domain-events')
 const { startCompanionExecution, finishCompanionExecution, linkCompanionExecutionEvent, recoverStaleCompanionExecutions } = await import('../../electron/main/companion/core/execution/ledger')
 const { enqueueCompanionOutbox } = await import('../../electron/main/companion/core/outbox/outbox')
@@ -152,25 +151,6 @@ describe('人物世界核心层', () => {
       ['fresh-run', 'running', null],
       ['stale-run', 'retryable', 'EXECUTION_INTERRUPTED'],
     ])
-  })
-
-  it('兼容旧账本的重复幂等键，保留历史并恢复唯一约束', async () => {
-    memDb.run(`CREATE TABLE companion_execution_runs (
-      id TEXT PRIMARY KEY, role_id TEXT NOT NULL, command_id TEXT, idempotency_key TEXT,
-      event_id TEXT, action_type TEXT NOT NULL, status TEXT NOT NULL, attempt INTEGER NOT NULL DEFAULT 1,
-      error_code TEXT, error_message TEXT, result_json TEXT, started_at INTEGER NOT NULL, completed_at INTEGER
-    )`)
-    memDb.run(`INSERT INTO companion_execution_runs (id, role_id, idempotency_key, action_type, status, started_at) VALUES
-      ('old-1', 'luffy', 'duplicate-key', 'gift', 'completed', 1),
-      ('old-2', 'luffy', 'duplicate-key', 'gift', 'retryable', 2)`)
-
-    await ensureCompanionCoreSchema()
-    const rows = memDb.exec('SELECT id, idempotency_key FROM companion_execution_runs ORDER BY id')[0]?.values
-    expect(rows).toEqual([
-      ['old-1', 'duplicate-key'],
-      ['old-2', null],
-    ])
-    expect(() => memDb.run("INSERT INTO companion_execution_runs (id, role_id, idempotency_key, action_type, status, started_at) VALUES ('new-duplicate', 'luffy', 'duplicate-key', 'gift', 'running', 3)")).toThrow()
   })
 
   it('命令网关在 handler 失败时记录 retryable，不伪造完成', async () => {
