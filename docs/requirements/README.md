@@ -20,9 +20,6 @@
 
 ## 进行中
 
-人物世界引擎统一与旅程闭环：[companion-engine-unification-v1.md](./companion-engine-unification-v1.md)，审查并修复事件、状态、投影、主动行为和用户旅程之间的断点。
-
-
 | 文档 | 说明 |
 |------|------|
 | [prompt-coverage-and-review-v2.md](./prompt-coverage-and-review-v2.md) | 全量方案已确认：推进用途 / 消费者门禁、集中展示、缺失生成闭环和人物扩展；新增 UI 待候选验收后统一回流 |
@@ -49,6 +46,8 @@
 ## 已完成施工快照（冻结）
 
 顶层架构收口：[top-level-architecture-closeout-v1.md](./top-level-architecture-closeout-v1.md)，已完成 Runtime、Application、Agent Host、Capability、Companion Core、Read Model、Projection、Scheduler、Headless 和恢复边界收口。
+
+人物世界引擎统一与旅程闭环：[companion-engine-unification-v1.md](./companion-engine-unification-v1.md)，已完成事件、状态、投影、主动行为、角色隔离和主要用户旅程闭环；后续观测增强另立合同。
 
 生活引擎因果与现实锚点：[life-engine-causality-and-real-world-anchor-v1.md](./life-engine-causality-and-real-world-anchor-v1.md)，已完成日内因果重编排、宿主作息关怀、次日日剧本反哺和对应门禁。
 
