@@ -65,6 +65,8 @@ interface InternalTask extends BackgroundTaskInfo {
   linkSpanId?: string
 }
 
+type RecoveryHandler = (task: BackgroundTaskInfo) => Promise<(() => Promise<void>) | null>
+
 // ── SQLite helpers ──
 
 /**
@@ -111,10 +113,15 @@ function parseCheckpoint(raw: unknown): TaskCheckpoint | undefined {
 
 // ── TaskQueueManager ──
 
-class TaskQueueManager {
+export class TaskQueueManager {
   private tasks = new Map<string, InternalTask>()
   private queue: string[] = []
   private running = false
+  private recoveryHandlers = new Map<TaskType, RecoveryHandler>()
+
+  registerRecoveryHandler(name: TaskType, handler: RecoveryHandler): void {
+    this.recoveryHandlers.set(name, handler)
+  }
 
   // ── 入队 ──
 
@@ -175,20 +182,37 @@ class TaskQueueManager {
           error: row.error ? String(row.error) : undefined,
           checkpoint: parseCheckpoint(row.checkpoint),
         }
-        // 更新状态为 pending（覆盖 running）
-        if (row.status === 'running') {
-          db.run('UPDATE background_tasks SET status=?, updated_at=? WHERE id=?',
-            ['pending', info.updatedAt, info.id])
-          persist()
+        const handler = this.recoveryHandlers.get(info.name)
+        const fn = handler ? await handler(info) : null
+        if (fn) {
+          if (row.status === 'running') {
+            db.run('UPDATE background_tasks SET status=?, updated_at=? WHERE id=?',
+              ['pending', info.updatedAt, info.id])
+            persist()
+          }
+          this.tasks.set(info.id, { ...info, fn })
+          this.queue.push(info.id)
+          recovered.push(info)
+          continue
         }
-        this.tasks.set(info.id, info)
-        this.queue.push(info.id)
-        recovered.push(info)
+
+        const failed: InternalTask = {
+          ...info,
+          status: 'failed',
+          error: '应用重启后无法恢复该后台任务，已停止等待。',
+          updatedAt: Date.now(),
+          fn: undefined,
+        }
+        this.tasks.set(failed.id, failed)
+        await dbUpsertTask(this.toInfo(failed))
+        await this.notify(failed, { type: 'task:failed', task: this.toInfo(failed) })
+        recovered.push(this.toInfo(failed))
       }
       stmt.free()
       if (recovered.length > 0) {
         log.info('Recovered interrupted tasks from SQLite', { count: recovered.length })
       }
+      void this.processNext()
       return recovered
     } catch (err) {
       log.warn('Failed to recover tasks from SQLite', { error: String(err) })

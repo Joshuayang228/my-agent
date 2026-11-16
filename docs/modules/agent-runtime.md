@@ -33,6 +33,7 @@ Application Orchestrator 另提供 `runWorkflow`，只接受 `kind: 'workflow'` 
 Context Provider 与 Capability、Workflow 共用 Manifest 权限门禁，`requires` 缺失时既不会进入会话环境，也不会执行 provider。
 Scheduler Headless 执行通过统一上下文携带稳定 trace / 幂等键和独立 runId，Runtime 在同一 trace context 内运行后台 Agent Loop。
 Headless 会话与主会话共享 Agent Host Capability 注册和 Manifest 筛选，后台确认策略继续限制可自动执行的工具范围。
+后台任务恢复按 `profile-extract`、`smart-title`、`vector-index-user` 和 `persona-reflection` 类型重建执行函数，缺少可重建上下文的任务会明确失败并记录通知。
 
 ## 可靠性边界（2026-11-13）
 

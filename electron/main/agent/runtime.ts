@@ -766,7 +766,51 @@ class AgentRuntime {
 
 export const runtime = new AgentRuntime()
 
+function registerTaskRecoveryHandlers(): void {
+  taskQueue.registerRecoveryHandler('smart-title', async task => {
+    const session = await store.getSession(task.sessionId)
+    const user = session?.messages.filter(message => message.role === 'user').at(-1)
+    const assistant = session?.messages.filter(message => message.role === 'assistant').at(-1)
+    if (!user) return null
+    const llmConfig = await runtime.getLLMConfig()
+    return async () => store.generateSmartTitle(task.sessionId, user.content, assistant?.content ?? '', llmConfig)
+  })
+
+  taskQueue.registerRecoveryHandler('profile-extract', async task => {
+    const session = await store.getSession(task.sessionId)
+    const assistant = session?.messages.filter(message => message.role === 'assistant').at(-1)
+    if (!session || !assistant) return null
+    const llmConfig = await runtime.getLLMConfig()
+    return async () => maybeExtractProfile(session.messages, llmConfig, assistant.content, { roleId: session.roleId, sessionId: task.sessionId })
+  })
+
+  taskQueue.registerRecoveryHandler('vector-index-user', async task => {
+    const session = await store.getSession(task.sessionId)
+    const user = session?.messages.filter(message => message.role === 'user').at(-1)
+    if (!user || user.content.length <= 20) return null
+    const llmConfig = await runtime.getLLMConfig()
+    return async () => addToVectorStore({
+      id: `recovered-user-${task.id}`,
+      text: user.content.slice(0, 500),
+      category: 'conversation',
+      sessionId: task.sessionId,
+      timestamp: task.createdAt,
+    }, llmConfig)
+  })
+
+  taskQueue.registerRecoveryHandler('persona-reflection', async task => {
+    const session = await store.getSession(task.sessionId)
+    if (!session?.roleId) return null
+    const llmConfig = await runtime.getAuxLLMConfig()
+    return async () => {
+      const { runReflectionNow } = await import('../companion/growth/reflection-service')
+      await runReflectionNow(session.roleId, llmConfig)
+    }
+  })
+}
+
 // Register headless runner with Scheduler
 import { setHeadlessRunner } from '../scheduler/index'
 import { shouldAutoApproveHeadlessTool } from './headless-policy'
+registerTaskRecoveryHandlers()
 setHeadlessRunner((prompt, taskName, executionContext) => runtime.runHeadless(prompt, taskName, executionContext))
