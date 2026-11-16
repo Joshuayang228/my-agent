@@ -6,7 +6,8 @@
  *
  * v2 新增（对照方法论幂等性章节）：
  * - SQLite 持久化：任务状态写库，进程崩溃后可从 background_tasks 表恢复 pending 任务
- * - 启动恢复：app ready 后调用 recoverPendingTasks()，把中断的任务重新入队
+ * - 启动恢复：app ready 后调用 recoverPendingTasks()，把可重建的中断任务重新入队
+ * - 不可恢复任务：没有注册恢复处理器或缺少上下文时，明确落为 failed 并发送一次幂等通知
  * - notified 幂等标志落盘：通知发出后写库，重启后不重发
  *
  * v3 新增（M11 方向一：可靠性）：
@@ -156,8 +157,8 @@ export class TaskQueueManager {
    * 进程启动后调用一次，把 status='pending' 或 'running'（上次崩溃中断）的任务
    * 重置为 pending 并加回内存队列，等外部重新注册执行函数。
    *
-   * 注意：恢复的任务没有 fn，调用 reRegisterRecoveredTask() 注入函数后才会真正执行。
-   * 对于没有被重新注册的任务，它们会停留在 pending 状态直到 app 生命周期结束。
+   * 注意：恢复的任务没有 fn，类型恢复处理器或 reRegisterRecoveredTask() 注入函数后才会真正执行。
+   * 没有可用恢复函数的任务会立即落为 failed，避免重启后永久停留在 pending。
    */
   async recoverPendingTasks(): Promise<BackgroundTaskInfo[]> {
     try {

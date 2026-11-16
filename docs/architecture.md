@@ -31,6 +31,7 @@ Workspace 的项目路径、最近主对话和当前焦点内容现在由 `works
 人物世界核心写入现在通过 `withCompanionUnitOfWork` 复用数据库事务协调器，建表在事务外完成，领域事件、业务事实与 Outbox 写入在同一事务内提交。Outbox 采用 `claimed_at` / `lease_until` 租约，过期 processing 会被下一轮恢复，失败使用 `next_attempt_at` 退避重试，并严格受 `max_attempts` 上限约束；达到上限的过期租约会落为终态失败，投递语义为至少一次，消费端必须幂等。
 
 对话完成后的伙伴生活结算由 `conversation-application-service.ts` 负责，Agent Runtime 只保留会话生命周期和 Loop 编排。Chat、Session 与 Companion 的特权 IPC 入口统一经过主框架来源校验，图片读取入口继续保留异步期间的导航复核。sql.js 当前通过 `npm run bench:database` 建立插入与全量导出基线。
+后台 Task Queue 的恢复入口按任务类型重建执行函数；无法重建的记录直接进入失败终态并发送一次幂等通知，避免恢复状态长期悬挂。
 
 ## 人物世界核心层（2026-11-12）
 

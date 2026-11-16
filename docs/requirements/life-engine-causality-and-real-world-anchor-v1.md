@@ -1,6 +1,7 @@
 # 人物世界引擎因果重编排与现实作息锚点施工合同
 
-> 状态：进行中（2026-11-10）
+> 状态：已完成施工快照（冻结）
+> 生命周期：已完成施工快照（冻结）
 > 统一标识：`REQ-LIFE-CAUSALITY-AND-REAL-WORLD-ANCHOR-V1`
 > 负责人：Agent
 > 关联模块卡：[`docs/modules/companion.md`](../modules/companion.md)
