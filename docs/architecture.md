@@ -28,7 +28,7 @@ Workspace 的项目路径、最近主对话和当前焦点内容现在由 `works
 
 ## 2026-11-13 可靠性收口
 
-人物世界核心写入现在通过 `withCompanionUnitOfWork` 复用数据库事务协调器，建表在事务外完成，领域事件、业务事实与 Outbox 写入在同一事务内提交。Outbox 采用 `claimed_at` / `lease_until` 租约，过期 processing 会被下一轮恢复，失败使用 `next_attempt_at` 退避重试，投递语义为至少一次，消费端必须幂等。
+人物世界核心写入现在通过 `withCompanionUnitOfWork` 复用数据库事务协调器，建表在事务外完成，领域事件、业务事实与 Outbox 写入在同一事务内提交。Outbox 采用 `claimed_at` / `lease_until` 租约，过期 processing 会被下一轮恢复，失败使用 `next_attempt_at` 退避重试，并严格受 `max_attempts` 上限约束；达到上限的过期租约会落为终态失败，投递语义为至少一次，消费端必须幂等。
 
 对话完成后的伙伴生活结算由 `conversation-application-service.ts` 负责，Agent Runtime 只保留会话生命周期和 Loop 编排。Chat、Session 与 Companion 的特权 IPC 入口统一经过主框架来源校验，图片读取入口继续保留异步期间的导航复核。sql.js 当前通过 `npm run bench:database` 建立插入与全量导出基线。
 
@@ -46,7 +46,7 @@ Workspace 的项目路径、最近主对话和当前焦点内容现在由 `works
 - `electron/main/companion/core/projections/receipts.ts` 提供 `projection_name + event_id` 的幂等投影回执，迁移期用于约束旧生活读模型重试。
 - `electron/main/companion/core/read-models/runtime-read-model.ts` 是 Prompt、Debug、人物入口和自动配图共享的运行态只读边界。
 - `electron/main/companion/core/outbox/outbox.ts` 提供去重通知出站记录。
-- `electron/main/companion/adapters/window-outbox-dispatcher.ts` 是 Electron 窗口投递适配器，负责领取 pending/failed 消息、成功标记 delivered、失败保留 failed 并等待下一轮重试。
+- `electron/main/companion/adapters/window-outbox-dispatcher.ts` 是 Electron 窗口投递适配器，负责领取 pending/failed 消息、成功标记 delivered、失败保留 failed 并等待下一轮重试；通用 Outbox 调度器按 `max_attempts` 停止无限重试，并回收达到上限的过期 processing 租约。
 - `electron/main/companion/adapters/session-outbox-dispatcher.ts` 消费 `main-session-message`，按消息 ID 幂等写入主会话；窗口通知和主会话留痕使用独立消费器。
 - 窗口不可用时投递器不会把消息误标为 delivered，Outbox 保留失败状态等待下一轮窗口恢复后重试。
 - `chat-resonance.ts` 的文化体验完成链路已写入核心事件、执行账本和 Outbox。

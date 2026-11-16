@@ -54,8 +54,19 @@ export async function dispatchCompanionOutbox(input: {
     ? ` AND kind NOT IN (${input.excludeKinds.map(() => '?').join(', ')})`
     : ''
   const now = Date.now()
+  /**
+   * 回收达到重试上限的过期租约。
+   *
+   * 背景：投递进程可能在 processing 阶段崩溃，租约恢复本来会再次领取消息，但达到上限的消息不应继续占用恢复队列。
+   * 设计意图：先把这类记录落为 failed 终态，再用同一查询领取仍有额度的消息，放弃让过期记录永久停留在 processing 的做法。
+   * 关键约束：只有租约已过期且 attempt >= max_attempts 才能终止，正常失败仍由 next_attempt_at 控制退避；状态变化必须持久化。
+   */
+  db.run(`UPDATE companion_outbox
+    SET status = 'failed', last_error = ?, claimed_at = NULL, lease_until = NULL, next_attempt_at = NULL
+    WHERE status = 'processing' AND lease_until IS NOT NULL AND lease_until <= ? AND attempt >= max_attempts`, ['达到最大投递次数，停止自动重试。', now])
+  const terminalizedCount = db.getRowsModified()
   const rows = db.exec(`SELECT id, role_id, event_id, kind, dedupe_key, payload_json, status, attempt, last_error, claimed_at, lease_until, next_attempt_at, max_attempts, created_at, delivered_at
-    FROM companion_outbox WHERE ((status = 'pending') OR (status = 'failed' AND (next_attempt_at IS NULL OR next_attempt_at <= ?)) OR (status = 'processing' AND lease_until IS NOT NULL AND lease_until <= ?))${kindFilter}${excludeFilter} ORDER BY created_at ASC LIMIT ?`, [now, now, ...(input.kinds ?? []), ...(input.excludeKinds ?? []), limit])[0]?.values ?? []
+    FROM companion_outbox WHERE ((status = 'pending' AND attempt < max_attempts) OR (status = 'failed' AND attempt < max_attempts AND (next_attempt_at IS NULL OR next_attempt_at <= ?)) OR (status = 'processing' AND attempt < max_attempts AND lease_until IS NOT NULL AND lease_until <= ?))${kindFilter}${excludeFilter} ORDER BY created_at ASC LIMIT ?`, [now, now, ...(input.kinds ?? []), ...(input.excludeKinds ?? []), limit])[0]?.values ?? []
   let delivered = 0
   for (const row of rows) {
     const message = rowToOutbox(row)
@@ -73,6 +84,7 @@ export async function dispatchCompanionOutbox(input: {
     }
     persist()
   }
+  if (terminalizedCount > 0 || rows.length > 0) persist()
   return delivered
 }
 

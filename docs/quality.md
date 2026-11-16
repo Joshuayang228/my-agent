@@ -19,7 +19,7 @@ Scheduler Headless 上下文门禁（2026-11-15）：`scheduler.test.ts` 验证�
 Headless Capability 接线门禁（2026-11-15）：Runtime 的 Headless ToolRegistry 注册 Agent Host Capability，执行时同时经过 Manifest 能力筛选、Capability 权限校验和 Headless 自动批准策略。
 后台任务恢复门禁（2026-11-16）：`task-queue-recovery.test.ts` 验证持久化 `running` 任务可以注入恢复函数并完成；Task Queue 为四类后台任务注册恢复处理器，恢复上下文缺失时进入失败终态并保持通知幂等，避免中断任务永久停在 pending。
 
-人物世界核心层 P0 门禁（2026-11-12）：`companion-world-core.test.ts` 覆盖旧 world state 回填统一运行态、状态 delta 有界与版本递增、领域事件幂等、投影回执幂等、Outbox 去重、投递成功 / 失败状态、窗口不可用重试语义、命令网关失败记录和执行账本失败状态；`world-state.test.ts`、`companion-life.test.ts`、`gifting.test.ts`、`relationship-keepsake.test.ts`、`vulnerability.test.ts`、`travel-progression.test.ts` 与 `replan.test.ts` 验证生活行为通过核心运行态和 Outbox 工作；IPC handler 通过类型检查、构建和全量行为测试门禁。
+人物世界核心层 P0 门禁（2026-11-12）：`companion-world-core.test.ts` 覆盖旧 world state 回填统一运行态、状态 delta 有界与版本递增、领域事件幂等、投影回执幂等、Outbox 去重、投递成功 / 失败状态、窗口不可用重试语义、命令网关失败记录和执行账本失败状态；`world-state.test.ts`、`companion-life.test.ts`、`gifting.test.ts`、`relationship-keepsake.test.ts`、`vulnerability.test.ts`、`travel-progression.test.ts` 与 `replan.test.ts` 验证生活行为通过核心运行态和 Outbox 工作；`companion-window-outbox.test.ts` 另覆盖达到 `max_attempts` 后停止重试及过期租约终态回收；IPC handler 通过类型检查、构建和全量行为测试门禁。
 Chat Tool 核心入口回归（2026-11-12）：`companion-life-tools.test.ts` 覆盖发朋友圈、评论、资产和阅读笔记写入经过命令网关后的角色隔离、失败语义与真实 ID 链路。
 生活事件投影回归（2026-11-12）：`companion-life.test.ts` 覆盖 published 事件到 Moment、关系、情绪与事件关联的投影链路，核心事件与投影回执在同一测试数据库中验证。
 运行态并发回归（2026-11-12）：`companion-world-core.test.ts` 验证状态 delta 的 expectedVersion 过期写入会拒绝并发覆盖。

@@ -1583,7 +1583,7 @@ Core Runtime State 迁移边界继续收口：旧 `role_state` 回填与镜像�
 日内重排查询也已迁移到 Legacy Read Model，生产重排路径不再直接依赖旧 store。
 Scheduler Headless 入口已补统一执行上下文：同一调度时刻复用稳定 trace / 幂等键，单次尝试保留 runId，Runtime 在同一 trace context 内执行。
 Headless Runtime 已注册 Agent Host Capability，后台会话现在与主会话共享 Manifest 筛选和 Capability 权限门禁。
-后台 Task Queue 已补恢复处理器，画像、标题、向量索引和人物反思任务可从会话数据重建，无法恢复的任务不会永久停留在 pending。
+后台 Task Queue 已补恢复处理器，画像、标题、向量索引和人物反思任务可从会话数据重建，无法恢复的任务不会永久停留在 pending。人物世界 Outbox 已补 `max_attempts` 终止门，失败通知不会无限重试，达到上限的过期 processing 租约会落为终态失败。
 
 # 2026-11-15 顶层架构收口合同完成验收
 
