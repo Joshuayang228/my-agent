@@ -5,6 +5,8 @@
  * 工具层包装在 tools/builtins/task-plan.ts。
  */
 
+import { getDatabase, withDatabaseTransaction } from '../storage/database'
+
 export interface TaskStep {
   id: number
   description: string
@@ -16,111 +18,63 @@ export interface TaskPlan {
   goal: string
   steps: TaskStep[]
   createdAt: number
-  sessionId?: string
+  sessionId: string
 }
 
-let currentSessionId: string | undefined
-const memoryStore = new Map<string, TaskPlan>()
-let dbAvailable: boolean | null = null
-let dbReady = false
-
-export function setCurrentSessionId(sessionId: string): void {
-  currentSessionId = sessionId
+function assertSessionId(sessionId: string): void {
+  if (!sessionId?.trim()) throw new Error('任务计划缺少会话执行环境。')
 }
 
-export function getCurrentSessionId(): string | undefined {
-  return currentSessionId
+export async function loadPlan(sessionId: string): Promise<TaskPlan | null> {
+  assertSessionId(sessionId)
+  const db = await getDatabase()
+  if (!db.exec("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'task_plans'").length) return null
+  const rows = db.exec('SELECT goal, steps, created_at FROM task_plans WHERE session_id = ? ORDER BY updated_at DESC LIMIT 1', [sessionId])
+  if (!rows[0]?.values.length) return null
+  const [goal, stepsJson, createdAt] = rows[0].values[0] as [string, string, number]
+  const steps = JSON.parse(stepsJson) as TaskStep[]
+  return { goal, steps, createdAt, sessionId }
 }
 
-function getStoreKey(sessionId?: string): string {
-  return `plan_${sessionId || currentSessionId || 'default'}`
-}
-
-async function tryGetDatabase() {
-  if (dbAvailable === false) return null
-  try {
-    const { getDatabase: gdb } = await import('../storage/database')
-    const db = await gdb()
-    dbAvailable = true
-    return db
-  } catch {
-    dbAvailable = false
-    return null
-  }
-}
-
-async function ensureTable(): Promise<void> {
-  if (dbReady || dbAvailable === false) return
-  const db = await tryGetDatabase()
-  if (!db) return
-  db.run(`
-    CREATE TABLE IF NOT EXISTS task_plans (
-      id          TEXT PRIMARY KEY,
-      session_id  TEXT,
-      goal        TEXT NOT NULL,
-      steps       TEXT NOT NULL,
-      created_at  INTEGER NOT NULL,
-      updated_at  INTEGER NOT NULL
-    )
-  `)
-  dbReady = true
-}
-
-export async function loadPlan(sessionId?: string): Promise<TaskPlan | null> {
-  const sid = sessionId || currentSessionId
-  if (!sid) {
-    return memoryStore.values().next().value ?? null
-  }
-
-  await ensureTable()
-  const db = await tryGetDatabase()
-
-  if (db) {
-    const row = db.exec('SELECT goal, steps, created_at FROM task_plans WHERE session_id = ? ORDER BY updated_at DESC LIMIT 1', [sid])
-    if (row.length && row[0].values.length) {
-      const [goal, stepsJson, createdAt] = row[0].values[0] as [string, string, number]
-      try {
-        const steps = JSON.parse(stepsJson) as TaskStep[]
-        return { goal, steps, createdAt, sessionId: sid }
-      } catch { /* fall through to memory */ }
-    }
-  }
-
-  return memoryStore.get(getStoreKey(sid)) ?? null
-}
-
+/** 并行会话必须使用显式主键，成功响应之前整份计划已持久化。
+ * 写盘故障由数据库事务隔离，不能退回全局内存再声称保存成功。
+ */
 export async function savePlan(plan: TaskPlan): Promise<void> {
-  const sid = plan.sessionId || currentSessionId || 'default'
-  const key = getStoreKey(sid)
-  memoryStore.set(key, plan)
-
-  await ensureTable()
-  const db = await tryGetDatabase()
-  if (db) {
+  assertSessionId(plan.sessionId)
+  await withDatabaseTransaction(async db => {
+    db.run(`CREATE TABLE IF NOT EXISTS task_plans (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      goal TEXT NOT NULL,
+      steps TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )`)
     db.run(
       `INSERT OR REPLACE INTO task_plans (id, session_id, goal, steps, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [key, sid, plan.goal, JSON.stringify(plan.steps), plan.createdAt, Date.now()],
+      [`plan_${plan.sessionId}`, plan.sessionId, plan.goal, JSON.stringify(plan.steps), plan.createdAt, Date.now()],
     )
-    try {
-      const { persist } = await import('../storage/database')
-      persist()
-    } catch { /* ok */ }
-  }
+  })
 }
 
-export async function deletePlan(sessionId?: string): Promise<boolean> {
-  const sid = sessionId || currentSessionId || 'default'
-  const key = getStoreKey(sid)
-  memoryStore.delete(key)
+export async function deletePlan(sessionId: string): Promise<void> {
+  assertSessionId(sessionId)
+  if (!await loadPlan(sessionId)) return
+  await withDatabaseTransaction(async db => {
+    db.run('DELETE FROM task_plans WHERE session_id = ?', [sessionId])
+  })
+}
 
-  const db = await tryGetDatabase()
-  if (db) {
-    db.run('DELETE FROM task_plans WHERE id = ?', [key])
-    try {
-      const { persist } = await import('../storage/database')
-      persist()
-    } catch { /* ok */ }
-  }
-  return true
+export async function updatePlanStep(sessionId: string, stepId: number, status?: TaskStep['status'], result?: string): Promise<TaskPlan | null> {
+  return withDatabaseTransaction(async () => {
+    const plan = await loadPlan(sessionId)
+    if (!plan) return null
+    const step = plan.steps.find(item => item.id === stepId)
+    if (!step) return plan
+    if (status) step.status = status
+    if (result) step.result = result
+    await savePlan(plan)
+    return plan
+  })
 }

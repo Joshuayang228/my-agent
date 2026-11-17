@@ -74,7 +74,6 @@ vi.mock('../../electron/main/utils/logger', () => ({
 }))
 
 import { rememberTool, recallTool, forgetTool, resolveRememberMetadata } from '../../electron/main/tools/builtins/memory-manage'
-import { taskPlanTool } from '../../electron/main/tools/builtins/task-plan'
 import { drainMemoryBackgroundTasks } from '../../electron/main/storage/memory-store'
 import { _rows } from '../../electron/main/storage/database'
 
@@ -135,83 +134,5 @@ describe('forget tool', () => {
   it('rejects missing id', async () => {
     const result = await forgetTool.execute({ id: '' })
     expect(result).toContain('错误')
-  })
-})
-
-describe('task_plan tool', () => {
-  it('creates a plan', async () => {
-    const result = await taskPlanTool.execute({
-      action: 'create',
-      goal: 'Build a feature',
-      steps: '["Design", "Implement", "Test"]',
-    })
-    expect(result).toContain('Build a feature')
-    expect(result).toContain('Design')
-    expect(result).toContain('0/3')
-  })
-
-  it('shows status', async () => {
-    await taskPlanTool.execute({
-      action: 'create',
-      goal: 'Test plan',
-      steps: '["Step 1", "Step 2"]',
-    })
-    const result = await taskPlanTool.execute({ action: 'status' })
-    expect(result).toContain('Test plan')
-    expect(result).toContain('Step 1')
-  })
-
-  it('updates a step', async () => {
-    await taskPlanTool.execute({
-      action: 'create',
-      goal: 'Update test',
-      steps: '["A", "B"]',
-    })
-    const result = await taskPlanTool.execute({
-      action: 'update',
-      stepId: '1',
-      stepStatus: 'done',
-      stepResult: 'Completed successfully',
-    })
-    expect(result).toContain('1/2')
-    expect(result).toContain('Completed successfully')
-  })
-
-  it('marks all done and shows celebration', async () => {
-    await taskPlanTool.execute({
-      action: 'create',
-      goal: 'Full completion',
-      steps: '["Only step"]',
-    })
-    const result = await taskPlanTool.execute({
-      action: 'update',
-      stepId: '1',
-      stepStatus: 'done',
-    })
-    expect(result).toContain('所有步骤均已完成')
-  })
-
-  it('clears plan', async () => {
-    await taskPlanTool.execute({
-      action: 'create',
-      goal: 'Clear test',
-      steps: '["Step"]',
-    })
-    const result = await taskPlanTool.execute({ action: 'clear' })
-    expect(result).toContain('已清除')
-
-    const status = await taskPlanTool.execute({ action: 'status' })
-    expect(status).toContain('当前没有活动计划')
-  })
-
-  it('rejects create without goal', async () => {
-    const result = await taskPlanTool.execute({ action: 'create', steps: '["A"]' })
-    expect(result).toContain('错误')
-  })
-
-  it('handles no plan gracefully', async () => {
-    await taskPlanTool.execute({ action: 'clear' })
-    const result = await taskPlanTool.execute({ action: 'update', stepId: '1', stepStatus: 'done' })
-    expect(result).toContain('当前没有活动计划')
   })
 })

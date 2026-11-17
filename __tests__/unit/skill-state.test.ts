@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { SkillDefinition } from '../../src/shared/types'
+import type { SkillDefinition, ToolContext } from '../../src/shared/types'
 
 const fixture = vi.hoisted(() => ({ directory: '', skills: [] as SkillDefinition[], handlers: new Map<string, (...args: any[]) => Promise<any>>() }))
 vi.mock('electron', () => ({
@@ -17,7 +17,7 @@ vi.mock('../../electron/main/skills/loader', async (original) => ({
 
 import * as database from '../../electron/main/storage/database'
 import { loadDisabledSkills, saveDisabledSkills } from '../../electron/main/storage/skill-state-store'
-import { buildSkillSummaryForPrompt, getActiveSkill, initSkillSystem, isSkillEnabled, setSkillEnabled } from '../../electron/main/skills/registry'
+import { buildSkillSummaryForPrompt, clearActiveSkill, getActiveSkill, initSkillSystem, isSkillEnabled, setSkillEnabled } from '../../electron/main/skills/registry'
 import { ToolRegistry } from '../../electron/main/tools/registry'
 import { registerSkillsIPC } from '../../electron/main/ipc/skills'
 
@@ -38,11 +38,12 @@ afterEach(() => {
 describe('Skill 启停真实持久化与 IPC', () => {
   it('禁用移除工具、Prompt 与活跃状态，并拒绝缓存工具调用', async () => {
     const previous = tools.get('skill_invoke_test_helper')!
-    await previous.execute({})
-    expect(getActiveSkill()?.meta.name).toBe('test-helper')
+    const context: ToolContext = { workdir: fixture.directory, sessionId: 'session-a', skillState: {} }
+    await previous.execute({}, context)
+    expect(getActiveSkill(context.skillState)?.meta.name).toBe('test-helper')
     await setSkillEnabled(tools, 'test-helper', false)
     expect(tools.has(previous.name)).toBe(false)
-    expect(getActiveSkill()).toBeNull()
+    expect(getActiveSkill(context.skillState)).toBeNull()
     expect(buildSkillSummaryForPrompt()).not.toContain('test-helper')
     await expect(previous.execute({})).rejects.toThrow('已停用')
     expect(await loadDisabledSkills()).toEqual(new Set(['test-helper']))
@@ -55,6 +56,32 @@ describe('Skill 启停真实持久化与 IPC', () => {
     expect(tools.has(previous.name)).toBe(true)
     expect(buildSkillSummaryForPrompt()).toContain('test-helper')
     await expect(previous.execute({})).rejects.toThrow('已停用、更新或移除')
+  })
+
+  it('并行会话独立激活和清理，重载使旧定义失效', async () => {
+    fixture.skills.push({ ...fixture.skills[0], meta: { name: 'second-helper', description: '另一套方法' } })
+    await initSkillSystem(tools)
+    const first: ToolContext = { workdir: fixture.directory, sessionId: 'first', skillState: {} }
+    const second: ToolContext = { workdir: fixture.directory, sessionId: 'second', skillState: {} }
+    await Promise.all([
+      tools.get('skill_invoke_test_helper')!.execute({}, first),
+      tools.get('skill_invoke_second_helper')!.execute({}, second),
+    ])
+    expect(getActiveSkill(first.skillState)?.meta.name).toBe('test-helper')
+    expect(getActiveSkill(second.skillState)?.meta.name).toBe('second-helper')
+    clearActiveSkill(first.skillState)
+    expect(getActiveSkill(first.skillState)).toBeNull()
+    expect(getActiveSkill(second.skillState)?.meta.name).toBe('second-helper')
+    await initSkillSystem(tools)
+    expect(getActiveSkill(second.skillState)).toBeNull()
+    await expect(tools.get('skill_invoke_test_helper')!.execute({})).rejects.toThrow('会话')
+  })
+
+  it('Registry 复制工具上下文时仍将激活结果留在本次执行容器', async () => {
+    const context: ToolContext = { workdir: fixture.directory, sessionId: 'registry' }
+    const results = await tools.executeAll([{ id: 'activate', name: 'skill_invoke_test_helper', arguments: '{}' }], context)
+    expect(results[0].isError).not.toBe(true)
+    expect(getActiveSkill(context.skillState)?.meta.name).toBe('test-helper')
   })
 
   it('磁盘写入失败不改变内存、数据库或工具状态，可重试', async () => {

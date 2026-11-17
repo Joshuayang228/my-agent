@@ -100,7 +100,7 @@ export async function runSubAgent(
     ? `subagent-${randomUUID()}`
     : undefined
   const childToolContext = debugSessionId && config.toolContext
-    ? { ...config.toolContext, sessionId: debugSessionId }
+    ? { ...config.toolContext, sessionId: debugSessionId, skillState: {}, skillActivations: [] }
     : config.toolContext
 
   const systemPrompt = compileSubagentSystem(config.role, config.toolContext?.sessionKind)

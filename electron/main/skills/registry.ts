@@ -3,12 +3,11 @@ import { createLogger, hashForLog } from '../utils/logger'
 import { loadAllSkills } from './loader'
 import { loadDisabledSkills, saveDisabledSkills } from '../storage/skill-state-store'
 import { ToolRegistry } from '../tools/registry'
-import type { SkillActivationTrace, SkillDefinition, ToolDefinition } from '../../../src/shared/types'
+import type { SkillActivationTrace, SkillDefinition, SkillExecutionState, ToolDefinition } from '../../../src/shared/types'
 
 const log = createLogger('SkillRegistry')
 
 let loadedSkills: SkillDefinition[] = []
-let activeSkill: SkillDefinition | null = null
 let disabledSkills = new Set<string>()
 let mutationQueue: Promise<unknown> = Promise.resolve()
 
@@ -36,7 +35,6 @@ export function setSkillEnabled(toolRegistry: ToolRegistry, name: string, enable
     disabledSkills = next
     if (enabled && !skill.meta.disable_model_invocation) toolRegistry.register(createSkillActivationTool(skill, () => isSkillEnabled(name) && loadedSkills.includes(skill)))
     else if (!skill.meta.disable_model_invocation) toolRegistry.unregister(getSkillToolName(skill))
-    if (!enabled && activeSkill?.meta.name === name) activeSkill = null
   })
 }
 
@@ -44,12 +42,13 @@ export function getLoadedSkills(): SkillDefinition[] {
   return loadedSkills
 }
 
-export function getActiveSkill(): SkillDefinition | null {
-  return activeSkill
+export function getActiveSkill(state?: SkillExecutionState): SkillDefinition | null {
+  return state?.isCurrent?.() ? state.active ?? null : null
 }
 
-export function clearActiveSkill(): void {
-  activeSkill = null
+export function clearActiveSkill(state: SkillExecutionState): void {
+  delete state.active
+  delete state.isCurrent
 }
 
 export function getSkillActivationTrace(skill: SkillDefinition, reason?: string, activatedAt = Date.now()): SkillActivationTrace {
@@ -64,8 +63,9 @@ export function getSkillActivationTrace(skill: SkillDefinition, reason?: string,
   }
 }
 
-export function getActiveSkillTrace(): SkillActivationTrace | null {
-  return activeSkill ? getSkillActivationTrace(activeSkill) : null
+export function getActiveSkillTrace(state?: SkillExecutionState): SkillActivationTrace | null {
+  const active = getActiveSkill(state)
+  return active ? getSkillActivationTrace(active) : null
 }
 
 export function getSkillToolName(skill: SkillDefinition): string {
@@ -94,7 +94,12 @@ export function createSkillActivationTool(skill: SkillDefinition, canActivate: (
     },
     execute: async (args, ctx) => {
       if (!canActivate()) throw new Error('此 Skill 已停用、更新或移除，请重试。')
-      activeSkill = skill
+      if (!ctx?.sessionId) throw new Error('Skill 激活缺少会话执行环境。')
+      // 并发对话和子 Agent 可同时激活不同方法，状态由执行方持有。
+      // 读取时验证定义仍有效，启停或重载后旧正文不能继续限制工具。
+      const state = ctx.skillState ??= {}
+      state.active = skill
+      state.isCurrent = canActivate
       const reason = typeof args.reason === 'string' ? args.reason : undefined
       ctx?.skillActivations?.push(getSkillActivationTrace(skill, reason))
       log.info('Skill activated', { name: skill.meta.name, reasonHash: reason ? hashForLog(reason) : undefined, reasonLength: reason?.length ?? 0 })
@@ -134,7 +139,6 @@ export async function reloadSkills(toolRegistry: ToolRegistry): Promise<void> {
   for (const name of previousNames) toolRegistry.unregister(name)
   loadedSkills = nextSkills
   disabledSkills = nextDisabled
-  activeSkill = null
 
   for (const skill of loadedSkills) {
     if (skill.meta.disable_model_invocation || !isSkillEnabled(skill.meta.name)) continue

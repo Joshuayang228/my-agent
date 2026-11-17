@@ -13,13 +13,10 @@ import {
   loadPlan,
   savePlan,
   deletePlan,
-  setCurrentSessionId,
-  getCurrentSessionId,
+  updatePlanStep,
   type TaskPlan,
   type TaskStep,
 } from '../../services/task-plan-service'
-
-export { setCurrentSessionId as setTaskPlanSessionId }
 
 const MAX_GOAL_LENGTH = 20_000
 const MAX_STEPS_JSON_LENGTH = 200_000
@@ -64,7 +61,9 @@ export const taskPlanTool = buildTool({
     required: ['action'],
   },
   metadata: {},
-  execute: async (args) => {
+  execute: async (args, ctx) => {
+    if (!ctx?.sessionId?.trim()) return '错误：任务计划缺少会话执行环境。'
+    const sessionId = ctx.sessionId
     if (typeof args.action !== 'string') return '错误：必须提供有效 action'
     const action = args.action
 
@@ -92,7 +91,7 @@ export const taskPlanTool = buildTool({
             status: 'pending',
           })),
           createdAt: Date.now(),
-          sessionId: getCurrentSessionId(),
+          sessionId,
         }
 
         await savePlan(plan)
@@ -100,33 +99,26 @@ export const taskPlanTool = buildTool({
       }
 
       if (action === 'status') {
-        const plan = await loadPlan()
+        const plan = await loadPlan(sessionId)
         if (!plan) return '当前没有活动计划，请用 create 创建。'
         return formatPlan(plan)
       }
 
       if (action === 'update') {
-        const plan = await loadPlan()
-        if (!plan) return '当前没有活动计划。'
-
         if (typeof args.stepId !== 'string' || !/^[1-9]\d*$/.test(args.stepId)) return '错误：stepId 必须是正整数'
         if (args.stepStatus !== undefined && (typeof args.stepStatus !== 'string' || !VALID_STEP_STATUSES.has(args.stepStatus as TaskStep['status']))) return '错误：stepStatus 无效'
         if (args.stepResult !== undefined && (typeof args.stepResult !== 'string' || args.stepResult.length > MAX_STEP_RESULT_LENGTH)) return '错误：stepResult 无效或过长'
         const stepId = parseInt(args.stepId, 10)
-        const step = plan.steps.find(s => s.id === stepId)
-        if (!step) return `未找到步骤 ${stepId}；有效范围：1-${plan.steps.length}`
-
-        if (args.stepStatus) step.status = args.stepStatus as TaskStep['status']
-        if (args.stepResult) step.result = args.stepResult
-
-        await savePlan(plan)
+        const plan = await updatePlanStep(sessionId, stepId, args.stepStatus as TaskStep['status'] | undefined, args.stepResult as string | undefined)
+        if (!plan) return '当前没有活动计划。'
+        if (!plan.steps.some(step => step.id === stepId)) return `未找到步骤 ${stepId}；有效范围：1-${plan.steps.length}`
         return formatPlan(plan)
       }
 
       if (action === 'clear') {
-        const plan = await loadPlan()
+        const plan = await loadPlan(sessionId)
         const hadPlan = !!plan
-        await deletePlan()
+        await deletePlan(sessionId)
         return hadPlan ? '计划已清除。' : '此前没有活动计划。'
       }
 

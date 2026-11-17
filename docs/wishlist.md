@@ -10,7 +10,7 @@
 | A02 | P1 | 已修复完整 Manifest 目录与执行、同名入口及隐藏调用旁路，Unit / build / 正式 Electron 通过，待最终复审 |
 | A03 | P1 | 执行所有权与业务事实 fencing |
 | A04 | P1 | 工具超时后的真实执行收敛 |
-| A05 | P1 | Skill 与任务计划的会话隔离 |
+| A05 | P1 | 已修复执行级 Skill 与显式会话计划，隔离 / 重启 / 写盘失败回归通过，待最终复审 |
 | A06 | P1 | Scheduler occurrence 持久执行与恢复 |
 | A07 | P1 | Task Queue 关键持久化与终态通知 |
 | A08 | P1 | 特权 IPC 来源控制全入口覆盖 |

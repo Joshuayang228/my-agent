@@ -43,7 +43,6 @@ import type { MemoryCitation } from '../../../src/shared/types'
 import { recordAssetUsage } from '../utils/asset-usage'
 import { MEMORY_STRATEGY_ASSET_KEYS } from '../memory/asset-keys'
 import { buildSkillSummaryForPrompt, getActiveSkill, getActiveSkillTrace, clearActiveSkill } from '../skills/registry'
-import { setCurrentSessionId as setTaskPlanSessionId } from '../services/task-plan-service'
 import { clearSessionSubAgents, continueSubAgent } from './subagent-registry'
 import { runSubAgent } from './subagent'
 import { configureSubAgentExecutor } from '../tools/subagent-executor'
@@ -197,7 +196,7 @@ class AgentRuntime {
     confirmTool?: (name: string, args: Record<string, unknown>) => Promise<boolean>,
     workspaceContext?: WorkspaceChatContext,
   ): AsyncGenerator<AgentStreamEvent & { sessionId: string }> {
-    setTaskPlanSessionId(sessionId)
+    const skillState = {}
 
     // 先落盘用户消息，再从 DB 组装完整历史（避免 UI 本地数组与库不一致）
     if (userMessage.role === 'user') {
@@ -287,13 +286,13 @@ class AgentRuntime {
 
       let skillSummary: string | undefined
       let activeSkillBody: string | undefined
-      let activeSkillTrace = getActiveSkillTrace()
+      let activeSkillTrace = getActiveSkillTrace(skillState)
       try {
         skillSummary = buildSkillSummaryForPrompt() || undefined
-        const active = getActiveSkill()
+        const active = getActiveSkill(skillState)
         if (active) {
           activeSkillBody = buildActiveSkillPrompt(active.meta.name, active.body)
-          activeSkillTrace = getActiveSkillTrace()
+          activeSkillTrace = getActiveSkillTrace(skillState)
         }
       } catch { /* skill system not ready */ }
 
@@ -459,6 +458,7 @@ class AgentRuntime {
         roleId: assembleRoleId,     // feedback 记忆分桶（M22-G2）
         sessionKind: sessionMeta?.sessionKind || 'main', // M26-G2：子 Agent 任务工边界；workspace 禁止长期记忆副作用
         skillActivations: activeSkillTrace ? [activeSkillTrace] : [],
+        skillState,
         assetUsageReporter: (report) => {
           void recordAssetUsage({
             ...report,
@@ -481,7 +481,7 @@ class AgentRuntime {
           toolContext,
           interactionSpanId: chatSpan.id,  // 传入父 span ID，使 loop 内的子 span 形成调用链树
           filterTools: (allTools) => {
-            const active = getActiveSkill()
+            const active = getActiveSkill(skillState)
             return new AgentHostScopedToolCatalog(agentManifest)
               .filter(allTools, active?.meta.allowed_tools)
           },
@@ -588,7 +588,7 @@ class AgentRuntime {
       if (runtimeDone.emit) {
         yield { type: 'done', reason: runtimeDone.reason, sessionId }
       }
-      try { clearActiveSkill() } catch { /* ok */ }
+      clearActiveSkill(skillState)
       // 清理本会话的子 Agent 实例（continue 机制的实例生命周期绑定会话）
       try { clearSessionSubAgents(sessionId) } catch { /* ok */ }
 

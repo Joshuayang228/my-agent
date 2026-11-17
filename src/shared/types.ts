@@ -698,6 +698,12 @@ export type ToolAssetUsageReporter = (report: ToolAssetUsageReport) => void
 export const PERMISSION_RULE_TYPES = ['command', 'tool', 'path', 'file-write', 'file-delete'] as const
 export const PERMISSION_RULE_ACTIONS = ['allow', 'deny', 'ask'] as const
 
+/** 每次 Agent 执行独占，子 Agent 必须新建，避免可变激活状态跨会话传播。 */
+export interface SkillExecutionState {
+  active?: SkillDefinition
+  isCurrent?: () => boolean
+}
+
 /** 工具执行时注入的运行时上下文 */
 export interface ToolContext {
   /** 主进程为本次执行装配的完整宿主授权，模型与 Renderer 不得提供。 */
@@ -725,6 +731,7 @@ export interface ToolContext {
   sessionKind?: 'main' | 'summon' | 'workspace'
   /** 当前请求中已激活的 Skill；只记录来源和指纹元数据，不复制正文。 */
   skillActivations?: SkillActivationTrace[]
+  skillState?: SkillExecutionState
   /** 工具内部真实触发权限 / 路径策略时的脱敏上报回调。 */
   assetUsageReporter?: ToolAssetUsageReporter
   /** 当前批次 callId → tool span，用于把守卫证据精确挂到实际工具节点。 */

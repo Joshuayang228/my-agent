@@ -6,9 +6,12 @@
 
 ## 当前审计缺口（2026-11-17）
 
-全局 Skill / 任务计划、工具超时和后台恢复尚未完整收口，见 A02、A04—A07、A12、A15、A17。 完整证据见 [源码审计报告](../../_archive/audits/2026-11-17-architecture-source-audit.md)，活跃处置见 WISH-050。
+工具超时和后台恢复尚未完整收口，见 A04、A06—A07、A12、A15、A17。 完整证据见 [源码审计报告](../../_archive/audits/2026-11-17-architecture-source-audit.md)，活跃处置见 WISH-050。
 
 ## 已落地能力补充（2026-11-17）
+
+- Skill 激活状态由每次执行的 ToolContext 持有，子 Agent 新建容器，清理、停用及重载不会串改其他会话。
+- 任务计划使用显式会话键和 SQLite 事务持久化，并发步骤更新保持完整；缺少会话或写盘失败返回失败，重启读取最后成功快照。
 
 - 智能标题模型调用已迁到 `agent/session-title-service.ts`，Session Store 只读写数据。
 - Tool Builtins 通过 `tools/subagent-executor.ts` 接受 Runtime 执行端口，避免反向 import Agent。
