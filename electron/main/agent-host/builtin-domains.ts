@@ -84,6 +84,7 @@ export function createCompanionCoreDomain(): AgentHostDomainDefinition {
       provide: async context => {
         if (!context.roleId) return null
         const state = await getCompanionRuntimeReadModel(context.roleId)
+        if (!state) return null
         return `当前位置：${state.currentLocation || '未设定'}；当前活动：${state.currentActivity || '未设定'}；状态：${state.situation || '未设定'}`.slice(0, 2_000)
       },
     }],

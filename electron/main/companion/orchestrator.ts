@@ -73,7 +73,7 @@ export async function getActiveRole(): Promise<RoleSummary & { universeId: strin
     themeColor: pack.themeColor,
     avatarDataUrl: visuals.avatarDataUrl,
     bannerDataUrl: visuals.bannerDataUrl,
-    statusSummary: formatCompanionStatusSummary({ world: runtimeState, relationships, emotions }),
+    statusSummary: formatCompanionStatusSummary({ world: runtimeState ?? undefined, relationships, emotions }),
     statusMetrics: runtimeState ? {
       mood: runtimeState.mood,
       energy: runtimeState.energy,

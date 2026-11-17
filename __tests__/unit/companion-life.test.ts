@@ -32,6 +32,7 @@ const settingValues: Record<string, string> = {}
 vi.mock('../../electron/main/storage/database', () => ({
   withDatabaseTransaction: async (work: (db: typeof memDb) => Promise<unknown>) => runLocalTransaction(memDb, work),
   getDatabase: vi.fn(async () => memDb),
+  getInitializedDatabase: () => memDb,
   persist: vi.fn(),
 }))
 

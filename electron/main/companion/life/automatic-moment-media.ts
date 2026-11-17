@@ -63,7 +63,7 @@ export async function generateAutomaticMomentMedia(roleId: string, event: Compan
     }
     const appearance = (() => { try { const profile = loadRolePack(roleId).profile; return profile ? formatRoleAppearanceForImagePrompt(profile) : '' } catch { return '' } })()
     const worldState = await getCompanionRuntimeReadModel(roleId)
-    const description = buildAutomaticMomentImageDescription({ momentText: moment.text, world: worldState, appearance })
+    const description = buildAutomaticMomentImageDescription({ momentText: moment.text, world: worldState ?? undefined, appearance })
     const response = await requestGeneratedImage(config, compileImageGenerationRequest(description), undefined)
     const image = await normalizeGeneratedImage(response.bytes)
     const stored = await storeMomentMedia({ roleId, eventId: event.id, momentId: moment.id, mimeType: 'image/png', width: image.width, height: image.height, byteLength: image.bytes.length, bytes: image.bytes })

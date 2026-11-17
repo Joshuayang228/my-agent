@@ -8,6 +8,7 @@ const fixture = vi.hoisted(() => ({ directory: '' }))
 vi.mock('electron', () => ({ app: { getPath: () => fixture.directory } }))
 const { getDatabase, withDatabaseTransaction, persist, _resetDatabaseForTests } = await import('../../electron/main/storage/database')
 const SQL = await initSqlJs()
+const { getCompanionRuntimeReadModel } = await import('../../electron/main/companion/core/read-models/runtime-read-model')
 
 beforeEach(async () => {
   fixture.directory = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-transaction-'))
@@ -89,4 +90,43 @@ it('人物状态并发增量与生命周期更新均保留', async () => {
   expect(after.energy).toBe(before.energy - 15)
   expect(after.version).toBe(2)
   expect(after.lastTickAt).toBe(123)
+})
+
+it('人物只读查询在冷启动、缺表和缺人物时均不初始化或保存事实', async () => {
+  const db = await getDatabase()
+  const run = vi.spyOn(db, 'run')
+  expect(await getCompanionRuntimeReadModel('luffy')).toBeNull()
+  expect(run).not.toHaveBeenCalled()
+  const { ensureCompanionCoreSchema } = await import('../../electron/main/companion/core/schema')
+  await ensureCompanionCoreSchema()
+  run.mockClear()
+  expect(await getCompanionRuntimeReadModel('luffy')).toBeNull()
+  expect(run).not.toHaveBeenCalled()
+  expect(db.exec('SELECT COUNT(*) FROM companion_runtime_state')[0].values[0][0]).toBe(0)
+  _resetDatabaseForTests()
+  const write = vi.spyOn(fs, 'writeFileSync')
+  expect(await getCompanionRuntimeReadModel('luffy')).toBeNull()
+  expect(write).not.toHaveBeenCalled()
+})
+
+it('人物只读查询等待独立写事务，不读取随后回滚的快照', async () => {
+  const { ensureCompanionCoreSchema } = await import('../../electron/main/companion/core/schema')
+  const { getCompanionRuntimeState } = await import('../../electron/main/companion/core/state/runtime-state')
+  await ensureCompanionCoreSchema()
+  let release!: () => void
+  let entered!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  const started = new Promise<void>(resolve => { entered = resolve })
+  const writing = withDatabaseTransaction(async () => {
+    await getCompanionRuntimeState('luffy')
+    entered()
+    await gate
+    throw new Error('rollback-persona')
+  })
+  const rejected = expect(writing).rejects.toThrow('rollback-persona')
+  await started
+  const reading = getCompanionRuntimeReadModel('luffy')
+  release()
+  await rejected
+  expect(await reading).toBeNull()
 })

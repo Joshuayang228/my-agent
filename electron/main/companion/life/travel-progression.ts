@@ -162,7 +162,7 @@ export async function shouldProgressTravelJourney(
   const db = await getDatabase()
 
   const state = await getCompanionRuntimeReadModel(roleId)
-  if (state.pausedAt != null) {
+  if (state?.pausedAt != null) {
     return { shouldProgress: false, reason: 'role_paused' }
   }
 

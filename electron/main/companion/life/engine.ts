@@ -161,7 +161,7 @@ export async function tickActiveRole(now: number): Promise<{
 }> {
   const roleId = await resolveActiveRoleId()
   const runtimeState = await getCompanionRuntimeReadModel(roleId)
-  if (runtimeState.pausedAt != null) {
+  if (runtimeState?.pausedAt != null) {
     log.debug('Skip tick: active role still paused', { roleId, pausedAt: runtimeState.pausedAt })
     return { roleId, published: 0, scriptsCreated: 0, paused: true }
   }

@@ -6,6 +6,7 @@ let memDb: InstanceType<typeof SQL.Database>
 
 vi.mock('../../electron/main/storage/database', () => ({
   getDatabase: vi.fn(async () => memDb),
+  getInitializedDatabase: () => memDb,
   persist: vi.fn(),
   withDatabaseTransaction: vi.fn(async (work: (db: unknown) => Promise<unknown>) => {
     memDb.run('BEGIN')
@@ -76,6 +77,8 @@ describe('人物世界核心层', () => {
   })
 
   it('只读模型从核心运行态读取，不重新拼接旧生活表', async () => {
+    expect(await getCompanionRuntimeReadModel('luffy')).toBeNull()
+    await getCompanionRuntimeState('luffy')
     const readModel = await getCompanionRuntimeReadModel('luffy')
     expect(readModel).toMatchObject({ roleId: 'luffy', home: '千里阳光号' })
   })

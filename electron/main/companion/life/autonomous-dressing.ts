@@ -166,7 +166,7 @@ export async function shouldPerformContextualDressing(
   const db = await getDatabase()
 
   const state = await getCompanionRuntimeReadModel(roleId)
-  if (state.pausedAt != null) {
+  if (state?.pausedAt != null) {
     return { shouldDress: false, reason: 'role_paused' }
   }
 

@@ -1,5 +1,7 @@
 # 伙伴世界（Companion）
 
+人物只读状态查询（2026-11-18）Core Read Model 只读取已初始化数据库中的已提交人物快照，冷启动、缺表或缺人物返回空。生活写入口负责显式初始化，Debug、查询工具和上下文 Provider 不再因读取创建人物状态。
+
 ## 已落地能力补充（2026-11-18）
 
 宿主关怀的冷却和熬夜线索从当前人物、当前世界观的已提交事件读取，事务失败可以立即重试，重启保留冷却。并发 tick 在本地事务中复核，关怀会话消息写入失败会使整个关怀回滚。最近 36 小时的熬夜事实已接入日剧本上下文。
@@ -10,11 +12,11 @@
 
 ## 当前审计缺口（2026-11-17）
 
-运行态与 SQL 事实事务已经存在；执行事实 fencing、主动提醒旁路、只读初始化和后台取消仍有缺口，见 A03、A11、A14—A18。 完整证据见 [源码审计报告](../../_archive/audits/2026-11-17-architecture-source-audit.md)，活跃处置见 WISH-050。
+运行态与 SQL 事实事务已经存在；执行事实 fencing、主动提醒旁路和后台取消仍有缺口，见 A03、A11、A14、A15、A17、A18。 完整证据见 [源码审计报告](../../_archive/audits/2026-11-17-architecture-source-audit.md)，活跃处置见 WISH-050。
 
 ## Agent Host 能力接入（2026-11-13）
 
-Companion 首个 Agent Host Domain Definition 已注册，提供 `companion.runtime.read` 查询能力和 `companion.runtime-context` Context Provider。两者通过核心 Runtime Read Model 取得状态，沿用角色作用域和现有权限边界，不复制人物状态或 Prompt 正文；当前 getter 的初始化写入问题见本卡审计缺口 A16。
+Companion 首个 Agent Host Domain Definition 已注册，提供 `companion.runtime.read` 查询能力和 `companion.runtime-context` Context Provider。两者通过核心 Runtime Read Model 取得状态，沿用角色作用域和现有权限边界，不复制人物状态或 Prompt 正文。缺失快照返回空，初始化由生活写入口负责。
 
 朋友圈发布新增 `companion.moment.publish` Workflow Capability，复用既有 `companion_post_moment` Tool 的执行实现。固定 Workflow 与自然语言 Tool 共享角色校验、命令网关、领域事件和 Moment 投影链路。
 
