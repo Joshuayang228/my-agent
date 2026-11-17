@@ -1,17 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { rm } from 'node:fs/promises'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { publishCharacterDraft, saveCharacterDraft } from '../../electron/main/companion/authoring/draft-store'
 import { getCompanionAssetCatalog } from '../../electron/main/companion/asset-registry'
 import { loadRolePack, resolveRoleUniverseId } from '../../electron/main/companion/identity/loader'
 
-const root = path.join(process.cwd(), '.agent-data', 'universes')
+const fixture = vi.hoisted(() => ({ directory: '' }))
 const switchWorld = `switch-world-${process.pid}-${Date.now()}`
 let universeId = 'default'
 let roleId = 'luffy'
 
 vi.mock('electron', () => ({
-  app: { getPath: () => { throw new Error('not ready') } },
+  app: { getPath: () => fixture.directory },
   BrowserWindow: { getAllWindows: () => [] },
   safeStorage: { isEncryptionAvailable: () => false },
 }))
@@ -26,8 +27,14 @@ vi.mock('../../electron/main/utils/logger', () => ({ createLogger: () => ({ info
 const { requestUniverseSwitch } = await import('../../electron/main/companion/orchestrator')
 
 describe('用户世界观切换', () => {
-  beforeEach(() => { universeId = 'default'; roleId = 'luffy' })
-  afterEach(async () => { await rm(path.join(root, switchWorld), { recursive: true, force: true }) })
+  beforeEach(async () => {
+    fixture.directory = await mkdtemp(path.join(tmpdir(), 'universe-switch-test-'))
+    universeId = 'default'
+    roleId = 'luffy'
+  })
+  afterEach(async () => {
+    await rm(fixture.directory, { recursive: true, force: true })
+  })
 
   it('切换到已发布用户世界并绑定其默认主角', async () => {
     const draft = await saveCharacterDraft({ action: 'create', universeId: switchWorld, title: '切换测试世界', roleId: 'hero', roleName: '测试主角', section: 'identity', content: '测试身份。' })

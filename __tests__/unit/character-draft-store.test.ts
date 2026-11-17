@@ -1,15 +1,21 @@
-import { afterEach, describe, expect, it } from 'vitest'
-import { rm } from 'node:fs/promises'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { listCharacterDrafts, publishCharacterDraft, saveCharacterDraft } from '../../electron/main/companion/authoring/draft-store'
 import { listAvailableUniverseIds, loadRolePack, loadUniverseManifest } from '../../electron/main/companion/identity/loader'
 import { getCompanionAssetCatalog } from '../../electron/main/companion/asset-registry'
 
-const draftRoot = path.join(process.cwd(), '.agent-data', 'character-drafts')
-const universeRoot = path.join(process.cwd(), '.agent-data', 'universes')
+const fixture = vi.hoisted(() => ({ directory: '' }))
+vi.mock('electron', () => ({ app: { getPath: () => fixture.directory } }))
 const continuityWorld = `continuity-world-${process.pid}-${Date.now()}`
 
-afterEach(async () => { await rm(draftRoot, { recursive: true, force: true }); await rm(path.join(universeRoot, 'test-world'), { recursive: true, force: true }); await rm(path.join(universeRoot, 'draft-world'), { recursive: true, force: true }); await rm(path.join(universeRoot, continuityWorld), { recursive: true, force: true }) })
+beforeEach(async () => {
+  fixture.directory = await mkdtemp(path.join(tmpdir(), 'character-draft-test-'))
+})
+afterEach(async () => {
+  await rm(fixture.directory, { recursive: true, force: true })
+})
 
 describe('人物体系草稿存储', () => {
   it('支持创建、补充分区和提交审阅，不直接发布生产人物', async () => {
