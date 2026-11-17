@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { handlers, getActiveTasks, syncForRenderer, cancel } = vi.hoisted(() => ({
+const { handlers, getActiveTasks, syncForRenderer, cancel, acknowledgeNotification } = vi.hoisted(() => ({
   handlers: new Map<string, (...args: unknown[]) => unknown>(),
   getActiveTasks: vi.fn(() => [{ id: 'task-1' }]),
   syncForRenderer: vi.fn(() => ({ active: [{ id: 'task-1' }], pendingNotify: [] })),
   cancel: vi.fn(() => true),
+  acknowledgeNotification: vi.fn(async () => true),
 }))
 
 vi.mock('electron', () => ({
@@ -13,7 +14,7 @@ vi.mock('electron', () => ({
   },
 }))
 vi.mock('../../electron/main/services/task-queue', () => ({
-  taskQueue: { getActiveTasks, syncForRenderer, cancel },
+  taskQueue: { getActiveTasks, syncForRenderer, cancel, acknowledgeNotification },
 }))
 vi.mock('../../electron/main/utils/logger', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
@@ -47,5 +48,15 @@ describe('任务 IPC 输入边界', () => {
     expect(handler({}, '')).toBe(false)
     expect(handler({}, 'x'.repeat(201))).toBe(false)
     expect(handler({}, null)).toBe(false)
+  })
+
+  it('通知确认只接受有界 taskId 并委托持久化服务', async () => {
+    const handler = handlers.get('task:acknowledge')!
+    expect(await handler({}, 'task-1')).toBe(true)
+    expect(acknowledgeNotification).toHaveBeenCalledWith('task-1')
+    expect(await handler({}, '')).toBe(false)
+    expect(await handler({}, 'x'.repeat(201))).toBe(false)
+    expect(await handler({}, null)).toBe(false)
+    expect(acknowledgeNotification).toHaveBeenCalledOnce()
   })
 })

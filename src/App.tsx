@@ -5,6 +5,7 @@ import type {
   AgentStreamEvent,
   ImageAttachment,
   MemoryCitation,
+  BackgroundTaskInfo,
 } from './shared/types'
 import { MarkdownRenderer } from './components/MarkdownRenderer'
 import { SettingsPanel } from './components/SettingsPanel'
@@ -138,6 +139,7 @@ function App() {
   const [activeView, setActiveView] = useState<ShellView>('chat')
   const settingsSaveBeforeLeave = useRef<(() => Promise<boolean>) | null>(null)
   const settingsNavigationPending = useRef(false)
+  const seenTaskNotifications = useRef(new Set<string>())
   const [settingsEntry, setSettingsEntry] = useState<'default' | 'role-shelf'>('default')
   const settingsReturnView = useRef<ShellView>('chat')
   const [worldTab, setWorldTab] = useState<WorldTab>('moments')
@@ -318,33 +320,46 @@ function App() {
   useEffect(() => {
     if (!window.electronAPI?.tasks) return
 
-    const applyTaskToast = (task: { name: string }, kind: 'completed' | 'failed') => {
-      if (kind === 'completed' && task.name === 'profile-extract') {
-        toast('已更新对你的了解 🧠', 'info')
-      } else if (kind === 'failed') {
-        toast(`后台任务失败（${task.name}），学习记录可能不完整`, 'warning')
+    const activeIds = new Set<string>()
+    const observedIds = new Set<string>()
+    let disposed = false
+    const applyTaskToast = (task: BackgroundTaskInfo, kind: 'completed' | 'failed') => {
+      if (!seenTaskNotifications.current.has(task.id)) {
+        if (kind === 'completed' && task.name === 'profile-extract') {
+          toast('已更新对你的了解 🧠', 'info')
+        } else if (kind === 'failed') {
+          toast(`后台任务失败（${task.name}），学习记录可能不完整`, 'warning')
+        }
+        seenTaskNotifications.current.add(task.id)
       }
+      void window.electronAPI.tasks.acknowledge(task.id).catch(() => {
+        console.warn('后台任务通知确认失败，将在下次同步时重试。')
+      })
     }
 
-    void window.electronAPI.tasks.sync().then((snap) => {
-      setActiveBgTaskCount(snap.active.length)
-      for (const t of snap.pendingNotify) {
-        applyTaskToast(t, t.status === 'failed' ? 'failed' : 'completed')
+    // 先订阅再读取快照，事件覆盖快照中的旧状态，重复终态只确认一次展示。
+    const cleanup = window.electronAPI.tasks.onEvent((ev) => {
+      observedIds.add(ev.task.id)
+      if (ev.type === 'task:started') activeIds.add(ev.task.id)
+      else {
+        activeIds.delete(ev.task.id)
+        if (ev.type === 'task:completed' || ev.type === 'task:failed') {
+          applyTaskToast(ev.task, ev.type === 'task:failed' ? 'failed' : 'completed')
+        }
       }
+      setActiveBgTaskCount(activeIds.size)
+    })
+    void window.electronAPI.tasks.sync().then((snap) => {
+      if (disposed) return
+      for (const task of snap.active) if (!observedIds.has(task.id)) activeIds.add(task.id)
+      setActiveBgTaskCount(activeIds.size)
+      for (const task of snap.pendingNotify) applyTaskToast(task, task.status === 'failed' ? 'failed' : 'completed')
     }).catch(() => {})
 
-    const cleanup = window.electronAPI.tasks.onEvent((ev) => {
-      if (ev.type === 'task:started') {
-        setActiveBgTaskCount(n => n + 1)
-      } else if (ev.type === 'task:completed') {
-        setActiveBgTaskCount(n => Math.max(0, n - 1))
-        applyTaskToast(ev.task, 'completed')
-      } else if (ev.type === 'task:failed') {
-        setActiveBgTaskCount(n => Math.max(0, n - 1))
-        applyTaskToast(ev.task, 'failed')
-      }
-    })
-    return cleanup
+    return () => {
+      disposed = true
+      cleanup()
+    }
   }, [toast])
 
   useEffect(() => {

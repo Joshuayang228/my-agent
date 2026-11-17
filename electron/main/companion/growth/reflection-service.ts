@@ -229,13 +229,18 @@ export async function scheduleReflectionAfterChat(
   }
 
   pendingRoles.add(roleId)
-  taskQueue.enqueue(sessionId, 'persona-reflection', async () => {
-    try {
-      await runReflectionCore(roleId, llmConfig)
-    } finally {
-      pendingRoles.delete(roleId)
-    }
-  })
+  try {
+    await taskQueue.enqueue(sessionId, 'persona-reflection', async () => {
+      try {
+        await runReflectionCore(roleId, llmConfig)
+      } finally {
+        pendingRoles.delete(roleId)
+      }
+    })
+  } catch (error) {
+    pendingRoles.delete(roleId)
+    throw error
+  }
   log.info('Reflection queued', { roleId, sessionId })
   return { queued: true }
 }

@@ -20,6 +20,10 @@ function boundedOptionalId(value: unknown): string | undefined | null {
 }
 
 export function registerTasksIPC(): void {
+  registerSecureIpcHandler('task:acknowledge', (_event, taskId: unknown) => {
+    if (typeof taskId !== 'string' || !taskId || taskId.length > MAX_TASK_ID_LENGTH) return false
+    return taskQueue.acknowledgeNotification(taskId)
+  })
   // 查询当前活跃任务（pending | running）
   registerSecureIpcHandler('task:list', (_event, rawSessionId?: unknown) => {
     const sessionId = boundedOptionalId(rawSessionId)

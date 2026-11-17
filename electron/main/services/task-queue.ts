@@ -8,7 +8,7 @@
  * - SQLite 持久化：任务状态写库，进程崩溃后可从 background_tasks 表恢复 pending 任务
  * - 启动恢复：app ready 后调用 recoverPendingTasks()，把可重建的中断任务重新入队
  * - 不可恢复任务：没有注册恢复处理器或缺少上下文时，明确落为 failed 并发送一次幂等通知
- * - notified 幂等标志落盘：通知发出后写库，重启后不重发
+ * - notified 由 Renderer 接收确认后落盘，未确认终态在启动恢复和同步时重投。
  *
  * v3 新增（M11 方向一：可靠性）：
  * - 指数退避重试：任务失败后最多重试 MAX_RETRIES=3 次（1s/2s/4s），耗尽后通知用户
@@ -17,7 +17,7 @@
  * - 内存：执行函数（fn）、运行时状态的来源
  * - SQLite：崩溃后的恢复依据、通知幂等的持久记录
  *
- * M16 G2：running / completed / failed / notified 转移 await 落盘；enqueue 仍可非阻塞。
+ * 入队与关键状态转移均等待事务保存。没有窗口或发送失败时保留终态待确认。
  *
  * M09：checkpoint 断点续接 + task:sync 断线对齐。
  */
@@ -25,7 +25,7 @@
 import { BrowserWindow } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { createLogger } from '../utils/logger'
-import { getDatabase, persist } from '../storage/database'
+import { getDatabase, withDatabaseTransaction } from '../storage/database'
 import {
   DEFAULT_TRACE_USER_ID,
   getTraceContext,
@@ -61,7 +61,7 @@ const MAX_RETRIES = 3
 // ── 内部任务定义（含执行函数，不对外暴露） ──
 
 interface InternalTask extends BackgroundTaskInfo {
-  fn?: () => Promise<void>  // 恢复的任务没有 fn，等外部重新注册
+  fn?: () => Promise<void>
   /** 入队时捕获的主对话 span，供 linked async span 追溯 */
   linkSpanId?: string
 }
@@ -70,37 +70,19 @@ type RecoveryHandler = (task: BackgroundTaskInfo) => Promise<(() => Promise<void
 
 // ── SQLite helpers ──
 
-/**
- * 把任务写入/更新 background_tasks 表。
- *
- * 背景（M16 G2）：原先 fire-and-forget，关键状态转移（running/completed/failed/notified）
- * 可能在崩溃窗口丢写。现改为 await 可等待；入队仍可 void 调用。
- *
- * 失败只记日志，不抛给调用方（队列执行不应因落盘失败而中断）。
+/** 任务接受、执行和终态必须先持久化，再发布内存状态或通知。
+ * 写盘失败向调用方传播，避免任务执行成功后被存储异常当成业务失败重跑。
  */
 async function dbUpsertTask(task: BackgroundTaskInfo): Promise<void> {
-  try {
-    const database = await getDatabase()
-    database.run(
-      `INSERT OR REPLACE INTO background_tasks
-         (id, session_id, type, status, notified, created_at, updated_at, error, checkpoint)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        task.id,
-        task.sessionId,
-        task.name,
-        task.status,
-        task.notified ? 1 : 0,
-        task.createdAt,
-        task.updatedAt,
-        task.error ?? null,
-        task.checkpoint ? JSON.stringify(task.checkpoint) : null,
-      ],
-    )
-    persist()
-  } catch (err) {
-    log.warn('Failed to persist task to SQLite', { taskId: task.id, error: String(err) })
-  }
+  await withDatabaseTransaction(async database => {
+    database.run(`INSERT OR REPLACE INTO background_tasks
+      (id, session_id, type, status, notified, created_at, updated_at, error, checkpoint, retry_count, next_retry_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+      task.id, task.sessionId, task.name, task.status, task.notified ? 1 : 0,
+      task.createdAt, task.updatedAt, task.error ?? null,
+      task.checkpoint ? JSON.stringify(task.checkpoint) : null, task.retryCount ?? 0, task.nextRetryAt ?? null,
+    ])
+  })
 }
 
 function parseCheckpoint(raw: unknown): TaskCheckpoint | undefined {
@@ -118,170 +100,118 @@ export class TaskQueueManager {
   private tasks = new Map<string, InternalTask>()
   private queue: string[] = []
   private running = false
+  private stopped = false
+  private persistenceFailure: Error | null = null
+  private mutationTail: Promise<void> = Promise.resolve()
+  private retryTimers = new Map<string, ReturnType<typeof setTimeout>>()
   private recoveryHandlers = new Map<TaskType, RecoveryHandler>()
 
   registerRecoveryHandler(name: TaskType, handler: RecoveryHandler): void {
     this.recoveryHandlers.set(name, handler)
   }
 
-  // ── 入队 ──
-
-  enqueue(sessionId: string, name: TaskType, fn: () => Promise<void>): string {
-    const id = `task-${randomUUID()}`
+  async enqueue(sessionId: string, name: TaskType, fn: () => Promise<void>): Promise<string> {
+    if (this.stopped) throw new Error('后台任务队列已停止。')
+    if (this.persistenceFailure) throw this.persistenceFailure
     const now = Date.now()
-    // 入队瞬间捕获主对话 span（任务稍后执行时 ALS 可能已空）
-    const linkSpanId = getTraceContext().interactionSpanId
-
     const task: InternalTask = {
-      id, name, sessionId, fn,
-      status: 'pending',
-      notified: false,
-      createdAt: now,
-      updatedAt: now,
-      linkSpanId,
+      id: `task-${randomUUID()}`, name, sessionId, fn,
+      status: 'pending', notified: false, createdAt: now, updatedAt: now,
+      linkSpanId: getTraceContext().interactionSpanId,
     }
-
-    this.tasks.set(id, task)
-    this.queue.push(id)
-    // 入队：非阻塞落盘（内存已有真相；崩溃最多丢这个 pending，可接受）
-    void dbUpsertTask(this.toInfo(task))
-    log.info(`Task enqueued: ${name}`, { taskId: id, sessionId, queueLength: this.queue.length })
-
-    void this.processNext()
-    return id
+    await dbUpsertTask(this.toInfo(task))
+    this.tasks.set(task.id, task)
+    this.queue.push(task.id)
+    this.kick()
+    return task.id
   }
 
-  // ── 启动恢复：从 SQLite 加载上次中断的 pending 任务 ──
-
-  /**
-   * 进程启动后调用一次，把 status='pending' 或 'running'（上次崩溃中断）的任务
-   * 重置为 pending 并加回内存队列，等外部重新注册执行函数。
-   *
-   * 注意：恢复的任务没有 fn，类型恢复处理器或 reRegisterRecoveredTask() 注入函数后才会真正执行。
-   * 没有可用恢复函数的任务会立即落为 failed，避免重启后永久停留在 pending。
-   */
   async recoverPendingTasks(): Promise<BackgroundTaskInfo[]> {
-    try {
-      const db = await getDatabase()
-      const stmt = db.prepare(
-        `SELECT id, session_id, type, status, notified, created_at, updated_at, error, checkpoint
-         FROM background_tasks
-         WHERE status IN ('pending', 'running')
-         ORDER BY created_at ASC`
-      )
-      const recovered: BackgroundTaskInfo[] = []
-      while (stmt.step()) {
-        const row = stmt.getAsObject() as Record<string, unknown>
-        const info: BackgroundTaskInfo = {
-          id: String(row.id),
-          sessionId: String(row.session_id),
-          name: String(row.type) as TaskType,
-          status: 'pending',  // 重置 running → pending（上次崩溃）
-          notified: row.notified === 1 || row.notified === '1',
-          createdAt: Number(row.created_at),
-          updatedAt: Date.now(),
-          error: row.error ? String(row.error) : undefined,
-          checkpoint: parseCheckpoint(row.checkpoint),
-        }
-        const handler = this.recoveryHandlers.get(info.name)
-        const fn = handler ? await handler(info) : null
-        if (fn) {
-          if (row.status === 'running') {
-            db.run('UPDATE background_tasks SET status=?, updated_at=? WHERE id=?',
-              ['pending', info.updatedAt, info.id])
-            persist()
-          }
-          this.tasks.set(info.id, { ...info, fn })
-          this.queue.push(info.id)
-          recovered.push(info)
-          continue
-        }
-
-        const failed: InternalTask = {
-          ...info,
-          status: 'failed',
-          error: '应用重启后无法恢复该后台任务，已停止等待。',
-          updatedAt: Date.now(),
-          fn: undefined,
-        }
-        this.tasks.set(failed.id, failed)
-        await dbUpsertTask(this.toInfo(failed))
-        await this.notify(failed, { type: 'task:failed', task: this.toInfo(failed) })
-        recovered.push(this.toInfo(failed))
+    const db = await getDatabase()
+    // 先释放读取游标再等待模型或写盘。sql.js 导出会关闭旧游标，恢复不能跨 export 保留 statement。
+    const result = db.exec(`SELECT id, session_id, type, status, notified, created_at, updated_at,
+      error, checkpoint, retry_count, next_retry_at FROM background_tasks
+      WHERE status IN ('pending', 'running') OR (status IN ('completed', 'failed') AND notified = 0)
+      ORDER BY created_at ASC`)[0]
+    const recovered: BackgroundTaskInfo[] = []
+    for (const values of result?.values ?? []) {
+      const row = Object.fromEntries(result.columns.map((key, index) => [key, values[index]]))
+      const id = String(row.id)
+      if (this.tasks.has(id)) continue
+      const task: InternalTask = {
+        id, sessionId: String(row.session_id), name: String(row.type) as TaskType,
+        status: row.status as BackgroundTaskInfo['status'], notified: Number(row.notified) === 1,
+        createdAt: Number(row.created_at), updatedAt: Number(row.updated_at),
+        error: row.error ? String(row.error) : undefined, checkpoint: parseCheckpoint(row.checkpoint),
+        retryCount: Number(row.retry_count) || 0, nextRetryAt: row.next_retry_at == null ? undefined : Number(row.next_retry_at),
       }
-      stmt.free()
-      if (recovered.length > 0) {
-        log.info('Recovered interrupted tasks from SQLite', { count: recovered.length })
+      if (task.status === 'completed' || task.status === 'failed') {
+        this.tasks.set(id, task)
+        this.notify(task)
+        recovered.push(this.toInfo(task))
+        continue
       }
-      void this.processNext()
-      return recovered
-    } catch (err) {
-      log.warn('Failed to recover tasks from SQLite', { error: String(err) })
-      return []
+      const handler = this.recoveryHandlers.get(task.name)
+      try {
+        task.fn = handler ? await handler(this.toInfo(task)) ?? undefined : undefined
+      } catch (error) {
+        log.warn('Task recovery handler failed', { taskId: id, errorType: error instanceof Error ? error.name : 'unknown' })
+      }
+      if (task.fn) {
+        await this.transition(task, { status: 'pending' })
+        this.tasks.set(id, task)
+        this.schedule(task)
+      } else {
+        await this.transition(task, { status: 'failed', error: '应用重启后无法恢复该后台任务，已停止等待。' })
+        this.tasks.set(id, task)
+        this.notify(task)
+      }
+      recovered.push(this.toInfo(task))
     }
+    this.kick()
+    return recovered
   }
 
-  /**
-   * 为恢复的任务注入执行函数。注入后任务会在下一个 processNext 轮次被执行。
-   * 如果 taskId 不存在或任务已不是 pending，返回 false。
-   */
   reRegisterRecoveredTask(taskId: string, fn: () => Promise<void>): boolean {
     const task = this.tasks.get(taskId)
     if (!task || task.status !== 'pending') return false
     task.fn = fn
-    void this.processNext()
+    this.schedule(task)
+    this.kick()
     return true
   }
 
-  // ── 查询 ──
-
   getActiveTasks(sessionId?: string): BackgroundTaskInfo[] {
-    const result: BackgroundTaskInfo[] = []
-    for (const task of this.tasks.values()) {
-      if (task.status !== 'pending' && task.status !== 'running') continue
-      if (sessionId && task.sessionId !== sessionId) continue
-      result.push(this.toInfo(task))
-    }
-    return result
+    return [...this.tasks.values()]
+      .filter(task => (task.status === 'pending' || task.status === 'running') && (!sessionId || task.sessionId === sessionId))
+      .map(task => this.toInfo(task))
   }
 
   getTask(taskId: string): BackgroundTaskInfo | undefined {
     const task = this.tasks.get(taskId)
-    if (!task) return undefined
-    return this.toInfo(task)
+    return task ? this.toInfo(task) : undefined
   }
 
-  /**
-   * 断线重连同步：活跃任务 + 尚未 notified 的终态任务（供 UI 补 Toast / 对齐 pill）。
-   */
-  syncForRenderer(sessionId?: string): {
-    active: BackgroundTaskInfo[]
-    pendingNotify: BackgroundTaskInfo[]
-  } {
-    const active = this.getActiveTasks(sessionId)
-    const pendingNotify: BackgroundTaskInfo[] = []
-    for (const task of this.tasks.values()) {
-      if (sessionId && task.sessionId !== sessionId) continue
-      if (
-        (task.status === 'completed' || task.status === 'failed') &&
-        !task.notified
-      ) {
-        pendingNotify.push(this.toInfo(task))
-      }
+  syncForRenderer(sessionId?: string): { active: BackgroundTaskInfo[]; pendingNotify: BackgroundTaskInfo[] } {
+    return {
+      active: this.getActiveTasks(sessionId),
+      pendingNotify: [...this.tasks.values()]
+        .filter(task => (task.status === 'completed' || task.status === 'failed') && !task.notified && (!sessionId || task.sessionId === sessionId))
+        .map(task => this.toInfo(task)),
     }
-    return { active, pendingNotify }
   }
 
-  /** 写入/更新断点（长任务续接） */
+  async acknowledgeNotification(taskId: string): Promise<boolean> {
+    const task = this.tasks.get(taskId)
+    if (!task || (task.status !== 'completed' && task.status !== 'failed')) return false
+    if (!task.notified) await this.transition(task, { notified: true })
+    return true
+  }
+
   async updateCheckpoint(taskId: string, checkpoint: Omit<TaskCheckpoint, 'updatedAt'> & { updatedAt?: number }): Promise<boolean> {
     const task = this.tasks.get(taskId)
     if (!task) return false
-    task.checkpoint = {
-      ...checkpoint,
-      updatedAt: checkpoint.updatedAt ?? Date.now(),
-    }
-    task.updatedAt = Date.now()
-    await dbUpsertTask(this.toInfo(task))
+    await this.transition(task, { checkpoint: { ...checkpoint, updatedAt: checkpoint.updatedAt ?? Date.now() } })
     return true
   }
 
@@ -289,141 +219,126 @@ export class TaskQueueManager {
     return this.tasks.get(taskId)?.checkpoint
   }
 
-  // ── 取消 ──
-
-  cancel(taskId: string): boolean {
+  async cancel(taskId: string): Promise<boolean> {
     const task = this.tasks.get(taskId)
-    if (!task || task.status !== 'pending') return false
-    task.status = 'cancelled'
-    task.updatedAt = Date.now()
-    void dbUpsertTask(this.toInfo(task))
-    log.info(`Task cancelled: ${task.name}`, { taskId })
-    return true
+    if (!task) return false
+    const cancelled = await this.transition(task, { status: 'cancelled' }, 'pending')
+    if (cancelled) {
+      clearTimeout(this.retryTimers.get(taskId))
+      this.retryTimers.delete(taskId)
+      this.emit({ type: 'task:cancelled', task: this.toInfo(task) })
+    }
+    return cancelled
   }
-
-  // ── 优雅关闭 ──
 
   async shutdown(): Promise<void> {
-    if (!this.running) return
-    log.info('TaskQueue: waiting for running task to finish...')
-    while (this.running) {
-      await new Promise<void>(r => setTimeout(r, 100))
-    }
+    this.stopped = true
+    for (const timer of this.retryTimers.values()) clearTimeout(timer)
+    this.retryTimers.clear()
+    while (this.running) await new Promise<void>(resolve => setTimeout(resolve, 20))
+    await this.mutationTail
   }
 
-  // ── 内部：串行执行器 ──
-
-  private async processNext(): Promise<void> {
-    if (this.running) return
-    this.running = true
-
-    try {
-      while (this.queue.length > 0) {
-        const id = this.queue[0]
-        const task = this.tasks.get(id)
-
-        if (!task || task.status === 'cancelled') {
-          this.queue.shift()
-          continue
-        }
-
-        // 恢复的任务还没有 fn，跳过等待注入
-        if (!task.fn) {
-          this.queue.shift()
-          continue
-        }
-
-        this.queue.shift()
-
-        // pending → running（关键转移：await 落盘，缩小崩溃丢写窗口）
-        task.status = 'running'
-        task.updatedAt = Date.now()
-        await dbUpsertTask(this.toInfo(task))
-        this.emit({ type: 'task:started', task: this.toInfo(task) })
-        log.info(`Task started: ${task.name}`, { taskId: id, sessionId: task.sessionId })
-
-        try {
-          await runWithTraceContext(
-            {
-              sessionId: task.sessionId,
-              userId: DEFAULT_TRACE_USER_ID,
-              interactionSpanId: task.linkSpanId,
-            },
-            async () => {
-              const bgSpan = startLinkedAsyncSpan(`bg:${task.name}`, callerForTask(task.name), {
-                linkToSpanId: task.linkSpanId,
-                attributes: { taskId: id, taskName: task.name },
-              })
-              try {
-                await task.fn!()
-                bgSpan.end('ok')
-              } catch (err) {
-                bgSpan.end('error', err instanceof Error ? err.name : 'unknown')
-                throw err
-              }
-            },
-          )
-          task.status = 'completed'
-          task.updatedAt = Date.now()
-          log.info(`Task completed: ${task.name}`, { taskId: id })
-          await this.notify(task, { type: 'task:completed', task: this.toInfo(task) })
-        } catch (err) {
-          const errorType = err instanceof Error ? err.name : 'unknown'
-          const errorLength = (err instanceof Error ? err.message : String(err)).length
-          const retryCount = (task.retryCount ?? 0) + 1
-          task.retryCount = retryCount
-
-          if (retryCount <= MAX_RETRIES) {
-            // 指数退避重试：1s / 2s / 4s，非阻塞（不卡主循环）
-            const backoffMs = 1000 * Math.pow(2, retryCount - 1)
-            log.warn(`Task failed, retry ${retryCount}/${MAX_RETRIES} in ${backoffMs}ms`, {
-              taskId: id, errorType, errorLength,
-            })
-            task.status = 'pending'
-            task.updatedAt = Date.now()
-            await dbUpsertTask(this.toInfo(task))
-
-            setTimeout(() => {
-              this.queue.push(id)
-              void this.processNext()
-            }, backoffMs)
-          } else {
-            // 重试耗尽 → 永久失败，通知用户
-            task.status = 'failed'
-            task.error = '后台任务执行失败，请检查配置或稍后重试。'
-            task.updatedAt = Date.now()
-            log.warn(`Task failed permanently after ${retryCount} attempts: ${task.name}`, {
-              taskId: id, errorType, errorLength,
-            })
-            await this.notify(task, { type: 'task:failed', task: this.toInfo(task) })
-          }
-        }
-      }
-    } finally {
-      this.running = false
-    }
+  private transition(task: InternalTask, patch: Partial<BackgroundTaskInfo>, expected?: BackgroundTaskInfo['status']): Promise<boolean> {
+    const result = this.mutationTail.then(async () => {
+      if (expected && task.status !== expected) return false
+      const next = { ...this.toInfo(task), ...patch, updatedAt: Date.now() }
+      await dbUpsertTask(next)
+      Object.assign(task, next)
+      return true
+    })
+    this.mutationTail = result.then(() => undefined, () => undefined)
+    return result
   }
 
-  // ── 内部：事件发送 ──
-
-  private emit(event: TaskLifecycleEvent): void {
-    BrowserWindow.getAllWindows()[0]?.webContents.send('task:event', event)
-  }
-
-  private async notify(task: InternalTask, event: TaskLifecycleEvent): Promise<void> {
-    if (task.notified) {
-      log.warn(`Task notification already sent (skipping): ${task.name}`, { taskId: task.id })
+  private schedule(task: InternalTask): void {
+    if (this.stopped || this.retryTimers.has(task.id) || this.queue.includes(task.id)) return
+    const delay = Math.max(0, (task.nextRetryAt ?? 0) - Date.now())
+    if (!delay) {
+      this.queue.push(task.id)
       return
     }
-    task.notified = true
-    // notified 幂等标志必须落盘后再发事件，避免重启后重复 Toast
-    await dbUpsertTask(this.toInfo(task))
-    BrowserWindow.getAllWindows()[0]?.webContents.send('task:event', event)
+    const timer = setTimeout(() => {
+      this.retryTimers.delete(task.id)
+      if (!this.stopped && task.status === 'pending') {
+        this.queue.push(task.id)
+        this.kick()
+      }
+    }, delay)
+    this.retryTimers.set(task.id, timer)
+  }
+
+  private kick(): void {
+    if (this.running || this.stopped || this.persistenceFailure) return
+    void this.processNext().catch(error => {
+      this.persistenceFailure = new Error('后台任务保存失败，请检查磁盘后重启应用。')
+      log.error('Task queue suspended after persistence failure', { errorType: error instanceof Error ? error.name : 'unknown' })
+    })
+  }
+
+  private async processNext(): Promise<void> {
+    this.running = true
+    try {
+      while (!this.stopped && this.queue.length) {
+        const id = this.queue.shift()!
+        const task = this.tasks.get(id)
+        if (!task?.fn || task.status !== 'pending') continue
+        if (!await this.transition(task, { status: 'running', nextRetryAt: undefined }, 'pending')) continue
+        this.emit({ type: 'task:started', task: this.toInfo(task) })
+        let executionError: unknown
+        let failed = false
+        try {
+          await runWithTraceContext({ sessionId: task.sessionId, userId: DEFAULT_TRACE_USER_ID, interactionSpanId: task.linkSpanId }, async () => {
+            const span = startLinkedAsyncSpan(`bg:${task.name}`, callerForTask(task.name), {
+              linkToSpanId: task.linkSpanId, attributes: { taskId: id, taskName: task.name },
+            })
+            try {
+              await task.fn!()
+              span.end('ok')
+            } catch (error) {
+              span.end('error', error instanceof Error ? error.name : 'unknown')
+              throw error
+            }
+          })
+        } catch (error) {
+          failed = true
+          executionError = error
+        }
+        // 完成保存失败不能进入业务重试，否则已经成功的副作用会重复执行。
+        if (!failed) {
+          await this.transition(task, { status: 'completed' })
+          this.notify(task)
+          continue
+        }
+        const retryCount = (task.retryCount ?? 0) + 1
+        if (retryCount <= MAX_RETRIES) {
+          await this.transition(task, { status: 'pending', retryCount, nextRetryAt: Date.now() + 1000 * 2 ** (retryCount - 1) })
+          this.schedule(task)
+        } else {
+          log.warn('Background task exhausted retries', { taskId: id, errorType: executionError instanceof Error ? executionError.name : 'unknown' })
+          await this.transition(task, { status: 'failed', retryCount, error: '后台任务执行失败，请检查配置或稍后重试。' })
+          this.notify(task)
+        }
+      }
+    } finally { this.running = false }
+  }
+
+  private emit(event: TaskLifecycleEvent): void {
+    try {
+      BrowserWindow.getAllWindows()[0]?.webContents.send('task:event', event)
+    } catch (error) {
+      log.warn('Task notification unavailable; retained for renderer sync', { taskId: event.task.id, errorType: error instanceof Error ? error.name : 'unknown' })
+    }
+  }
+
+  private notify(task: InternalTask): void {
+    if (task.notified) return
+    const type = task.status === 'failed' ? 'task:failed' : 'task:completed'
+    this.emit({ type, task: this.toInfo(task) })
   }
 
   private toInfo(task: InternalTask): BackgroundTaskInfo {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { fn: _fn, ...info } = task
+    const { fn: _fn, linkSpanId: _linkSpanId, ...info } = task
     return info
   }
 }

@@ -919,6 +919,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     list: (sessionId?: string) => ipcRenderer.invoke('task:list', sessionId),
     sync: (sessionId?: string) => ipcRenderer.invoke('task:sync', sessionId),
     cancel: (taskId: string) => ipcRenderer.invoke('task:cancel', taskId),
+    acknowledge: (taskId: string) => ipcRenderer.invoke('task:acknowledge', taskId),
     onEvent: (callback: (event: TaskLifecycleEvent) => void) => {
       const handler = (_e: Electron.IpcRendererEvent, ev: TaskLifecycleEvent) => callback(ev)
       ipcRenderer.on('task:event', handler)

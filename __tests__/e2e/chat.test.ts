@@ -7904,3 +7904,38 @@ test.describe('My Agent UI', () => {
     await expect(settingsPanel).not.toBeVisible()
   })
 })
+
+
+test('后台任务通知重复投递与启动同步只展示一次并发送接收确认', async ({ page }) => {
+  await installProductionElectronStub(page)
+  await page.addInitScript(() => {
+    const state = window as unknown as {
+      electronAPI: Record<string, unknown>
+      __taskAcks: string[]
+    }
+    state.__taskAcks = []
+    const listeners = new Set<(event: unknown) => void>()
+    const task = {
+      id: 'durable-completed-task', name: 'profile-extract', sessionId: 'session',
+      status: 'completed', notified: false, createdAt: 1, updatedAt: 2,
+    }
+    state.electronAPI.tasks = {
+      onEvent: (listener: (event: unknown) => void) => {
+        listeners.add(listener)
+        return () => listeners.delete(listener)
+      },
+      sync: async () => {
+        for (const listener of listeners) listener({ type: 'task:completed', task })
+        return { active: [], pendingNotify: [task] }
+      },
+      acknowledge: async (id: string) => { state.__taskAcks.push(id); return true },
+    }
+  })
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  await page.goto('/')
+  await expect(page.getByText('已更新对你的了解 🧠', { exact: true })).toHaveCount(1)
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __taskAcks: string[] }).__taskAcks.length)).toBeGreaterThanOrEqual(2)
+  expect(await page.evaluate(() => [...new Set((window as unknown as { __taskAcks: string[] }).__taskAcks)])).toEqual(['durable-completed-task'])
+  expect(errors).toEqual([])
+})

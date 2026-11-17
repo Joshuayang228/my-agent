@@ -1,177 +1,126 @@
-/**
- * TaskQueueManager 单元测试（M09 任务生命周期）
- *
- * 测试重点：
- * - 任务状态机（pending → running → completed/failed）
- * - 幂等通知（notified 标志防止重复发送）
- * - 取消 pending 任务
- * - 错误被捕获不崩溃队列
- */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 
-// Mock BrowserWindow，避免在非 Electron 环境下崩溃
+const fixture = vi.hoisted(() => ({ directory: '', windows: true, send: vi.fn() }))
 vi.mock('electron', () => ({
-  BrowserWindow: {
-    getAllWindows: () => [{
-      webContents: {
-        send: vi.fn(),
-      },
-    }],
-  },
+  app: { getPath: () => fixture.directory },
+  BrowserWindow: { getAllWindows: () => fixture.windows ? [{ webContents: { send: fixture.send } }] : [] },
 }))
+import * as database from '../../electron/main/storage/database'
+import { TaskQueueManager } from '../../electron/main/services/task-queue'
 
-vi.mock('../../../electron/main/utils/logger', () => ({
-  createLogger: () => ({
-    info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(),
-  }),
-}))
+let queue: TaskQueueManager
+beforeEach(async () => {
+  fixture.directory = fs.mkdtempSync(path.join(os.tmpdir(), 'task-queue-'))
+  fixture.windows = true
+  fixture.send.mockReset()
+  await database.getDatabase()
+  queue = new TaskQueueManager()
+})
+afterEach(async () => {
+  vi.useRealTimers()
+  await queue.shutdown()
+  vi.restoreAllMocks()
+  database._resetDatabaseForTests()
+  fs.rmSync(fixture.directory, { recursive: true, force: true })
+})
 
-// M16：关键转移会 await 落盘；测试里不碰真实 sql.js / electron app
-vi.mock('../../../electron/main/storage/database', () => ({
-  getDatabase: vi.fn(async () => ({
-    run: vi.fn(),
-    prepare: vi.fn(),
-  })),
-  persist: vi.fn(),
-}))
+const complete = (id: string) => vi.waitFor(() => expect(queue.getTask(id)?.status).toBe('completed'))
 
-// 每次测试使用独立实例（不用单例）
-async function makeQueue() {
-  vi.resetModules()
-  const mod = await import('../../../electron/main/services/task-queue')
-  return mod.TaskQueueManager
-    ? new (mod as unknown as { TaskQueueManager: new () => InstanceType<typeof import('../../../electron/main/services/task-queue').taskQueue.constructor> }).TaskQueueManager()
-    : mod.taskQueue
-}
-
-// 因为 task-queue.ts 导出的是单例，测试直接用模块级 mock
-// 下面用一个工厂函数来获取每次测试重置的 mock
-import { taskQueue } from '../../../electron/main/services/task-queue'
-
-describe('TaskQueueManager', () => {
-  beforeEach(() => {
-    // 清空内部状态（通过 cancel 无法完全重置，使用 vi.resetModules 会有 ESM 问题）
-    // 这里直接用动态导入后的单例做测试，接受状态可能跨测试残留
-    vi.clearAllMocks()
+describe('Task Queue 持久生命周期', () => {
+  it('入队返回已保存的唯一 ID', async () => {
+    const ids = await Promise.all([queue.enqueue('s1', 'smart-title', async () => {}), queue.enqueue('s1', 'smart-title', async () => {})])
+    expect(new Set(ids).size).toBe(2)
+    expect(ids[0]).toMatch(/^task-[0-9a-f-]{36}$/)
+    const db = await database.getDatabase()
+    expect(db.exec('SELECT COUNT(*) FROM background_tasks')[0].values[0][0]).toBe(2)
   })
 
-  it('enqueue 返回唯一 taskId', () => {
-    const id1 = taskQueue.enqueue('s1', 'smart-title', async () => {})
-    const id2 = taskQueue.enqueue('s1', 'smart-title', async () => {})
-    expect(id1).not.toBe(id2)
-    expect(id1).toMatch(/^task-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+  it('任务完成后保存 completed，只有 Renderer 确认才设置 notified', async () => {
+    const fn = vi.fn(async () => {})
+    const id = await queue.enqueue('s2', 'smart-title', fn)
+    await complete(id)
+    expect(fn).toHaveBeenCalledOnce()
+    expect(queue.getTask(id)?.notified).toBe(false)
+    expect(queue.syncForRenderer().pendingNotify.map(task => task.id)).toContain(id)
+    expect(await queue.acknowledgeNotification(id)).toBe(true)
+    expect(queue.getTask(id)?.notified).toBe(true)
+    expect(await queue.acknowledgeNotification(id)).toBe(true)
+    expect(queue.getActiveTasks()).toEqual([])
   })
 
-  it('任务完成后状态变为 completed', async () => {
-    let done = false
-    const id = taskQueue.enqueue('s2', 'smart-title', async () => {
-      done = true
-    })
-
-    // 等待异步执行
-    await new Promise<void>(r => setTimeout(r, 50))
-
-    expect(done).toBe(true)
-    const task = taskQueue.getTask(id)
-    expect(task?.status).toBe('completed')
-  })
-
-  it('任务首次抛错后进入 pending 重试，retryCount 递增', async () => {
-    const id = taskQueue.enqueue('s3', 'smart-title', async () => {
-      throw new Error('测试失败')
-    })
-
-    await new Promise<void>(r => setTimeout(r, 50))
-
-    const task = taskQueue.getTask(id)
-    // 第一次失败后：retryCount=1，status=pending（等待 1s 后重试）
-    expect(task?.retryCount).toBe(1)
-    expect(task?.status).toBe('pending')
-  })
-
-  it('重试耗尽后状态变为 failed，包含 error 信息', async () => {
+  it('业务失败指数退避，重试耗尽落为 failed 且不暴露内部错误', async () => {
     vi.useFakeTimers()
+    const fn = vi.fn(async () => { throw new Error('private failure') })
+    const id = await queue.enqueue('s3', 'smart-title', fn)
+    await vi.advanceTimersByTimeAsync(10)
+    expect(queue.getTask(id)).toMatchObject({ status: 'pending', retryCount: 1 })
+    await vi.advanceTimersByTimeAsync(8000)
+    expect(fn).toHaveBeenCalledTimes(4)
+    expect(queue.getTask(id)).toMatchObject({ status: 'failed', retryCount: 4, notified: false })
+    expect(queue.getTask(id)?.error).not.toContain('private')
+  })
+
+  it('取消 pending 任务先保存，再从待运行队列移除', async () => {
+    let release!: () => void
+    const blocker = await queue.enqueue('s4', 'smart-title', () => new Promise<void>(resolve => { release = resolve }))
+    await vi.waitFor(() => expect(release).toBeTypeOf('function'))
     try {
-      let callCount = 0
-      const id = taskQueue.enqueue('s3b', 'smart-title', async () => {
-        callCount++
-        throw new Error('测试失败')
-      })
-
-      // 首次执行（微任务，0ms）+ 三次重试（1s/2s/4s），超过 7s 即全部耗尽
-      await vi.advanceTimersByTimeAsync(8000)
-
-      const task = taskQueue.getTask(id)
-      expect(task?.status).toBe('failed')
-      expect(task?.error).toBe('后台任务执行失败，请检查配置或稍后重试。')
-      expect(task?.error).not.toContain('测试失败')
-      expect(callCount).toBe(4) // 首次 + 3 次重试
-    } finally {
-      vi.useRealTimers()
-    }
+      const fn = vi.fn(async () => {})
+      const target = await queue.enqueue('s4', 'vector-index-user', fn)
+      expect(await queue.cancel(target)).toBe(true)
+      expect(queue.getTask(target)?.status).toBe('cancelled')
+      expect(await queue.cancel(target)).toBe(false)
+      expect(fn).not.toHaveBeenCalled()
+    } finally { release() }
+    await complete(blocker)
   })
 
-  it('任务完成后 notified 置为 true', async () => {
-    const id = taskQueue.enqueue('s4', 'profile-extract', async () => {})
-    await new Promise<void>(r => setTimeout(r, 50))
-
-    const task = taskQueue.getTask(id)
-    expect(task?.notified).toBe(true)
+  it('一个任务的业务失败不阻塞后续任务', async () => {
+    await queue.enqueue('s5', 'smart-title', async () => { throw new Error('fail') })
+    const next = await queue.enqueue('s5', 'smart-title', async () => {})
+    await complete(next)
+    expect(queue.getActiveTasks('another-session')).toEqual([])
   })
 
-  it('取消 pending 任务成功，不执行', async () => {
-    // 先让队列忙，阻塞后续（await 落盘后 fn 才启动，需等到 running 再 release）
-    let release: (() => void) | undefined
-    const blocker = taskQueue.enqueue('s5', 'smart-title', () =>
-      new Promise<void>(r => { release = r }),
-    )
-
-    const cancelTargetId = taskQueue.enqueue('s5', 'vector-index-user', async () => {
-      throw new Error('不应该执行')
-    })
-
-    const cancelled = taskQueue.cancel(cancelTargetId)
-    expect(cancelled).toBe(true)
-
-    // 等到 blocker 真正进入 running（release 已被赋值）
-    for (let i = 0; i < 20 && !release; i++) {
-      await new Promise<void>(r => setTimeout(r, 10))
-    }
-    expect(release).toBeTypeOf('function')
-    release!()
-    await new Promise<void>(r => setTimeout(r, 50))
-
-    const task = taskQueue.getTask(cancelTargetId)
-    expect(task?.status).toBe('cancelled')
-    expect(task?.error).toBeUndefined()
-
-    const blockerTask = taskQueue.getTask(blocker)
-    expect(blockerTask?.status).toBe('completed')
+  it('入队保存失败拒绝接受任务，执行函数不会运行', async () => {
+    const fn = vi.fn(async () => {})
+    vi.spyOn(fs, 'renameSync').mockImplementationOnce(() => { throw new Error('disk-full') })
+    await expect(queue.enqueue('s6', 'smart-title', fn)).rejects.toThrow('数据库保存失败')
+    expect(fn).not.toHaveBeenCalled()
+    expect(queue.getActiveTasks()).toEqual([])
   })
 
-  it('任务失败不影响后续任务执行', async () => {
-    let secondRan = false
-    taskQueue.enqueue('s6', 'smart-title', async () => {
-      throw new Error('第一个失败')
-    })
-    taskQueue.enqueue('s6', 'smart-title', async () => {
-      secondRan = true
-    })
-
-    await new Promise<void>(r => setTimeout(r, 100))
-    expect(secondRan).toBe(true)
+  it('running 保存失败不能启动执行函数', async () => {
+    const db = await database.getDatabase()
+    db.run("CREATE TRIGGER fail_running BEFORE INSERT ON background_tasks WHEN NEW.status = 'running' BEGIN SELECT RAISE(ABORT, 'running-failure'); END")
+    const fn = vi.fn(async () => {})
+    const id = await queue.enqueue('s7', 'smart-title', fn)
+    await queue.shutdown()
+    expect(fn).not.toHaveBeenCalled()
+    expect(queue.getTask(id)?.status).toBe('pending')
   })
 
-  it('getActiveTasks 只返回 pending/running 状态', async () => {
-    const id = taskQueue.enqueue('s7', 'smart-title', async () => {})
+  it('completed 保存失败不能重试已成功的执行函数', async () => {
+    const db = await database.getDatabase()
+    db.run("CREATE TRIGGER fail_completed BEFORE INSERT ON background_tasks WHEN NEW.status = 'completed' BEGIN SELECT RAISE(ABORT, 'completed-failure'); END")
+    const fn = vi.fn(async () => {})
+    const id = await queue.enqueue('s8', 'smart-title', fn)
+    await vi.waitFor(() => expect(fn).toHaveBeenCalledOnce())
+    await queue.shutdown()
+    expect(fn).toHaveBeenCalledOnce()
+    expect(queue.getTask(id)?.status).toBe('running')
+    expect(fixture.send.mock.calls.some(call => call[1].type === 'task:completed')).toBe(false)
+  })
 
-    // 完成前应该有 pending/running 状态
-    await new Promise<void>(r => setTimeout(r, 50))
-
-    // 完成后不再出现在 active 列表
-    const active = taskQueue.getActiveTasks('s7')
-    // completed tasks should not appear
-    const found = active.find(t => t.id === id)
-    expect(found).toBeUndefined()
+  it('发送通知异常不影响已经保存的完成事实，也不触发业务重试', async () => {
+    fixture.send.mockImplementation(() => { throw new Error('window-closed') })
+    const fn = vi.fn(async () => {})
+    const id = await queue.enqueue('s9', 'smart-title', fn)
+    await complete(id)
+    expect(fn).toHaveBeenCalledOnce()
+    expect(queue.getTask(id)?.notified).toBe(false)
   })
 })

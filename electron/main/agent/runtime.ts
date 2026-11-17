@@ -547,7 +547,7 @@ class AgentRuntime {
           chatSpan.end('ok')
 
           const auxConfig = await this.getAuxLLMConfig()
-          if (!isWorkspace) this.enqueuePostTasks(
+          if (!isWorkspace) await this.enqueuePostTasks(
             sessionId,
             messages,
             assistantContent,
@@ -638,7 +638,7 @@ class AgentRuntime {
   }
 
   /** 将对话完成后的后台任务加入 TaskQueue（M09 任务生命周期） */
-  private enqueuePostTasks(
+  private async enqueuePostTasks(
     sessionId: string,
     messages: ChatMessage[],
     assistantContent: string,
@@ -646,8 +646,8 @@ class AgentRuntime {
     llmConfig: LLMConfig,
     companion?: { roleId: string; sessionKind?: string },
     pendingFeedbackId?: string,
-  ): void {
-    taskQueue.enqueue(sessionId, 'profile-extract', async () => {
+  ): Promise<void> {
+    await taskQueue.enqueue(sessionId, 'profile-extract', async () => {
       setQuerySource('memory')
       try {
         await maybeExtractProfile(messages, llmConfig, assistantContent, {
@@ -659,7 +659,7 @@ class AgentRuntime {
       }
     })
 
-    taskQueue.enqueue(sessionId, 'smart-title', async () => {
+    await taskQueue.enqueue(sessionId, 'smart-title', async () => {
       setQuerySource('title')
       try {
         await generateSmartTitle(sessionId, lastUserMsg?.content || '', assistantContent, llmConfig)
@@ -670,7 +670,7 @@ class AgentRuntime {
 
     if (lastUserMsg?.content && lastUserMsg.content.length > 20) {
       const now = Date.now()
-      taskQueue.enqueue(sessionId, 'vector-index-user', () => addToVectorStore({
+      await taskQueue.enqueue(sessionId, 'vector-index-user', () => addToVectorStore({
         id: `conv-user-${now}`,
         text: lastUserMsg.content.slice(0, 500),
         category: 'conversation',

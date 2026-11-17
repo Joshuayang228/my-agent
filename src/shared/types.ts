@@ -1213,13 +1213,14 @@ export interface BackgroundTaskInfo {
   name: TaskType
   sessionId: string
   status: TaskStatus
-  /** 是否已向渲染进程发送完成/失败通知（幂等标志） */
+  /** Renderer 已确认接收完成/失败通知，发送尝试本身不能置位。 */
   notified: boolean
   createdAt: number
   updatedAt: number
   error?: string
   /** 已重试次数（指数退避，最多 MAX_RETRIES=3 次） */
   retryCount?: number
+  nextRetryAt?: number
   /** 断点续接数据（JSON） */
   checkpoint?: TaskCheckpoint
 }
@@ -1229,6 +1230,7 @@ export interface BackgroundTaskInfo {
  * 渲染进程订阅后按 type 分发（可显示 Toast、更新状态 pill 等）。
  */
 export type TaskLifecycleEvent =
+  | { type: 'task:cancelled'; task: BackgroundTaskInfo }
   | { type: 'task:started';   task: BackgroundTaskInfo }
   | { type: 'task:completed'; task: BackgroundTaskInfo }
   | { type: 'task:failed';    task: BackgroundTaskInfo }

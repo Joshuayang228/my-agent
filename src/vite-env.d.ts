@@ -865,6 +865,7 @@ declare global {
           pendingNotify: import('./shared/types').BackgroundTaskInfo[]
         }>
         cancel: (taskId: string) => Promise<boolean>
+        acknowledge: (taskId: string) => Promise<boolean>
         onEvent: (callback: (event: import('./shared/types').TaskLifecycleEvent) => void) => () => void
       }
     }

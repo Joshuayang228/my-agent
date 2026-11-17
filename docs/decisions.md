@@ -576,3 +576,8 @@ My Agent 采用 Agent Manifest + Domain Registry + Capability Registry + Applica
 # DEC-2026-11-17-02 sql.js 提交后快照失败的故障隔离
 
 SQL COMMIT 成功后若 export 或原子快照替换失败，原事务已经无法回滚。当前关闭并隔离该内存实例，后续 getDatabase / persist 拒绝访问，已取得句柄随关闭失效。应用重启从最后成功替换的磁盘快照恢复。普通提交前错误仍执行 SQL ROLLBACK；业务模块自行实现的非事务写入补偿继续由对应存储服务负责。故障提示明确要求排查磁盘后重启，禁止继续运行并在后一次保存中夹带失败事实。此设计沿用 sql.js，不引入全库快照复制或新的原生依赖。
+
+
+## DEC-2026-11-18-01 后台任务完成通知采用接收确认
+
+后台通知采用至少一次投递。completed / failed 先保存在 SQLite，Renderer 按任务 ID 去重并返回 task:acknowledge，确认持久化后结束投递。崩溃发生在界面展示与确认落盘之间时允许重新投递。task:sync 和启动恢复覆盖未确认终态。任务入队和关键状态必须保存成功，存储故障暂停队列，完成保存异常进入存储故障处理，业务重试仅处理执行函数本身的失败。

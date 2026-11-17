@@ -1,5 +1,9 @@
 # Agent 运行时
 
+## 已落地能力补充（2026-11-18）
+
+后台任务入队、running、终态、取消、断点和接收确认均等待 SQLite 事务保存后发布内存状态。存储失败暂停队列执行，完成保存失败不会触发业务函数重试。启动恢复包含未确认的 completed / failed，重试次数和等待期限持久化。Renderer 按任务 ID 去重并调用 task:acknowledge，未确认终态保留在 task:sync。
+
 人物查询工具与上下文（2026-11-18）Host 运行态查询使用可空只读快照，未初始化时返回空，上下文 Provider 跳过该段，查询不能代替生活初始化。
 
 完整 Manifest 目录与执行（2026-11-17）：Runtime 为本次 ToolContext 装配同一 Agent Manifest，目录过滤、实际宿主调用与模型臆造调用共用授权边界，Debug 手测由主进程装配人物作用域。全局 Registry 不再保存默认宽权限执行凭据。
@@ -8,7 +12,7 @@
 
 ## 当前审计缺口（2026-11-17）
 
-工具超时和后台恢复尚未完整收口，见 A04、A06—A07、A12、A15、A17。 完整证据见 [源码审计报告](../../_archive/audits/2026-11-17-architecture-source-audit.md)，活跃处置见 WISH-050。
+工具超时、Scheduler 和业务后续恢复尚未完整收口，见 A04、A06、A12、A13、A15、A17。 完整证据见 [源码审计报告](../../_archive/audits/2026-11-17-architecture-source-audit.md)，活跃处置见 WISH-050。
 
 ## 已落地能力补充（2026-11-17）
 

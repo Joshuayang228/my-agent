@@ -129,7 +129,9 @@ export function settleConversationCompletion(input: {
   llmConfig: LLMConfig
   pendingFeedbackId?: string
 }): void {
-  void scheduleReflectionAfterChat(input.roleId, input.sessionId, input.llmConfig, { sessionKind: input.sessionKind })
+  void scheduleReflectionAfterChat(input.roleId, input.sessionId, input.llmConfig, { sessionKind: input.sessionKind }).catch(error => {
+    log.warn('反思任务入队失败', { roleId: input.roleId, errorType: error instanceof Error ? error.name : 'unknown' })
+  })
   if (input.sessionKind !== 'main') return
   settleVitalsAfterChat(input.roleId).catch(error => {
     log.warn('对话后结算角色生命体征失败', { roleId: input.roleId, error: error instanceof Error ? error.message : String(error) })

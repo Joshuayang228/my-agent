@@ -40,7 +40,7 @@ let dbPath = ''
 let committedPersistenceFailure: Error | null = null
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 25
+export const SCHEMA_VERSION = 26
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -610,6 +610,11 @@ export function runMigrations(database: SqlJsDatabase): void {
         addColumnIfMissing(d, 'sessions', 'parent_session_id', 'TEXT')
         d.run('CREATE INDEX IF NOT EXISTS idx_sessions_parent_kind ON sessions(parent_session_id, session_kind, updated_at DESC)')
       }
+    },
+    // 重启必须延续已消耗的重试次数和等待期限，避免后台任务无限重试。
+    (d) => {
+      addColumnIfMissing(d, 'background_tasks', 'retry_count', 'INTEGER NOT NULL DEFAULT 0')
+      addColumnIfMissing(d, 'background_tasks', 'next_retry_at', 'INTEGER')
     },
   ]
 
