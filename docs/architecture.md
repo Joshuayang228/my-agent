@@ -8,7 +8,7 @@
 
 Companion Core 是运行态与生活持久化的所有者，旧 life store、legacy 转发层和 world_json 状态镜像已移除。同库查询投影与领域事实、事件、Outbox 在本地事务内同步提交，外部投递在提交后消费 Outbox。当前采用状态快照与事件历史的模块化单体设计。
 
-数据库事务以 AsyncLocalStorage 区分嵌套调用和独立请求，独立请求排队，COMMIT 后解除持久化抑制再写盘。命令 retryable 重试重新领取 commandId 并增加 attempt，迟到生命周期结算受所有权约束。
+数据库事务以 AsyncLocalStorage 区分嵌套调用和独立请求，独立请求排队，COMMIT 后解除持久化抑制再写盘。提交后 export / 写临时文件 / 替换失败时关闭并隔离当前实例，后续访问拒绝，应用重启从最后成功快照恢复，避免失败事实被下一次保存夹带。命令 retryable 重试重新领取 commandId 并增加 attempt，迟到生命周期结算受所有权约束。
 
 Session Title Application Service 承担模型标题生成，storage 只提供标题读写。工作区根目录归属 workspace，模型窗口策略归属 llm。委派工具通过 Runtime 注入的 SubAgentExecutor 端口调用子任务。`architecture-boundaries.test.ts` 自动检查禁止反向依赖和废弃状态存储回流。
 

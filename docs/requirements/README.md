@@ -20,6 +20,8 @@
 
 ## 进行中
 
+[架构源码审计修复](./architecture-audit-remediation-v1.md) 覆盖 WISH-050 的 A01—A18，用户已授权完整修复并在复审通过后结束目标。
+
 | 文档 | 说明 |
 |------|------|
 | [prompt-coverage-and-review-v2.md](./prompt-coverage-and-review-v2.md) | 全量方案已确认：推进用途 / 消费者门禁、集中展示、缺失生成闭环和人物扩展；新增 UI 待候选验收后统一回流 |

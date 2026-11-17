@@ -6,6 +6,10 @@
 
 完整源码位置、影响、修复建议、验证矩阵与反例源见 [审计报告](../_archive/audits/2026-11-17-architecture-source-audit.md)。活跃处置清单由 [WISH-050](./wishlist.md) 维护，修复前需另立施工合同并确认范围。
 
+## 修复施工状态
+
+A01 已通过提交后 export / write / rename 故障隔离、重启恢复与全量 Unit / build，仍需随全目标复审。其余项按 [施工合同](./requirements/architecture-audit-remediation-v1.md) 继续，目标保持开启。
+
 ## 继续保留的架构
 
 模块化单体、Loop 与 Runtime 分离、Persona / Memory / Context 边界、Companion Core 唯一运行态、事件历史、同库事务与 Outbox 继续作为基础。执行生命周期遵循 DEC-2026-11-13-01，Capability 边界遵循 DEC-2026-11-13-02，状态与投影采用 DEC-2026-11-17-01。

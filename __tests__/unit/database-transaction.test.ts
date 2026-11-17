@@ -16,8 +16,31 @@ beforeEach(async () => {
   persist()
 })
 afterEach(() => {
+  vi.restoreAllMocks()
   _resetDatabaseForTests()
   fs.rmSync(fixture.directory, { recursive: true, force: true })
+})
+
+it.each(['export', 'write', 'rename'] as const)('事务提交后 %s 失败隔离内存状态，后续保存不夹带失败事实，重启恢复磁盘快照', async failure => {
+  const retained = await getDatabase()
+  const unavailable = () => { throw new Error('disk-unavailable') }
+  if (failure === 'export') vi.spyOn(retained, 'export').mockImplementationOnce(unavailable)
+  if (failure === 'write') vi.spyOn(fs, 'writeFileSync').mockImplementationOnce(unavailable)
+  if (failure === 'rename') vi.spyOn(fs, 'renameSync').mockImplementationOnce(unavailable)
+  await expect(withDatabaseTransaction(async db => {
+    db.run('INSERT INTO transaction_probe VALUES (?)', ['failed-commit'])
+  })).rejects.toThrow('数据库保存失败')
+  await expect(getDatabase()).rejects.toThrow('重启')
+  expect(() => retained.exec('SELECT * FROM transaction_probe')).toThrow()
+  expect(() => persist()).toThrow('重启')
+  _resetDatabaseForTests()
+  const reopened = await getDatabase()
+  expect(reopened.exec('SELECT id FROM transaction_probe')[0]?.values ?? []).toEqual([])
+  reopened.run('INSERT INTO transaction_probe VALUES (?)', ['successful-retry'])
+  persist()
+  const disk = new SQL.Database(fs.readFileSync(path.join(fixture.directory, 'my-agent.db')))
+  expect(disk.exec('SELECT id FROM transaction_probe')[0]?.values).toEqual([['successful-retry']])
+  disk.close()
 })
 
 it('事务成功返回前已写盘，独立数据库重开可见提交事实', async () => {

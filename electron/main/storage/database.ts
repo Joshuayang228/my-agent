@@ -37,6 +37,7 @@ const wasmPath = path.join(path.dirname(require.resolve('sql.js')), 'sql-wasm.wa
 type SqlJsDatabase = import('sql.js').Database
 let db: SqlJsDatabase | null = null
 let dbPath = ''
+let committedPersistenceFailure: Error | null = null
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
 export const SCHEMA_VERSION = 25
@@ -82,6 +83,17 @@ export async function withDatabaseTransaction<T>(work: (database: SqlJsDatabase)
         return result
       } catch (error) {
         if (!committed) database.run('ROLLBACK')
+        else {
+          // SQL 已提交后无法回滚文件替换失败。关闭实例使已取得的引用也失效，
+          // 后续调用必须拒绝访问，重启只能载入最后成功快照，不能夹带失败事实。
+          committedPersistenceFailure = new Error('数据库保存失败，已停止数据库访问。请检查磁盘空间或文件占用后重启应用。')
+          db = null
+          persistDirty = false
+          try { database.close() }
+          catch { log.error('Failed to close quarantined database') }
+          log.error('Database quarantined after committed snapshot could not be saved')
+          throw committedPersistenceFailure
+        }
         throw error
       } finally {
         transactionDepth = 0
@@ -92,7 +104,9 @@ export async function withDatabaseTransaction<T>(work: (database: SqlJsDatabase)
 }
 
 export async function getDatabase(): Promise<SqlJsDatabase> {
+  if (committedPersistenceFailure) throw committedPersistenceFailure
   if (transactionDepth > 0 && !transactionContext.getStore()?.active) await transactionTail
+  if (committedPersistenceFailure) throw committedPersistenceFailure
   if (db) return db
 
   dbPath = path.join(app.getPath('userData'), 'my-agent.db')
@@ -709,6 +723,7 @@ export function atomicWriteFileSync(filePath: string, data: Uint8Array): void {
  * 避免 N 次全量写盘，也避免「先 export 的旧快照后写覆盖新数据」（若将来改异步 I/O）。
  */
 export function persist(): void {
+  if (committedPersistenceFailure) throw committedPersistenceFailure
   if (!db || !dbPath) return
   if (transactionDepth > 0) {
     persistDirty = true
@@ -754,4 +769,5 @@ export function _resetDatabaseForTests(): void {
   persistDirty = false
   transactionDepth = 0
   transactionTail = Promise.resolve()
+  committedPersistenceFailure = null
 }
