@@ -1,5 +1,9 @@
 # 权限（permission）
 
+## 当前审计缺口（2026-11-17）
+
+现有 Tool / 文件权限继续有效；当前 Manifest 收紧未完整传入执行，部分 Settings / MCP / Updater 特权 IPC 尚未统一验证来源，见 A02、A08。 完整证据见 [源码审计报告](../../_archive/audits/2026-11-17-architecture-source-audit.md)，活跃处置见 WISH-050。
+
 ## 已落地能力：工具依赖边界
 
 2026-11-17 文件与 Shell 工具从 `workspace/workspace-root.ts` 取得已验证工作区，工具实现通过 `tools/subagent-executor.ts` 执行端口调用子 Agent。执行器由 Runtime 装配，未装配即拒绝执行；子 Agent 仍沿现有权限引擎执行，结构测试阻止工具反向导入 Runtime。

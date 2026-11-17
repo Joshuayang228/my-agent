@@ -45,6 +45,8 @@
 
 ## 已完成施工快照（冻结）
 
+2026-11-17 架构源码复审发现部分全局不变量仍有缺口，历史完工快照保留原施工范围，当前完成度见 [架构审计现状](../architecture-boundary-audit.md)，待处理项由 WISH-050 跟踪。
+
 目标架构迁移收口：[architecture-migration-final-v1.md](./architecture-migration-final-v1.md)，完成 Core 存储所有权、事务并发、恢复与依赖方向的源码迁移和故障验收。
 
 顶层架构收口：[top-level-architecture-closeout-v1.md](./top-level-architecture-closeout-v1.md)，已完成 Runtime、Application、Agent Host、Capability、Companion Core、Read Model、Projection、Scheduler、Headless 和恢复边界收口。

@@ -1,5 +1,9 @@
 # Agent 运行时
 
+## 当前审计缺口（2026-11-17）
+
+Manifest 目录授权、全局 Skill / 任务计划、工具超时和后台恢复尚未完整收口，见 A02、A04—A07、A12、A15、A17。 完整证据见 [源码审计报告](../../_archive/audits/2026-11-17-architecture-source-audit.md)，活跃处置见 WISH-050。
+
 ## 已落地能力补充（2026-11-17）
 
 - 智能标题模型调用已迁到 `agent/session-title-service.ts`，Session Store 只读写数据。

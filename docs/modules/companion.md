@@ -1,8 +1,12 @@
 # 伙伴世界（Companion）
 
+## 当前审计缺口（2026-11-17）
+
+运行态与 SQL 事实事务已经存在；执行事实 fencing、宿主关怀内存回滚、主动提醒旁路、只读初始化和后台取消仍有缺口，见 A03、A10、A11、A14—A18。 完整证据见 [源码审计报告](../../_archive/audits/2026-11-17-architecture-source-audit.md)，活跃处置见 WISH-050。
+
 ## Agent Host 能力接入（2026-11-13）
 
-Companion 首个 Agent Host Domain Definition 已注册，提供 `companion.runtime.read` 查询能力和 `companion.runtime-context` Context Provider。两者只读取核心 Runtime Read Model，沿用角色作用域和现有权限边界，不复制人物状态或 Prompt 正文。
+Companion 首个 Agent Host Domain Definition 已注册，提供 `companion.runtime.read` 查询能力和 `companion.runtime-context` Context Provider。两者通过核心 Runtime Read Model 取得状态，沿用角色作用域和现有权限边界，不复制人物状态或 Prompt 正文；当前 getter 的初始化写入问题见本卡审计缺口 A16。
 
 朋友圈发布新增 `companion.moment.publish` Workflow Capability，复用既有 `companion_post_moment` Tool 的执行实现。固定 Workflow 与自然语言 Tool 共享角色校验、命令网关、领域事件和 Moment 投影链路。
 
