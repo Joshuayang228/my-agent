@@ -1,6 +1,6 @@
 import type { AgentHostManifest } from '../../../src/shared/agent-host'
 import type { ToolDefinition } from '../../../src/shared/types'
-import { getAgentHostToolNamesForRole } from './host'
+import { getAgentHostToolNames, getRegisteredAgentHostToolNames } from './host'
 
 /**
  * 会话级 Tool 目录。
@@ -13,10 +13,11 @@ export class AgentHostScopedToolCatalog {
   constructor(private readonly manifest: AgentHostManifest) {}
 
   filter(tools: readonly ToolDefinition[], allowedTools?: readonly string[]): ToolDefinition[] {
-    const available = getAgentHostToolNamesForRole(this.manifest.id)
+    const available = getAgentHostToolNames(this.manifest)
+    const registered = getRegisteredAgentHostToolNames()
     const skillAllowed = allowedTools && allowedTools.length > 0 ? new Set(allowedTools) : null
     return tools.filter(tool => {
-      if (tool.name.startsWith('capability_') || tool.name === 'companion_post_moment') {
+      if (registered.has(tool.name) || tool.name.startsWith('capability_')) {
         if (!available.has(tool.name)) return false
       }
       return !skillAllowed || skillAllowed.has(tool.name) || tool.name.startsWith('skill_invoke_')

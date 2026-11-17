@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createCompanionAgentManifest, createCompanionCoreDomain, createMemoryDomain, createPersonaDomain, createWorkspaceDomain, loadCompanionAgentManifest } from '../../electron/main/agent-host/builtin-domains'
 import { capabilityToTool } from '../../electron/main/agent-host/adapter'
-import { getAgentHostDebugRecords, getAgentHostToolNamesForRole, getAgentHostTools, syncAgentHostSkills } from '../../electron/main/agent-host/host'
+import { getAgentHostDebugRecords, getAgentHostToolNames, getAgentHostTools, syncAgentHostSkills, registerAgentHostTools } from '../../electron/main/agent-host/host'
 import { AgentHostScopedToolCatalog } from '../../electron/main/agent-host/scoped-catalog'
+import { ToolRegistry } from '../../electron/main/tools/registry'
 
 describe('Agent Host 内置 Domain', () => {
   it('以通用 Manifest 工厂创建人物 Agent，不绑定单一角色', () => {
@@ -36,7 +37,7 @@ describe('Agent Host 内置 Domain', () => {
       ...createCompanionCoreDomain().capabilities[0],
       invoke: vi.fn(async () => ({ currentLocation: '甲板' })),
     }
-    const tool = capabilityToTool(capability, { agentId: 'lin', roleId: 'lin', grantedPermissions: ['companion.read'] })
+    const tool = capabilityToTool(capability, { manifest: createCompanionAgentManifest({ id: 'lin', personaKey: 'role:lin' }) })
     expect(tool.name).toBe('capability_companion_runtime_read')
     expect(tool.metadata.isReadOnly).toBe(true)
     await expect(tool.execute({}, { workdir: '.', sessionId: 'session-1', roleId: 'lin' })).resolves.toMatchObject({ content: expect.stringContaining('甲板') })
@@ -56,7 +57,7 @@ describe('Agent Host 内置 Domain', () => {
   })
 
   it('Host 按当前 Agent Manifest 计算会话级 Tool 可见性', () => {
-    const names = getAgentHostToolNamesForRole('lin')
+    const names = getAgentHostToolNames(createCompanionAgentManifest({ id: 'lin', personaKey: 'role:lin' }))
     expect(names.has('capability_companion_runtime_read')).toBe(true)
     expect(names.has('capability_memory_profile_read')).toBe(true)
   })
@@ -82,6 +83,52 @@ describe('Agent Host 内置 Domain', () => {
     ]
     const visible = catalog.filter(tools, ['capability_persona_read'])
     expect(visible.map(tool => tool.name)).toEqual(['capability_persona_read', 'skill_invoke_demo'])
+  })
+
+  it('空授权 Manifest 不因人物默认配置而重新获得 Host 能力', () => {
+    const manifest = { ...createCompanionAgentManifest({ id: 'lin', personaKey: 'role:lin', domainKeys: [], allowCapabilities: [] }), grantedPermissions: [] }
+    expect(new AgentHostScopedToolCatalog(manifest).filter(getAgentHostTools())).toEqual([])
+  })
+
+  it('同一人物的 Domain、deny 与权限收紧分别作用于目录', () => {
+    const base = createCompanionAgentManifest({ id: 'lin', personaKey: 'role:lin' })
+    const tools = getAgentHostTools()
+    const denied = { ...base, capabilityPolicy: { allow: ['*'], deny: ['companion'] } }
+    expect(new AgentHostScopedToolCatalog(denied).filter(tools).some(tool => tool.name === 'companion_post_moment')).toBe(false)
+    expect(new AgentHostScopedToolCatalog({ ...base, grantedPermissions: [] }).filter(tools)).toEqual([])
+    expect(new AgentHostScopedToolCatalog({ ...base, domainKeys: ['persona'] }).filter(tools).map(tool => tool.name)).toEqual(['capability_persona_read'])
+  })
+
+  it('全局注册的 Host 工具在实际执行时要求本次 Manifest，并拒绝撤权', async () => {
+    const tool = getAgentHostTools().find(item => item.name === 'capability_persona_read')!
+    const context = { workdir: '.', sessionId: 'session-1', roleId: 'lin' }
+    await expect(tool.execute({}, context)).rejects.toThrow('执行环境')
+    const manifest = { ...createCompanionAgentManifest({ id: 'lin', personaKey: 'role:lin' }), grantedPermissions: [] }
+    await expect(tool.execute({}, { ...context, agentManifest: manifest })).rejects.toThrow('permissions')
+  })
+
+  it('同名内置朋友圈工具不能绕过实际执行授权', async () => {
+    const registry = new ToolRegistry()
+    const original = vi.fn(async () => ({ content: 'unexpected' }))
+    registry.register({ ...getAgentHostTools().find(item => item.name === 'companion_post_moment')!, execute: original })
+    registerAgentHostTools(registry)
+    const manifest = { ...createCompanionAgentManifest({ id: 'lin', personaKey: 'role:lin' }), grantedPermissions: [] }
+    await expect(registry.get('companion_post_moment')!.execute({}, { workdir: '.', sessionId: 'session', roleId: 'lin', agentManifest: manifest })).rejects.toThrow('permissions')
+    expect(original).not.toHaveBeenCalled()
+  })
+
+  it('绑定适配器拒绝跨人物、跨 Agent 和自定义 Tool 名称的撤权执行', async () => {
+    const manifest = createCompanionAgentManifest({ id: 'lin', personaKey: 'role:lin' })
+    const invoke = vi.fn(async () => 'ok')
+    const capability = { ...createCompanionCoreDomain().capabilities[0], toolName: 'custom_world_reader', invoke }
+    const tool = capabilityToTool(capability, { manifest })
+    const context = { workdir: '.', sessionId: 'session', roleId: 'lin' }
+    await expect(tool.execute({}, { ...context, roleId: 'other' })).rejects.toThrow('人物')
+    await expect(tool.execute({}, { ...context, agentManifest: { ...manifest, id: 'other-agent' } })).rejects.toThrow('实例')
+    await expect(tool.execute({}, { ...context, agentManifest: { ...manifest, capabilityPolicy: { allow: ['*'], deny: [capability.key] } } })).rejects.toThrow('unavailable')
+    expect(invoke).not.toHaveBeenCalled()
+    await expect(tool.execute({}, context)).resolves.toEqual({ content: 'ok' })
+    expect(tool.name).toBe('custom_world_reader')
   })
 
   it('Host Debug 记录 Skill 的版本、指纹和 Capability 关系', () => {

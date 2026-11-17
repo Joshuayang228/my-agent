@@ -7,6 +7,18 @@ import type {
   AgentHostManifest,
 } from '../../../src/shared/agent-host'
 
+/**
+ * 背景：目录与执行曾分别创建默认授权，收紧策略因此失效。
+ * 设计意图：同一纯判定复用于完整 Manifest 的发现与实际调用。
+ * 关键约束：deny 优先，Domain 必须显式拥有；所需权限由执行边界再次检查。
+ */
+export function isCapabilityInManifest(manifest: AgentHostManifest, capability: AgentHostCapability): boolean {
+  const { allow, deny } = manifest.capabilityPolicy
+  return manifest.domainKeys.includes(capability.domainKey)
+    && !deny.includes(capability.key) && !deny.includes(capability.domainKey)
+    && (allow.includes('*') || allow.includes(capability.key) || allow.includes(capability.domainKey))
+}
+
 export class AgentHostDomainRegistry {
   private readonly definitions = new Map<string, AgentHostDomainDefinition>()
 
@@ -40,14 +52,7 @@ export class AgentHostCapabilityRegistry {
   }
 
   getAvailableCapabilities(manifest: AgentHostManifest): readonly AgentHostCapability[] {
-    const allowedDomains = new Set(manifest.domainKeys)
-    const allowed = new Set(manifest.capabilityPolicy.allow)
-    const denied = new Set(manifest.capabilityPolicy.deny)
-    return this.getRegisteredCapabilities().filter(capability => {
-      if (!allowedDomains.has(capability.domainKey)) return false
-      if (denied.has(capability.key) || denied.has(capability.domainKey)) return false
-      return allowed.has('*') || allowed.has(capability.key) || allowed.has(capability.domainKey)
-    })
+    return this.getRegisteredCapabilities().filter(capability => isCapabilityInManifest(manifest, capability))
   }
 
   getAvailableContextProviders(manifest: AgentHostManifest): readonly AgentHostContextProvider[] {

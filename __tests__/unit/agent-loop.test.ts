@@ -10,7 +10,8 @@ import type {
 } from '../../src/shared/types'
 
 // Mock logger only — LLM 走 _streamChatOverride（M17-G1：少用 vi.mock(llm)）
-vi.mock('../../electron/main/utils/logger', () => ({
+vi.mock('../../electron/main/utils/logger', async importOriginal => ({
+  ...await importOriginal<typeof import('../../electron/main/utils/logger')>(),
   createLogger: () => ({
     info: vi.fn(),
     warn: vi.fn(),
@@ -68,6 +69,27 @@ async function collectEvents(gen: AsyncGenerator<AgentStreamEvent>): Promise<Age
 describe('agentLoop', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it('模型臆造已被会话目录排除的工具调用时，不确认也不执行', async () => {
+    const registry = new ToolRegistry()
+    const execute = vi.fn(async () => 'unexpected')
+    registry.register({ ...echoTool(), execute })
+    const confirmTool = vi.fn(async () => true)
+    let turn = 0
+    const events = await collectEvents(agentLoop({
+      config: testConfig,
+      messages: [userMsg('echo')],
+      tools: registry.getAll(),
+      filterTools: () => [],
+      confirmTool,
+      _streamChatOverride: () => ++turn === 1
+        ? makeMockStream([], [{ id: 'hidden-call', name: 'echo', arguments: '{}' }])
+        : makeMockStream(['finished']),
+    }, registry))
+    expect(execute).not.toHaveBeenCalled()
+    expect(confirmTool).not.toHaveBeenCalled()
+    expect(events).toContainEqual(expect.objectContaining({ type: 'tool_end', callId: 'hidden-call', isError: true, result: expect.stringContaining('没有授权') }))
   })
 
   it('纯文本回复：产出 text + done 事件', async () => {

@@ -521,8 +521,15 @@ export async function* agentLoop(
 
       const effectiveSandbox = resolveEffectiveSandbox(effectiveExecutionMode)
       const canonical = registry.resolveName(call.name)
-      const filePermission = checkFileToolPermission(canonical, args, options.toolContext, effectiveSandbox, call.id)
-      const permResult = combineFilePermission(checkToolPermission(canonical), filePermission)
+      // 目录是本次执行授权的输入，模型臆造的隐藏工具也进入统一拒绝、审计与熔断路径。
+      const available = !filterTools || effectiveTools.some(tool => tool.name === canonical)
+      const filePermission = available ? checkFileToolPermission(canonical, args, options.toolContext, effectiveSandbox, call.id) : null
+      const permResult = available ? combineFilePermission(checkToolPermission(canonical), filePermission) : {
+        allowed: false as const,
+        reason: '本次执行没有授权此工具。',
+        decisionType: 'sandbox-policy' as const,
+        chain: 'session-tool-catalog -> deny',
+      }
       const permissionStatus = permResult.allowed === false
         ? 'denied' as const
         : permResult.allowed === 'needs_approval'

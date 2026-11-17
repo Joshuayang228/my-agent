@@ -1,8 +1,10 @@
 # 权限（permission）
 
+Manifest 实际授权（2026-11-17）：全局工具只保存实现，每次执行验证主进程注入的 Domain / allow / deny / requiredPermissions、Agent 与人物绑定。内置朋友圈同名入口由宿主适配器接管；模型调用目录外工具进入统一拒绝和熔断路径。
+
 ## 当前审计缺口（2026-11-17）
 
-现有 Tool / 文件权限继续有效；当前 Manifest 收紧未完整传入执行，部分 Settings / MCP / Updater 特权 IPC 尚未统一验证来源，见 A02、A08。 完整证据见 [源码审计报告](../../_archive/audits/2026-11-17-architecture-source-audit.md)，活跃处置见 WISH-050。
+现有 Tool / 文件权限继续有效；A02 已将完整 Manifest 接入目录与实际执行，部分 Settings / MCP / Updater 特权 IPC 尚未统一验证来源，见 A08。 完整证据见 [源码审计报告](../../_archive/audits/2026-11-17-architecture-source-audit.md)，活跃处置见 WISH-050。
 
 ## 已落地能力：工具依赖边界
 

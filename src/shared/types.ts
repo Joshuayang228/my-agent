@@ -700,6 +700,8 @@ export const PERMISSION_RULE_ACTIONS = ['allow', 'deny', 'ask'] as const
 
 /** 工具执行时注入的运行时上下文 */
 export interface ToolContext {
+  /** 主进程为本次执行装配的完整宿主授权，模型与 Renderer 不得提供。 */
+  agentManifest?: import('./agent-host').AgentHostManifest
   /** 当前工作区根目录 */
   workdir: string
   /** 用户明确选中的工作区；区别于 workdir 在无项目时的进程目录回退，仅由主进程注入。 */

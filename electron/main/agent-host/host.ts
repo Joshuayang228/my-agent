@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto'
 import { AgentHostApplicationOrchestrator, AgentHostCapabilityRegistry, AgentHostDomainRegistry } from './domain-catalog'
 import { createCompanionCoreDomain, createMemoryDomain, createPersonaDomain, createWorkspaceDomain, loadCompanionAgentManifest } from './builtin-domains'
-import type { AgentHostExecutionContext, AgentHostSkillMetadata } from '../../../src/shared/agent-host'
-import { capabilityToTool } from './adapter'
+import type { AgentHostExecutionContext, AgentHostSkillMetadata, AgentHostManifest } from '../../../src/shared/agent-host'
+import { capabilityToTool, getCapabilityToolName } from './adapter'
 import type { SkillDefinition, ToolDefinition } from '../../../src/shared/types'
 import type { ToolRegistry } from '../tools/registry'
 import { isSkillEnabled } from '../skills/registry'
@@ -36,20 +36,26 @@ export async function getAgentHostContext(input: Omit<AgentHostExecutionContext,
 
 export function getAgentHostTools(): ToolDefinition[] {
   initializeAgentHost()
-  const manifest = loadCompanionAgentManifest({ id: 'agent-host', personaKey: 'agent-host' })
-  const environment = agentHostApplication.createEnvironment(manifest)
-  return environment.capabilities.filter(capability => capability.exposeToTool !== false).map(capability => capabilityToTool(capability, {
-    agentId: manifest.id,
-    grantedPermissions: manifest.grantedPermissions,
-    onActivated: (capabilityKey, context) => agentHostCapabilityRegistry.markActivated(capabilityKey, context.roleId ?? context.agentId),
+  return agentHostCapabilityRegistry.getRegisteredCapabilities().filter(capability => capability.exposeToTool !== false).map(capability => capabilityToTool(capability, {
+    onActivated: (capabilityKey, context) => agentHostCapabilityRegistry.markActivated(capabilityKey, context.agentId),
   }))
 }
 
-export function getAgentHostToolNamesForRole(roleId: string): ReadonlySet<string> {
+/**
+ * 背景：相同人物可具有不同权限组合，仅使用 roleId 会重建宽权限默认值。
+ * 设计意图：目录消费调用方的完整 Manifest，统一名称由协议适配器生成。
+ * 关键约束：缺少 requiredPermissions 的能力不对模型可见，执行时仍需再次授权。
+ */
+export function getAgentHostToolNames(manifest: AgentHostManifest): ReadonlySet<string> {
   initializeAgentHost()
-  const manifest = loadCompanionAgentManifest({ id: roleId, personaKey: `role:${roleId}` })
   const environment = agentHostApplication.createEnvironment(manifest)
-  return new Set(environment.capabilities.filter(capability => capability.exposeToTool !== false).map(capability => capabilityToTool(capability, { agentId: 'agent-host', grantedPermissions: manifest.grantedPermissions }).name))
+  return new Set(environment.capabilities.filter(capability => capability.exposeToTool !== false
+    && capability.requiredPermissions.every(permission => manifest.grantedPermissions.includes(permission))).map(getCapabilityToolName))
+}
+
+export function getRegisteredAgentHostToolNames(): ReadonlySet<string> {
+  initializeAgentHost()
+  return new Set(agentHostCapabilityRegistry.getRegisteredCapabilities().map(getCapabilityToolName))
 }
 
 export interface AgentHostDebugRecord {
@@ -102,7 +108,9 @@ export function getAgentHostDebugRecords(roleId: string): AgentHostDebugRecord[]
 
 export function registerAgentHostTools(toolRegistry: ToolRegistry): void {
   for (const tool of getAgentHostTools()) {
-    if (!toolRegistry.has(tool.name)) toolRegistry.register(tool)
+    // 朋友圈同时是内置 Tool，必须替换为宿主授权适配器，否则已有名称会跳过真实执行门禁。
+    toolRegistry.unregister(tool.name)
+    toolRegistry.register(tool)
   }
 }
 

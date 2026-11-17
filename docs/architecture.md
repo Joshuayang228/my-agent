@@ -15,6 +15,10 @@ Session Title Application Service 承担模型标题生成，storage 只提供�
 Headless 只有明确 completed 终态才返回调度成功。固定生活 Workflow 使用调度时间，自动提醒沿现有用户设置共享跨 tick、跨重启的角色预算。
 
 
+## 完整 Manifest 的目录与执行授权
+
+全局 Agent Host Tool 只登记生产能力实现，执行时读取主进程 ToolContext 的完整 Manifest。目录与调用共用 Domain / allow / deny 判定，实际执行复核所需权限和 Agent / 人物归属。同名内置朋友圈工具被宿主适配器替换，模型臆造的目录外调用在 Loop 的统一权限拒绝与熔断路径终止。
+
 ## Agent Host 契约骨架（2026-11-13）
 
 新增 `src/shared/agent-host.ts` 定义 Agent Manifest、Domain、Capability、Context Provider 和执行作用域。主进程 `electron/main/agent-host/` 提供 Domain Registry、Capability Registry 与 Application Orchestrator，当前注册 Persona、Memory、Companion、Workspace 四个首批 Domain，Companion 提供 Runtime Read Model Context。Tool、Skill、Workflow 的边界由施工合同 `agent-host-architecture-v1.md` 固定，现有 Agent Loop、Tool Registry、Skill Registry 和 Permission Engine 继续作为执行基础。

@@ -446,7 +446,9 @@ class AgentRuntime {
       }, isSummon ? 'summon' : isWorkspace ? 'workspace' : 'main')
 
       // ── 运行 Agent Loop ──
+      const agentManifest = loadCompanionAgentManifest({ id: assembleRoleId, personaKey: `role:${assembleRoleId}` })
       const toolContext: ToolContext = {
+        agentManifest,
         workdir: getWorkspaceRoot() || process.cwd(),
         workspaceRoot: getWorkspaceRoot(),
         sessionId,
@@ -480,7 +482,7 @@ class AgentRuntime {
           interactionSpanId: chatSpan.id,  // 传入父 span ID，使 loop 内的子 span 形成调用链树
           filterTools: (allTools) => {
             const active = getActiveSkill()
-            return new AgentHostScopedToolCatalog(loadCompanionAgentManifest({ id: assembleRoleId, personaKey: `role:${assembleRoleId}` }))
+            return new AgentHostScopedToolCatalog(agentManifest)
               .filter(allTools, active?.meta.allowed_tools)
           },
         },
