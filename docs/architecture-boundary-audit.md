@@ -8,7 +8,7 @@
 
 ## 修复施工状态
 
-A01 已通过提交后 export / write / rename 故障隔离、重启恢复与全量 Unit / build，仍需随全目标复审。A02 已通过完整 Manifest 目录与实际执行、跨实例 / 人物、同名朋友圈入口与隐藏工具调用验证，全量 Unit / build 和正式朋友圈 Electron 通过。A05 已完成执行级 Skill 和显式会话计划隔离，删除吞错内存回退，并覆盖并发更新与重启。其余项按 [施工合同](./requirements/architecture-audit-remediation-v1.md) 继续，目标保持开启。
+A01 已通过提交后 export / write / rename 故障隔离、重启恢复与全量 Unit / build，仍需随全目标复审。A02 已通过完整 Manifest 目录与实际执行、跨实例 / 人物、同名朋友圈入口与隐藏工具调用验证，全量 Unit / build 和正式朋友圈 Electron 通过。A05 已完成执行级 Skill 和显式会话计划隔离，删除吞错内存回退，并覆盖并发更新与重启。A10 已完成关怀冷却和熬夜线索的事件化与日剧本接入，覆盖人物隔离、回滚、重启和并发。其余项按 [施工合同](./requirements/architecture-audit-remediation-v1.md) 继续，目标保持开启。
 
 ## 继续保留的架构
 

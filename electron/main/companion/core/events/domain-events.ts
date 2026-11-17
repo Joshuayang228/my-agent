@@ -28,6 +28,16 @@ export async function getCompanionDomainEventById(id: string): Promise<Companion
   return row ? rowToEvent(row) : null
 }
 
+export async function listRecentCompanionDomainEvents(input: { roleId: string; universeId: string; type: string; since: number; until: number }): Promise<CompanionDomainEvent[]> {
+  const db = await getDatabase()
+  if (!db.exec("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'companion_domain_events'").length) return []
+  const rows = db.exec(`SELECT id, role_id, universe_id, type, source_type, source_id, causation_id,
+    correlation_id, idempotency_key, occurred_at, payload_json, schema_version
+    FROM companion_domain_events WHERE role_id = ? AND universe_id = ? AND type = ? AND occurred_at >= ? AND occurred_at <= ?
+    ORDER BY occurred_at DESC LIMIT 256`, [input.roleId, input.universeId, input.type, input.since, input.until])
+  return (rows[0]?.values ?? []).map(rowToEvent)
+}
+
 function rowToEvent(row: unknown[]): CompanionDomainEvent {
   return {
     id: String(row[0]),

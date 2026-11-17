@@ -264,6 +264,10 @@ export async function collectDayScriptLifeContext(roleId: string): Promise<strin
       parts.push(`昨日/近期生活轨迹：${recentActivities.join('；')}`)
     }
 
+    const { getRecentHostCareContext } = await import('./host-presence')
+    const hostCare = await getRecentHostCareContext(roleId)
+    if (hostCare) parts.push(hostCare)
+
     const { listAssets } = await import('./assets')
     const footprints = await listAssets(roleId, { kind: 'footprint' })
     const activeTrip = footprints.find(a => a.payload.recordType === 'trip' && a.payload.status === 'active')

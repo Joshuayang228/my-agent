@@ -26,7 +26,8 @@ import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm/index'
 import { compileHostCareRequest } from '../../prompts/registered-request'
-import { loadRolePack } from '../identity/loader'
+import { loadRolePack, resolveRoleUniverseId } from '../identity/loader'
+import { listRecentCompanionDomainEvents } from '../core/events/domain-events'
 import * as sessionStore from '../../storage/session-store'
 import { isActiveRole } from '../../storage/settings-store'
 import { recordCompanionEventAndNotify } from '../application/record-event-notify'
@@ -37,8 +38,6 @@ const log = createLogger('HostPresence')
 // 运行态内存记录（进程生命周期内维护）
 let sessionStartAt = Date.now()
 let lastActiveAt = Date.now()
-const lastCareTriggeredAt: Record<string, number> = {}
-let yesterdayNightWorkRecorded = false
 
 /** 获取系统空闲秒数（带安全防护） */
 function getSystemIdleSeconds(): number {
@@ -66,10 +65,6 @@ export function recordUserActivity(now = Date.now(), forceNewSession = false): v
 export function resetHostPresenceStateForTesting(startTime = Date.now()): void {
   sessionStartAt = startTime
   lastActiveAt = startTime
-  for (const key of Object.keys(lastCareTriggeredAt)) {
-    delete lastCareTriggeredAt[key]
-  }
-  yesterdayNightWorkRecorded = false
 }
 
 /** 查询当前宿主活跃度与作息状态 */
@@ -135,19 +130,20 @@ export async function checkAndTriggerHostCare(
   forceKind?: HostCareKind,
 ): Promise<HostCareEvent | null> {
   const status = getHostPresenceStatus(now)
+  const recentCare = await getCommittedCareTimes(roleId, now)
 
   let targetKind: HostCareKind | null = forceKind ?? null
 
   if (!targetKind) {
     // 1. 深夜熬夜劝睡（优先级高）：本地处于 23:30 ~ 05:00，且用户近 15 分钟内仍在活跃
-    const lastLateNight = lastCareTriggeredAt['late_night_sleep'] ?? 0
+    const lastLateNight = recentCare.get('late_night_sleep') ?? 0
     const d = new Date(now)
     const isDeepNight = (d.getHours() === 23 && d.getMinutes() >= 30) || (d.getHours() >= 0 && d.getHours() < 5)
     if (isDeepNight && status.idleSeconds < 300 && now - lastLateNight >= 6 * 3600 * 1000) {
       targetKind = 'late_night_sleep'
     } else {
       // 2. 连续专注疲劳关切：持续工作 >= 120 分钟且 3 小时未提醒过
-      const lastFatigue = lastCareTriggeredAt['fatigue_break'] ?? 0
+      const lastFatigue = recentCare.get('fatigue_break') ?? 0
       if (status.continuousActiveMinutes >= 120 && now - lastFatigue >= 3 * 3600 * 1000) {
         targetKind = 'fatigue_break'
       }
@@ -192,11 +188,11 @@ export async function checkAndTriggerHostCare(
   if (!(await isActiveRole(roleId))) return null
 
   return await commitLifeAction(async () => {
-    // 记录触发时间与熬夜标志
-    lastCareTriggeredAt[targetKind] = now
-    if (targetKind === 'late_night_sleep') {
-      yesterdayNightWorkRecorded = true
-    }
+    // 模型等待期间可能已有另一 tick 提交关怀，事务内复核已提交记录。
+    // 冷却只从事件推导，事件与消息一起回滚，失败和重启不能改变该事实。
+    const committed = await getCommittedCareTimes(roleId, now)
+    const cooldown = targetKind === 'late_night_sleep' ? 6 * 3600000 : 3 * 3600000
+    if (!forceKind && now - (committed.get(targetKind) ?? 0) < cooldown) return null
 
     const titles: Record<HostCareKind, string> = {
       fatigue_break: '休息一下吧！',
@@ -214,16 +210,12 @@ export async function checkAndTriggerHostCare(
     }
 
     // 写入主角专属主会话，实现会话留痕
-    try {
-      const mainSession = await sessionStore.ensureMainSessionForRole(roleId)
-      await enqueueCompanionSessionMessage({
-        roleId,
-        sessionId: mainSession.id,
-        message: { id: randomUUID(), role: 'assistant', content: careMessage, timestamp: now },
-      })
-    } catch (err) {
-      log.warn('Failed to append host care message to main session', { roleId, error: String(err) })
-    }
+    const mainSession = await sessionStore.ensureMainSessionForRole(roleId)
+    await enqueueCompanionSessionMessage({
+      roleId,
+      sessionId: mainSession.id,
+      message: { id: randomUUID(), role: 'assistant', content: careMessage, timestamp: now },
+    })
 
     await recordCompanionEventAndNotify({
       roleId,
@@ -244,15 +236,25 @@ export async function checkAndTriggerHostCare(
   })
 }
 
-/** 供次日日剧本吸收的宿主生活线索 */
-export async function getRecentHostCareContext(): Promise<string | null> {
-  if (yesterdayNightWorkRecorded) {
-    return '用户昨日有深夜熬夜工作的记录（忙碌至凌晨），请在今日晨起日程或问候中温和关心，生活安排适度偏向安静温和。'
+async function getCommittedCareTimes(roleId: string, now: number): Promise<Map<string, number>> {
+  const events = await listRecentCompanionDomainEvents({
+    roleId,
+    universeId: resolveRoleUniverseId(roleId),
+    type: 'host_care_triggered',
+    since: now - 36 * 3600000,
+    until: now,
+  })
+  const times = new Map<string, number>()
+  for (const event of events) {
+    const care = event.payload.care as HostCareEvent | undefined
+    if (care?.kind && !times.has(care.kind)) times.set(care.kind, event.occurredAt)
   }
-  return null
+  return times
 }
 
-/** 跨天重置熬夜标志（供测试或新一天重置） */
-export function resetHostCareDayFlags(): void {
-  yesterdayNightWorkRecorded = false
+/** 从已提交人物事件读取最近 36 小时熬夜线索，重启保留，过期自然消失。 */
+export async function getRecentHostCareContext(roleId: string, now = Date.now()): Promise<string | null> {
+  const care = await getCommittedCareTimes(roleId, now)
+  if (!care.has('late_night_sleep')) return null
+  return '用户昨日有深夜熬夜工作的记录（忙碌至凌晨），请在今日晨起日程或问候中温和关心，生活安排适度偏向安静温和。'
 }

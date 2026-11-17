@@ -58,6 +58,17 @@ const { listAssets } = await import('../../electron/main/companion/life/assets')
 const { collectDayScriptLifeContext } = await import('../../electron/main/companion/life/script-generator')
 
 describe('会话到生活的因果反哺（Chat to Life Resonance）', () => {
+  it('日剧本上下文读取当前人物已提交的熬夜关怀事件', async () => {
+    const { appendCompanionDomainEvent } = await import('../../electron/main/companion/core/events/domain-events')
+    const { resolveRoleUniverseId } = await import('../../electron/main/companion/identity/loader')
+    await appendCompanionDomainEvent({
+      roleId: 'luffy', universeId: resolveRoleUniverseId('luffy'), type: 'host_care_triggered',
+      sourceType: 'host_presence', sourceId: 'night', causationId: 'night', correlationId: 'night',
+      idempotencyKey: 'night', occurredAt: Date.now() - 3600000,
+      payload: { care: { kind: 'late_night_sleep' } }, schemaVersion: 1,
+    })
+    expect(await collectDayScriptLifeContext('luffy')).toContain('深夜熬夜工作')
+  })
   beforeEach(async () => {
     memDb = new SQL.Database()
     await ensureResonanceTable()

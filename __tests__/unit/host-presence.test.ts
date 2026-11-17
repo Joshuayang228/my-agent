@@ -25,6 +25,7 @@ const SQL = await initSqlJs()
 let memDb: InstanceType<typeof SQL.Database>
 
 let mockIdleTime = 10 // 默认空闲 10 秒
+let mockActiveRole = 'luffy'
 const sendMock = vi.fn()
 
 vi.mock('electron', () => ({
@@ -88,12 +89,16 @@ vi.mock('../../electron/main/llm/index', () => ({
   chatComplete: vi.fn(async () => ''),
 }))
 
+vi.mock('../../electron/main/storage/settings-store', async original => ({
+  ...await original<typeof import('../../electron/main/storage/settings-store')>(),
+  isActiveRole: async (roleId: string) => roleId === mockActiveRole,
+}))
+
 import {
   recordUserActivity,
   getHostPresenceStatus,
   checkAndTriggerHostCare,
   getRecentHostCareContext,
-  resetHostCareDayFlags,
   resetHostPresenceStateForTesting,
 } from '../../electron/main/companion/life/host-presence'
 
@@ -106,6 +111,7 @@ describe('宿主作息与现实关怀触达（Host Presence & Care Anchor）', (
     vi.clearAllMocks()
     appendedMessages.length = 0
     mockIdleTime = 10
+    mockActiveRole = roleId
     resetHostPresenceStateForTesting(baseTime)
   })
 
@@ -190,7 +196,7 @@ describe('宿主作息与现实关怀触达（Host Presence & Care Anchor）', (
     expect(care?.message).toContain('钻进被窝')
 
     // 检查次日日剧本线索
-    const context = await getRecentHostCareContext()
+    const context = await getRecentHostCareContext(roleId, lateNightTime + 6 * 3600000)
     expect(context).toContain('深夜熬夜工作')
     expect(context).toContain('温和关心')
   })
@@ -201,5 +207,44 @@ describe('宿主作息与现实关怀触达（Host Presence & Care Anchor）', (
     expect(care?.kind).toBe('welcome_back')
     expect(care?.title).toBe('欢迎回来！')
     expect(care?.message).toContain('探险')
+  })
+
+  it('事务失败不消费冷却，修复失败原因后可以立即重试', async () => {
+    const { ensureCompanionCoreSchema } = await import('../../electron/main/companion/core/schema')
+    await ensureCompanionCoreSchema()
+    memDb.run("CREATE TRIGGER fail_care BEFORE INSERT ON companion_domain_events BEGIN SELECT RAISE(ABORT, 'care-failure'); END")
+    const now = baseTime + 130 * 60000
+    await expect(checkAndTriggerHostCare(roleId, now)).rejects.toThrow('care-failure')
+    memDb.run('DROP TRIGGER fail_care')
+    expect(await checkAndTriggerHostCare(roleId, now + 1000)).not.toBeNull()
+  })
+
+  it('人物切换隔离冷却，进程重置和数据库重开保留已提交冷却', async () => {
+    const now = baseTime + 130 * 60000
+    expect(await checkAndTriggerHostCare(roleId, now)).not.toBeNull()
+    mockActiveRole = 'zoro'
+    expect(await checkAndTriggerHostCare('zoro', now + 1000)).not.toBeNull()
+    const snapshot = memDb.export()
+    memDb.close()
+    memDb = new SQL.Database(snapshot)
+    resetHostPresenceStateForTesting(baseTime)
+    mockActiveRole = roleId
+    expect(await checkAndTriggerHostCare(roleId, now + 2000)).toBeNull()
+  })
+
+  it('熬夜线索从人物事件读取，重启保留且过期消失', async () => {
+    const now = new Date(2026, 10, 18, 1, 30).getTime()
+    await checkAndTriggerHostCare(roleId, now, 'late_night_sleep')
+    resetHostPresenceStateForTesting(now)
+    expect(await getRecentHostCareContext(roleId, now + 8 * 3600000)).toContain('深夜熬夜工作')
+    expect(await getRecentHostCareContext('zoro', now + 8 * 3600000)).toBeNull()
+    expect(await getRecentHostCareContext(roleId, now + 48 * 3600000)).toBeNull()
+  })
+
+  it('并发 tick 在事务内复核冷却，只提交一条关怀事实', async () => {
+    const now = baseTime + 130 * 60000
+    const results = await Promise.all([checkAndTriggerHostCare(roleId, now), checkAndTriggerHostCare(roleId, now + 1)])
+    expect(results.filter(Boolean)).toHaveLength(1)
+    expect(memDb.exec("SELECT COUNT(*) FROM companion_domain_events WHERE type = 'host_care_triggered'")[0].values[0][0]).toBe(1)
   })
 })

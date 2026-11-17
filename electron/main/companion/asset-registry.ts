@@ -353,8 +353,8 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
   }), makeCompanionAsset({
     key: 'companion:policy:host-care', name: '宿主作息感知与关怀策略',
     purpose: '感知用户长时间专注或深夜仍在工作，由角色在主会话主动关怀，并反哺次日剧本',
-    role: 'platform', description: '连续专注 120 分钟（冷却 3 小时）或 23:30–05:00 活跃（冷却 6 小时）触发；关怀写入主会话并广播 host-care-triggered；深夜记录供次日剧本吸收。',
-    source: 'electron/main/companion/life/host-presence.ts#checkAndTriggerHostCare', version: 'host-care-v1',
+    role: 'platform', description: '连续专注 120 分钟（冷却 3 小时）或 23:30–05:00 活跃（冷却 6 小时）触发；关怀写入主会话并广播 host-care-triggered；冷却从人物已提交事件读取并在事务内复核，深夜记录供次日剧本吸收。',
+    source: 'electron/main/companion/life/host-presence.ts#checkAndTriggerHostCare', version: 'host-care-v2',
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent({ trigger: 'host-presence-care', promptKey: PROMPT_KEYS.companionHostCare }),
     dependencies: [PROMPT_KEYS.companionHostCare],
