@@ -1,3 +1,4 @@
+import { commitLifeAction } from '../application/commit-life-action'
 /**
  * 伙伴衣柜与穿搭自主演化引擎（Autonomous Contextual Dressing）
  *
@@ -20,7 +21,7 @@ import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from '../../storage/database'
 import { createLogger } from '../../utils/logger'
 import { toLocalDateString } from './dates'
-import { getCompanionLegacyDayScript as getDayScript } from '../core/read-models/legacy-companion-read-model'
+import { getDayScript } from '../core/persistence/life-repository'
 import { getCompanionRuntimeReadModel } from '../core/read-models/runtime-read-model'
 import {
   listAssets,
@@ -335,77 +336,79 @@ export async function checkAndPerformContextualDressing(
     }
 
     const { targetAsset, expectedVersion, reason } = decision
-    const changeResult = await changeWardrobe({
-      roleId,
-      assetId: targetAsset.id,
-      expectedVersion,
-    })
-
-    if (!changeResult.ok) {
-      log.warn('Contextual dressing changeWardrobe rejected', {
+    return await commitLifeAction(async () => {
+      const changeResult = await changeWardrobe({
         roleId,
         assetId: targetAsset.id,
         expectedVersion,
-        error: changeResult.error,
       })
-      return { ok: false, error: changeResult.error }
-    }
 
-    const dressingRecord: CompanionAutonomousDressingRecord = {
-      id: randomUUID(),
-      roleId,
-      assetId: targetAsset.id,
-      outfitName: targetAsset.name,
-      triggerReason: reason || 'contextual_activity',
-      outfitVersion: (changeResult.asset.payload.outfitVersion as number) || 1,
-      createdAt: now,
-    }
+      if (!changeResult.ok) {
+        log.warn('Contextual dressing changeWardrobe rejected', {
+          roleId,
+          assetId: targetAsset.id,
+          expectedVersion,
+          error: changeResult.error,
+        })
+        return { ok: false, error: changeResult.error }
+      }
 
-    const db = await getDatabase()
-    db.run(
-      `INSERT INTO companion_autonomous_dressings
-         (id, role_id, asset_id, outfit_name, trigger_reason, outfit_version, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        dressingRecord.id,
-        dressingRecord.roleId,
-        dressingRecord.assetId,
-        dressingRecord.outfitName,
-        dressingRecord.triggerReason,
-        dressingRecord.outfitVersion,
-        dressingRecord.createdAt,
-      ],
-    )
-    persist()
+      const dressingRecord: CompanionAutonomousDressingRecord = {
+        id: randomUUID(),
+        roleId,
+        assetId: targetAsset.id,
+        outfitName: targetAsset.name,
+        triggerReason: reason || 'contextual_activity',
+        outfitVersion: (changeResult.asset.payload.outfitVersion as number) || 1,
+        createdAt: now,
+      }
 
-    log.info('Contextual dressing applied successfully', {
-      roleId,
-      outfitName: targetAsset.name,
-      version: dressingRecord.outfitVersion,
-      reason,
+      const db = await getDatabase()
+      db.run(
+        `INSERT INTO companion_autonomous_dressings
+           (id, role_id, asset_id, outfit_name, trigger_reason, outfit_version, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          dressingRecord.id,
+          dressingRecord.roleId,
+          dressingRecord.assetId,
+          dressingRecord.outfitName,
+          dressingRecord.triggerReason,
+          dressingRecord.outfitVersion,
+          dressingRecord.createdAt,
+        ],
+      )
+      persist()
+
+      log.info('Contextual dressing applied successfully', {
+        roleId,
+        outfitName: targetAsset.name,
+        version: dressingRecord.outfitVersion,
+        reason,
+      })
+
+      const wardrobePayload = { roleId, asset: changeResult.asset, reason, now }
+      await recordCompanionEventAndNotify({
+        roleId,
+        type: 'wardrobe_changed',
+        sourceType: 'autonomous_dressing',
+        sourceId: dressingRecord.id,
+        idempotencyKey: `wardrobe-changed:${dressingRecord.id}`,
+        occurredAt: now,
+        payload: wardrobePayload as unknown as Record<string, unknown>,
+        notification: [
+          { kind: 'timeline-updated', dedupeKey: `wardrobe-timeline:${dressingRecord.id}`, payload: { roleId, now } },
+          { kind: 'wardrobe-changed', dedupeKey: `wardrobe-changed:${dressingRecord.id}`, payload: wardrobePayload as unknown as Record<string, unknown> },
+        ],
+      })
+
+      return {
+        ok: true,
+        asset: changeResult.asset,
+        reason,
+        dressingRecord,
+      }
     })
-
-    const wardrobePayload = { roleId, asset: changeResult.asset, reason, now }
-    await recordCompanionEventAndNotify({
-      roleId,
-      type: 'wardrobe_changed',
-      sourceType: 'autonomous_dressing',
-      sourceId: dressingRecord.id,
-      idempotencyKey: `wardrobe-changed:${dressingRecord.id}`,
-      occurredAt: now,
-      payload: wardrobePayload as unknown as Record<string, unknown>,
-      notification: [
-        { kind: 'timeline-updated', dedupeKey: `wardrobe-timeline:${dressingRecord.id}`, payload: { roleId, now } },
-        { kind: 'wardrobe-changed', dedupeKey: `wardrobe-changed:${dressingRecord.id}`, payload: wardrobePayload as unknown as Record<string, unknown> },
-      ],
-    })
-
-    return {
-      ok: true,
-      asset: changeResult.asset,
-      reason,
-      dressingRecord,
-    }
   } catch (error) {
     log.error('Contextual dressing threw error', { roleId, error: String(error) })
     return null

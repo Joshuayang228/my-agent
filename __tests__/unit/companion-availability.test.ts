@@ -17,7 +17,7 @@ vi.mock('../../electron/main/storage/database', () => ({
   persist: vi.fn(),
 }))
 
-vi.mock('../../electron/main/companion/life/store', () => ({
+vi.mock('../../electron/main/companion/core/persistence/life-repository', () => ({
   listEvents: vi.fn(async () => []),
   getDayScript: vi.fn(async () => null),
 }))

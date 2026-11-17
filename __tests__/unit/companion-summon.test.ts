@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 /**
  * 召唤子会话：装载非 active Pack，不改 activeRoleId，标记 session_kind=summon
  */
@@ -30,6 +31,7 @@ let memDb: InstanceType<typeof SQL.Database>
 let activeRoleId = 'luffy'
 
 vi.mock('../../electron/main/storage/database', () => ({
+  withDatabaseTransaction: async (work: (db: typeof memDb) => Promise<unknown>) => runLocalTransaction(memDb, work),
   getDatabase: vi.fn(async () => memDb),
   persist: vi.fn(),
 }))

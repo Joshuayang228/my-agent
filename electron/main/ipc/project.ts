@@ -3,7 +3,7 @@ import { registerSecureIpcHandler } from './ipc-security'
 import * as path from 'node:path'
 import * as fs from 'node:fs'
 import * as settings from '../storage/settings-store'
-import { setWorkspaceRoot } from '../agent/project-memory'
+import { setWorkspaceRoot } from '../workspace/workspace-root'
 import { createLogger, hashForLog } from '../utils/logger'
 
 const log = createLogger('ProjectIPC')

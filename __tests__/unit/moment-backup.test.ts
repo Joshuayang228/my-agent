@@ -1,8 +1,9 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 import initSqlJs from 'sql.js'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 vi.mock('electron', () => ({ app: { getPath: () => '' }, ipcMain: { handle: vi.fn() }, dialog: {}, safeStorage: { isEncryptionAvailable: () => false } }))
-vi.mock('../../electron/main/storage/database', () => ({ getDatabase: async () => db, persist: vi.fn() }))
-import * as store from '../../electron/main/companion/life/store'
+vi.mock('../../electron/main/storage/database', () => ({ withDatabaseTransaction: async (work: (db: typeof db) => Promise<unknown>) => runLocalTransaction(db, work), getDatabase: async () => db, persist: vi.fn() }))
+import * as store from '../../electron/main/companion/core/persistence/life-repository'
 import { addMomentCommentForRole, toggleMomentLikeForRole } from '../../electron/main/companion/life/moments'
 import { collectMomentBackup, isValidMomentBackup } from '../../electron/main/storage/moment-backup'
 import { importBackupPayload, isValidExportData } from '../../electron/main/ipc/data-export'

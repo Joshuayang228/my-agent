@@ -192,7 +192,7 @@ LOCATION_STATE.storedWorld = {
 // 背景：位置与此刻来自同一人物状态行；意图：共源生成阅读字段；约束：更新时间不是到达时间，不从地点名称推断住所或旅行状态。
 export const debugLocationFields = (state: DebugLocationState): DebugEvidenceItem['fields'] => [
   ['当前位置', state.currentLocation || '未设定'], ['位置细节', state.locationDetail || '未记录'], ['当前活动', state.currentActivity || '未记录'],
-  ['世界更新时间', debugNowTime(state.updatedAt, state.timezone)], ['时区', state.timezone], ['来源', 'companion_role_state · codec 解析快照'], ['移动原因', '未记录'],
+  ['世界更新时间', debugNowTime(state.updatedAt, state.timezone)], ['时区', state.timezone], ['来源', 'companion_runtime_state · Core 运行态快照'], ['移动原因', '未记录'],
 ]
 
 // 背景：家居展示与完整字段不能各维护一份关系；意图：从结构化样张生成同源字段；约束：资产 ID 与记录 ID 一致，未记录陈列标记不能当 false。

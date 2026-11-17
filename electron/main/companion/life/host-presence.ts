@@ -1,3 +1,4 @@
+import { commitLifeAction } from '../application/commit-life-action'
 import { randomUUID } from 'node:crypto'
 /**
  * 宿主环境作息感知与虚实关怀锚点核心服务（M31 主动在场 / 现实锚点）
@@ -190,55 +191,57 @@ export async function checkAndTriggerHostCare(
 
   if (!(await isActiveRole(roleId))) return null
 
-  // 记录触发时间与熬夜标志
-  lastCareTriggeredAt[targetKind] = now
-  if (targetKind === 'late_night_sleep') {
-    yesterdayNightWorkRecorded = true
-  }
+  return await commitLifeAction(async () => {
+    // 记录触发时间与熬夜标志
+    lastCareTriggeredAt[targetKind] = now
+    if (targetKind === 'late_night_sleep') {
+      yesterdayNightWorkRecorded = true
+    }
 
-  const titles: Record<HostCareKind, string> = {
-    fatigue_break: '休息一下吧！',
-    late_night_sleep: '快去睡啦！',
-    welcome_back: '欢迎回来！',
-  }
+    const titles: Record<HostCareKind, string> = {
+      fatigue_break: '休息一下吧！',
+      late_night_sleep: '快去睡啦！',
+      welcome_back: '欢迎回来！',
+    }
 
-  const careEvent: HostCareEvent = {
-    kind: targetKind,
-    title: titles[targetKind],
-    message: careMessage,
-    suggestedAction,
-    continuousActiveMinutes: status.continuousActiveMinutes,
-    triggeredAt: now,
-  }
+    const careEvent: HostCareEvent = {
+      kind: targetKind,
+      title: titles[targetKind],
+      message: careMessage,
+      suggestedAction,
+      continuousActiveMinutes: status.continuousActiveMinutes,
+      triggeredAt: now,
+    }
 
-  // 写入主角专属主会话，实现会话留痕
-  try {
-    const mainSession = await sessionStore.ensureMainSessionForRole(roleId)
-    await enqueueCompanionSessionMessage({
+    // 写入主角专属主会话，实现会话留痕
+    try {
+      const mainSession = await sessionStore.ensureMainSessionForRole(roleId)
+      await enqueueCompanionSessionMessage({
+        roleId,
+        sessionId: mainSession.id,
+        message: { id: randomUUID(), role: 'assistant', content: careMessage, timestamp: now },
+      })
+    } catch (err) {
+      log.warn('Failed to append host care message to main session', { roleId, error: String(err) })
+    }
+
+    await recordCompanionEventAndNotify({
       roleId,
-      sessionId: mainSession.id,
-      message: { id: randomUUID(), role: 'assistant', content: careMessage, timestamp: now },
-    })
-  } catch (err) {
-    log.warn('Failed to append host care message to main session', { roleId, error: String(err) })
-  }
-
-  await recordCompanionEventAndNotify({
-    roleId,
-    type: 'host_care_triggered',
-    sourceType: 'host_presence',
-    sourceId: `${roleId}:${careEvent.kind}:${now}`,
-    idempotencyKey: `host-care:${roleId}:${careEvent.kind}:${now}`,
-    occurredAt: now,
-    payload: { roleId, care: careEvent },
-    notification: {
-      kind: 'host-care-triggered',
-      dedupeKey: `host-care:${roleId}:${careEvent.kind}:${now}`,
+      type: 'host_care_triggered',
+      sourceType: 'host_presence',
+      sourceId: `${roleId}:${careEvent.kind}:${now}`,
+      idempotencyKey: `host-care:${roleId}:${careEvent.kind}:${now}`,
+      occurredAt: now,
       payload: { roleId, care: careEvent },
-    },
-  })
+      notification: {
+        kind: 'host-care-triggered',
+        dedupeKey: `host-care:${roleId}:${careEvent.kind}:${now}`,
+        payload: { roleId, care: careEvent },
+      },
+    })
 
-  return careEvent
+    return careEvent
+  })
 }
 
 /** 供次日日剧本吸收的宿主生活线索 */

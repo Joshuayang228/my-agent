@@ -15,7 +15,7 @@ vi.mock('../../electron/main/storage/settings-store', () => ({
   getAllSettings: vi.fn(async () => ({ executionMode: 'auto' })),
 }))
 
-vi.mock('../../electron/main/agent/project-memory', () => ({
+vi.mock('../../electron/main/workspace/workspace-root', () => ({
   getWorkspaceRoot: vi.fn(() => undefined),
 }))
 

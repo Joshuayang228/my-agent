@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { getInitializedDatabase } from '../storage/database'
 import { getUniverseRoleKind, listAvailableRoleIds, loadRolePack, loadRelations, isKnownProtagonist } from '../companion/identity/loader'
 import { formatRelationSummary } from '../companion/cast/relation-summary'
-import { parseWorldJson } from '../companion/life/world-codec'
+import { decodeCompanionRuntimeState } from '../companion/core/state/runtime-state'
 import { DEBUG_EVIDENCE_VIEWS, type DebugEvidenceQuery, type DebugEvidenceRecord, type DebugEvidenceResult, type DebugEvidenceScope } from '../../../src/shared/debug-evidence'
 import { detectSensitiveKinds } from '../../../src/shared/sensitive-memory'
 import { contentProvenanceFromEvent, contentProvenanceSchema } from '../../../src/shared/content-integrity'
@@ -68,10 +68,9 @@ function json(value: unknown): unknown {
 function record(row: Row, source: string, owner: string): DebugEvidenceRecord {
   const state = { truncated: false }
   const raw = { ...row }
-  if ('world_json' in raw) {
-    try { raw.storedWorld = json(raw.world_json) } catch { raw.storedWorld = '存储世界 JSON 不可解析，运行时使用 codec 默认规则' }
-    raw.world = parseWorldJson(typeof raw.world_json === 'string' ? raw.world_json : '', owner)
-    delete raw.world_json
+  if (source === 'companion_runtime_state') {
+    raw.storedWorld = { ...row }
+    raw.world = { schemaVersion: 1, ...decodeCompanionRuntimeState(row) }
   }
   for (const key of ['payload_json', 'meta_json', 'metadata_json', 'runs_json']) if (key in raw) { raw[key.replace('_json', '')] = json(raw[key]); delete raw[key] }
   const data = safeValue(raw, state) as Row
@@ -174,11 +173,11 @@ export function queryCompanionEvidence(input: unknown, db: Database | null = get
     return result
   }
   if (query.view === 'now' || query.view === 'location') {
-    result.source = 'companion_role_state'
+    result.source = 'companion_runtime_state'
     // 背景：当前快照的稳定标识就是 role_id，显式缺失引用曾被忽略并返回另一条状态。
     // 意图：在读取前核对人物和记录身份；约束：不跨人物补取，未指定 ID 的当前快照查询保持原行为。
     if (query.recordId && query.recordId !== query.roleId) return result
-    if (hasTable(db, result.source)) append(rows(db, 'SELECT * FROM companion_role_state WHERE role_id = ? LIMIT 1', [query.roleId]), result.source)
+    if (hasTable(db, result.source)) append(rows(db, 'SELECT * FROM companion_runtime_state WHERE role_id = ? LIMIT 1', [query.roleId]), result.source)
     return result
   }
   const source = SOURCES[query.view]!

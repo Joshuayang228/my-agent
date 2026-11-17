@@ -2,7 +2,6 @@ import { beforeAll, afterEach, describe, expect, it } from 'vitest'
 import initSqlJs, { type Database, type SqlJsStatic } from 'sql.js'
 import { queryCompanionEvidence } from '../../electron/main/debug/companion-evidence'
 import type { DebugEvidenceScope } from '../../src/shared/types'
-import { parseWorldJson } from '../../electron/main/companion/life/world-codec'
 import { projectScheduleSlots } from '../../src/components/debug/schedule-projection'
 
 let SQL: SqlJsStatic
@@ -42,18 +41,18 @@ describe('Debug 专用只读证据', () => {
     expect(result.records[0].body.length).toBeGreaterThan(0)
     expect(db.export()).toEqual(before)
   })
-  it('当前世界使用生产 codec，保留存储差异并且不回写修复', () => {
-    database().run('CREATE TABLE companion_role_state (role_id TEXT, world_json TEXT, updated_at INTEGER)')
-    db.run("INSERT INTO companion_role_state VALUES ('lin', '{}', 1)")
+  it('当前世界读取 Core 运行态，保留存储字段并且不回写', () => {
+    database().run('CREATE TABLE companion_runtime_state (role_id TEXT, mood INTEGER, updated_at INTEGER)')
+    db.run("INSERT INTO companion_runtime_state VALUES ('lin', 65, 1)")
     const before = db.export()
     const result = queryCompanionEvidence({ view: 'now', roleId: 'lin' }, db, scope)
-    expect(result.records[0].data.world).toEqual(parseWorldJson('{}', 'lin'))
-    expect(result.records[0].data.storedWorld).toEqual({})
+    expect(result.records[0].data.world).toMatchObject({ roleId: 'lin', mood: 65, updatedAt: 1 })
+    expect(result.records[0].data.storedWorld).toEqual({ role_id: 'lin', mood: 65, updated_at: 1 })
     expect(db.export()).toEqual(before)
   })
   it('指定当前快照只匹配同人物实际记录，缺失引用不返回替代快照', () => {
-    database().run('CREATE TABLE companion_role_state (role_id TEXT, world_json TEXT, updated_at INTEGER)')
-    db.run("INSERT INTO companion_role_state VALUES ('lin', '{}', 1)")
+    database().run('CREATE TABLE companion_runtime_state (role_id TEXT, mood INTEGER, updated_at INTEGER)')
+    db.run("INSERT INTO companion_runtime_state VALUES ('lin', 65, 1)")
     for (const view of ['now', 'location'] as const) {
       expect(queryCompanionEvidence({ view, roleId: 'lin', recordId: 'missing' }, db, scope).records).toEqual([])
       expect(queryCompanionEvidence({ view, roleId: 'lin', recordId: 'lin' }, db, scope).records[0]?.id).toBe('lin')

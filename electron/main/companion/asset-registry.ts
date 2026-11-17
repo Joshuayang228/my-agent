@@ -1,3 +1,4 @@
+import { AUTOMATIC_PROACTIVE_POLICY } from './application/proactive-budget'
 /**
  * 伙伴与人格生产资产注册表。
  *
@@ -344,6 +345,11 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent({ trigger: 'life-ticker-exhaustion', promptKey: PROMPT_KEYS.companionReplanSlots }),
     dependencies: [PROMPT_KEYS.companionReplanSlots],
+  }), makeCompanionAsset({
+    key: 'companion:policy:automatic-proactive-budget', name: '自动生活总打扰预算', purpose: '跨生活动作、跨 tick 与重启共享角色级提醒预算',
+    role: 'platform', description: '沿用用户的每日生活提醒上限及最短间隔，在生成前预留，未产生内容释放名额。',
+    source: 'electron/main/companion/application/proactive-budget.ts#runAutomaticProactiveAction', version: 'proactive-budget-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin', content: jsonContent(AUTOMATIC_PROACTIVE_POLICY),
   }), makeCompanionAsset({
     key: 'companion:policy:host-care', name: '宿主作息感知与关怀策略',
     purpose: '感知用户长时间专注或深夜仍在工作，由角色在主会话主动关怀，并反哺次日剧本',

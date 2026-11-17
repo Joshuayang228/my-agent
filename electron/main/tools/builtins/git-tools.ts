@@ -3,7 +3,7 @@ import { execFile } from 'node:child_process'
 import { buildSafeChildProcessEnv } from '../../utils/safe-process-env'
 import { promisify } from 'node:util'
 import { createLogger, hashForLog } from '../../utils/logger'
-import { getWorkspaceRoot } from '../../agent/project-memory'
+import { getWorkspaceRoot } from '../../workspace/workspace-root'
 import type { ToolContext, ToolMetadata } from '../../../../src/shared/types'
 
 const execFileAsync = promisify(execFile)

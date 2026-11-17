@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -8,7 +9,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 const state = vi.hoisted(() => ({ root: '', db: null as any, embedding: vi.fn(), config: { apiKey: '', baseUrl: 'http://localhost/v1', model: 'chat' } }))
 vi.mock('electron', () => ({ app: { getPath: () => state.root } }))
 vi.mock('vectra', async importOriginal => await importOriginal())
-vi.mock('../../electron/main/storage/database', () => ({ getDatabase: async () => state.db, persist: vi.fn() }))
+vi.mock('../../electron/main/storage/database', () => ({ withDatabaseTransaction: async (work: (db: typeof state.db) => Promise<unknown>) => runLocalTransaction(state.db, work), getDatabase: async () => state.db, persist: vi.fn() }))
 vi.mock('../../electron/main/memory/embeddings', async importOriginal => ({
   ...await importOriginal<typeof import('../../electron/main/memory/embeddings')>(), createEmbedding: state.embedding,
 }))

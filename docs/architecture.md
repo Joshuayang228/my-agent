@@ -1,5 +1,16 @@
 # 系统架构
 
+## 目标架构迁移复核（2026-11-17）
+
+Companion Core 是运行态与生活持久化的所有者，旧 life store、legacy 转发层和 world_json 状态镜像已移除。同库查询投影与领域事实、事件、Outbox 在本地事务内同步提交，外部投递在提交后消费 Outbox。当前采用状态快照与事件历史的模块化单体设计。
+
+数据库事务以 AsyncLocalStorage 区分嵌套调用和独立请求，独立请求排队，COMMIT 后解除持久化抑制再写盘。命令 retryable 重试重新领取 commandId 并增加 attempt，迟到生命周期结算受所有权约束。
+
+Session Title Application Service 承担模型标题生成，storage 只提供标题读写。工作区根目录归属 workspace，模型窗口策略归属 llm。委派工具通过 Runtime 注入的 SubAgentExecutor 端口调用子任务。`architecture-boundaries.test.ts` 自动检查禁止反向依赖和废弃状态存储回流。
+
+Headless 只有明确 completed 终态才返回调度成功。固定生活 Workflow 使用调度时间，自动提醒沿现有用户设置共享跨 tick、跨重启的角色预算。
+
+
 ## Agent Host 契约骨架（2026-11-13）
 
 新增 `src/shared/agent-host.ts` 定义 Agent Manifest、Domain、Capability、Context Provider 和执行作用域。主进程 `electron/main/agent-host/` 提供 Domain Registry、Capability Registry 与 Application Orchestrator，当前注册 Persona、Memory、Companion、Workspace 四个首批 Domain，Companion 提供 Runtime Read Model Context。Tool、Skill、Workflow 的边界由施工合同 `agent-host-architecture-v1.md` 固定，现有 Agent Loop、Tool Registry、Skill Registry 和 Permission Engine 继续作为执行基础。
@@ -35,11 +46,11 @@ Workspace 的项目路径、最近主对话和当前焦点内容现在由 `works
 
 ## 人物世界核心层（2026-11-12）
 
-人物世界采用模块化单体内的领域核心。IPC、Chat Tool、LifeTicker 和 Debug 逐步转为 Command Adapter，核心层维护 `companion_runtime_state`、`companion_domain_events`、`companion_execution_runs` 和 `companion_outbox`。`core/commands/gateway.ts` 统一 active role 校验、命令执行账本和 retryable 失败记录，人物世界主要写入 IPC 已经经过该网关。朋友圈、日记、信物、关系和 Prompt 读取面作为投影迁移，旧生活表在迁移期只作为镜像读模型。
+人物世界采用模块化单体内的领域核心。IPC、Chat Tool、LifeTicker 和 Debug 逐步转为 Command Adapter，核心层维护 `companion_runtime_state`、`companion_domain_events`、`companion_execution_runs` 和 `companion_outbox`。`core/commands/gateway.ts` 统一 active role 校验、命令执行账本和 retryable 失败记录，人物世界主要写入 IPC 已经经过该网关。朋友圈、日记、信物、关系和 Prompt 读取面作为投影迁移，生活领域表在迁移期只作为镜像读模型。
 
 当前首批核心落点：
 
-- `electron/main/companion/core/state/runtime-state.ts` 统一人物当前运行态快照，并镜像到既有 `companion_role_state.world_json`。
+- `electron/main/companion/core/state/runtime-state.ts` 统一人物当前运行态快照，，运行态仅保存在 Core 表。
 - 运行态 delta 支持 `expectedVersion` 乐观并发校验，过期写入直接拒绝，不覆盖更新后的状态。
 - `electron/main/companion/core/events/domain-events.ts` 提供领域事件幂等写入与因果字段。
 - `electron/main/companion/core/execution/ledger.ts` 提供动作执行状态和失败信息记录。
@@ -133,7 +144,7 @@ Workspace 的项目路径、最近主对话和当前焦点内容现在由 `works
 
 阅读笔记来源边界（2026-11-07）：书架 `readingNotes` 属于人物生活资产，写入沿 `companion_add_reading_note` 的当前 role 校验和 world-records schema；记录者与来源范围随资产保存，不进入用户长期记忆。
 
-自动配图状态一致性（2026-11-07）：生活层从 `companion_runtime_state` 读取图片描述所需的当前地点、活动和叙事心情，与 Prompt / Moment 使用同一事实源；图片服务不写回新的世界事实。人物入口和 Debug 世界态也读取该核心快照，旧 `world_json` 只由核心写入镜像。
+自动配图状态一致性（2026-11-07）：生活层从 `companion_runtime_state` 读取图片描述所需的当前地点、活动和叙事心情，与 Prompt / Moment 使用同一事实源；图片服务不写回新的世界事实。人物入口和 Debug 世界态也读取该核心快照，旧 `world_json` 镜像已移除。
 
 状态量化边界（2026-11-07）：运行态保留有界数值供 Debug / 计算使用；人物世界头部以本地 UI 状态切换“描述 / 数字”，数值不进入设置写入、权限决策或用户长期记忆。
 
@@ -214,21 +225,21 @@ Agent Host Manifest 现在同时声明 `grantedPermissions`。Application Orches
 
 Context Provider 的 `requires` 也由 Agent Host 环境筛选和实际读取入口共同校验，未授权的动态领域上下文不会进入 Prompt。
 
-Companion 旧生活表读取已集中到 `core/read-models/legacy-companion-read-model.ts` 迁移适配层。Runtime 组装器和 Debug 世界快照不再直接 import `life/store`，适配层只读旧事实，不允许新增旁路写入。
+Companion 生活领域表读取已集中到 `core/persistence/life-repository.ts` 迁移适配层。Runtime 组装器和 Debug 世界快照不再直接 import `core/persistence/life-repository`，适配层只读旧事实，不允许新增旁路写入。
 
-暂停时间、追赶摘要和最近推进时间已进入 Core Runtime State，角色切换、主会话组装和 Debug 生命周期读取优先使用核心快照；旧 `role_state` 仍保留迁移期镜像。
+暂停时间、追赶摘要和最近推进时间已进入 Core Runtime State，角色切换、主会话组装和 Debug 生命周期读取优先使用核心快照；运行态镜像已删除。
 
-Companion 迁移期只读路径统一经过 `core/read-models/legacy-companion-read-model.ts`：通讯录、卡司可用性、生活信号、穿搭、旅行推进、日程时间线、反思、事件切片、生活时钟和世界体征刷新不再各自直接 import `life/store`。该边界不承载写入，避免读适配器扩散成第二事实源。
+Companion 迁移期只读路径统一经过 `core/persistence/life-repository.ts`：通讯录、卡司可用性、生活信号、穿搭、旅行推进、日程时间线、反思、事件切片、生活时钟和世界体征刷新不再各自直接 import `core/persistence/life-repository`。该边界不承载写入，避免读适配器扩散成第二事实源。
 
 赠礼写入已形成完整本地事务：`companion_received_gifts`、主会话消息 Outbox、`gift_received` Domain Event、Runtime State 体征更新和窗口 / 时间线 Outbox 在同一 Unit of Work 内提交，真实窗口投递只发生在提交之后。
 
-日剧本和生活事件通过 Companion Application Gateway 创建。Gateway 在同一 Unit of Work 内写 Core Domain Event 和旧查询投影，生产代码不再直接把 `life/store.insertDayScript` 或 `insertEvent` 当作事实入口。
+日剧本和生活事件通过 Companion Application Gateway 创建。Gateway 在同一 Unit of Work 内写 Core Domain Event 和旧查询投影，生产代码不再直接把 `life-repository.insertDayScript` 或 `insertEvent` 当作事实入口。
 
-生活 tick、生活信号、自动穿搭和旅行推进通过 Core Runtime Read Model 读取暂停与运行态，pause、resume、catch-up 和 tick 只写 Core Runtime State，`companion_role_state` 的 lifecycle 字段只作为历史迁移入口。
+生活 tick、生活信号、自动穿搭和旅行推进通过 Core Runtime Read Model 读取暂停与运行态，pause、resume、catch-up 和 tick 只写 Core Runtime State，生命周期字段只由 Core Runtime State 持有。
 
 Agent Runtime 通过 Conversation Application Service 获取伙伴角色校验、卡司在场、召唤场景、委派提示和流式门控，Runtime 不直接依赖这些 Companion 入口。
 
-旧生活表的朋友圈、关系、情绪、事件关联和执行记录写入集中在 `core/projections/legacy-life-projection.ts`，它们作为 Core Event 的查询投影存在。
+生活领域表的朋友圈、关系、情绪、事件关联和执行记录写入集中在 `core/persistence/life-repository.ts`，它们作为 Core Event 的查询投影存在。
 
 Runtime 的角色组装输入通过 `ConversationApplicationService.loadConversationAssemblyInput` 进入 Application 层，Runtime 保留会话绑定、取消、Loop 和流式生命周期。
 
@@ -717,11 +728,10 @@ Headless Runtime 会注册 Agent Host Capability，再由会话级 Manifest 筛�
 
 生活时钟启动时先等待默认周期，再进入动态计划调度，确保数据库、设置和人物世界完成恢复后才产生后台领域写入。
 
-Companion 的生产写入边界已进一步收口。Chat 发布朋友圈通过 Life Event Application Gateway 创建事件，文化回响使用 Projection Adapter 写入动态和执行回执，日内重排通过 Adapter 更新旧查询投影，IPC 只通过 Legacy Read Model 读取旧关系与生命周期数据。日剧本和生活事件 Application Gateway 的旧表查询、投影写入也统一经过 Core Read Model / Projection Adapter，Application 层不再直接依赖 `life/store`。
-Core Runtime State 回填和旧 `role_state` 镜像也分别通过 Legacy Read Model 与 Projection Adapter 访问，核心状态模块不再直接依赖 `life/store`。
+Companion 的生产持久化归 Core 所有。日剧本、生活事件、动态与关联数据通过 `core/persistence/life-repository` 读写，Application 在本地 Unit of Work 内组织事实、事件和 Outbox。查询层按产品需要形成 Read Model；Core Runtime State 直接持有唯一运行态，旧回填、镜像和 legacy 转发文件已删除。
 
-Chat 人物世界查询工具也通过 Legacy Read Model 读取动态，避免工具层直接依赖旧生活存储。
-朋友圈图片关联的读取通过 Legacy Read Model，写入通过 Projection Adapter 的 Unit of Work，避免生图完成后的事件关联绕过迁移边界。
+Chat 人物世界查询工具也通过 Core Repository 读取动态，避免工具层直接依赖旧生活存储。
+朋友圈图片关联的读取通过 Core Repository，写入通过 Projection Adapter 的 Unit of Work，避免生图完成后的事件关联绕过迁移边界。
 
 LifeTicker 的每个动作和 Outbox 投递使用 `roleId + label + tickAt` 作为执行幂等键，重复调度沿 Execution Ledger 返回已有结果。
 

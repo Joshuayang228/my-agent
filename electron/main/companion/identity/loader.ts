@@ -170,7 +170,7 @@ export function loadRoleProfile(
  */
 export function loadRoleWorldDefaults(
   roleId: string,
-  universeId: string = DEFAULT_UNIVERSE,
+  universeId: string = resolveRoleUniverseId(roleId),
 ): RoleWorldDefaults | undefined {
   const rel = `${universeId}/roles/${roleId}/world.default.json`
   if (!assetExists(rel)) return undefined
@@ -257,6 +257,18 @@ export function listAvailableUniverseIds(): string[] {
 }
 
 /**
+ * 背景：后台生活入口只有全局人物 ID，默认指向 default 会使用户世界人物加载失败或记错事件归属。
+ * 设计意图：先核对默认世界，再根据已登记资产定位唯一世界，避免依赖易变化的 activeRole 设置。
+ * 关键约束：显式传入 universeId 的调用仍保持原范围；同 ID 多世界冲突必须拒绝，未知测试人物保持默认空世界语义。
+ */
+export function resolveRoleUniverseId(roleId: string): string {
+  if (assetExists(`${DEFAULT_UNIVERSE}/roles/${roleId}/manifest.json`)) return DEFAULT_UNIVERSE
+  const matches = listAvailableUniverseIds().filter(universe => assetExists(`${universe}/roles/${roleId}/manifest.json`))
+  if (matches.length > 1) throw new Error('人物标识存在世界观冲突，请明确指定世界观。')
+  return matches[0] ?? DEFAULT_UNIVERSE
+}
+
+/**
  * 列出宇宙中已挂上的主角（仅 protagonistIds 中的包）。
  */
 const roleVisualDataUrlCache = new Map<string, string | null>()
@@ -332,7 +344,7 @@ export function listProtagonists(universeId: string = DEFAULT_UNIVERSE): RoleSum
 /**
  * 加载完整 Role Pack。roleId 必须存在于该宇宙 roles/ 目录。
  */
-export function loadRolePack(roleId: string, universeId: string = DEFAULT_UNIVERSE): RolePack {
+export function loadRolePack(roleId: string, universeId: string = resolveRoleUniverseId(roleId)): RolePack {
   const base = `${universeId}/roles/${roleId}`
   const manifestRel = `${base}/manifest.json`
   if (!assetExists(manifestRel)) {

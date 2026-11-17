@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 /**
  * 日内计划槽位自适应重排（Dynamic Re-planning）单元测试
  *
@@ -31,6 +32,7 @@ vi.mock('electron', () => ({
 }))
 
 vi.mock('../../electron/main/storage/database', () => ({
+  withDatabaseTransaction: async (work: (db: typeof memDb) => Promise<unknown>) => runLocalTransaction(memDb, work),
   getDatabase: vi.fn(async () => memDb),
   persist: vi.fn(),
 }))
@@ -53,7 +55,7 @@ let mockEvents: Array<{
   payload: Record<string, unknown>
 }> = []
 
-vi.mock('../../electron/main/companion/life/store', () => ({
+vi.mock('../../electron/main/companion/core/persistence/life-repository', () => ({
   getRoleState: vi.fn(async (roleId: string) => ({
     roleId,
     world: { schemaVersion: 1, home: '', timezone: 'Asia/Shanghai', situation: '', mood: mockWorldState.mood, energy: mockWorldState.energy, socialNeed: mockWorldState.socialNeed, currentLocation: '', locationDetail: '', currentActivity: '', statusTags: [], updatedAt: 0 },
@@ -81,6 +83,8 @@ vi.mock('../../electron/main/companion/life/world-state', () => ({
 }))
 
 vi.mock('../../electron/main/companion/identity/loader', () => ({
+  loadRoleWorldDefaults: () => null,
+  resolveRoleUniverseId: () => 'default',
   loadRolePack: vi.fn(async () => ({
     manifest: { name: '蒙奇·D·路飞' },
     profile: { brief: '热血开朗的草帽船长' },

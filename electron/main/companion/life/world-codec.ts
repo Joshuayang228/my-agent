@@ -95,8 +95,8 @@ function isCurrentWorldState(value: unknown): value is CompanionWorldState {
     && Number.isFinite(world.updatedAt)
 }
 
-export function defaultWorldState(roleId: string): CompanionWorldState {
-  const defaults = loadRoleWorldDefaults(roleId)
+export function defaultWorldState(roleId: string, universeId?: string): CompanionWorldState {
+  const defaults = loadRoleWorldDefaults(roleId, universeId)
   if (!defaults) {
     return {
       schemaVersion: WORLD_STATE_SCHEMA_VERSION,

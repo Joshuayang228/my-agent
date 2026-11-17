@@ -34,33 +34,8 @@ import type {
 
 const log = createLogger('SubAgent')
 
-export interface SubAgentConfig {
-  /** 子 Agent 角色描述（注入 system prompt）；匹配 AGENT_ROLES 预设时自动带默认工具集/只读性 */
-  role: string
-  /** 任务指令 */
-  task: string
-  /** 允许使用的工具名列表（空数组 = 不给工具，undefined = 用角色预设或父 Agent 只读工具） */
-  allowedTools?: string[]
-  /** 是否只读（只读子 Agent 不能使用破坏性工具） */
-  readOnly?: boolean
-  /** 最大迭代次数（默认 10，比父 Agent 少） */
-  maxIterations?: number
-  /** 父 span ID，用于调用链嵌套（M7 + M8） */
-  parentSpanId?: string
-  /** 工具运行时上下文（workdir/sessionId/signal）—— 传给子 Agent 的工具（G5） */
-  toolContext?: ToolContext
-  /** 父 Agent 的执行模式 —— 子 Agent 权限只降不升（G4） */
-  parentExecutionMode?: ExecutionMode
-}
-
-export interface SubAgentResult {
-  success: boolean
-  content: string
-  toolsUsed: string[]
-  iterations: number
-  /** 子 Agent 实例 ID，供 continue_task 后续追加消息续跑（Coordinator continue） */
-  agentId: string
-}
+import type { SubAgentConfig, SubAgentResult } from '../tools/subagent-executor'
+export type { SubAgentConfig, SubAgentResult } from '../tools/subagent-executor'
 
 /**
  * 预设角色（Alice Ch.6 Agent 角色系统）。

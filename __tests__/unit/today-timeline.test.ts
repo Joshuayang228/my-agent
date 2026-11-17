@@ -17,7 +17,7 @@ import {
   didDeliverUserFacingAction,
 } from '../../electron/main/companion/life/ticker'
 import { WorldTodayTimeline } from '../../src/components/world/WorldTodayTimeline'
-import * as store from '../../electron/main/companion/life/store'
+import * as store from '../../electron/main/companion/core/persistence/life-repository'
 import { localDateTimeMs } from '../../electron/main/companion/life/dates'
 
 const sendMock = vi.fn()
@@ -27,7 +27,7 @@ vi.mock('electron', () => ({
   },
 }))
 
-vi.mock('../../electron/main/companion/life/store', () => ({
+vi.mock('../../electron/main/companion/core/persistence/life-repository', () => ({
   getDayScript: vi.fn(),
   listEvents: vi.fn(),
   getMomentByEventId: vi.fn(),

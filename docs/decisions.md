@@ -566,3 +566,9 @@
 My Agent 采用 Agent Manifest + Domain Registry + Capability Registry + Application Orchestrator 作为统一宿主骨架。Domain 提供业务事实和规则，Capability 提供受控接口，Tool 只负责 LLM 调用协议，Skill 只负责操作指导，Workflow 由 Application 直接编排。LLM 只能选择 Manifest 授权且 Registry 暴露的 Capability，不能动态加载未授权 Domain。
 
 当前先接入 Companion Runtime Read Model，保留既有 Agent Loop、Tool Registry、Skill Registry 和 Permission Engine。只有存在多入口复用、独立授权或独立生命周期的能力才进入 Registry，避免新增抽象层成为第二套业务实现。
+
+# DEC-2026-11-17-01 目标架构的事实与投影边界
+
+采用模块化单体中的状态快照、事件历史及同库同步查询投影。Core 持有正式领域持久化和运行态，移除旧运行态回填与镜像。生活用例把本地业务事实、事件和 Outbox 一起提交，外部投递由 Outbox 恢复。执行生命周期继续遵循 DEC-2026-11-13-01。
+
+上一轮审计将所有生活表视为临时副本，并建议全面改为事件重建，超过了已确认设计。当前迁移以单一存储所有权和真实故障恢复为验收标准。全量 Event Sourcing、独立数据库实现更换及新的 Embedding 配置属于独立技术或产品变更，现有能力沿已确认契约迁移。

@@ -17,6 +17,7 @@
  */
 
 import { createRequire } from 'node:module'
+import { AsyncLocalStorage } from 'node:async_hooks'
 import fs from 'node:fs'
 import path from 'node:path'
 import { app } from 'electron'
@@ -43,6 +44,8 @@ export const SCHEMA_VERSION = 25
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
 let transactionDepth = 0
+const transactionContext = new AsyncLocalStorage<{ active: boolean }>()
+let transactionTail: Promise<void> = Promise.resolve()
 /** 写盘期间又有人调了 persist → 结束后再写一次最新快照 */
 let persistDirty = false
 
@@ -52,25 +55,44 @@ let persistDirty = false
  */
 export function getInitializedDatabase(): SqlJsDatabase | null { return db }
 
+/**
+ * 背景：生活事实提交含多次异步存储调用，独立请求可能交错进入同一个 sql.js 实例。
+ * 设计意图：用异步调用作用域识别嵌套事务，独立事务排队；提交后解除 persist 抑制再同步落盘。
+ * 关键约束：事务只包含本地存储，不能等待网络或窗口；成功返回代表快照替换成功，回滚不能误伤排队请求。
+ */
 export async function withDatabaseTransaction<T>(work: (database: SqlJsDatabase) => Promise<T>): Promise<T> {
-  const database = await getDatabase()
-  if (transactionDepth > 0) return work(database)
-  transactionDepth += 1
-  database.run('BEGIN')
+  if (transactionContext.getStore()?.active) return work(await getDatabase())
+  const previous = transactionTail
+  let release!: () => void
+  transactionTail = new Promise<void>(resolve => { release = resolve })
+  await previous
+  const owner = { active: true }
   try {
-    const result = await work(database)
-    database.run('COMMIT')
-    persist()
-    return result
-  } catch (error) {
-    try { database.run('ROLLBACK') } catch { /* 原始错误优先 */ }
-    throw error
-  } finally {
-    transactionDepth -= 1
-  }
+    return await transactionContext.run(owner, async () => {
+      const database = await getDatabase()
+      database.run('BEGIN')
+      transactionDepth = 1
+      let committed = false
+      try {
+        const result = await work(database)
+        database.run('COMMIT')
+        committed = true
+        transactionDepth = 0
+        persist()
+        return result
+      } catch (error) {
+        if (!committed) database.run('ROLLBACK')
+        throw error
+      } finally {
+        transactionDepth = 0
+        owner.active = false
+      }
+    })
+  } finally { owner.active = false; release() }
 }
 
 export async function getDatabase(): Promise<SqlJsDatabase> {
+  if (transactionDepth > 0 && !transactionContext.getStore()?.active) await transactionTail
   if (db) return db
 
   dbPath = path.join(app.getPath('userData'), 'my-agent.db')
@@ -244,15 +266,6 @@ export function runMigrations(database: SqlJsDatabase): void {
     // v4 → v5：LifeEngine 运行态 / 日剧本 / 事件（W2）
     (d) => {
       d.run(`
-        CREATE TABLE IF NOT EXISTS companion_role_state (
-          role_id         TEXT PRIMARY KEY,
-          paused_at       INTEGER,
-          last_tick_at    INTEGER NOT NULL DEFAULT 0,
-          catchup_summary TEXT NOT NULL DEFAULT '',
-          updated_at      INTEGER NOT NULL
-        )
-      `)
-      d.run(`
         CREATE TABLE IF NOT EXISTS companion_day_scripts (
           id           TEXT PRIMARY KEY,
           role_id      TEXT NOT NULL,
@@ -335,12 +348,8 @@ export function runMigrations(database: SqlJsDatabase): void {
         `)
       }
     },
-    // v9 → v10：角色世界状态薄片（居所/时区/短期情境，M23-G2）
-    (d) => {
-      if (tableExists(d, 'companion_role_state')) {
-        addColumnIfMissing(d, 'companion_role_state', 'world_json', "TEXT NOT NULL DEFAULT '{}'")
-      }
-    },
+    // 保留 schema 版本顺序；人物运行态由 Companion Core 初始化。
+    () => {},
     // v10 → v11：LLM Debug 请求/响应快照（复用现有 database，不另建日志库）
     (d) => {
       d.run(`
@@ -744,4 +753,5 @@ export function _resetDatabaseForTests(): void {
   persisting = false
   persistDirty = false
   transactionDepth = 0
+  transactionTail = Promise.resolve()
 }

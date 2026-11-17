@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 /**
  * 突发生活意图与主动找聊（Spontaneous Impulse & Proactive Conversation Outreach）门禁测试
  */
@@ -28,6 +29,7 @@ const SQL = await initSqlJs()
 let memDb: InstanceType<typeof SQL.Database>
 
 vi.mock('../../electron/main/storage/database', () => ({
+  withDatabaseTransaction: async (work: (db: typeof memDb) => Promise<unknown>) => runLocalTransaction(memDb, work),
   getDatabase: vi.fn(async () => memDb),
   persist: vi.fn(),
 }))

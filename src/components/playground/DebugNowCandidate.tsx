@@ -49,7 +49,7 @@ export function DebugNowCandidate({ empty, previewState, snapshotState, initialS
       {missing ? <p className="debug-now-state" role="status">引用状态未在该人物范围找到，未选择替代快照。</p> : state && entry ? <>
         <NowStateReading id={entry.id} title={entry.title} activity={state.activity} location={state.location} updated={debugNowTime(state.updatedAt, state.timezone)} timezone={state.timezone} warning={state.storedWorldIssue} pauseNotice={state.pausedAt !== null ? `生活推进已暂停 · ${debugNowTime(state.pausedAt, state.timezone)}` : undefined} fields={debugNowFields(state)} catchupSummary={state.catchupSummary} expanded={expanded} onToggle={() => setExpanded(!expanded)}
           related={entry.relatedPages?.map(link => <ActionButton key={link.page} variant="plain" onClick={() => onPage(link.page)}>{link.label}<ArrowUpRight size={14} /></ActionButton>)}
-          source={<details className="debug-prompt-provenance"><summary>记录标识与原始样张</summary><code>companion_role_state · {entry.id}</code><pre>{JSON.stringify({ role, state }, null, 2)}</pre></details>} />
+          source={<details className="debug-prompt-provenance"><summary>记录标识与原始样张</summary><code>companion_runtime_state · {entry.id}</code><pre>{JSON.stringify({ role, state }, null, 2)}</pre></details>} />
       </> : <p className="debug-now-state" role="status">该人物没有状态记录；未补造默认世界。</p>}
     </>}
   </section>

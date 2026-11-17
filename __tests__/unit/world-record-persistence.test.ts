@@ -1,9 +1,10 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import initSqlJs from 'sql.js'
 
 const SQL = await initSqlJs()
 let db: InstanceType<typeof SQL.Database>
-vi.mock('../../electron/main/storage/database', () => ({ getDatabase: vi.fn(async () => db), persist: vi.fn() }))
+vi.mock('../../electron/main/storage/database', () => ({ withDatabaseTransaction: async (work: (db: typeof db) => Promise<unknown>) => runLocalTransaction(db, work), getDatabase: vi.fn(async () => db), persist: vi.fn() }))
 vi.mock('../../electron/main/utils/logger', () => ({ createLogger: () => ({ info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() }) }))
 const { createAsset, addAsset, maybeGrantFromEvent, updateAsset, getAsset, changeWardrobe, listAssets, deleteAsset, attachWorldAssetImage } = await import('../../electron/main/companion/life/assets')
 

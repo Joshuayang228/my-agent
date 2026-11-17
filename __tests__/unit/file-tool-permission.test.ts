@@ -19,7 +19,7 @@ const state = vi.hoisted(() => ({ root: '', mode: 'auto' }))
 vi.mock('../../electron/main/storage/settings-store', () => ({
   getSetting: async () => state.mode, getAllSettings: async () => ({ executionMode: state.mode }),
 }))
-vi.mock('../../electron/main/agent/project-memory', () => ({ getWorkspaceRoot: () => state.root }))
+vi.mock('../../electron/main/workspace/workspace-root', () => ({ getWorkspaceRoot: () => state.root }))
 vi.mock('electron', () => ({ shell: { trashItem: vi.fn() }, BrowserWindow: { getAllWindows: () => [] } }))
 vi.mock('../../electron/main/utils/logger', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }), hashForLog: () => 'redacted',

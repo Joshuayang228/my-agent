@@ -5,7 +5,7 @@ import { createLogger, hashForLog } from '../../utils/logger'
 import { buildSafeChildProcessEnv } from '../../utils/safe-process-env'
 import { checkCommandPermission } from '../../sandbox/permission-engine'
 import { loadEffectiveSandbox } from '../../sandbox/effective-sandbox'
-import { getWorkspaceRoot } from '../../agent/project-memory'
+import { getWorkspaceRoot } from '../../workspace/workspace-root'
 import { PERMISSION_SANDBOX_ASSET_KEYS } from '../../sandbox/asset-keys'
 import type { ToolContext } from '../../../../src/shared/types'
 

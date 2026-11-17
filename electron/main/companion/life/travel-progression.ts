@@ -1,3 +1,4 @@
+import { commitLifeAction } from '../application/commit-life-action'
 /**
  * 伙伴足迹与航海旅行自主演化引擎（Travel Journey Progression）
  *
@@ -294,110 +295,112 @@ export async function checkAndProgressTravelJourney(
     }
 
     const { activeTrip, nextStop, triggerReason, resonanceId } = decision
-    const existingStops = Array.isArray(activeTrip.payload.stops)
-      ? (activeTrip.payload.stops as TripStopRecord[])
-      : []
+    return await commitLifeAction(async () => {
+      const existingStops = Array.isArray(activeTrip.payload.stops)
+        ? (activeTrip.payload.stops as TripStopRecord[])
+        : []
 
-    const updatedStops = [...existingStops, nextStop]
-    if (!(await isActiveRole(roleId))) return { ok: false, error: '伙伴已切换，请刷新人物页面后重试。' }
-    const updateResult = await updateAsset(
-      activeTrip.id,
-      { payload: { stops: updatedStops } },
-      { expectedRoleId: roleId },
-    )
+      const updatedStops = [...existingStops, nextStop]
+      if (!(await isActiveRole(roleId))) return { ok: false, error: '伙伴已切换，请刷新人物页面后重试。' }
+      const updateResult = await updateAsset(
+        activeTrip.id,
+        { payload: { stops: updatedStops } },
+        { expectedRoleId: roleId },
+      )
 
-    if (!updateResult.ok) {
-      log.warn('Failed to update trip asset for progression', {
+      if (!updateResult.ok) {
+        log.warn('Failed to update trip asset for progression', {
+          roleId,
+          tripId: activeTrip.id,
+          error: updateResult.error,
+        })
+        return { ok: false, error: updateResult.error }
+      }
+
+      const db = await getDatabase()
+      const progressionRecord: CompanionTravelProgressionRecord = {
+        id: randomUUID(),
         roleId,
         tripId: activeTrip.id,
-        error: updateResult.error,
-      })
-      return { ok: false, error: updateResult.error }
-    }
-
-    const db = await getDatabase()
-    const progressionRecord: CompanionTravelProgressionRecord = {
-      id: randomUUID(),
-      roleId,
-      tripId: activeTrip.id,
-      stopId: nextStop.id,
-      stopName: nextStop.name,
-      stopDate: nextStop.date || toLocalDateString(now),
-      story: nextStop.story,
-      triggerReason: triggerReason || 'scheduled_voyage',
-      createdAt: now,
-    }
-
-    db.run(
-      `INSERT INTO companion_travel_progressions
-         (id, role_id, trip_id, stop_id, stop_name, stop_date, story, trigger_reason, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        progressionRecord.id,
-        progressionRecord.roleId,
-        progressionRecord.tripId,
-        progressionRecord.stopId,
-        progressionRecord.stopName,
-        progressionRecord.stopDate,
-        progressionRecord.story,
-        progressionRecord.triggerReason,
-        progressionRecord.createdAt,
-      ],
-    )
-
-    // 若源于旅行心愿，标记心愿已完成
-    if (resonanceId) {
-      db.run(
-        `UPDATE companion_life_resonances
-         SET status = 'completed', completed_at = ?, feedback_text = ?
-         WHERE id = ?`,
-        [now, `我们已经航行到达了「${nextStop.name}」！`, resonanceId],
-      )
-    }
-
-    persist()
-
-    log.info('Travel progression applied successfully', {
-      roleId,
-      tripTitle: activeTrip.name,
-      stopName: nextStop.name,
-      triggerReason,
-    })
-
-    const eventPayload: CompanionTravelProgressedEvent = {
-      roleId,
-      tripId: activeTrip.id,
-      tripTitle: activeTrip.name,
-      stop: {
-        id: nextStop.id,
-        name: nextStop.name,
-        date: nextStop.date || toLocalDateString(now),
+        stopId: nextStop.id,
+        stopName: nextStop.name,
+        stopDate: nextStop.date || toLocalDateString(now),
         story: nextStop.story,
-      },
-      toastTitle: `航海足迹已更新：${nextStop.name}`,
-      timestamp: now,
-    }
+        triggerReason: triggerReason || 'scheduled_voyage',
+        createdAt: now,
+      }
 
-    await recordCompanionEventAndNotify({
-      roleId,
-      type: 'travel_progressed',
-      sourceType: 'travel_progression',
-      sourceId: progressionRecord.id,
-      idempotencyKey: `travel-progressed:${progressionRecord.id}`,
-      occurredAt: now,
-      payload: eventPayload as unknown as Record<string, unknown>,
-      notification: [
-        { kind: 'timeline-updated', dedupeKey: `travel-timeline:${progressionRecord.id}`, payload: { roleId, now } },
-        { kind: 'travel-progressed', dedupeKey: `travel-progressed:${progressionRecord.id}`, payload: eventPayload as unknown as Record<string, unknown> },
-      ],
+      db.run(
+        `INSERT INTO companion_travel_progressions
+           (id, role_id, trip_id, stop_id, stop_name, stop_date, story, trigger_reason, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          progressionRecord.id,
+          progressionRecord.roleId,
+          progressionRecord.tripId,
+          progressionRecord.stopId,
+          progressionRecord.stopName,
+          progressionRecord.stopDate,
+          progressionRecord.story,
+          progressionRecord.triggerReason,
+          progressionRecord.createdAt,
+        ],
+      )
+
+      // 若源于旅行心愿，标记心愿已完成
+      if (resonanceId) {
+        db.run(
+          `UPDATE companion_life_resonances
+           SET status = 'completed', completed_at = ?, feedback_text = ?
+           WHERE id = ?`,
+          [now, `我们已经航行到达了「${nextStop.name}」！`, resonanceId],
+        )
+      }
+
+      persist()
+
+      log.info('Travel progression applied successfully', {
+        roleId,
+        tripTitle: activeTrip.name,
+        stopName: nextStop.name,
+        triggerReason,
+      })
+
+      const eventPayload: CompanionTravelProgressedEvent = {
+        roleId,
+        tripId: activeTrip.id,
+        tripTitle: activeTrip.name,
+        stop: {
+          id: nextStop.id,
+          name: nextStop.name,
+          date: nextStop.date || toLocalDateString(now),
+          story: nextStop.story,
+        },
+        toastTitle: `航海足迹已更新：${nextStop.name}`,
+        timestamp: now,
+      }
+
+      await recordCompanionEventAndNotify({
+        roleId,
+        type: 'travel_progressed',
+        sourceType: 'travel_progression',
+        sourceId: progressionRecord.id,
+        idempotencyKey: `travel-progressed:${progressionRecord.id}`,
+        occurredAt: now,
+        payload: eventPayload as unknown as Record<string, unknown>,
+        notification: [
+          { kind: 'timeline-updated', dedupeKey: `travel-timeline:${progressionRecord.id}`, payload: { roleId, now } },
+          { kind: 'travel-progressed', dedupeKey: `travel-progressed:${progressionRecord.id}`, payload: eventPayload as unknown as Record<string, unknown> },
+        ],
+      })
+
+      return {
+        ok: true,
+        trip: updateResult.asset,
+        newStop: nextStop,
+        record: progressionRecord,
+      }
     })
-
-    return {
-      ok: true,
-      trip: updateResult.asset,
-      newStop: nextStop,
-      record: progressionRecord,
-    }
   } catch (error) {
     log.error('Travel progression threw error', { roleId, error: String(error) })
     return null
@@ -433,67 +436,69 @@ export async function triggerTravelProgression(
     story: (customStop?.story || '船员们在航线中发现了充满生机的新岛屿，展开了畅快的探索！').slice(0, 4000),
   }
 
-  const updatedStops = [...existingStops, stop]
-  if (!(await isActiveRole(roleId))) return null
-  const updateResult = await updateAsset(
-    activeTrip.id,
-    { payload: { stops: updatedStops } },
-    { expectedRoleId: roleId },
-  )
-  if (!updateResult.ok) return null
+  return await commitLifeAction(async () => {
+    const updatedStops = [...existingStops, stop]
+    if (!(await isActiveRole(roleId))) return null
+    const updateResult = await updateAsset(
+      activeTrip.id,
+      { payload: { stops: updatedStops } },
+      { expectedRoleId: roleId },
+    )
+    if (!updateResult.ok) return null
 
-  const db = await getDatabase()
-  const record: CompanionTravelProgressionRecord = {
-    id: randomUUID(),
-    roleId,
-    tripId: activeTrip.id,
-    stopId: stop.id,
-    stopName: stop.name,
-    stopDate: stop.date || toLocalDateString(now),
-    story: stop.story,
-    triggerReason: 'manual_trigger',
-    createdAt: now,
-  }
+    const db = await getDatabase()
+    const record: CompanionTravelProgressionRecord = {
+      id: randomUUID(),
+      roleId,
+      tripId: activeTrip.id,
+      stopId: stop.id,
+      stopName: stop.name,
+      stopDate: stop.date || toLocalDateString(now),
+      story: stop.story,
+      triggerReason: 'manual_trigger',
+      createdAt: now,
+    }
 
-  db.run(
-    `INSERT INTO companion_travel_progressions
-       (id, role_id, trip_id, stop_id, stop_name, stop_date, story, trigger_reason, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      record.id,
-      record.roleId,
-      record.tripId,
-      record.stopId,
-      record.stopName,
-      record.stopDate,
-      record.story,
-      record.triggerReason,
-      record.createdAt,
-    ],
-  )
-  persist()
+    db.run(
+      `INSERT INTO companion_travel_progressions
+         (id, role_id, trip_id, stop_id, stop_name, stop_date, story, trigger_reason, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        record.id,
+        record.roleId,
+        record.tripId,
+        record.stopId,
+        record.stopName,
+        record.stopDate,
+        record.story,
+        record.triggerReason,
+        record.createdAt,
+      ],
+    )
+    persist()
 
-  const eventPayload: CompanionTravelProgressedEvent = {
-    roleId,
-    tripId: activeTrip.id,
-    tripTitle: activeTrip.name,
-    stop: { ...stop, date: stop.date || toLocalDateString(now) },
-    toastTitle: `航海足迹已更新：${stop.name}`,
-    timestamp: now,
-  }
-  await recordCompanionEventAndNotify({
-    roleId,
-    type: 'travel_progressed',
-    sourceType: 'travel_progression',
-    sourceId: record.id,
-    idempotencyKey: `travel-progressed:${record.id}`,
-    occurredAt: now,
-    payload: eventPayload as unknown as Record<string, unknown>,
-    notification: [
-      { kind: 'timeline-updated', dedupeKey: `travel-timeline:${record.id}`, payload: { roleId, now } },
-      { kind: 'travel-progressed', dedupeKey: `travel-progressed:${record.id}`, payload: eventPayload as unknown as Record<string, unknown> },
-    ],
+    const eventPayload: CompanionTravelProgressedEvent = {
+      roleId,
+      tripId: activeTrip.id,
+      tripTitle: activeTrip.name,
+      stop: { ...stop, date: stop.date || toLocalDateString(now) },
+      toastTitle: `航海足迹已更新：${stop.name}`,
+      timestamp: now,
+    }
+    await recordCompanionEventAndNotify({
+      roleId,
+      type: 'travel_progressed',
+      sourceType: 'travel_progression',
+      sourceId: record.id,
+      idempotencyKey: `travel-progressed:${record.id}`,
+      occurredAt: now,
+      payload: eventPayload as unknown as Record<string, unknown>,
+      notification: [
+        { kind: 'timeline-updated', dedupeKey: `travel-timeline:${record.id}`, payload: { roleId, now } },
+        { kind: 'travel-progressed', dedupeKey: `travel-progressed:${record.id}`, payload: eventPayload as unknown as Record<string, unknown> },
+      ],
+    })
+
+    return record
   })
-
-  return record
 }

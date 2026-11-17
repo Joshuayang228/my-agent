@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 /**
  * M23-G2：世界状态编解码 + 情境刷新
  */
@@ -28,7 +29,7 @@ vi.mock('../../electron/main/storage/database', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../electron/main/storage/database')>()
   return {
     ...actual,
-    getDatabase: vi.fn(async () => memDb),
+    withDatabaseTransaction: async (work: (db: typeof memDb) => Promise<unknown>) => runLocalTransaction(memDb, work), getDatabase: vi.fn(async () => memDb),
     persist: vi.fn(),
   }
 })
@@ -45,7 +46,14 @@ const {
   settleVitalsAfterChat,
 } = await import('../../electron/main/companion/life/world-state')
 
-const store = await import('../../electron/main/companion/life/store')
+const store = await import('../../electron/main/companion/core/persistence/life-repository')
+
+const { getCompanionRuntimeState, replaceCompanionRuntimeState } = await import('../../electron/main/companion/core/state/runtime-state')
+
+async function setWorldState(roleId: string, world: ReturnType<typeof defaultWorldState>) {
+  const current = await getCompanionRuntimeState(roleId)
+  await replaceCompanionRuntimeState({ ...current, ...world })
+}
 
 describe('world-codec', () => {
   it('没有 world.default.json 时不编造住所或当前位置', () => {
@@ -164,26 +172,16 @@ describe('world-state store', () => {
     const w = await ensureWorldState('lin')
     expect(w.home).toBe('未设定')
     expect(w.currentLocation).toBe('未设定')
-    const again = await store.getRoleState('lin')
-    expect(again?.world.home).toBe('未设定')
-    expect(again?.world.currentLocation).toBe('未设定')
+    const again = await getCompanionRuntimeState('lin')
+    expect(again?.home).toBe('未设定')
+    expect(again?.currentLocation).toBe('未设定')
   })
 
-  it('ensureWorldState 将旧 world_json 覆盖为 schemaVersion 1', async () => {
-    await ensureWorldState('hang')
-    // 核心运行态是当前事实源，删除快照后才模拟旧库首次进入核心层的回填路径。
-    memDb.run('DELETE FROM companion_runtime_state WHERE role_id = ?', ['hang'])
-    memDb.run(
-      `UPDATE companion_role_state SET world_json = ? WHERE role_id = ?`,
-      [JSON.stringify({ home: '旧住处', timezone: 'Asia/Shanghai', situation: '' }), 'hang'],
-    )
+  it('Core 缺少状态时从 Role Pack 初始化，不创建旧状态镜像', async () => {
     const world = await ensureWorldState('hang')
     expect(world.schemaVersion).toBe(1)
     expect(world.home).toBe('未设定')
-    const row = memDb.exec(`SELECT world_json FROM companion_role_state WHERE role_id = 'hang'`)
-    const saved = JSON.parse(String(row[0].values[0][0]))
-    expect(saved.schemaVersion).toBe(1)
-    expect(saved.home).toBe('未设定')
+    expect(memDb.exec("SELECT name FROM sqlite_master WHERE name = 'companion_role_state'")[0]?.values ?? []).toEqual([])
   })
 
   it('refreshSituationFromLife 用最近 published 事件', async () => {
@@ -206,7 +204,7 @@ describe('world-state store', () => {
 
   it('情境短句相同但结构字段缺失时仍补齐当前位置与活动', async () => {
     const now = Date.now()
-    await store.setWorldState('lin', {
+    await setWorldState('lin', {
       ...defaultWorldState('lin'),
       situation: '午饭散步@附近街道',
       currentLocation: '',
@@ -228,7 +226,7 @@ describe('world-state store', () => {
 
   it('refreshSituationFromLife 结算新生活事件并波动 mood / energy / socialNeed', async () => {
     const baseNow = 1000000000000
-    await store.setWorldState('lin', {
+    await setWorldState('lin', {
       ...defaultWorldState('lin'),
       mood: 60,
       energy: 70,
@@ -251,7 +249,7 @@ describe('world-state store', () => {
   })
 
   it('settleVitalsAfterChat 对话后释放社交渴望并微升心情', async () => {
-    await store.setWorldState('lin', {
+    await setWorldState('lin', {
       ...defaultWorldState('lin'),
       mood: 60,
       energy: 70,

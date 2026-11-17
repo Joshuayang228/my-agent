@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 /**
  * 成长反思：门闸 + JSON 解析 + null 不写 mutable
  */
@@ -52,6 +53,7 @@ const settingsMap: Record<string, string> = {
 }
 
 vi.mock('../../electron/main/storage/database', () => ({
+  withDatabaseTransaction: async (work: (db: typeof memDb) => Promise<unknown>) => runLocalTransaction(memDb, work),
   getDatabase: vi.fn(async () => memDb),
   persist: vi.fn(),
 }))

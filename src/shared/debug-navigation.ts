@@ -13,7 +13,7 @@ export const DEBUG_PERSPECTIVES: readonly DebugView[] = [
   { id: 'schedule', group: '内核', label: '今日日程', description: '查看当天计划；计划与事件发布状态分别追踪。', source: 'debug:companion-evidence-query · companion_day_scripts' },
   { id: 'recent', group: '内核', label: '最近事项', description: '浏览计划与已发布的生活事件，追踪关联动态和资产。', source: 'debug:companion-evidence-query · companion_events' },
   { id: 'activity', group: '内核', label: '行为日志', description: '查看已记录的行为证据，区分生活计划与模型请求。', source: 'debug:companion-evidence-query · 生活事件；运行行为见调用链' },
-  { id: 'now', group: '生活', label: '此刻', description: '当前活动、情绪与生活推进状态。', source: 'debug:companion-evidence-query · companion_role_state / world-codec' },
+  { id: 'now', group: '生活', label: '此刻', description: '当前活动、情绪与生活推进状态。', source: 'debug:companion-evidence-query · companion_runtime_state / world-codec' },
   { id: 'character', group: '生活', label: '人物档案', description: '查看伙伴的稳定身份、人物资料与兴趣，和用户画像分开。', source: 'debug:companion-evidence-query · Role Pack profile' },
   { id: 'location', group: '生活', label: '当前位置', description: '查看当前地点和细节；出行历史在足迹，住所与物件在家居。', source: 'debug:companion-evidence-query · world.currentLocation / locationDetail' },
   { id: 'residence', group: '生活', label: '家居', description: '查看住所、空间归属、生活物件及展示依据。', source: 'debug:companion-evidence-query · companion_assets home / furniture' },

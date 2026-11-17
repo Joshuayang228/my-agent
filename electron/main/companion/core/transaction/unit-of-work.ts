@@ -1,5 +1,10 @@
-import * as database from '../../../storage/database'
+import { withDatabaseTransaction } from '../../../storage/database'
 import { ensureCompanionCoreSchema } from '../schema'
+import { AsyncLocalStorage } from 'node:async_hooks'
+
+const scope = new AsyncLocalStorage<{ active: boolean }>()
+
+export function isCompanionCommitActive(): boolean { return scope.getStore()?.active === true }
 
 /**
  * 人物世界本地事务边界。
@@ -9,10 +14,11 @@ import { ensureCompanionCoreSchema } from '../schema'
  * 关键约束：事务提交前任何核心事实都不能被视为完成，异常必须回滚并由调用方决定重试。
  */
 export async function withCompanionUnitOfWork<T>(work: () => Promise<T>): Promise<T> {
+  if (isCompanionCommitActive()) return work()
   // 建表必须发生在事务外，否则首次运行时 DDL 会随业务回滚，下一次查询会得到“表不存在”。
   await ensureCompanionCoreSchema()
-  // 测试夹具可以只提供数据库读写能力，生产模块始终由 database.ts 提供事务实现。
-  let transaction: typeof database.withDatabaseTransaction | undefined
-  try { transaction = database.withDatabaseTransaction } catch { transaction = undefined }
-  return transaction ? transaction(async () => work()) : work()
+  const owner = { active: true }
+  try {
+    return await scope.run(owner, () => withDatabaseTransaction(async () => work()))
+  } finally { owner.active = false }
 }

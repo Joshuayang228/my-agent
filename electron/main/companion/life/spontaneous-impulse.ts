@@ -1,3 +1,4 @@
+import { commitLifeAction } from '../application/commit-life-action'
 /**
  * 突发生活意图与主动找聊引擎（Spontaneous Impulse & Proactive Conversation Outreach）
  *
@@ -226,76 +227,78 @@ async function runSpontaneousImpulse(
     }
   }
 
-  // 1. 获取主角专属主会话并将消息直接保存为 assistant
-  const activeRoleId = (await settings.getSetting('activeRoleId')).trim()
-  if (activeRoleId && activeRoleId !== roleId) {
-    return { triggered: false, reason: 'role-inactive' }
-  }
-  const session = await ensureMainSessionForRole(roleId)
-  const messageId = randomUUID()
-  const recordId = randomUUID()
-  await enqueueCompanionSessionMessage({
-    roleId,
-    sessionId: session.id,
-    message: {
-    id: messageId,
-    role: 'assistant',
-    content: generatedText,
-    timestamp: now,
-    },
-  })
-
-  // 2. 存入数据库
-  try {
-    db.run(
-      `INSERT INTO companion_spontaneous_impulses
-       (id, role_id, session_id, message_id, impulse_text, topic_kind, context_hint, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [recordId, roleId, session.id, messageId, generatedText, topicKind, generatedHint, now],
-    )
-    persist()
-  } catch (err) {
-    await deleteMessage(messageId).catch((cleanupError) => {
-      log.warn('Failed to roll back spontaneous impulse message', { roleId, messageId, error: String(cleanupError) })
+  return await commitLifeAction(async () => {
+    // 1. 获取主角专属主会话并将消息直接保存为 assistant
+    const activeRoleId = (await settings.getSetting('activeRoleId')).trim()
+    if (activeRoleId && activeRoleId !== roleId) {
+      return { triggered: false, reason: 'role-inactive' }
+    }
+    const session = await ensureMainSessionForRole(roleId)
+    const messageId = randomUUID()
+    const recordId = randomUUID()
+    await enqueueCompanionSessionMessage({
+      roleId,
+      sessionId: session.id,
+      message: {
+      id: messageId,
+      role: 'assistant',
+      content: generatedText,
+      timestamp: now,
+      },
     })
-    log.warn('Spontaneous impulse history failed; rolled back chat message', { roleId, messageId, error: String(err) })
-    throw new Error('主动消息暂时未能完成，请稍后重试。')
-  }
 
-  // 3. 构造广播事件
-  const event: SpontaneousImpulseEvent = {
-    roleId,
-    sessionId: session.id,
-    messageId,
-    impulseText: generatedText,
-    topicKind,
-    contextHint: generatedHint,
-    toastMessage: `${pack.name}：${generatedText}`,
-    timestamp: now,
-  }
+    // 2. 存入数据库
+    try {
+      db.run(
+        `INSERT INTO companion_spontaneous_impulses
+         (id, role_id, session_id, message_id, impulse_text, topic_kind, context_hint, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [recordId, roleId, session.id, messageId, generatedText, topicKind, generatedHint, now],
+      )
+      persist()
+    } catch (err) {
+      await deleteMessage(messageId).catch((cleanupError) => {
+        log.warn('Failed to roll back spontaneous impulse message', { roleId, messageId, error: String(cleanupError) })
+      })
+      log.warn('Spontaneous impulse history failed; rolled back chat message', { roleId, messageId, error: String(err) })
+      throw new Error('主动消息暂时未能完成，请稍后重试。')
+    }
 
-  await recordCompanionEventAndNotify({
-    roleId,
-    type: 'spontaneous_impulse_triggered',
-    sourceType: 'spontaneous_impulse',
-    sourceId: recordId,
-    idempotencyKey: `spontaneous-impulse:${recordId}`,
-    occurredAt: now,
-    payload: event as unknown as Record<string, unknown>,
-    notification: {
-      kind: 'spontaneous-impulse',
-      dedupeKey: `spontaneous-impulse:${recordId}`,
+    // 3. 构造广播事件
+    const event: SpontaneousImpulseEvent = {
+      roleId,
+      sessionId: session.id,
+      messageId,
+      impulseText: generatedText,
+      topicKind,
+      contextHint: generatedHint,
+      toastMessage: `${pack.name}：${generatedText}`,
+      timestamp: now,
+    }
+
+    await recordCompanionEventAndNotify({
+      roleId,
+      type: 'spontaneous_impulse_triggered',
+      sourceType: 'spontaneous_impulse',
+      sourceId: recordId,
+      idempotencyKey: `spontaneous-impulse:${recordId}`,
+      occurredAt: now,
       payload: event as unknown as Record<string, unknown>,
-    },
-  })
+      notification: {
+        kind: 'spontaneous-impulse',
+        dedupeKey: `spontaneous-impulse:${recordId}`,
+        payload: event as unknown as Record<string, unknown>,
+      },
+    })
 
-  log.info('Spontaneous impulse triggered and delivered to main session', {
-    roleId,
-    sessionId: session.id,
-    messageId,
-    topicKind,
+    log.info('Spontaneous impulse triggered and delivered to main session', {
+      roleId,
+      sessionId: session.id,
+      messageId,
+      topicKind,
+    })
+    return { triggered: true, event }
   })
-  return { triggered: true, event }
 }
 
 /**

@@ -1,3 +1,4 @@
+import { didDeliverUserFacingAction, runAutomaticProactiveAction } from '../application/proactive-budget'
 /**
  * LifeEngine 动态生活时钟事件驱动（仅 active）
  *
@@ -20,7 +21,7 @@ import { checkAndTriggerVulnerability } from './vulnerability'
 import { checkAndTriggerNightlyReflection } from './nightly-reflection'
 import { checkAndReplanIfExhausted } from './replan'
 import { checkAndTriggerHostCare } from './host-presence'
-import { listCompanionLegacyEvents as listEvents } from '../core/read-models/legacy-companion-read-model'
+import { listEvents } from '../core/persistence/life-repository'
 import { isActiveRole } from '../../storage/settings-store'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
 import { executeCompanionCommand } from '../core/commands/gateway'
@@ -46,20 +47,7 @@ async function runForActiveRole(roleId: string, label: string, tickId: number, a
   }
 }
 
-/**
- * 判断一次生活动作是否真的向用户投递了主动内容。
- *
- * 背景：生活时钟会在同一轮评估问候、搭话、脆弱时刻和宿主关怀，若每个动作各自只看自己的冷却，
- *       一轮可能连续打断用户多次。
- * 设计意图：只依据动作返回的已投递结果做轻量协调，不把后台状态变化误判为消息，也不复制各模块的策略。
- * 关键约束：只有明确的 `greeted` / `triggered` 或带有用户事件载荷的结果才消费本轮名额，失败和空结果必须允许后续动作继续评估。
- */
-export function didDeliverUserFacingAction(result: unknown): boolean {
-  if (!result || typeof result !== 'object') return false
-  const value = result as Record<string, unknown>
-  if (value.greeted === true || value.triggered === true) return true
-  return typeof value.kind === 'string' && typeof value.message === 'string'
-}
+export { didDeliverUserFacingAction } from '../application/proactive-budget'
 
 let timer: ReturnType<typeof setTimeout> | null = null
 
@@ -119,7 +107,7 @@ export function startLifeTicker(defaultIntervalMs = DEFAULT_INTERVAL_MS): void {
         let userFacingDelivered = false
         for (const item of actions) {
           if (item.userFacing && userFacingDelivered) continue
-          const outcome = await runForActiveRole(tickRoleId, item.label, now, item.action)
+          const outcome = await runForActiveRole(tickRoleId, item.label, now, () => item.userFacing ? runAutomaticProactiveAction(tickRoleId, now, item.action) : item.action())
           if (!outcome.ok) break
           if (item.userFacing && didDeliverUserFacingAction(outcome.result)) userFacingDelivered = true
         }

@@ -1,5 +1,5 @@
 import { buildTool } from '../builder'
-import { runSubAgent } from '../../agent/subagent'
+import { getSubAgentExecutor } from '../subagent-executor'
 import type { ToolRegistry } from '../registry'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 
@@ -104,7 +104,7 @@ export const delegateTaskTool = buildTool({
 
     const registry = toolContext.registry as ToolRegistry
 
-    const result = await runSubAgent(
+    const result = await getSubAgentExecutor().run(
       {
         role,
         task,

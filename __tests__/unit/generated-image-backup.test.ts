@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 import { EventEmitter } from 'node:events'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -17,13 +18,13 @@ vi.mock('../../electron/main/llm/index', () => ({ chatComplete: vi.fn() }))
 vi.mock('../../electron/main/storage/llm-debug-store', () => ({ llmDebugStore: { clear: vi.fn() } }))
 vi.mock('../../electron/main/storage/settings-store', () => ({ getSetting: async () => 'role', getAllSettings: async () => ({}), setSetting: vi.fn(), publishModelConfigurationCommitted: vi.fn() }))
 vi.mock('../../electron/main/storage/memory-store', () => ({ listMemories: async () => [], addMemory: vi.fn(), assertMemoryContentAllowed: vi.fn() }))
-vi.mock('../../electron/main/storage/database', () => ({ getDatabase: async () => db, persist: state.persist }))
+vi.mock('../../electron/main/storage/database', () => ({ withDatabaseTransaction: async (work: (db: typeof db) => Promise<unknown>) => runLocalTransaction(db, work), getDatabase: async () => db, persist: state.persist }))
 
 import { collectExportSessions, isValidExportData, registerDataExportIPC, type ExportData } from '../../electron/main/ipc/data-export'
 import { collectBackupImageMedia, prepareBackupImages } from '../../electron/main/storage/generated-image-backup'
 import { createSession, deleteSession, getSession, saveMessage } from '../../electron/main/storage/session-store'
 import { readGeneratedImage } from '../../electron/main/storage/generated-images'
-import { insertEvent, insertMoment, replaceEventLinks } from '../../electron/main/companion/life/store'
+import { insertEvent, insertMoment, replaceEventLinks } from '../../electron/main/companion/core/persistence/life-repository'
 import { momentImageIdsForRole, readMomentImageForRole } from '../../electron/main/companion/life/moment-images'
 import { ensureStarterAssets, listAssets } from '../../electron/main/companion/life/assets'
 

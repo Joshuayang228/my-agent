@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('electron', () => ({
@@ -41,7 +42,7 @@ describe('Task Queue recovery handlers', () => {
       })),
     }
     vi.doMock('../../electron/main/storage/database', () => ({
-      getDatabase: vi.fn(async () => db),
+      withDatabaseTransaction: async (work: (db: typeof db) => Promise<unknown>) => runLocalTransaction(db, work), getDatabase: vi.fn(async () => db),
       persist: vi.fn(),
     }))
 

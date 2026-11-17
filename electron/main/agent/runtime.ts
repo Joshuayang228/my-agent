@@ -1,3 +1,4 @@
+import { generateSmartTitle } from './session-title-service'
 /**
  * Agent Runtime — 统一管理会话生命周期和后台任务。
  *
@@ -43,10 +44,12 @@ import { recordAssetUsage } from '../utils/asset-usage'
 import { MEMORY_STRATEGY_ASSET_KEYS } from '../memory/asset-keys'
 import { buildSkillSummaryForPrompt, getActiveSkill, getActiveSkillTrace, clearActiveSkill } from '../skills/registry'
 import { setCurrentSessionId as setTaskPlanSessionId } from '../services/task-plan-service'
-import { clearSessionSubAgents } from './subagent-registry'
+import { clearSessionSubAgents, continueSubAgent } from './subagent-registry'
+import { runSubAgent } from './subagent'
+import { configureSubAgentExecutor } from '../tools/subagent-executor'
 import { detectReplyStance, formatReplyStanceForPrompt } from './reply-stance'
 import { formatToneControlForPrompt, resolveToneControl } from './tone-control'
-import { getWorkspaceRoot } from './project-memory'
+import { getWorkspaceRoot } from '../workspace/workspace-root'
 import { createLogger, hashForLog } from '../utils/logger'
 import {
   DEFAULT_TRACE_USER_ID,
@@ -657,7 +660,7 @@ class AgentRuntime {
     taskQueue.enqueue(sessionId, 'smart-title', async () => {
       setQuerySource('title')
       try {
-        await store.generateSmartTitle(sessionId, lastUserMsg?.content || '', assistantContent, llmConfig)
+        await generateSmartTitle(sessionId, lastUserMsg?.content || '', assistantContent, llmConfig)
       } finally {
         setQuerySource(null)
       }
@@ -723,6 +726,8 @@ class AgentRuntime {
     registerAgentHostTools(toolRegistry)
 
     let resultText = ''
+    let terminalReason: TerminalReason | undefined
+    let hadError = false
 
     // Headless 没有可交互的确认框：只放行明确只读工具，shell / 子 Agent / 继续任务
     // 等能力即使元数据看似只读，也可能间接产生写入或扩大权限，统一拒绝。
@@ -739,12 +744,15 @@ class AgentRuntime {
       await runWithTraceContext({ sessionId, userId: DEFAULT_TRACE_USER_ID, traceId: executionContext?.traceId }, async () => {
         for await (const event of this.chat(sessionId, userMsg, toolRegistry, headlessConfirm)) {
           if (event.type === 'text') resultText += event.content
+          if (event.type === 'done') terminalReason = event.reason
           if (event.type === 'error') {
+            hadError = true
             const errorMessage = String((event as Record<string, unknown>).message || '')
             log.error('Headless agent event error', { ...labelMeta, errorType: 'agent_event', errorLength: errorMessage.length, traceId: executionContext?.traceId })
           }
         }
       })
+      if (hadError || terminalReason !== 'completed') throw new Error('后台任务未完成，请查看运行记录后重试。')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err)
       log.error('Headless run failed', { ...labelMeta, errorType: err instanceof Error ? err.name : 'unknown', errorLength: errorMessage.length })
@@ -764,6 +772,8 @@ class AgentRuntime {
   }
 }
 
+configureSubAgentExecutor({ run: runSubAgent, continue: continueSubAgent })
+
 export const runtime = new AgentRuntime()
 
 function registerTaskRecoveryHandlers(): void {
@@ -773,7 +783,7 @@ function registerTaskRecoveryHandlers(): void {
     const assistant = session?.messages.filter(message => message.role === 'assistant').at(-1)
     if (!user) return null
     const llmConfig = await runtime.getLLMConfig()
-    return async () => store.generateSmartTitle(task.sessionId, user.content, assistant?.content ?? '', llmConfig)
+    return async () => generateSmartTitle(task.sessionId, user.content, assistant?.content ?? '', llmConfig)
   })
 
   taskQueue.registerRecoveryHandler('profile-extract', async task => {

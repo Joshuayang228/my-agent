@@ -1,11 +1,9 @@
-import { compileTitleRequest } from '../prompts/registered-request'
 import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from './database'
 import { createLogger } from '../utils/logger'
-import { chatComplete } from '../llm/index'
 import { getSetting } from './settings-store'
 import { llmDebugStore } from './llm-debug-store'
-import type { ChatMessage, ChatSession, LLMConfig, SessionKind } from '../../../src/shared/types'
+import type { ChatMessage, ChatSession, SessionKind } from '../../../src/shared/types'
 
 const log = createLogger('SessionStore')
 
@@ -230,6 +228,12 @@ export async function updateSessionTitle(sessionId: string, title: string): Prom
   db.run('UPDATE sessions SET title = ?, updated_at = ? WHERE id = ?',
     [title, Date.now(), sessionId])
   persist()
+}
+
+export async function getSessionTitle(sessionId: string): Promise<string | null> {
+  const database = await getDatabase()
+  const row = database.exec('SELECT title FROM sessions WHERE id = ?', [sessionId])[0]?.values[0]
+  return row ? String(row[0]) : null
 }
 
 // ── 消息持久化 ──
@@ -493,47 +497,5 @@ export async function autoTitle(sessionId: string): Promise<void> {
     await updateSessionTitle(sessionId, title)
   } else {
     stmt.free()
-  }
-}
-
-export async function generateSmartTitle(
-  sessionId: string,
-  userMessage: string,
-  assistantReply: string,
-  llmConfig: LLMConfig,
-  opts?: { force?: boolean },
-): Promise<void> {
-  try {
-    if (!opts?.force) {
-      const db = await getDatabase()
-      const check = db.prepare('SELECT title FROM sessions WHERE id = ?')
-      check.bind([sessionId])
-      if (check.step()) {
-        const row = check.getAsObject() as Record<string, unknown>
-        if (row.title !== '新对话' && row.title !== 'New Chat') {
-          check.free()
-          return
-        }
-      }
-      check.free()
-    }
-
-    // 走统一路由层（chatComplete）而非直接 fetch —— 自动获得多 Provider 支持 + failover
-    // maxTokens 略放宽：即使未关闭 thinking，也给正文留一点预算
-    const title = (await chatComplete({
-      config: llmConfig,
-      request: compileTitleRequest(userMessage, assistantReply),
-      temperature: 0.3,
-      maxTokens: 64,
-      caller: 'title',
-      sessionId,
-    })).trim()
-
-    if (title && title.length >= 2 && title.length <= 30) {
-      await updateSessionTitle(sessionId, title)
-      log.info('Smart title generated', { sessionId, title })
-    }
-  } catch (err) {
-    log.warn('Smart title generation failed', { error: String(err) })
   }
 }

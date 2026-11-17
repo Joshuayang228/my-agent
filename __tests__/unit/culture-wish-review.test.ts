@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 /**
  * 文化心愿体验闭环与主动反馈（Culture Progression & Review Loop）门禁测试
  */
@@ -28,6 +29,7 @@ const SQL = await initSqlJs()
 let memDb: InstanceType<typeof SQL.Database>
 
 vi.mock('../../electron/main/storage/database', () => ({
+  withDatabaseTransaction: async (work: (db: typeof memDb) => Promise<unknown>) => runLocalTransaction(memDb, work),
   getDatabase: vi.fn(async () => memDb),
   persist: vi.fn(),
 }))
@@ -60,6 +62,23 @@ describe('文化心愿体验闭环与主动反馈（Culture Progression & Review
     memDb = new SQL.Database()
     sendMock.mockClear()
     await ensureResonanceTable()
+  })
+
+  it('动态写入失败时文化资产、心愿、感悟与事件一起回滚', async () => {
+    const asset = await createAsset({ roleId: 'luffy', kind: ASSET_KIND_CULTURE, name: '事务验证读物', payload: { type: 'reading', readingStatus: 'reading' } })
+    expect(asset.ok).toBe(true)
+    memDb.run(`INSERT INTO companion_life_resonances (id, role_id, session_id, kind, title, target_name, user_quote, reason, culture_type, status, created_at, absorbed_at, asset_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, ['rollback-culture', 'luffy', 'session', 'culture_wish', '读物', '事务验证读物', '推荐', '理由', 'reading', 'absorbed_in_script', 1, 1, asset.asset.id])
+    const { listMoments } = await import('../../electron/main/companion/core/persistence/life-repository')
+    await listMoments('luffy')
+    memDb.run("CREATE TRIGGER reject_culture_moment BEFORE INSERT ON companion_moments BEGIN SELECT RAISE(ABORT, 'fixture-moment-failure'); END")
+    const result = await completeCultureResonance('rollback-culture', 'luffy', { mockResponse: { reviewText: '感悟', chatOpener: '聊聊', shouldPostMoment: true, momentText: '体验完成' } })
+    expect(result.ok).toBe(false)
+    expect((await getAsset(asset.asset.id))?.payload.readingStatus).toBe('reading')
+    expect((await getAsset(asset.asset.id))?.payload.readingNotes ?? []).toEqual([])
+    expect(memDb.exec("SELECT status FROM companion_life_resonances WHERE id = 'rollback-culture'")[0]?.values[0][0]).toBe('absorbed_in_script')
+    expect(memDb.exec('SELECT COUNT(*) FROM companion_domain_events')[0]?.values[0][0]).toBe(0)
+    expect(sendMock).not.toHaveBeenCalled()
   })
 
   it('完成文化心愿时更新资产状态为 completed、追加感悟笔记并生成主动交流引子', async () => {

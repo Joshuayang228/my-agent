@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -9,11 +10,11 @@ import { loadRules } from '../../electron/main/sandbox/permission-engine'
 import type { ToolContext } from '../../src/shared/types'
 import initSqlJs from 'sql.js'
 import { changeWardrobe, createAsset, getAsset } from '../../electron/main/companion/life/assets'
-import { insertEvent, insertMoment, listEventLinks } from '../../electron/main/companion/life/store'
+import { insertEvent, insertMoment, listEventLinks } from '../../electron/main/companion/core/persistence/life-repository'
 
 const SQL = await initSqlJs()
 let assetDb: InstanceType<typeof SQL.Database>
-vi.mock('../../electron/main/storage/database', () => ({ getDatabase: vi.fn(async () => assetDb), persist: vi.fn() }))
+vi.mock('../../electron/main/storage/database', () => ({ withDatabaseTransaction: async (work: (db: typeof assetDb) => Promise<unknown>) => runLocalTransaction(assetDb, work), getDatabase: vi.fn(async () => assetDb), persist: vi.fn() }))
 
 const state = vi.hoisted(() => ({ request: vi.fn(), config: vi.fn(), mode: 'workspace-write' }))
 vi.mock('../../electron/main/llm/image-generation', async original => ({ ...await original<typeof import('../../electron/main/llm/image-generation')>(), requestGeneratedImage: state.request }))

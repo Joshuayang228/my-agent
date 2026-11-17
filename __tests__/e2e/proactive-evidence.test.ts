@@ -51,6 +51,8 @@ test('真实问候呈现回执、重复 tick 与重启保留名额', async ({}, 
     db.run("INSERT INTO companion_events(id,role_id,scheduled_at,status,type,payload_json) VALUES (?,?,?,'published','moment',?)", ['proactive-fixture-event', roleId, now - 1000, JSON.stringify({ activity: '和伙伴整理航线', location: '千里阳光号 · 共享甲板', mood: '平静' })])
     db.run("INSERT INTO companion_moments(id,role_id,event_id,published_at,text,meta_json) VALUES (?,?,?,?,?,'{}')", ['proactive-fixture-moment', roleId, 'proactive-fixture-event', now, '在千里阳光号甲板上和伙伴整理航线'])
     db.run("UPDATE settings SET value='false' WHERE key='companionProactiveGreetingEnabled'")
+    // 本故事只验问候回执，固定低社交需求和中等精力，避免即兴搭话先消费共享提醒预算。
+    db.run('INSERT INTO companion_runtime_state(role_id,universe_id,mood,energy,social_need,hunger,sleepiness,updated_at) VALUES (?, ?, 60, 50, 30, 0, 0, ?) ON CONFLICT(role_id) DO UPDATE SET energy=50,social_need=30', [roleId, 'default', now])
     db.run('DELETE FROM companion_greeting_days WHERE role_id=?', [roleId])
     db.run('DELETE FROM companion_greeting_evidence WHERE role_id=?', [roleId])
     await writeFile(dbPath, Buffer.from(db.export())); db.close()
@@ -66,9 +68,9 @@ test('真实问候呈现回执、重复 tick 与重启保留名额', async ({}, 
       })
     })
     const tick = async () => app!.evaluate(() => {
-      const callback = (globalThis as unknown as { __testLifeTick?: () => void }).__testLifeTick
+      const callback = (globalThis as unknown as { __testLifeTick?: () => Promise<void> }).__testLifeTick
       if (!callback) throw new Error('未取得真实 ticker 回调')
-      callback()
+      return callback()
     })
     await app.evaluate(({ BrowserWindow }) => { BrowserWindow.getAllWindows()[0].hide() })
     await page.evaluate(() => window.electronAPI.settings.set('companionProactiveGreetingEnabled', 'true'))
@@ -118,10 +120,8 @@ test('真实问候呈现回执、重复 tick 与重启保留名额', async ({}, 
     const receipt = await page.evaluate(() => (window as unknown as { __testReceipt?: { attemptId: string; receiptToken: string } }).__testReceipt)
     if (receipt) expect((await page.evaluate(receipt => window.electronAPI.companion.acknowledgeProactiveGreeting(receipt), receipt)).accepted).toBe(false)
     await Promise.all([tick(), tick(), tick()])
-    await expect.poll(async () => {
-      const result = await page.evaluate(roleId => window.electronAPI.companion.proactiveEvidenceQuery({ roleId }), roleId)
-      return result.records.some(row => row.reason === 'already-today')
-    }).toBe(true)
+    // 共享预算会在问候日级判定前拦截重复 tick，验收持久回执和发送次数，避免绑定内部拦截顺序。
+    expect((await page.evaluate(({ roleId, id }) => window.electronAPI.companion.proactiveEvidenceQuery({ roleId, recordId: id }), { roleId, id: saved.id })).records).toEqual([saved])
     expect((await page.evaluate(roleId => window.electronAPI.companion.proactiveEvidenceQuery({ roleId }), roleId)).records.filter(row => row.status !== 'skipped')).toHaveLength(1)
     await app.close(); app = undefined
     app = await launch(); page = await app.firstWindow()

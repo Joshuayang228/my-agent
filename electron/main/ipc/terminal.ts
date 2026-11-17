@@ -12,7 +12,7 @@ import { randomUUID } from 'node:crypto'
 import path from 'node:path'
 import { checkCommandPermission } from '../sandbox/permission-engine'
 import { loadEffectiveSandbox } from '../sandbox/effective-sandbox'
-import { getWorkspaceRoot } from '../agent/project-memory'
+import { getWorkspaceRoot } from '../workspace/workspace-root'
 import { createLogger, hashForLog } from '../utils/logger'
 import { buildSafeChildProcessEnv } from '../utils/safe-process-env'
 

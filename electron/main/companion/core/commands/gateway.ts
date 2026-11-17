@@ -14,7 +14,7 @@ export interface CompanionCommandContext {
  * 执行人物世界命令并统一记录执行状态。
  *
  * 背景：Chat、LifeTicker 和 IPC 曾各自处理角色校验、失败日志和重试状态，导致同一行为在不同入口表现不同。
- * 设计意图：先把命令生命周期收口到核心层，业务 handler 只负责验证后的领域动作，后续再把事件提交和投影接入同一事务。
+ * 设计意图：核心层领取命令执行所有权，本地事实由用例的 Unit of Work 提交，生命周期允许跨模型等待。
  * 关键约束：显式 roleId 必须仍是 activeRole，失败只能记录脱敏错误并标记 retryable，不能伪造 completed。
  */
 export async function executeCompanionCommand<T>(input: {
@@ -32,11 +32,12 @@ export async function executeCompanionCommand<T>(input: {
   if (input.idempotencyKey && execution.status === 'running' && execution.commandId !== commandId) throw new Error('同一命令正在执行，请勿重复提交。')
   try {
     const result = await input.handler({ commandId, executionId: execution.id, correlationId, roleId: input.roleId, occurredAt: Date.now() })
-    await finishCompanionExecution({ executionId: execution.id, status: 'completed', result })
+    await finishCompanionExecution({ executionId: execution.id, commandId, status: 'completed', result })
     return result
   } catch (error) {
     await finishCompanionExecution({
       executionId: execution.id,
+      commandId,
       status: 'retryable',
       errorCode: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
       errorMessage: error instanceof Error ? error.message : String(error),

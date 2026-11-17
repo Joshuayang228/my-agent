@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 /**
  * 工作区会话持久化与伙伴直通连通（Workspace Session Persistence & Companion Link）测试
  */
@@ -30,7 +31,8 @@ vi.mock('../../electron/main/storage/database', async () => {
   const actual = await vi.importActual<typeof import('../../electron/main/storage/database')>('../../electron/main/storage/database')
   return {
     ...actual,
-    getDatabase: vi.fn(async () => memDb),
+    withDatabaseTransaction: async (work: (db: typeof memDb) => Promise<unknown>) => runLocalTransaction(memDb, work),
+  getDatabase: vi.fn(async () => memDb),
     persist: vi.fn(),
   }
 })

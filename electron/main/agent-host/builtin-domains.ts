@@ -1,7 +1,7 @@
 import { getCompanionRuntimeReadModel } from '../companion/core/read-models/runtime-read-model'
 import * as identity from '../companion/identity/loader'
 import * as memory from '../storage/memory-store'
-import { getWorkspaceRoot } from '../agent/project-memory'
+import { getWorkspaceRoot } from '../workspace/workspace-root'
 import { companionPostMomentTool } from '../tools/builtins/companion-life'
 import { triggerInnerThought } from '../companion/life/inner-thoughts'
 import { tickActiveRole } from '../companion/life/engine'
@@ -64,11 +64,13 @@ export function createCompanionCoreDomain(): AgentHostDomainDefinition {
       kind: 'workflow',
       exposeToTool: false,
       description: '推进当前人物的生活时钟和到期事件',
-      parameters: { type: 'object', properties: {} },
+      parameters: { type: 'object', properties: { now: { type: 'integer', description: '本次生活推进的 Unix 毫秒时间' } }, required: ['now'] },
       requiredPermissions: ['companion.lifecycle'],
-      invoke: async (_input, context) => {
+      invoke: async (input, context) => {
         if (!context.roleId) throw new Error('Life tick workflow requires roleId')
-        return tickActiveRole(Date.now())
+        const now = input && typeof input === 'object' ? (input as Record<string, unknown>).now : undefined
+        if (typeof now !== 'number' || !Number.isSafeInteger(now) || now < 0) throw new Error('生活推进时间无效。')
+        return tickActiveRole(now)
       },
     }],
     contextProviders: [{

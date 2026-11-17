@@ -75,12 +75,13 @@ export async function dispatchCompanionOutbox(input: {
     if (db.getRowsModified() !== 1) continue
     persist()
     try {
-      await input.deliver({ ...message, status: 'processing', attempt: message.attempt + 1, lastError: null })
-      db.run(`UPDATE companion_outbox SET status = 'delivered', delivered_at = ?, claimed_at = NULL, lease_until = NULL, next_attempt_at = NULL WHERE id = ?`, [Date.now(), message.id])
-      delivered += 1
+      // 租约过期可被重新领取，完成与失败仅允许当前 attempt 写回，避免迟到投递覆盖新结果。
+      await input.deliver({ ...message, status: 'processing', attempt: message.attempt + 1, claimedAt: now, leaseUntil, lastError: null })
+      db.run(`UPDATE companion_outbox SET status = 'delivered', delivered_at = ?, claimed_at = NULL, lease_until = NULL, next_attempt_at = NULL WHERE id = ? AND status = 'processing' AND attempt = ?`, [Date.now(), message.id, message.attempt + 1])
+      delivered += db.getRowsModified()
     } catch (error) {
       const nextAttemptAt = Date.now() + Math.min(15 * 60_000, 1_000 * (2 ** Math.min(message.attempt, 8)))
-      db.run(`UPDATE companion_outbox SET status = 'failed', last_error = ?, claimed_at = NULL, lease_until = NULL, next_attempt_at = ? WHERE id = ?`, [error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500), nextAttemptAt, message.id])
+      db.run(`UPDATE companion_outbox SET status = 'failed', last_error = ?, claimed_at = NULL, lease_until = NULL, next_attempt_at = ? WHERE id = ? AND status = 'processing' AND attempt = ?`, [error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500), nextAttemptAt, message.id, message.attempt + 1])
     }
     persist()
   }

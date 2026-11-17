@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 /**
  * W2：LifeEngine — pause / ensureDayScripts / tick 仅 active
  */
@@ -29,6 +30,7 @@ let activeRoleId = 'luffy'
 const settingValues: Record<string, string> = {}
 
 vi.mock('../../electron/main/storage/database', () => ({
+  withDatabaseTransaction: async (work: (db: typeof memDb) => Promise<unknown>) => runLocalTransaction(memDb, work),
   getDatabase: vi.fn(async () => memDb),
   persist: vi.fn(),
 }))
@@ -70,7 +72,7 @@ const { generateDayScript } = await import('../../electron/main/companion/life/s
 
 const { requestSwitch } = await import('../../electron/main/companion/orchestrator')
 const { getLifeSliceForRole } = await import('../../electron/main/companion/life/slices')
-const lifeStore = await import('../../electron/main/companion/life/store')
+const lifeStore = await import('../../electron/main/companion/core/persistence/life-repository')
 const { getCompanionRuntimeState } = await import('../../electron/main/companion/core/state/runtime-state')
 const { createAsset } = await import('../../electron/main/companion/life/assets')
 const { projectMomentFromEvent, publishAndProjectDue } = await import('../../electron/main/companion/life/moments')

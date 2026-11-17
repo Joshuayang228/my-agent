@@ -1,5 +1,7 @@
 # 质量总控
 
+架构迁移门禁（2026-11-17）：子任务执行端口纳入工具运行时资产治理来源，角色预设继续由既有 SubAgent 注册表生成。`architecture-boundaries.test.ts` 扫描主进程反向依赖并阻止废弃状态存储回流；`database-transaction.test.ts` 用真实 SQLite 与独立磁盘重开验证提交与并发回滚隔离；日记和文化体验以 SQL trigger 故障注入验证业务事实、事件和 Outbox 共同回滚。`proactive-budget.test.ts` 覆盖跨 tick、重启、人物隔离、空结果、失败及静音。真实问候故事固定低社交需求和中等精力，隔离即兴搭话；重复 tick 以发送次数与原回执不变验收，共享预算拦截不会伪造问候内部跳过证据。`runtime-terminal-reason.test.ts` 验证 Headless 失败终态拒绝。
+
 日记册阅读门禁（2026-11-10）：Playground E2E 验证日记封面打开详情、信件正文可读、返回日记册恢复列表；人物世界基础导航和当前主角贯穿用例继续通过，类型检查通过。
 
 人物世界引擎主动节奏门禁（2026-11-11）：`today-timeline.test.ts` 覆盖同一生活 tick 只把明确已投递的问候、搭话或关怀计入主动消息预算；`spontaneous-impulse.test.ts` 覆盖同一角色并发触发只允许一个执行槽；`moment-images.test.ts` 覆盖重复投影返回既有 Moment 并保持图片关联，避免恢复路径被旧断言误判为失败。
@@ -9,9 +11,9 @@
 Companion 执行恢复门禁（2026-11-15）：`companion-world-core.test.ts` 验证超过恢复窗口的 `running` 账本转为 `retryable` 并记录 `EXECUTION_INTERRUPTED`，近期运行保持 `running`，防止崩溃后同一幂等键永久阻塞。
 
 Agent Host 上下文权限门禁（2026-11-15）：`agent-host-registry.test.ts` 验证 Context Provider 的 `requires` 缺失时不会进入执行环境，实际读取还会校验 Agent 身份与权限，避免动态领域上下文绕过 Capability 权限边界。
-Companion 迁移边界门禁（2026-11-15）：日剧本与生活事件 Application Gateway 的旧表访问统一经过 Read Model / Projection Adapter，静态调用链不再从 Application 层直接进入 `life/store`。
+Companion 迁移边界门禁（2026-11-15）：日剧本与生活事件 Application Gateway 的领域存储统一归 Core persistence；2026-11-17 已删除 legacy 转发层与 life/store。
 朋友圈图片关联门禁（2026-11-15）：图片目标读取和事件链接写入分别经过 Legacy Read Model 与 Projection Adapter，写入在 Unit of Work 内完成。
-Core Runtime State 迁移门禁（2026-11-15）：核心状态回填读取和旧 `role_state` 镜像更新经过统一适配器，核心状态模块不再直接依赖旧生活 store。
+Core Runtime State 迁移门禁（2026-11-15）：2026-11-17 已删除旧 role_state 回填与镜像，运行态只读写 companion_runtime_state；真实并发测试验证增量和生命周期更新均保留，Outbox 测试阻止旧 attempt 覆盖新结果。
 生活引擎旧查询门禁（2026-11-15）：日剧本补齐和朋友圈发布流程的旧事件、动态查询统一经过 Legacy Read Model，用户互动写入继续保留独立交互事实入口。
 日内重排查询门禁（2026-11-15）：重排服务读取待处理事件统一经过 Legacy Read Model，旧 `life/store` 依赖不再进入生产重排路径。
 Scheduler Headless 上下文门禁（2026-11-15）：`scheduler.test.ts` 验证同一任务和调度时刻生成稳定 trace / 幂等键，同时保留独立 runId；Runtime 会在同一 trace context 内运行 Headless Agent Loop。
@@ -1237,3 +1239,7 @@ Projection Adapter 回归覆盖朋友圈、关系、情绪、事件关联和执�
 # 2026-11-14 Conversation Application 边界
 
 角色组装输入通过 Conversation Application Service 进入 Runtime，现有会话生命周期、取消、Loop 和流式事件测试继续通过。
+
+## 目标架构迁移验收（2026-11-17）
+
+全量 Unit 284 个文件、1786 项通过，1 项既有跳过；Electron 41 项通过，5 项需真实模型配置的用例跳过；Debug 来源同步的 UI 回归 45 项通过。双进程类型检查、生产构建、Eval 23 项、Skill Eval 1 项与资产门禁 113 项通过。真实 sql.js 磁盘重开覆盖事务持久化、并发回滚与状态增量；SQL 故障注入覆盖日记和文化事实回滚，租约回归覆盖旧 Outbox attempt 迟到失败。构建保留既有 chunk / dynamic import 警告，项目没有独立 lint 脚本。

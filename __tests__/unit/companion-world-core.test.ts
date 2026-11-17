@@ -20,31 +20,6 @@ vi.mock('../../electron/main/storage/database', () => ({
   }),
 }))
 
-vi.mock('../../electron/main/companion/life/store', () => ({
-  getRoleState: vi.fn(async () => ({
-    roleId: 'luffy',
-    pausedAt: null,
-    lastTickAt: 0,
-    catchupSummary: '',
-    world: {
-      schemaVersion: 1,
-      home: '千里阳光号',
-      timezone: 'Asia/Shanghai',
-      situation: '在甲板上看海',
-      mood: 64,
-      energy: 72,
-      socialNeed: 48,
-      currentLocation: '甲板',
-      locationDetail: '',
-      currentActivity: '看海',
-      statusTags: [],
-      updatedAt: 100,
-    },
-    updatedAt: 100,
-  })),
-  setWorldState: vi.fn(async () => undefined),
-}))
-
 const {
   getCompanionRuntimeState,
   applyCompanionRuntimeDelta,
@@ -66,9 +41,19 @@ describe('人物世界核心层', () => {
     resetCompanionCoreSchemaForTesting()
   })
 
-  it('从既有 world state 建立运行态快照，并按版本应用有界状态变化', async () => {
+  it('过期投递迟到失败不能覆盖新租约已经完成的结果', async () => {
+    const message = await enqueueCompanionOutbox({ roleId: 'luffy', kind: 'probe', dedupeKey: 'lease-fence', payload: {} })
+    await dispatchCompanionOutbox({ deliver: async () => {
+      memDb.run('UPDATE companion_outbox SET lease_until = 0 WHERE id = ?', [message.id])
+      await dispatchCompanionOutbox({ deliver: async () => {} })
+      throw new Error('late-failure')
+    } })
+    expect(memDb.exec('SELECT status, attempt FROM companion_outbox WHERE id = ?', [message.id])[0]?.values).toEqual([['delivered', 2]])
+  })
+
+  it('从 Role Pack 初始化唯一运行态快照，并按版本应用有界状态变化', async () => {
     const first = await getCompanionRuntimeState('luffy')
-    expect(first.mood).toBe(64)
+    expect(first.mood).toBeGreaterThanOrEqual(0)
     expect(first.home).toBe('千里阳光号')
     expect(first.version).toBe(0)
     expect(first.lastTickAt).toBe(0)
@@ -84,7 +69,7 @@ describe('人物世界核心层', () => {
     })
     expect(next.mood).toBe(100)
     expect(next.energy).toBe(0)
-    expect(next.socialNeed).toBe(53)
+    expect(next.socialNeed).toBe(Math.min(100, first.socialNeed + 5))
     expect(next.version).toBe(1)
     expect(next.lastEventId).toBe('event-1')
     await expect(applyCompanionRuntimeDelta({ roleId: 'luffy', eventId: 'stale', expectedVersion: 0, delta: { mood: 1 } })).rejects.toThrow('版本冲突')
@@ -92,7 +77,7 @@ describe('人物世界核心层', () => {
 
   it('只读模型从核心运行态读取，不重新拼接旧生活表', async () => {
     const readModel = await getCompanionRuntimeReadModel('luffy')
-    expect(readModel).toMatchObject({ roleId: 'luffy', home: '千里阳光号', mood: 64 })
+    expect(readModel).toMatchObject({ roleId: 'luffy', home: '千里阳光号' })
   })
 
   it('领域事件和 Outbox 使用幂等键，重复提交返回既有记录', async () => {
@@ -180,6 +165,23 @@ describe('人物世界核心层', () => {
     expect(first).toEqual({ accepted: true })
     expect(second).toEqual({ accepted: true })
     expect(calls).toBe(1)
+  })
+
+  it('失败命令重试重新领取所有权，阻止并发重试并增加 attempt', async () => {
+    const input = { roleId: 'luffy', actionType: 'retry-owner', idempotencyKey: 'retry-owner-1' }
+    await expect(executeCompanionCommand({ ...input, handler: async () => { throw new Error('first-failure') } })).rejects.toThrow('first-failure')
+    let release!: () => void
+    let entered!: () => void
+    const started = new Promise<void>(resolve => { entered = resolve })
+    const gate = new Promise<void>(resolve => { release = resolve })
+    const retry = executeCompanionCommand({ ...input, handler: async () => { entered(); await gate; return 'done' } })
+    await started
+    const duplicate = vi.fn(async () => 'duplicate')
+    await expect(executeCompanionCommand({ ...input, handler: duplicate })).rejects.toThrow('正在执行')
+    release()
+    expect(await retry).toBe('done')
+    expect(duplicate).not.toHaveBeenCalled()
+    expect(memDb.exec('SELECT status, attempt FROM companion_execution_runs WHERE idempotency_key = ?', [input.idempotencyKey])[0]?.values[0]).toEqual(['completed', 2])
   })
 
   it('Outbox 投递成功后标记 delivered，失败后保留 failed 供重试', async () => {

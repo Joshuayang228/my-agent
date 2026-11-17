@@ -24,12 +24,12 @@ import { publishAndProjectDue } from './moments'
 import { maybeNotifyNewMoments } from './moment-tips'
 import { resolveDayScript } from './script-generator'
 import { refreshSituationFromLife } from './world-state'
-import * as store from './store'
+import * as store from '../core/persistence/life-repository'
 import { updateCompanionRuntimeLifecycle } from '../core/state/runtime-state'
 import { createCompanionLifeEvent } from '../application/life-event'
 import { createCompanionDayScript } from '../application/day-script'
 import { getCompanionRuntimeReadModel } from '../core/read-models/runtime-read-model'
-import { getCompanionLegacyDayScript, hasCompanionLegacyEventsForScript } from '../core/read-models/legacy-companion-read-model'
+import { getDayScript, hasEventsForScript } from '../core/persistence/life-repository'
 
 /** 解析当前活跃主角（不经过 orchestrator，避免 life ↔ orchestrator 循环依赖） */
 async function resolveActiveRoleId(): Promise<string> {
@@ -84,10 +84,10 @@ export async function ensureDayScripts(
     }
   }
   for (const date of dates) {
-    const existing = await getCompanionLegacyDayScript(roleId, date)
+    const existing = await getDayScript(roleId, date)
     if (existing) {
       // 剧本已在但事件缺失时补事件（幂等）
-      if (!(await hasCompanionLegacyEventsForScript(existing.id))) {
+      if (!(await hasEventsForScript(existing.id))) {
         await materializePlannedEvents(roleId, existing.id, existing.payload)
       }
       continue
@@ -205,7 +205,7 @@ export async function tickActiveRole(now: number): Promise<{
  * 关键约束：不暴露给 preload / Renderer；不改 moment 正文或卡司投影写入路径。
  */
 export const __lifeStore = {
-  getRoleState: store.getRoleState,
+  getRoleState: getCompanionRuntimeReadModel,
   getDayScript: store.getDayScript,
   countDayScripts: store.countDayScripts,
   countEvents: store.countEvents,

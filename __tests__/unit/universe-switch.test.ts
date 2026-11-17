@@ -3,6 +3,7 @@ import { rm } from 'node:fs/promises'
 import path from 'node:path'
 import { publishCharacterDraft, saveCharacterDraft } from '../../electron/main/companion/authoring/draft-store'
 import { getCompanionAssetCatalog } from '../../electron/main/companion/asset-registry'
+import { loadRolePack, resolveRoleUniverseId } from '../../electron/main/companion/identity/loader'
 
 const root = path.join(process.cwd(), '.agent-data', 'universes')
 const switchWorld = `switch-world-${process.pid}-${Date.now()}`
@@ -36,6 +37,8 @@ describe('用户世界观切换', () => {
     expect(result).toMatchObject({ ok: true, universeId: switchWorld, roleId: `${switchWorld}-hero`, name: '测试主角' })
     expect(universeId).toBe(switchWorld)
     expect(roleId).toBe(`${switchWorld}-hero`)
+    expect(resolveRoleUniverseId(roleId)).toBe(switchWorld)
+    expect(loadRolePack(roleId).name).toBe('测试主角')
   })
 
   it('未知世界不改变当前组合', async () => {

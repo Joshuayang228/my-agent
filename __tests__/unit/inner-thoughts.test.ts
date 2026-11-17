@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 /**
  * 私密内心独白与日记（Inner Thoughts & Private Journal Stream）门禁测试
  */
@@ -28,6 +29,7 @@ const SQL = await initSqlJs()
 let memDb: InstanceType<typeof SQL.Database>
 
 vi.mock('../../electron/main/storage/database', () => ({
+  withDatabaseTransaction: async (work: (db: typeof memDb) => Promise<unknown>) => runLocalTransaction(memDb, work),
   getDatabase: vi.fn(async () => memDb),
   persist: vi.fn(),
 }))
@@ -76,6 +78,18 @@ describe('私密内心独白与日记（Inner Thoughts & Private Journal Stream�
       VALUES ('luffy', '瞭望台吹风看星星', '万里阳光号·瞭望台', '万里阳光号', 85, 90, 75, 100000);
     `)
     sendMock.mockClear()
+  })
+
+  it('事件登记失败时回滚日记事实，禁止发送完成通知', async () => {
+    const { ensureCompanionCoreSchema } = await import('../../electron/main/companion/core/schema')
+    await ensureCompanionCoreSchema()
+    await ensureInnerThoughtTable()
+    const initialCount = memDb.exec('SELECT COUNT(*) FROM companion_inner_thoughts')[0]?.values[0][0]
+    memDb.run("CREATE TRIGGER reject_thought_event BEFORE INSERT ON companion_domain_events BEGIN SELECT RAISE(ABORT, 'fixture-event-failure'); END")
+    await expect(triggerInnerThought('luffy', '事务验收', Date.now(), { mockResponse: { title: '日记', content: '记录今天的生活' } })).rejects.toThrow('fixture-event-failure')
+    expect(memDb.exec('SELECT COUNT(*) FROM companion_inner_thoughts')[0]?.values[0][0]).toBe(initialCount)
+    expect(memDb.exec('SELECT COUNT(*) FROM companion_outbox')[0]?.values[0][0]).toBe(0)
+    expect(sendMock).not.toHaveBeenCalled()
   })
 
   it('决策引擎正确校验频次、冷却与沉思时间窗口', () => {

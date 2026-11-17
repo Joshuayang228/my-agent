@@ -1,8 +1,9 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import initSqlJs from 'sql.js'
 import { companionAddReadingNoteTool, companionCommentMomentTool, companionCreateAssetTool, companionObserveMaterialTool, companionPostMomentTool, companionReadWorldTool } from '../../electron/main/tools/builtins/companion-life'
 import { ToolRegistry } from '../../electron/main/tools/registry'
-import { listEventLinks, listMomentUserInteractions, listMoments } from '../../electron/main/companion/life/store'
+import { listEventLinks, listMomentUserInteractions, listMoments } from '../../electron/main/companion/core/persistence/life-repository'
 import { listAssets } from '../../electron/main/companion/life/assets'
 import { queryCompanionEvidence } from '../../electron/main/debug/companion-evidence'
 import type { DebugEvidenceScope } from '../../src/shared/debug-evidence'
@@ -11,7 +12,7 @@ import { builtinTools, getBuiltinToolSource } from '../../electron/main/tools/bu
 
 const SQL = await initSqlJs()
 let db: InstanceType<typeof SQL.Database>
-vi.mock('../../electron/main/storage/database', () => ({ getDatabase: vi.fn(async () => db), persist: vi.fn() }))
+vi.mock('../../electron/main/storage/database', () => ({ withDatabaseTransaction: async (work: (db: typeof db) => Promise<unknown>) => runLocalTransaction(db, work), getDatabase: vi.fn(async () => db), persist: vi.fn() }))
 vi.mock('../../electron/main/storage/session-store', () => ({ getSession: vi.fn(async () => ({ messages: [] })) }))
 vi.mock('../../electron/main/llm/aux-config', () => ({ loadAuxLLMConfig: vi.fn(async () => ({ provider: 'openai', apiKey: 'test', baseUrl: 'http://127.0.0.1', model: 'vision-test' })) }))
 vi.mock('../../electron/main/llm/index', () => ({ chatComplete: vi.fn(async () => JSON.stringify({ observation: '图片中可直接读到“重新核对航线”。', inference: '人物因此开始重新思考下一段路线。', uncertainties: ['无法确认拍摄页码'] })) }))

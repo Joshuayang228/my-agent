@@ -1,207 +1,23 @@
 /**
- * LifeEngine 用户态存储（role_state / day_scripts / events）
+ * Companion Core 生活领域持久化（day_scripts / events / moments）
  *
- * 背景：暂停点、日剧本、结构化事件按 role_id 分桶。
- * 意图：CRUD + ensureTables；与 schema v5 migration 对齐。
+ * 背景：日程、生活事件、关系与用户互动按 role_id 隔离存储。
+ * 意图：Core 拥有同库领域事实与查询投影，应用用例通过 Unit of Work 协调提交。
  * 约束：不 import agent/；写后 persist。
  */
 
+import { ensureLifeSchema as ensureTables } from './life-schema'
 import { randomUUID } from 'node:crypto'
-import { getDatabase, persist } from '../../storage/database'
+import { getDatabase, persist } from '../../../storage/database'
 import type {
   CompanionEvent,
   CompanionEventStatus,
   CompanionMoment,
-  CompanionRoleState,
-  CompanionWorldState,
   DayScriptPayload,
   DayScriptRow,
-} from '../types'
-import type { CompanionEventLink } from '../../../../src/shared/types'
-import type { MomentUserInteraction, MomentUserInteractionKind } from '../../../../src/shared/moment-user-interactions'
-import { defaultWorldState, parseWorldJson, serializeWorldState } from './world-codec'
-
-async function ensureTables(): Promise<void> {
-  const db = await getDatabase()
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_role_state (
-      role_id         TEXT PRIMARY KEY,
-      paused_at       INTEGER,
-      last_tick_at    INTEGER NOT NULL DEFAULT 0,
-      catchup_summary TEXT NOT NULL DEFAULT '',
-      world_json      TEXT NOT NULL DEFAULT '{}',
-      updated_at      INTEGER NOT NULL
-    )
-  `)
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_first_contact (
-      role_id  TEXT PRIMARY KEY,
-      shown_at INTEGER NOT NULL
-    )
-  `)
-  // 旧表缺列时补齐（单测 memDb / 未跑完 schema migrate 的路径）
-  try {
-    db.run(`ALTER TABLE companion_role_state ADD COLUMN world_json TEXT NOT NULL DEFAULT '{}'`)
-  } catch {
-    // 列已存在
-  }
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_day_scripts (
-      id           TEXT PRIMARY KEY,
-      role_id      TEXT NOT NULL,
-      date         TEXT NOT NULL,
-      payload_json TEXT NOT NULL,
-      created_at   INTEGER NOT NULL,
-      UNIQUE(role_id, date)
-    )
-  `)
-  db.run(`
-    CREATE INDEX IF NOT EXISTS idx_companion_day_scripts_role_date
-      ON companion_day_scripts(role_id, date)
-  `)
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_events (
-      id            TEXT PRIMARY KEY,
-      role_id       TEXT NOT NULL,
-      scheduled_at  INTEGER NOT NULL,
-      status        TEXT NOT NULL,
-      type          TEXT NOT NULL,
-      payload_json  TEXT NOT NULL,
-      day_script_id TEXT
-    )
-  `)
-  db.run(`
-    CREATE INDEX IF NOT EXISTS idx_companion_events_role_sched
-      ON companion_events(role_id, scheduled_at)
-  `)
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_moments (
-      id           TEXT PRIMARY KEY,
-      role_id      TEXT NOT NULL,
-      event_id     TEXT NOT NULL,
-      published_at INTEGER NOT NULL,
-      text         TEXT NOT NULL,
-      meta_json    TEXT NOT NULL DEFAULT '{}'
-    )
-  `)
-  db.run(`
-    CREATE INDEX IF NOT EXISTS idx_companion_moments_role_pub
-      ON companion_moments(role_id, published_at DESC)
-  `)
-  db.run(`
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_companion_moments_event
-      ON companion_moments(event_id)
-  `)
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_moment_user_interactions (
-      id         TEXT PRIMARY KEY,
-      moment_id  TEXT NOT NULL,
-      role_id    TEXT NOT NULL,
-      kind       TEXT NOT NULL,
-      actor_id   TEXT NOT NULL,
-      text       TEXT,
-      created_at INTEGER NOT NULL
-    )
-  `)
-  for (const column of [
-    "ALTER TABLE companion_moment_user_interactions ADD COLUMN actor_type TEXT NOT NULL DEFAULT 'user'",
-    'ALTER TABLE companion_moment_user_interactions ADD COLUMN actor_name TEXT',
-    'ALTER TABLE companion_moment_user_interactions ADD COLUMN parent_interaction_id TEXT',
-    'ALTER TABLE companion_moment_user_interactions ADD COLUMN reply_to_actor_name TEXT',
-  ]) {
-    try { db.run(column) } catch { /* 已升级的数据库 */ }
-  }
-  db.run(`
-    CREATE INDEX IF NOT EXISTS idx_companion_moment_user_role_moment
-      ON companion_moment_user_interactions(role_id, moment_id, created_at)
-  `)
-  db.run(`
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_companion_moment_user_like
-      ON companion_moment_user_interactions(moment_id, actor_id)
-      WHERE kind = 'like'
-  `)
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_event_links (
-      id            TEXT PRIMARY KEY,
-      event_id      TEXT NOT NULL,
-      role_id       TEXT NOT NULL,
-      target_type   TEXT NOT NULL,
-      target_id     TEXT NOT NULL,
-      relation      TEXT NOT NULL,
-      metadata_json TEXT NOT NULL DEFAULT '{}',
-      created_at    INTEGER NOT NULL,
-      UNIQUE(event_id, target_type, target_id, relation)
-    )
-  `)
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_relationship_state (
-      role_id TEXT NOT NULL,
-      subject_id TEXT NOT NULL,
-      phase TEXT NOT NULL DEFAULT 'familiar',
-      signal INTEGER NOT NULL DEFAULT 0,
-      note TEXT NOT NULL DEFAULT '',
-      updated_at INTEGER NOT NULL,
-      PRIMARY KEY (role_id, subject_id)
-    )
-  `)
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_relationship_events (
-      id TEXT PRIMARY KEY,
-      role_id TEXT NOT NULL,
-      subject_id TEXT NOT NULL,
-      phase TEXT NOT NULL,
-      delta INTEGER NOT NULL,
-      note TEXT NOT NULL DEFAULT '',
-      source_event_id TEXT,
-      created_at INTEGER NOT NULL
-    )
-  `)
-  db.run('CREATE INDEX IF NOT EXISTS idx_companion_relationship_events_role_time ON companion_relationship_events(role_id, created_at DESC)')
-  db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_companion_relationship_events_source ON companion_relationship_events(role_id, source_event_id) WHERE source_event_id IS NOT NULL')
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_emotion_events (
-      id TEXT PRIMARY KEY,
-      role_id TEXT NOT NULL,
-      event_id TEXT,
-      label TEXT NOT NULL,
-      intensity INTEGER NOT NULL,
-      note TEXT NOT NULL DEFAULT '',
-      created_at INTEGER NOT NULL
-    )
-  `)
-  db.run('CREATE INDEX IF NOT EXISTS idx_companion_emotion_role_time ON companion_emotion_events(role_id, created_at DESC)')
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_event_executions (
-      id TEXT PRIMARY KEY,
-      role_id TEXT NOT NULL,
-      event_id TEXT NOT NULL,
-      attempted_at INTEGER NOT NULL,
-      action TEXT NOT NULL,
-      reason TEXT NOT NULL,
-      moment_id TEXT
-    )
-  `)
-  db.run('CREATE INDEX IF NOT EXISTS idx_companion_event_exec_role_time ON companion_event_executions(role_id, attempted_at DESC)')
-  db.run(`CREATE TABLE IF NOT EXISTS companion_moment_media (
-    id TEXT PRIMARY KEY, role_id TEXT NOT NULL, event_id TEXT NOT NULL, moment_id TEXT NOT NULL,
-    path TEXT NOT NULL, mime_type TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL,
-    byte_length INTEGER NOT NULL, created_at INTEGER NOT NULL, UNIQUE(event_id, id)
-  )`)
-  db.run('CREATE INDEX IF NOT EXISTS idx_companion_moment_media_role_time ON companion_moment_media(role_id, created_at DESC)')
-  db.run(`CREATE TABLE IF NOT EXISTS companion_moment_media_attempts (
-    id TEXT PRIMARY KEY, role_id TEXT NOT NULL, event_id TEXT NOT NULL, moment_id TEXT,
-    status TEXT NOT NULL, reason TEXT NOT NULL, image_id TEXT, attempted_at INTEGER NOT NULL, completed_at INTEGER
-  )`)
-  db.run('CREATE INDEX IF NOT EXISTS idx_companion_moment_media_attempts_role_time ON companion_moment_media_attempts(role_id, attempted_at DESC)')
-  db.run(`
-    CREATE INDEX IF NOT EXISTS idx_companion_event_links_event
-      ON companion_event_links(role_id, event_id)
-  `)
-  db.run(`
-    CREATE INDEX IF NOT EXISTS idx_companion_event_links_target
-      ON companion_event_links(role_id, target_type, target_id)
-  `)
-}
+} from '../../types'
+import type { CompanionEventLink } from '../../../../../src/shared/types'
+import type { MomentUserInteraction, MomentUserInteractionKind } from '../../../../../src/shared/moment-user-interactions'
 
 export interface CompanionRelationshipState {
   roleId: string
@@ -347,30 +163,6 @@ export async function claimFirstContact(roleId: string): Promise<boolean> {
   db.run('INSERT INTO companion_first_contact (role_id, shown_at) VALUES (?, ?)', [roleId, Date.now()])
   persist()
   return true
-}
-
-export async function getRoleState(roleId: string): Promise<CompanionRoleState | null> {
-  await ensureTables()
-  const db = await getDatabase()
-  const stmt = db.prepare(
-    `SELECT role_id, paused_at, last_tick_at, catchup_summary, world_json, updated_at
-     FROM companion_role_state WHERE role_id = ?`,
-  )
-  stmt.bind([roleId])
-  if (!stmt.step()) {
-    stmt.free()
-    return null
-  }
-  const r = stmt.getAsObject() as Record<string, unknown>
-  stmt.free()
-  return {
-    roleId: r.role_id as string,
-    pausedAt: (r.paused_at as number | null) ?? null,
-    lastTickAt: (r.last_tick_at as number) || 0,
-    catchupSummary: (r.catchup_summary as string) || '',
-    world: parseWorldJson((r.world_json as string) || '', roleId),
-    updatedAt: r.updated_at as number,
-  }
 }
 
 export async function getDayScript(
@@ -548,35 +340,6 @@ export async function hasEventsForScript(dayScriptId: string): Promise<boolean> 
   const ok = stmt.step()
   stmt.free()
   return ok
-}
-
-/** M23-G2：写入世界状态薄片 */
-export async function setWorldState(
-  roleId: string,
-  world: CompanionWorldState,
-): Promise<void> {
-  await ensureTables()
-  const db = await getDatabase()
-  const now = Date.now()
-  const existing = await getRoleState(roleId)
-  const worldJson = serializeWorldState(world)
-  db.run(
-    `INSERT INTO companion_role_state
-       (role_id, paused_at, last_tick_at, catchup_summary, world_json, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)
-     ON CONFLICT(role_id) DO UPDATE SET
-       world_json = excluded.world_json,
-       updated_at = excluded.updated_at`,
-    [
-      roleId,
-      existing?.pausedAt ?? null,
-      existing?.lastTickAt ?? 0,
-      existing?.catchupSummary ?? '',
-      worldJson,
-      now,
-    ],
-  )
-  persist()
 }
 
 /** 将指定 id 标为 published */

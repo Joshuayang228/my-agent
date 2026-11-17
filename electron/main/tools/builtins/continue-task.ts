@@ -9,7 +9,7 @@
  * - 上下文重叠低（全新方向 / 验证者不该带实现假设）→ 新 delegate_task
  */
 import { buildTool } from '../builder'
-import { continueSubAgent } from '../../agent/subagent-registry'
+import { getSubAgentExecutor } from '../subagent-executor'
 
 const MAX_AGENT_ID_LENGTH = 200
 const MAX_CONTINUE_MESSAGE_LENGTH = 100_000
@@ -44,7 +44,7 @@ export const continueTaskTool = buildTool({
     const agentId = args.agent_id
     const message = args.message
 
-    const result = await continueSubAgent(agentId, message, toolContext?.signal)
+    const result = await getSubAgentExecutor().continue(agentId, message, toolContext?.signal)
 
     const header = result.success ? '✅ 子 Agent 已继续执行' : '❌ 子 Agent 继续执行失败'
     const meta = result.toolsUsed.length > 0

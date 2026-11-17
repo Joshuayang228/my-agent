@@ -6,7 +6,7 @@ vi.mock('node:child_process', () => ({ spawn: mocks.spawn, execFile: mocks.execF
 vi.mock('electron', () => ({ ipcMain: { handle: vi.fn() } }))
 vi.mock('../../electron/main/sandbox/effective-sandbox', () => ({ loadEffectiveSandbox: async () => 'workspace-write' }))
 vi.mock('../../electron/main/sandbox/permission-engine', () => ({ checkCommandPermission: () => ({ allowed: true }) }))
-vi.mock('../../electron/main/agent/project-memory', () => ({ getWorkspaceRoot: () => process.cwd() }))
+vi.mock('../../electron/main/workspace/workspace-root', () => ({ getWorkspaceRoot: () => process.cwd() }))
 vi.mock('../../electron/main/utils/safe-process-env', () => ({ buildSafeChildProcessEnv: () => ({}) }))
 vi.mock('../../electron/main/utils/logger', () => ({ createLogger: () => ({ info: vi.fn(), warn: vi.fn() }), hashForLog: () => 'hash' }))
 

@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import initSqlJs from 'sql.js'
 import type { AgentAssetUsageEvidence } from '../../src/shared/types'
@@ -10,7 +11,7 @@ vi.mock('electron', () => ({
     decryptString: (value: Buffer) => value.toString(),
   },
 }))
-vi.mock('../../electron/main/storage/database', () => ({ getDatabase: async () => db, persist: vi.fn() }))
+vi.mock('../../electron/main/storage/database', () => ({ withDatabaseTransaction: async (work: (db: typeof db) => Promise<unknown>) => runLocalTransaction(db, work), getDatabase: async () => db, persist: vi.fn() }))
 vi.mock('../../electron/main/utils/logger', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
   sanitizeLogData: (value: unknown) => value,

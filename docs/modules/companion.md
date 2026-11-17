@@ -16,21 +16,13 @@ LifeTicker 通过 `runCompanionLifeTickWorkflow` 进入 Agent Host Application�
 
 Memory 反思和 Prompt 动态上下文也沿同一来源协议记录。深夜反思写入反馈记忆时保留来源，主会话只接收带作用域和长度证据的动态切片。
 
-Companion Core 迁移期间，Runtime 组装器和 Debug 世界快照通过 `core/read-models/legacy-companion-read-model.ts` 读取旧日程、事件、关系和情绪表。该适配层只读，新的事实写入仍必须经过 Core Command / Domain Event。
+Core 独立持有人物运行态和生活持久化。`core/state/runtime-state.ts` 只读写 `companion_runtime_state`，新人物从 Role Pack 初始化；旧状态回填与镜像已删除。日程、事件、动态、关系、情绪和用户互动统一由 `core/persistence/life-repository.ts` 保存，原 life store 与 legacy 转发层已移除。
 
-Core Runtime State 现在保存暂停时间、追赶摘要和最近推进时间，pause、resume、catch-up、tick 会同步核心快照，旧角色状态表只承担迁移期镜像。通讯录、卡司可用性、生活信号、穿搭、旅行推进、日程时间线、反思、事件切片、生活时钟和世界体征刷新的旧表读取统一经过 Core 只读迁移适配层。
-用户赠礼的礼物事实、主会话消息、领域事件、体征更新和通知 Outbox 通过同一 Unit of Work 提交，提交前不做窗口或会话外部投递。
-专属信物沿用同一事务边界，信物记录、主会话消息、`keepsake_gifted` 事件和通知 Outbox 一起提交。
-文化心愿完成、朋友圈投影、文化心愿生成的动态和自动回复也沿本地事务提交，模型调用结束后才落 Core 事件与旧读模型投影。
-朋友圈事件完成投影后，事件状态和执行账本一起提交，失败时保留可重试状态。
-日剧本和生活事件统一由 Application Gateway 创建并登记 Core Domain Event，旧事件表只承担当前查询投影。
-日剧本和生活事件 Gateway 的旧表读写分别经过 `legacy-companion-read-model` 与 `legacy-life-projection`，不再直接依赖 `life/store`。
-朋友圈图片关联同样通过 Read Model 查询、Projection Adapter 写入，并在本地 Unit of Work 内提交。
-Core Runtime State 的旧 `role_state` 回填和镜像更新经过同一 Read Model / Projection Adapter 边界。
-生活引擎的剧本补齐和朋友圈发布查询也经过 Legacy Read Model，`life/store` 只保留测试播种和用户互动事实入口。
-日内重排服务读取待处理事件也经过 Legacy Read Model。
-生活 tick、生活信号、自动穿搭和旅行推进统一读取 Core Runtime State，pause、resume、catch-up 和 tick 只写 Core Runtime State，旧角色状态表不再作为运行态来源。
-朋友圈、关系、情绪、事件关联和执行记录的旧表写入统一经过 Core Projection Adapter。
+赠礼、信物、文化完成、日记、深夜反思、自动穿搭、旅行、脆弱心境、主动搭话、宿主关怀与共同决策的本地提交沿 Unit of Work 组织。`commitLifeAction` 在事务后投递会话与窗口 Outbox。文化资产、心愿、感悟和可选动态在同一提交中完成，任何失败一起回滚。
+
+自动生活提醒共用角色级持久预算，读取现有每日提醒上限、勿扰与最短间隔。预算在生成前预留，跨 tick 与重启保留，空结果释放预留。固定生活 Workflow 使用调度传入时间，人物归属从已登记世界解析。
+
+Debug 此刻与位置直接查询 Core 运行态，保留数据库原字段和解析投影，不初始化状态或读取废弃镜像。
 
 主会话角色组装由 Conversation Application Service 作为入口，Companion 负责提供人物资料和生活 Read Model，Runtime 不再直接拥有角色组装业务流程。
 
@@ -43,7 +35,7 @@ Core Runtime State 的旧 `role_state` 回填和镜像更新经过同一 Read Mo
 
 ## 核心引擎重构已完成收口
 
-人物世界已经收口到模块化单体内的领域核心。当前核心层统一保存人物运行态、领域事件、执行账本、幂等投影回执和通知 Outbox，文化体验、赠礼、信物、主动搭话、脆弱心境、日记、深夜反思、换装、旅行、重排、评论回复、宿主关怀和朋友圈轻提示完成链路已接入核心记录。命令网关统一 active role 校验、执行账本和 retryable 失败状态，窗口通知统一经过 Outbox 投递适配器。人物入口、Debug 世界态和自动配图读取核心运行态。旧生活表只承担登记过的 Read Model 和 Projection 镜像职责。
+人物世界已经收口到模块化单体内的领域核心。当前核心层统一保存人物运行态、领域事件、执行账本、幂等投影回执和通知 Outbox，文化体验、赠礼、信物、主动搭话、脆弱心境、日记、深夜反思、换装、旅行、重排、评论回复、宿主关怀和朋友圈轻提示完成链路已接入核心记录。命令网关统一 active role 校验、执行账本和 retryable 失败状态，窗口通知统一经过 Outbox 投递适配器。人物入口、Debug 世界态和自动配图读取核心运行态。生活领域表只承担登记过的 Read Model 和 Projection 镜像职责。
 主要人物世界 IPC 写入入口也通过命令网关进入核心执行账本，避免 Renderer handler 直接调用生活服务形成旁路。
 窗口暂不可用时通知保持在 Outbox 中，恢复后由适配器继续投递；每条消息受 `max_attempts` 限制，达到上限后进入终态失败，避免后台无限重试。
 Chat Tool 与 IPC 共用人物世界命令网关，生活写入的角色校验、执行状态和失败语义保持一致。
@@ -626,7 +618,7 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
 | 伙伴生产资产目录 | 已落地 | Debug「提示词管理器 → 伙伴世界」 | `companion/asset-registry.ts`；manifest / profile / 默认世界 / 场景 / 衣柜书架 starter 使用稳定 key、版本、指纹、来源和依赖 |
 | 生活资产来源边界 | 已落地 | 衣柜 / 文化角 / 家居 / 足迹 | 衣柜、书架、文化默认样张不再播种；住所 / 地点 / 物件沿用真实 world.default，用户 CRUD 与已发布事件授予保留。已有数据库不批量清空 |
 | 日剧本 LLM（当日）+ 哈希回退 | 已落地 | （隐式）Life ticker | `resolveDayScript` · aux-config |
-| 世界状态薄片（居所/时区/情境/心情/精力/当前位置与活动） | 已落地 | （隐式）语义编译 · 情境上下文 | schema v1 `companion_runtime_state` · `## World slice`；旧 `world_json` 仅作迁移镜像；无 Role Pack 世界默认时 home / currentLocation 为「未设定」 |
+| 世界状态薄片（居所/时区/情境/心情/精力/当前位置与活动） | 已落地 | （隐式）语义编译 · 情境上下文 | schema v1 `companion_runtime_state` · `## World slice`；旧 `world_json` 镜像已移除；无 Role Pack 世界默认时 home / currentLocation 为「未设定」 |
 | 主角候选默认世界结构 | 已落地 | Debug「世界态」/ 世界初始化 | 当前路飞 `world.default.json`；海上航路为共创骨架，具体地点与物件待确认 |
 | 主角候选行为人格验收 | 已落地 | Playground「人格验收」/ `npm run eval:persona` | 七个中性故事格 + B02–B07 DeepSeek `pass^3`；自动门禁已过，人工语气审美待本地验收 |
 | 伙伴 Prompt 自有框架文案统一中文 | 已落地 | 人物档案 / 世界 / 关系阶段 / 里程碑 / 召唤任务工动态注入；Role Pack 原文继续作为单一事实源 |
@@ -846,7 +838,7 @@ published event（事件事实）
 
 固定 scheduler Manifest 显式拥有 `companion.lifecycle`，Workflow 带入 active role。主进程启动后首轮生活 tick 按默认周期调度，避免人物世界恢复阶段发生后台写入竞争。
 
-Chat 发布朋友圈、文化回响、日内重排和失败清理已经统一经过 Life Event Application Gateway 或 `legacy-life-projection`，IPC 的旧关系和生命周期读取经过 `legacy-companion-read-model`。
+Chat 发布朋友圈、文化回响、日内重排和失败清理已经统一经过 Life Event Application Gateway 或 `core/persistence/life-repository`，IPC 的旧关系和生命周期读取经过 `core/persistence/life-repository`。
 
 LifeTicker 每轮动作和 Outbox 投递使用稳定幂等键，重复 tick 不重复执行同一轮命令。
 

@@ -23,7 +23,7 @@ import {
   MODEL_CONTEXT_WINDOWS,
   OUTPUT_RESERVE_TOKENS,
   getEffectiveContextWindow,
-} from '../agent/model-context-window'
+} from './model-context-window'
 import { modelContextFingerprint } from '../prompts/fingerprint'
 import { SEQUENTIAL_FAILOVER_POLICY } from './failover'
 import {
@@ -290,7 +290,7 @@ function policyAssets(): ModelContextAsset[] {
       key: PROVIDER_ASSET_KEYS.contextWindow,
       name: 'Provider 策略 · Context Window',
       purpose: '说明模型家族窗口、输出预留和未知模型保守回退',
-      source: 'electron/main/agent/model-context-window.ts',
+      source: 'electron/main/llm/model-context-window.ts',
       dependencies: [],
       content: {
         familyRules: MODEL_CONTEXT_WINDOWS.map((entry) => ({ ...entry })),

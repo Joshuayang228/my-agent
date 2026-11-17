@@ -2,7 +2,7 @@ import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { getCompanionRuntimeState } from '../core/state/runtime-state'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
-import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
+import { isCompanionCommitActive, withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 import { attachContentProvenance, contentProvenanceFromEvent } from '../../../../src/shared/content-integrity'
 
 /**
@@ -20,6 +20,8 @@ export async function recordCompanionEventAndNotify(input: {
   idempotencyKey: string
   occurredAt: number
   payload: Record<string, unknown>
+  /** 同库业务事实写入，与事件和 Outbox 一起回滚。禁止模型、网络和窗口副作用。 */
+  commit?: () => Promise<void>
   notification: {
     kind: string
     dedupeKey: string
@@ -32,6 +34,7 @@ export async function recordCompanionEventAndNotify(input: {
   dispatch?: boolean
 }): Promise<{ eventId: string }> {
   const event = await withCompanionUnitOfWork(async () => {
+    await input.commit?.()
     const runtime = await getCompanionRuntimeState(input.roleId)
     const domainEvent = await appendCompanionDomainEvent({
       roleId: input.roleId,
@@ -63,6 +66,6 @@ export async function recordCompanionEventAndNotify(input: {
     }
     return domainEvent
   })
-  if (input.dispatch !== false) await dispatchCompanionWindowOutbox()
+  if (input.dispatch !== false && !isCompanionCommitActive()) await dispatchCompanionWindowOutbox()
   return { eventId: event.id }
 }

@@ -4,14 +4,14 @@ import { createLogger } from '../utils/logger'
 import { chatComplete } from '../llm/index'
 import { recordAssetUsage } from '../utils/asset-usage'
 import { PROVIDER_ASSET_KEYS } from '../llm/provider-asset-keys'
-import { getEffectiveContextWindow } from './model-context-window'
+import { getEffectiveContextWindow } from '../llm/model-context-window'
 export {
   DEFAULT_MAX_TOKENS,
   MIN_EFFECTIVE_CONTEXT_TOKENS,
   MODEL_CONTEXT_WINDOWS,
   OUTPUT_RESERVE_TOKENS,
   getEffectiveContextWindow,
-} from './model-context-window'
+} from '../llm/model-context-window'
 import {
   extractRelationshipMinSet,
   mergeMinSetIntoSummary,

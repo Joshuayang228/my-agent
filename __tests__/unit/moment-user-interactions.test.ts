@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 /**
  * 朋友圈用户赞 / 评论：独立用户态，不改动态正文或卡司投影。
  */
@@ -34,6 +35,7 @@ let memDb: InstanceType<typeof SQL.Database>
 let activeRoleId = 'lin'
 
 vi.mock('../../electron/main/storage/database', () => ({
+  withDatabaseTransaction: async (work: (db: typeof memDb) => Promise<unknown>) => runLocalTransaction(memDb, work),
   getDatabase: vi.fn(async () => memDb),
   persist: vi.fn(),
 }))
@@ -64,7 +66,7 @@ const {
   listMomentUserInteractionsForRole,
   toggleMomentLikeForRole,
 } = await import('../../electron/main/companion/life/moments')
-const store = await import('../../electron/main/companion/life/store')
+const store = await import('../../electron/main/companion/core/persistence/life-repository')
 
 async function seedMoment(roleId: string, eventId: string, text = '今天把书桌收拾出来了。') {
   const moment = await store.insertMoment({

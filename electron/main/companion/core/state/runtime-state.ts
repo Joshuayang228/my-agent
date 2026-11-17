@@ -2,9 +2,8 @@ import { getDatabase, persist } from '../../../storage/database'
 import { defaultWorldState } from '../../life/world-codec'
 import { ensureCompanionCoreSchema } from '../schema'
 import type { CompanionRuntimeState } from '../types'
-import type { CompanionWorldState } from '../../types'
-import { getCompanionLegacyRoleState } from '../read-models/legacy-companion-read-model'
-import { projectLegacyWorldState } from '../projections/legacy-life-projection'
+import { resolveRoleUniverseId } from '../../identity/loader'
+import { withCompanionUnitOfWork } from '../transaction/unit-of-work'
 
 export { resetCompanionCoreSchemaForTesting } from '../schema'
 
@@ -12,7 +11,7 @@ function clamp(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)))
 }
 
-function rowToState(row: Record<string, unknown>): CompanionRuntimeState {
+export function decodeCompanionRuntimeState(row: Record<string, unknown>): CompanionRuntimeState {
   return {
     roleId: String(row.role_id),
     universeId: String(row.universe_id),
@@ -38,49 +37,53 @@ function rowToState(row: Record<string, unknown>): CompanionRuntimeState {
 }
 
 /**
- * 读取统一人物运行态，并为旧生活状态建立一次快照。
+ * 读取 Core 唯一人物运行态。
  *
- * 背景：现有角色状态仍保存在 life store 的 world_json 中，核心层需要逐步接管读取而不能丢失存量状态。
- * 设计意图：首次读取时从既有 role_state 回填核心快照，后续核心写入使用独立版本号和 lastEventId。
- * 关键约束：回填只发生一次，数值统一限制在 0–100，当前状态不能用默认值覆盖已有 world_json。
+ * 背景：运行态双写会让页面与生活调度读取不同事实。
+ * 设计意图：缺失快照直接从 Role Pack 初始化，所有后续更新只写 Core。
+ * 关键约束：数值统一限制在 0–100，已有 Core 快照不被默认值覆盖。
  */
-export async function getCompanionRuntimeState(roleId: string, universeId = 'default'): Promise<CompanionRuntimeState> {
+export async function getCompanionRuntimeState(roleId: string, universeId = resolveRoleUniverseId(roleId)): Promise<CompanionRuntimeState> {
   await ensureCompanionCoreSchema()
   const db = await getDatabase()
   const existing = db.exec('SELECT * FROM companion_runtime_state WHERE role_id = ?', [roleId])[0]?.values[0]
   if (existing) {
     const columns = ['role_id', 'universe_id', 'mood', 'energy', 'social_need', 'hunger', 'sleepiness', 'home', 'timezone', 'current_activity', 'current_location', 'location_detail', 'status_tags_json', 'situation', 'paused_at', 'catchup_summary', 'last_tick_at', 'version', 'updated_at', 'last_event_id']
-    return rowToState(Object.fromEntries(columns.map((key, index) => [key, existing[index]])))
+    return decodeCompanionRuntimeState(Object.fromEntries(columns.map((key, index) => [key, existing[index]])))
   }
 
-  const roleState = await getCompanionLegacyRoleState(roleId)
-  const world = roleState?.world ?? defaultWorldState(roleId)
-  const now = Date.now()
-  const legacyWorld = world as CompanionWorldState & Partial<Pick<CompanionRuntimeState, 'hunger' | 'sleepiness'>>
-  const state: CompanionRuntimeState = {
-    roleId,
-    universeId,
-    mood: clamp(world.mood),
-    energy: clamp(world.energy),
-    socialNeed: clamp(world.socialNeed),
-    hunger: clamp(Number(legacyWorld.hunger) || 0),
-    sleepiness: clamp(Number(legacyWorld.sleepiness) || 0),
-    home: world.home,
-    timezone: world.timezone,
-    currentActivity: world.currentActivity || '',
-    currentLocation: world.currentLocation || '',
-    locationDetail: world.locationDetail || '',
-    statusTags: world.statusTags,
-    situation: world.situation || '',
-    pausedAt: roleState?.pausedAt ?? null,
-    catchupSummary: roleState?.catchupSummary ?? '',
-    lastTickAt: roleState?.lastTickAt ?? 0,
-    version: 0,
-    updatedAt: world.updatedAt || now,
-    lastEventId: null,
-  }
-  await replaceCompanionRuntimeState(state)
-  return state
+  return withCompanionUnitOfWork(async () => {
+    // 首次并发读取可能同时发现缺失，领取事务后复核，避免默认值覆盖刚提交的运行态。
+    if (db.exec('SELECT 1 FROM companion_runtime_state WHERE role_id = ?', [roleId])[0]?.values.length) {
+      return getCompanionRuntimeState(roleId, universeId)
+    }
+    const world = defaultWorldState(roleId, universeId)
+    const now = Date.now()
+    const state: CompanionRuntimeState = {
+      roleId,
+      universeId,
+      mood: clamp(world.mood),
+      energy: clamp(world.energy),
+      socialNeed: clamp(world.socialNeed),
+      hunger: 0,
+      sleepiness: 0,
+      home: world.home,
+      timezone: world.timezone,
+      currentActivity: world.currentActivity || '',
+      currentLocation: world.currentLocation || '',
+      locationDetail: world.locationDetail || '',
+      statusTags: world.statusTags,
+      situation: world.situation || '',
+      pausedAt: null,
+      catchupSummary: '',
+      lastTickAt: 0,
+      version: 0,
+      updatedAt: world.updatedAt || now,
+      lastEventId: null,
+    }
+    await replaceCompanionRuntimeState(state)
+    return state
+  })
 }
 
 export async function replaceCompanionRuntimeState(state: CompanionRuntimeState): Promise<CompanionRuntimeState> {
@@ -123,22 +126,6 @@ export async function replaceCompanionRuntimeState(state: CompanionRuntimeState)
       last_event_id = excluded.last_event_id
   `, [next.roleId, next.universeId, next.mood, next.energy, next.socialNeed, next.hunger, next.sleepiness, next.home, next.timezone, next.currentActivity, next.currentLocation, next.locationDetail, JSON.stringify(next.statusTags), next.situation, next.pausedAt, next.catchupSummary, next.lastTickAt, next.version, next.updatedAt, next.lastEventId])
   persist()
-  const legacy = await getCompanionLegacyRoleState(next.roleId)
-  const legacyWorld = legacy?.world ?? defaultWorldState(next.roleId)
-  await projectLegacyWorldState(next.roleId, {
-    ...legacyWorld,
-    home: next.home,
-    timezone: next.timezone,
-    mood: next.mood,
-    energy: next.energy,
-    socialNeed: next.socialNeed,
-    currentActivity: next.currentActivity,
-    currentLocation: next.currentLocation,
-    locationDetail: next.locationDetail,
-    situation: next.situation,
-    statusTags: next.statusTags,
-    updatedAt: next.updatedAt,
-  })
   return next
 }
 
@@ -151,22 +138,24 @@ export async function applyCompanionRuntimeDelta(input: {
   expectedVersion?: number
   updatedAt?: number
 }): Promise<CompanionRuntimeState> {
-  const current = await getCompanionRuntimeState(input.roleId, input.universeId)
-  if (input.expectedVersion !== undefined && current.version !== input.expectedVersion) {
-    throw new Error(`人物运行态版本冲突，当前版本为 ${current.version}。`)
-  }
-  const delta = input.delta ?? {}
-  return replaceCompanionRuntimeState({
-    ...current,
-    ...input.patch,
-    mood: current.mood + (delta.mood ?? 0),
-    energy: current.energy + (delta.energy ?? 0),
-    socialNeed: current.socialNeed + (delta.socialNeed ?? 0),
-    hunger: current.hunger + (delta.hunger ?? 0),
-    sleepiness: current.sleepiness + (delta.sleepiness ?? 0),
-    version: current.version + 1,
-    updatedAt: input.updatedAt ?? Date.now(),
-    lastEventId: input.eventId ?? current.lastEventId,
+  return withCompanionUnitOfWork(async () => {
+    const current = await getCompanionRuntimeState(input.roleId, input.universeId)
+    if (input.expectedVersion !== undefined && current.version !== input.expectedVersion) {
+      throw new Error(`人物运行态版本冲突，当前版本为 ${current.version}。`)
+    }
+    const delta = input.delta ?? {}
+    return replaceCompanionRuntimeState({
+      ...current,
+      ...input.patch,
+      mood: current.mood + (delta.mood ?? 0),
+      energy: current.energy + (delta.energy ?? 0),
+      socialNeed: current.socialNeed + (delta.socialNeed ?? 0),
+      hunger: current.hunger + (delta.hunger ?? 0),
+      sleepiness: current.sleepiness + (delta.sleepiness ?? 0),
+      version: current.version + 1,
+      updatedAt: input.updatedAt ?? Date.now(),
+      lastEventId: input.eventId ?? current.lastEventId,
+    })
   })
 }
 
@@ -177,12 +166,14 @@ export async function updateCompanionRuntimeLifecycle(input: {
   lastTickAt?: number
   updatedAt?: number
 }): Promise<CompanionRuntimeState> {
-  const current = await getCompanionRuntimeState(input.roleId)
-  return replaceCompanionRuntimeState({
-    ...current,
-    pausedAt: input.pausedAt === undefined ? current.pausedAt : input.pausedAt,
-    catchupSummary: input.catchupSummary === undefined ? current.catchupSummary : input.catchupSummary,
-    lastTickAt: input.lastTickAt === undefined ? current.lastTickAt : input.lastTickAt,
-    updatedAt: input.updatedAt ?? Date.now(),
+  return withCompanionUnitOfWork(async () => {
+    const current = await getCompanionRuntimeState(input.roleId)
+    return replaceCompanionRuntimeState({
+      ...current,
+      pausedAt: input.pausedAt === undefined ? current.pausedAt : input.pausedAt,
+      catchupSummary: input.catchupSummary === undefined ? current.catchupSummary : input.catchupSummary,
+      lastTickAt: input.lastTickAt === undefined ? current.lastTickAt : input.lastTickAt,
+      updatedAt: input.updatedAt ?? Date.now(),
+    })
   })
 }

@@ -1,8 +1,8 @@
 # 五边界架构审计
 
-## 审计结论（2026-11-15）
+## 审计结论（2026-11-17）
 
-Agent Loop、Runtime、Application、Agent Host、Capability、Companion Domain、Memory、Storage 和外部适配器的边界已完成本轮收口。Headless、Scheduler、IPC、LLM Tool 和 Companion 写入路径均有统一的权限、trace、幂等和恢复证据，旧生活表访问集中在 Read Model / Projection Adapter。
+Agent Loop、Runtime、Application、Agent Host、Capability、Companion Domain、Memory、Storage 和外部适配器的边界已完成本轮收口。Headless、Scheduler、IPC、LLM Tool 和 Companion 写入路径均有统一的权限、trace、幂等和恢复证据，生活领域持久化集中在 Core persistence。
 
 ### Context
 
@@ -32,16 +32,16 @@ Renderer / Tool / Ticker
 Application / Agent Host / Command Gateway
         ↓
 BEGIN
-  Domain Fact + Domain Event + Execution Ledger + Outbox
+  Domain Fact + Runtime State + Read Projection + Domain Event + Outbox
 COMMIT
         ↓
-Projection / Dispatcher / Session Store
+Dispatcher / Session Store
 ```
 
 模型、网络、窗口通知和文件副作用不进入本地事务。Outbox 采用至少一次投递，消费者按稳定消息 ID 幂等。SQLite 基准命令 `npm run bench:database` 记录写入、导出、重载和 Outbox 批处理耗时。
 
 执行账本的 `running`、`completed` 和 `retryable` 是跨外部等待的生命周期元数据。领域事件、Runtime State、Outbox 及执行与事件的关联在本地 Unit of Work 内提交，外部模型、网络、窗口和文件等待不进入事务。该边界由 DEC-2026-11-13-01 固定，后续用例不得持有事务跨越外部等待。
 
-旧生活表的查询统一经过 `legacy-companion-read-model`，投影写入统一经过 `legacy-life-projection`；Application Gateway 不再直接依赖 `life/store`，避免事实入口和迁移投影入口重新耦合。
-生活引擎的剧本补齐和朋友圈投影查询也使用同一 Read Model，用户互动表保持独立事实边界。
-日内重排读取待处理事件时也使用同一 Read Model，旧 store 只保留明确的测试和交互边界。
+生活领域表的查询与同步投影写入统一经过 `core/persistence/life-repository`。Application Gateway 在本地 Unit of Work 中协调领域事实、事件和 Outbox，Read Model 按产品需要组合查询。旧 store 和仅转发的 legacy 适配已删除。
+
+2026-11-17 复核补齐实际迁移，运行态镜像、旧生活 store 与转发层已移除。分层反向依赖由 AST 导入扫描门禁约束。真实磁盘重开与并发回滚测试证明本地事务提交边界，Headless 失败终态不再报告成功。自动生活行为共享持久提醒预算。

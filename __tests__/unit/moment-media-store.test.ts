@@ -1,9 +1,10 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import initSqlJs from 'sql.js'
 
 vi.mock('electron', () => ({ app: { getPath: () => '/tmp/my-agent-moment-media' } }))
 let db: InstanceType<typeof import('sql.js').Database>
-vi.mock('../../electron/main/storage/database', () => ({ getDatabase: async () => db, persist: vi.fn() }))
+vi.mock('../../electron/main/storage/database', () => ({ withDatabaseTransaction: async (work: (db: typeof db) => Promise<unknown>) => runLocalTransaction(db, work), getDatabase: async () => db, persist: vi.fn() }))
 
 const SQL = await initSqlJs()
 const { recordMomentMediaAttempt, storeMomentMedia, listMomentMediaAttempts, getLatestMomentMediaAttempt } = await import('../../electron/main/companion/life/moment-media-store')

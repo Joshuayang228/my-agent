@@ -9,7 +9,7 @@
 import { getActiveRole } from '../companion/orchestrator'
 import { loadRolePack } from '../companion/identity/loader'
 import { getMutable, getMutableMeta } from '../companion/growth/mutable-store'
-import { getCompanionLegacyRoleState as getRoleState, getCompanionLegacyDayScript as getDayScript, listCompanionLegacyEvents as listEvents, listCompanionLegacyRelationshipStates as listRelationshipStates, listCompanionLegacyRelationshipEvents as listRelationshipEvents, listCompanionLegacyEmotionEvents as listEmotionEvents, listCompanionLegacyEventExecutions as listEventExecutions } from '../companion/core/read-models/legacy-companion-read-model'
+import { getDayScript, listEvents, listRelationshipStates, listRelationshipEvents, listEmotionEvents, listEventExecutions } from '../companion/core/persistence/life-repository'
 import { getCompanionRuntimeReadModel } from '../companion/core/read-models/runtime-read-model'
 import { resolveMomentVisibilityDays } from '../companion/life/moment-visibility'
 import { getSetting } from '../storage/settings-store'
@@ -126,10 +126,7 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
   const mutableBody = meta?.body ?? (await getMutable(role.id, role.universeId))
   const mutableTrunc = mutableBody.length > MUTABLE_MAX
 
-  const [state, runtimeState] = await Promise.all([
-    getRoleState(role.id),
-    getCompanionRuntimeReadModel(role.id),
-  ])
+  const runtimeState = await getCompanionRuntimeReadModel(role.id)
   const today = toLocalDateString(Date.now())
   const script = await getDayScript(role.id, today)
   const [plannedEvents, publishedEvents] = await Promise.all([
@@ -229,7 +226,7 @@ export async function buildDebugWorldSnapshot(): Promise<DebugWorldSnapshot> {
           updatedAt: runtimeState.updatedAt,
         }
       : null,
-    life: state
+    life: runtimeState
       ? {
           pausedAt: runtimeState.pausedAt,
           lastTickAt: runtimeState.lastTickAt,

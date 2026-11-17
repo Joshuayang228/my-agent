@@ -45,6 +45,8 @@
 
 ## 已完成施工快照（冻结）
 
+目标架构迁移收口：[architecture-migration-final-v1.md](./architecture-migration-final-v1.md)，完成 Core 存储所有权、事务并发、恢复与依赖方向的源码迁移和故障验收。
+
 顶层架构收口：[top-level-architecture-closeout-v1.md](./top-level-architecture-closeout-v1.md)，已完成 Runtime、Application、Agent Host、Capability、Companion Core、Read Model、Projection、Scheduler、Headless 和恢复边界收口。
 
 人物世界引擎统一与旅程闭环：[companion-engine-unification-v1.md](./companion-engine-unification-v1.md)，已完成事件、状态、投影、主动行为、角色隔离和主要用户旅程闭环；后续观测增强另立合同。

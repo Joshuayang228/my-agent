@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import initSqlJs from 'sql.js'
 
@@ -9,6 +10,7 @@ vi.mock('electron', () => ({
   BrowserWindow: { getAllWindows: () => windows },
 }))
 vi.mock('../../electron/main/storage/database', () => ({
+  withDatabaseTransaction: async (work: (db: typeof memDb) => Promise<unknown>) => runLocalTransaction(memDb, work),
   getDatabase: vi.fn(async () => memDb),
   persist: vi.fn(),
 }))

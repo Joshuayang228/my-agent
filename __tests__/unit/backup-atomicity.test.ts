@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 import { EventEmitter } from 'node:events'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -12,7 +13,7 @@ vi.mock('electron', () => ({
   safeStorage: { isEncryptionAvailable: () => true, encryptString: (s: string) => Buffer.from(s), decryptString: (b: Buffer) => b.toString() },
 }))
 vi.mock('../../electron/main/storage/database', async (importOriginal) => ({
-  ...await importOriginal<typeof import('../../electron/main/storage/database')>(), getDatabase: async () => db, persist: state.persist,
+  ...await importOriginal<typeof import('../../electron/main/storage/database')>(), withDatabaseTransaction: async (work: (db: typeof db) => Promise<unknown>) => runLocalTransaction(db, work), getDatabase: async () => db, persist: state.persist,
 }))
 vi.mock('../../electron/main/memory/vector-store', () => ({ addToVectorStore: state.vector, removeFromVectorStore: vi.fn() }))
 vi.mock('../../electron/main/llm/aux-config', () => ({ loadMainLLMConfig: async () => ({ apiKey: 'test-only' }) }))

@@ -14,7 +14,7 @@ vi.mock('electron', () => ({
   safeStorage: { isEncryptionAvailable: () => false },
 }))
 vi.mock('../../electron/main/sandbox/effective-sandbox', () => ({ loadEffectiveSandbox: async () => 'workspace-write' }))
-vi.mock('../../electron/main/agent/project-memory', () => ({ getWorkspaceRoot: () => globalRoot }))
+vi.mock('../../electron/main/workspace/workspace-root', () => ({ getWorkspaceRoot: () => globalRoot }))
 vi.mock('../../electron/main/utils/logger', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
   hashForLog: (value: string) => `hash:${value.length}`,

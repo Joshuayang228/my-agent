@@ -3,7 +3,7 @@ import { promises as fs } from 'node:fs'
 import { createLogger, hashForLog } from '../../utils/logger'
 import { checkFileReadSandbox, resolveToolFilePath, resolveToolReadPath } from '../../sandbox/file-path-guard'
 import { loadEffectiveSandbox } from '../../sandbox/effective-sandbox'
-import { getWorkspaceRoot } from '../../agent/project-memory'
+import { getWorkspaceRoot } from '../../workspace/workspace-root'
 import type { ToolContext } from '../../../../src/shared/types'
 
 const log = createLogger('FileRead')

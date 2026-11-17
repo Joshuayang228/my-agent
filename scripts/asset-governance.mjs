@@ -43,7 +43,7 @@ export const ASSET_GOVERNANCE = [
   },
   {
     id: 'tool', labelZh: '工具 schema', kind: 'runtime-auto-discovered', modelContextTypes: ['tool-schema'],
-    sourcePaths: ['electron/main/tools/registry.ts', 'electron/main/tools/builtins', 'electron/main/mcp'], registryPaths: ['electron/main/tools/registry.ts'], discovery: 'ToolRegistry + MCP bridge 运行时聚合',
+    sourcePaths: ['electron/main/tools/registry.ts', 'electron/main/tools/subagent-executor.ts', 'electron/main/tools/builtins', 'electron/main/mcp'], registryPaths: ['electron/main/tools/registry.ts'], discovery: 'ToolRegistry + MCP bridge 运行时聚合',
     keyRule: 'tool-schema:<tool name>', display: 'Debug / 工具', usageEvidence: 'tool-available / tool-execution',
   },
   {

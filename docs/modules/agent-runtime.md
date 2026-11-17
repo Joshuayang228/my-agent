@@ -1,5 +1,14 @@
 # Agent 运行时
 
+## 已落地能力补充（2026-11-17）
+
+- 智能标题模型调用已迁到 `agent/session-title-service.ts`，Session Store 只读写数据。
+- Tool Builtins 通过 `tools/subagent-executor.ts` 接受 Runtime 执行端口，避免反向 import Agent。
+- 工作区根状态由 `workspace/workspace-root.ts` 持有，模型窗口策略由 `llm/model-context-window.ts` 持有。
+- Headless 必须观察 completed 终态，错误、取消、轮次上限与缺失终态均向 Scheduler 报告失败。
+- Debug 世界态与生命周期全部读取 Core，旧状态镜像与生活存储转发层已移除。
+
+
 ## Agent Host 契约骨架（2026-11-13）
 
 主进程启动阶段注册 `AgentHostDomainRegistry`、`AgentHostCapabilityRegistry` 和 `AgentHostApplicationOrchestrator`。当前 Persona、Memory、Companion、Workspace 已注册首批 Capability，Companion 另外提供 Runtime Context Provider。生产入口通过版本化 Manifest loader 为不同角色创建独立 Agent 实例，Scheduler 的生活推进也通过 Host Workflow 进入统一编排链。
@@ -16,7 +25,7 @@ Runtime 每轮请求按当前 Agent Manifest 过滤 `capability_*`，再叠加 S
 
 主对话动态上下文的来源、作用域和长度元数据现在随 Registered System / Model Request 冻结保存，来源证据不混入人物自然语言正文。Memory 写入沿用户、Tool、画像提炼、纠错和反思入口统一记录 provenance。
 
-Runtime 组装和 Debug 世界快照读取旧 Companion 表时统一经过 `legacy-companion-read-model` 只读适配层，Runtime 不再直接依赖 `companion/life/store`。
+Runtime 组装通过 Application Service 获取领域输入，Debug 世界快照直接解码 Core 运行态。生活内容的持久化归 `core/persistence/life-repository`，旧 life store 已删除。
 
 暂停时间、追赶摘要和最近推进时间从 Core Runtime State 读取，角色切换和主会话组装不再直接查询旧 `role_state` 生命周期字段。
 角色校验、卡司在场、召唤场景、委派提示和流式门控由 Conversation Application Service 提供，Runtime 保留会话与 Loop 生命周期编排。
@@ -672,7 +681,7 @@ Runtime、IPC、Context、Memory、Persona 和 Permission 边界审计完成。C
 
 Companion 的 Chat 发布、文化回响和重排写入通过 Application Gateway 与 Projection Adapter 收口，Runtime 与 IPC 不再直接调用旧生活写表函数。
 
-人物世界查询工具的动态读取经过 Legacy Read Model，工具实现不再直接 import 旧生活存储。
+人物世界查询工具的动态读取经过 Core Repository，工具实现不再直接 import 旧生活存储。
 
 LifeTicker 每轮命令使用稳定幂等键接入 Companion Execution Ledger，重复调度会复用已完成结果。
 

@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 /**
  * 专属物品赠送与羁绊好感（Companion Gifting & Bond Progression）门禁测试
  *
@@ -43,6 +44,7 @@ const SQL = await initSqlJs()
 let memDb: InstanceType<typeof SQL.Database>
 
 vi.mock('../../electron/main/storage/database', () => ({
+  withDatabaseTransaction: async (work: (db: typeof memDb) => Promise<unknown>) => runLocalTransaction(memDb, work),
   getDatabase: vi.fn(async () => memDb),
   persist: vi.fn(),
 }))
@@ -60,44 +62,7 @@ vi.mock('../../electron/main/llm/aux-config', () => ({
   loadAuxLLMConfig: vi.fn(async () => null),
 }))
 
-let currentWorldMood = 65
-let currentWorldEnergy = 70
-const setWorldStateMock = vi.fn(async (_roleId: string, state: any) => {
-  currentWorldMood = state.mood
-  currentWorldEnergy = state.energy
-})
-
-vi.mock('../../electron/main/companion/life/world-state', () => ({
-  ensureWorldState: vi.fn(async (roleId: string) => ({
-    roleId,
-    mood: currentWorldMood,
-    energy: currentWorldEnergy,
-    situation: '万里阳光号甲板航行中',
-  })),
-}))
-
-vi.mock('../../electron/main/companion/life/store', () => ({
-  getRoleState: vi.fn(async (roleId: string) => ({
-    roleId,
-    world: {
-      schemaVersion: 1,
-      home: '千里阳光号',
-      timezone: 'Asia/Shanghai',
-      situation: '万里阳光号甲板航行中',
-      mood: currentWorldMood,
-      energy: currentWorldEnergy,
-      socialNeed: 48,
-      hunger: 0,
-      sleepiness: 0,
-      currentLocation: '甲板',
-      locationDetail: '',
-      currentActivity: '航行',
-      statusTags: [],
-      updatedAt: 0,
-    },
-  })),
-  setWorldState: setWorldStateMock,
-}))
+const { getCompanionRuntimeState, replaceCompanionRuntimeState } = await import('../../electron/main/companion/core/state/runtime-state')
 
 const {
   ensureGiftTable,
@@ -113,9 +78,8 @@ describe('专属物品赠送与羁绊好感（Companion Gifting & Bond Progressi
     sendMock.mockClear()
     saveMessageMock.mockClear()
     ensureMainSessionForRoleMock.mockClear()
-    setWorldStateMock.mockClear()
-    currentWorldMood = 65
-    currentWorldEnergy = 70
+    const current = await getCompanionRuntimeState('luffy')
+    await replaceCompanionRuntimeState({ ...current, mood: 65, energy: 70 })
     await ensureGiftTable()
   })
 
@@ -168,18 +132,18 @@ describe('专属物品赠送与羁绊好感（Companion Gifting & Bond Progressi
   })
 
   it('赠礼联动生命体征提升与多份礼物历史按时间倒序', async () => {
-    expect(currentWorldMood).toBe(65)
-    expect(currentWorldEnergy).toBe(70)
+    expect((await getCompanionRuntimeState('luffy')).mood).toBe(65)
+    expect((await getCompanionRuntimeState('luffy')).energy).toBe(70)
 
     // 送大肉: mood + 25, energy + 15
     await sendGiftToCompanion('luffy', 'bone-meat', undefined, { now: 1000 })
-    expect(currentWorldMood).toBe(90) // 65 + 25
-    expect(currentWorldEnergy).toBe(85) // 70 + 15
+    expect((await getCompanionRuntimeState('luffy')).mood).toBe(90) // 65 + 25
+    expect((await getCompanionRuntimeState('luffy')).energy).toBe(85) // 70 + 15
 
     // 送海图: mood + 20, energy + 10
     await sendGiftToCompanion('luffy', 'treasure-map', undefined, { now: 2000 })
-    expect(currentWorldMood).toBe(100) // max 100
-    expect(currentWorldEnergy).toBe(95)
+    expect((await getCompanionRuntimeState('luffy')).mood).toBe(100) // max 100
+    expect((await getCompanionRuntimeState('luffy')).energy).toBe(95)
 
     const list = await listReceivedGifts('luffy')
     expect(list.length).toBe(2)

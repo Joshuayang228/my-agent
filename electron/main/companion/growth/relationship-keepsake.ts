@@ -1,3 +1,4 @@
+import { resolveRoleUniverseId } from '../identity/loader'
 /**
  * 羁绊深度跃迁与专属信物馈赠（Relationship Progression & Keepsake Gifts）
  *
@@ -316,7 +317,7 @@ export async function triggerGiftKeepsake(
     })
       const domainEvent = await appendCompanionDomainEvent({
         roleId,
-        universeId: 'default',
+        universeId: resolveRoleUniverseId(roleId),
         type: 'keepsake_gifted',
         sourceType: 'relationship_keepsake',
         sourceId: keepsakeRecord.id,

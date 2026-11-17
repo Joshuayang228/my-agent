@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 /**
  * LLM Debug store 单元测试。
  *
@@ -19,7 +20,7 @@ vi.mock('electron', () => ({
 }))
 
 vi.mock('../../electron/main/storage/database', () => ({
-  getDatabase: async () => db,
+  withDatabaseTransaction: async (work: (db: typeof db) => Promise<unknown>) => runLocalTransaction(db, work), getDatabase: async () => db,
   persist: vi.fn(),
 }))
 

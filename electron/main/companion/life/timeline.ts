@@ -9,7 +9,7 @@
 
 import type { CompanionTodayTimeline, CompanionTodayTimelineSlot } from '../../../../src/shared/types'
 import { toLocalDateString, localDateTimeMs } from './dates'
-import * as legacyReadModel from '../core/read-models/legacy-companion-read-model'
+import * as legacyReadModel from '../core/persistence/life-repository'
 import { generateDayScript } from './script-generator'
 import { ensureDayScripts } from './engine'
 import type { DayScriptPayload } from '../types'
@@ -19,19 +19,19 @@ export async function getTodayTimelineForRole(
   now = Date.now(),
 ): Promise<CompanionTodayTimeline> {
   const date = toLocalDateString(now)
-  let dayScriptRow = await legacyReadModel.getCompanionLegacyDayScript(roleId, date)
+  let dayScriptRow = await legacyReadModel.getDayScript(roleId, date)
 
   if (!dayScriptRow) {
     try {
       await ensureDayScripts(roleId, date, date, { preferLlm: true })
-      dayScriptRow = await legacyReadModel.getCompanionLegacyDayScript(roleId, date)
+      dayScriptRow = await legacyReadModel.getDayScript(roleId, date)
     } catch {
       // 降级为确定性哈希剧本
     }
   }
 
   const payload: DayScriptPayload = dayScriptRow?.payload ?? generateDayScript(roleId, date)
-  const allEvents = await legacyReadModel.listCompanionLegacyEvents(roleId).catch(() => [])
+  const allEvents = await legacyReadModel.listEvents(roleId).catch(() => [])
 
   const slots: CompanionTodayTimelineSlot[] = []
 
@@ -57,7 +57,7 @@ export async function getTodayTimelineForRole(
 
     if (event && event.status === 'published') {
       try {
-        const moment = await legacyReadModel.getCompanionLegacyMomentByEventId(roleId, event.id)
+        const moment = await legacyReadModel.getMomentByEventId(roleId, event.id)
         if (moment) momentId = moment.id
       } catch {
         // 忽略读取错误

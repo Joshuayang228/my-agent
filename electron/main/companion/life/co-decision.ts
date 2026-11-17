@@ -1,3 +1,4 @@
+import { commitLifeAction } from '../application/commit-life-action'
 /**
  * 同伴求助与生活共同决策（Co-Decisions & Shared Choices）
  *
@@ -369,80 +370,82 @@ export async function resolveCoDecision(
     }
   }
 
-  const now = Date.now()
-  db.run(
-    `UPDATE companion_co_decisions
-     SET status = 'resolved',
-         selected_option_id = ?,
-         selected_option_label = ?,
-         companion_reaction = ?,
-         resolved_at = ?
-     WHERE id = ?`,
-    [optionId, selectedOption.label, reactionText, now, decisionId],
-  )
+  return await commitLifeAction(async () => {
+    const now = Date.now()
+    db.run(
+      `UPDATE companion_co_decisions
+       SET status = 'resolved',
+           selected_option_id = ?,
+           selected_option_label = ?,
+           companion_reaction = ?,
+           resolved_at = ?
+       WHERE id = ?`,
+      [optionId, selectedOption.label, reactionText, now, decisionId],
+    )
 
-  persist()
+    persist()
 
-  const selectStmt = db.prepare('SELECT * FROM companion_co_decisions WHERE id = ?')
-  let updatedRow: CoDecisionDbRow | null = null
-  try {
-    selectStmt.bind([decisionId])
-    if (selectStmt.step()) {
-      updatedRow = selectStmt.getAsObject() as unknown as CoDecisionDbRow
+    const selectStmt = db.prepare('SELECT * FROM companion_co_decisions WHERE id = ?')
+    let updatedRow: CoDecisionDbRow | null = null
+    try {
+      selectStmt.bind([decisionId])
+      if (selectStmt.step()) {
+        updatedRow = selectStmt.getAsObject() as unknown as CoDecisionDbRow
+      }
+    } finally {
+      selectStmt.free()
     }
-  } finally {
-    selectStmt.free()
-  }
 
-  const record = updatedRow ? rowToRecord(updatedRow) : {
-    id: decisionId,
-    roleId,
-    title: row.title,
-    dilemma: row.dilemma,
-    options,
-    status: 'resolved' as const,
-    selectedOptionId: optionId,
-    selectedOptionLabel: selectedOption.label,
-    companionReaction: reactionText,
-    createdAt: row.created_at,
-    resolvedAt: now,
-    absorbedInScript: false,
-  }
-
-  // 3. 将角色反应写入主会话
-  try {
-    const mainSession = await ensureMainSessionForRole(roleId)
-    await enqueueCompanionSessionMessage({
+    const record = updatedRow ? rowToRecord(updatedRow) : {
+      id: decisionId,
       roleId,
-      sessionId: mainSession.id,
-      message: { id: randomUUID(), role: 'assistant', content: reactionText, timestamp: Date.now() },
+      title: row.title,
+      dilemma: row.dilemma,
+      options,
+      status: 'resolved' as const,
+      selectedOptionId: optionId,
+      selectedOptionLabel: selectedOption.label,
+      companionReaction: reactionText,
+      createdAt: row.created_at,
+      resolvedAt: now,
+      absorbedInScript: false,
+    }
+
+    // 3. 将角色反应写入主会话
+    try {
+      const mainSession = await ensureMainSessionForRole(roleId)
+      await enqueueCompanionSessionMessage({
+        roleId,
+        sessionId: mainSession.id,
+        message: { id: randomUUID(), role: 'assistant', content: reactionText, timestamp: Date.now() },
+      })
+      log.info('Co-decision reaction saved to main chat session', { roleId, mainSessionId: mainSession.id })
+    } catch (err) {
+      log.warn('Failed to save co-decision reaction to chat session', { error: String(err) })
+    }
+
+    // 4. 全局广播
+    const eventPayload: CompanionCoDecisionEvent = {
+      roleId,
+      decision: record,
+    }
+
+    await recordCompanionEventAndNotify({
+      roleId,
+      type: 'co_decision_resolved',
+      sourceType: 'co_decision',
+      sourceId: record.id,
+      idempotencyKey: `co-decision-resolved:${record.id}`,
+      occurredAt: now,
+      payload: eventPayload as unknown as Record<string, unknown>,
+      notification: [
+        { kind: 'timeline-updated', dedupeKey: `co-decision-timeline:${record.id}`, payload: { roleId, reason: 'co-decision-resolved' } },
+        { kind: 'co-decision-resolved', dedupeKey: `co-decision-resolved:${record.id}`, payload: eventPayload as unknown as Record<string, unknown> },
+      ],
     })
-    log.info('Co-decision reaction saved to main chat session', { roleId, mainSessionId: mainSession.id })
-  } catch (err) {
-    log.warn('Failed to save co-decision reaction to chat session', { error: String(err) })
-  }
 
-  // 4. 全局广播
-  const eventPayload: CompanionCoDecisionEvent = {
-    roleId,
-    decision: record,
-  }
-
-  await recordCompanionEventAndNotify({
-    roleId,
-    type: 'co_decision_resolved',
-    sourceType: 'co_decision',
-    sourceId: record.id,
-    idempotencyKey: `co-decision-resolved:${record.id}`,
-    occurredAt: now,
-    payload: eventPayload as unknown as Record<string, unknown>,
-    notification: [
-      { kind: 'timeline-updated', dedupeKey: `co-decision-timeline:${record.id}`, payload: { roleId, reason: 'co-decision-resolved' } },
-      { kind: 'co-decision-resolved', dedupeKey: `co-decision-resolved:${record.id}`, payload: eventPayload as unknown as Record<string, unknown> },
-    ],
+    return record
   })
-
-  return record
 }
 
 /** 创建一条新的共同求助事项（如果已有待决事项则直接返回它） */
@@ -486,54 +489,56 @@ export async function createCoDecision(
   const newId = `decision-${Date.now()}-${randomUUID().slice(0, 8)}`
   const now = Date.now()
 
-  db.run(
-    `INSERT INTO companion_co_decisions (
-      id, role_id, title, dilemma, options_json, status, created_at, absorbed_in_script
-    ) VALUES (?, ?, ?, ?, ?, 'pending', ?, 0)`,
-    [
-      newId,
+  return await commitLifeAction(async () => {
+    db.run(
+      `INSERT INTO companion_co_decisions (
+        id, role_id, title, dilemma, options_json, status, created_at, absorbed_in_script
+      ) VALUES (?, ?, ?, ?, ?, 'pending', ?, 0)`,
+      [
+        newId,
+        roleId,
+        finalTitle,
+        finalDilemma,
+        JSON.stringify(finalOptions),
+        now,
+      ],
+    )
+
+    persist()
+
+    const record: CompanionCoDecisionRecord = {
+      id: newId,
       roleId,
-      finalTitle,
-      finalDilemma,
-      JSON.stringify(finalOptions),
-      now,
-    ],
-  )
+      title: finalTitle,
+      dilemma: finalDilemma,
+      options: finalOptions,
+      status: 'pending',
+      createdAt: now,
+      absorbedInScript: false,
+    }
 
-  persist()
+    const eventPayload: CompanionCoDecisionEvent = {
+      roleId,
+      decision: record,
+    }
 
-  const record: CompanionCoDecisionRecord = {
-    id: newId,
-    roleId,
-    title: finalTitle,
-    dilemma: finalDilemma,
-    options: finalOptions,
-    status: 'pending',
-    createdAt: now,
-    absorbedInScript: false,
-  }
-
-  const eventPayload: CompanionCoDecisionEvent = {
-    roleId,
-    decision: record,
-  }
-
-  await recordCompanionEventAndNotify({
-    roleId,
-    type: 'co_decision_created',
-    sourceType: 'co_decision',
-    sourceId: newId,
-    idempotencyKey: `co-decision-created:${newId}`,
-    occurredAt: now,
-    payload: eventPayload as unknown as Record<string, unknown>,
-    notification: {
-      kind: 'co-decision-created',
-      dedupeKey: `co-decision-created:${newId}`,
+    await recordCompanionEventAndNotify({
+      roleId,
+      type: 'co_decision_created',
+      sourceType: 'co_decision',
+      sourceId: newId,
+      idempotencyKey: `co-decision-created:${newId}`,
+      occurredAt: now,
       payload: eventPayload as unknown as Record<string, unknown>,
-    },
-  })
+      notification: {
+        kind: 'co-decision-created',
+        dedupeKey: `co-decision-created:${newId}`,
+        payload: eventPayload as unknown as Record<string, unknown>,
+      },
+    })
 
-  return record
+    return record
+  })
 }
 
 /** 获取最近已解决、且尚未被日剧本吸收的关键决策（供日剧本规划吸收） */

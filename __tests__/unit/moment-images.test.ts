@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -9,9 +10,9 @@ import sharp from 'sharp'
 const SQL = await initSqlJs()
 let db: InstanceType<typeof SQL.Database>
 let root: string
-vi.mock('../../electron/main/storage/database', () => ({ getDatabase: async () => db, persist: vi.fn() }))
+vi.mock('../../electron/main/storage/database', () => ({ withDatabaseTransaction: async (work: (db: typeof db) => Promise<unknown>) => runLocalTransaction(db, work), getDatabase: async () => db, persist: vi.fn() }))
 vi.mock('../../electron/main/utils/logger', () => ({ createLogger: () => ({ info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() }) }))
-const { insertEvent, insertMoment, replaceEventLinks } = await import('../../electron/main/companion/life/store')
+const { insertEvent, insertMoment, replaceEventLinks } = await import('../../electron/main/companion/core/persistence/life-repository')
 const { momentImageIdsForRole, readMomentImageForRole } = await import('../../electron/main/companion/life/moment-images')
 beforeEach(() => {
   db = new SQL.Database()

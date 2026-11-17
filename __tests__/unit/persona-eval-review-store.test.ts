@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 ﻿/** Persona Eval 人工审阅 store 单元测试；使用内存 sql.js，不启动 Electron。 */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import initSqlJs from 'sql.js'
@@ -5,7 +6,7 @@ import initSqlJs from 'sql.js'
 let db: import('sql.js').Database
 
 vi.mock('../../electron/main/storage/database', () => ({
-  getDatabase: async () => db,
+  withDatabaseTransaction: async (work: (db: typeof db) => Promise<unknown>) => runLocalTransaction(db, work), getDatabase: async () => db,
   persist: vi.fn(),
 }))
 

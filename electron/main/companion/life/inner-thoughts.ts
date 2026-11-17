@@ -368,14 +368,6 @@ export async function triggerInnerThought(
     log.info('Skip inner thought persistence for inactive role', { roleId })
     return null
   }
-  db.run(
-    `INSERT INTO companion_inner_thoughts
-     (id, role_id, title, content, mood, weather, location, activity, is_favorite, created_at, source_type, source_id, trace_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id, roleId, title, content, mood, weather, location, activity, 0, now, 'agent', id, null],
-  )
-  persist()
-
   const record: CompanionInnerThoughtRecord = {
     id,
     roleId,
@@ -391,6 +383,16 @@ export async function triggerInnerThought(
   }
 
   await recordCompanionEventAndNotify({
+    commit: async () => {
+  db.run(
+    `INSERT INTO companion_inner_thoughts
+     (id, role_id, title, content, mood, weather, location, activity, is_favorite, created_at, source_type, source_id, trace_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, roleId, title, content, mood, weather, location, activity, 0, now, 'agent', id, null],
+  )
+  persist()
+
+    },
     roleId,
     type: 'inner_thought_created',
     sourceType: 'inner_thought',

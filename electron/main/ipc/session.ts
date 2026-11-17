@@ -1,3 +1,4 @@
+import { generateSmartTitle } from '../agent/session-title-service'
 import { ipcMain, shell } from 'electron'
 import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 import * as store from '../storage/session-store'
@@ -96,7 +97,7 @@ export function registerSessionIPC(): void {
       if (!hasLLMAuthentication(llmConfig)) return { success: false, error: 'API Key not configured' }
 
       // force：显式重生成，绕过「仅默认标题才调用」门闸
-      await store.generateSmartTitle(
+      await generateSmartTitle(
         sessionId,
         userMsg.content,
         assistantMsg?.content || '',

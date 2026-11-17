@@ -1,14 +1,15 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import initSqlJs from 'sql.js'
 
 const SQL = await initSqlJs()
 let db: InstanceType<typeof SQL.Database>
-vi.mock('../../electron/main/storage/database', () => ({ getDatabase: vi.fn(async () => db), persist: vi.fn() }))
+vi.mock('../../electron/main/storage/database', () => ({ withDatabaseTransaction: async (work: (db: typeof db) => Promise<unknown>) => runLocalTransaction(db, work), getDatabase: vi.fn(async () => db), persist: vi.fn() }))
 vi.mock('../../electron/main/utils/logger', () => ({ createLogger: () => ({ info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() }) }))
 vi.mock('../../electron/main/companion/identity/loader', () => ({ loadRelations: () => ({ edges: [{ from: 'lin', to: 'yao', type: 'friend', note: '相处方式' }] }) }))
 vi.mock('../../electron/main/companion/cast/roster', () => ({ listRelatedCast: () => [{ id: 'yao', name: '阿遥', description: '人物介绍', summary: '摘要' }] }))
 const { getContactsForRole } = await import('../../electron/main/companion/cast/contacts')
-const { insertEvent, replaceEventLinks, insertMoment } = await import('../../electron/main/companion/life/store')
+const { insertEvent, replaceEventLinks, insertMoment } = await import('../../electron/main/companion/core/persistence/life-repository')
 const { createAsset } = await import('../../electron/main/companion/life/assets')
 
 describe('通讯录真实事件投影', () => {

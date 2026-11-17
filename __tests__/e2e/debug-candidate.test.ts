@@ -386,7 +386,7 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1280, 
     await nav.getByRole('button', { name: '此刻', exact: true }).click()
     await panel.getByRole('button', { name: /完整状态/ }).click()
     await panel.getByText('记录标识与原始样张', { exact: true }).click()
-    await expect(panel.getByRole('article', { name: '领域证据详情' })).toContainText('companion_role_state')
+    await expect(panel.getByRole('article', { name: '领域证据详情' })).toContainText('companion_runtime_state')
     await nav.getByRole('button', { name: '今日日程', exact: true }).click()
     await panel.getByRole('button', { name: /14:00 · 阅读旅行笔记/ }).click()
     await expect(panel.getByRole('article', { name: '领域证据详情' })).toContainText('执行结果未记录')

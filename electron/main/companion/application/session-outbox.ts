@@ -1,6 +1,7 @@
 import type { ChatMessage } from '../../../../src/shared/types'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
 import { dispatchCompanionSessionOutbox } from '../adapters/session-outbox-dispatcher'
+import { isCompanionCommitActive } from '../core/transaction/unit-of-work'
 
 export async function enqueueCompanionSessionMessage(input: {
   roleId: string
@@ -16,5 +17,5 @@ export async function enqueueCompanionSessionMessage(input: {
     dedupeKey: `main-session-message:${input.message.id}`,
     payload: { sessionId: input.sessionId, message: input.message },
   })
-  if (input.dispatch !== false) await dispatchCompanionSessionOutbox()
+  if (input.dispatch !== false && !isCompanionCommitActive()) await dispatchCompanionSessionOutbox()
 }

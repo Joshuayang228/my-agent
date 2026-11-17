@@ -15,7 +15,7 @@ import {
 } from '../sandbox/permission-engine'
 import type { SandboxMode } from '../sandbox/policy'
 import { resolveEffectiveSandbox } from '../sandbox/effective-sandbox'
-import { getWorkspaceRoot } from './project-memory'
+import { getWorkspaceRoot } from '../workspace/workspace-root'
 import { getAllSettings } from '../storage/settings-store'
 import { checkFileToolPermission, combineFilePermission, createFilePermissionApproval, hasFilePermissionRules } from '../sandbox/file-tool-permission'
 import { createLogger } from '../utils/logger'

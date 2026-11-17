@@ -1,5 +1,9 @@
 # 权限（permission）
 
+## 已落地能力：工具依赖边界
+
+2026-11-17 文件与 Shell 工具从 `workspace/workspace-root.ts` 取得已验证工作区，工具实现通过 `tools/subagent-executor.ts` 执行端口调用子 Agent。执行器由 Runtime 装配，未装配即拒绝执行；子 Agent 仍沿现有权限引擎执行，结构测试阻止工具反向导入 Runtime。
+
 ## 一句话
 
 决定工具/命令能否执行、是否要用户确认，把破坏性操作挡在执行前。

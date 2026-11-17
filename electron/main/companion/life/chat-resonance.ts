@@ -1,3 +1,4 @@
+import { resolveRoleUniverseId } from '../identity/loader'
 /**
  * 会话到生活的因果反哺引擎（Chat to Life Resonance）
  *
@@ -29,7 +30,7 @@ import {
   compileCultureReviewRequest,
 } from '../../prompts/registered-request'
 import { createAsset, deleteAsset, getAsset, updateAsset, ASSET_KIND_CULTURE } from './assets'
-import { getCompanionLegacyMomentByEventId as getMomentByEventId } from '../core/read-models/legacy-companion-read-model'
+import { getMomentByEventId } from '../core/persistence/life-repository'
 import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { executeCompanionCommand } from '../core/commands/gateway'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
@@ -38,7 +39,7 @@ import { recordCompanionEventAndNotify } from '../application/record-event-notif
 import { recordCompanionProjection } from '../core/projections/receipts'
 import { linkCompanionExecutionEvent } from '../core/execution/ledger'
 import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
-import { projectLegacyMoment, recordLegacyEventExecution } from '../core/projections/legacy-life-projection'
+import { insertMoment, recordEventExecution } from '../core/persistence/life-repository'
 import { createCompanionLifeEvent } from '../application/life-event'
 
 const log = createLogger('ChatResonance')
@@ -465,11 +466,22 @@ export async function completeCultureResonance(
 
   const now = Date.now()
 
+  const updatedResonance: CompanionLifeResonance = {
+    ...currentResonance,
+    status: 'completed',
+    completedAt: now,
+    feedbackText: parsedReview.chatOpener,
+  }
+  const notificationMessage = `${pack.name} 已经体验完了「${currentResonance.targetName}」！`
+
+  // 文化资产、心愿、体验事件与可选动态同库提交，任何本地失败都保留可重试状态。
+  try {
+    await withCompanionUnitOfWork(async () => {
   // 1. 若有关联文化资产，更新资产状态为 completed 并将 reviewText 追加至 readingNotes
   if (currentResonance.assetId) {
     try {
       const existingAsset = await getAsset(currentResonance.assetId)
-      if (!existingAsset) return { ok: false, error: '文化资料不存在，体验结果会在下次生活推进时重试。' }
+      if (!existingAsset) throw new Error('文化资料不存在，体验结果会在下次生活推进时重试。')
       const type = (existingAsset.payload.type as string) || currentResonance.cultureType || 'reading'
       const statusField = type === 'music' ? 'listeningStatus' : type === 'film' ? 'watchStatus' : 'readingStatus'
       const completedStatusVal = 'finished'
@@ -490,24 +502,14 @@ export async function completeCultureResonance(
           note: parsedReview.reviewText,
         },
       }, { expectedRoleId: roleId })
-      if (!updateResult.ok) return { ok: false, error: '文化资料更新失败，体验结果会在下次生活推进时重试。' }
+      if (!updateResult.ok) throw new Error('文化资料更新失败，体验结果会在下次生活推进时重试。')
     } catch (err) {
       log.warn('Failed to update asset on resonance complete', { assetId: currentResonance.assetId, error: String(err) })
-      return { ok: false, error: '文化资料更新失败，体验结果会在下次生活推进时重试。' }
+      throw new Error('文化资料更新失败，体验结果会在下次生活推进时重试。')
     }
   }
 
-  const updatedResonance: CompanionLifeResonance = {
-    ...currentResonance,
-    status: 'completed',
-    completedAt: now,
-    feedbackText: parsedReview.chatOpener,
-  }
-  const notificationMessage = `${pack.name} 已经体验完了「${currentResonance.targetName}」！`
 
-  // 2. 旧文化状态和 Core 体验事实共享本地事务，避免状态已完成但事件账本缺失。
-  try {
-    await withCompanionUnitOfWork(async () => {
       db.run(
         `UPDATE companion_life_resonances
          SET status = 'completed', completed_at = ?, feedback_text = ?
@@ -521,7 +523,7 @@ export async function completeCultureResonance(
         handler: async (context) => {
           const domainEvent = await appendCompanionDomainEvent({
             roleId,
-            universeId: 'default',
+            universeId: resolveRoleUniverseId(roleId),
             type: 'culture_experience_completed',
             sourceType: 'chat_resonance',
             sourceId: currentResonance.id,
@@ -549,23 +551,13 @@ export async function completeCultureResonance(
           })
         },
       })
-    })
-    await dispatchCompanionWindowOutbox()
-  } catch (err) {
-    log.warn('Culture completion transaction failed; status remains retryable', { roleId, resonanceId: currentResonance.id, error: String(err) })
-    return { ok: false, error: '文化体验记录暂时未完成，请稍后重试。' }
-  }
-
-  // 3. 若有朋友圈分享意向，插入 Moment
-  if (parsedReview.shouldPostMoment && parsedReview.momentText) {
-    try {
-      const momentText = parsedReview.momentText
-      const eventId = `resonance-${currentResonance.id}`
-      await withCompanionUnitOfWork(async () => {
+      if (parsedReview.shouldPostMoment && parsedReview.momentText) {
+        const momentText = parsedReview.momentText
+        const eventId = `resonance-${currentResonance.id}`
         const event = await createCompanionLifeEvent({
           id: eventId,
           roleId,
-          universeId: 'default',
+          universeId: resolveRoleUniverseId(roleId),
           scheduledAt: now,
           status: 'published',
           type: 'moment',
@@ -578,18 +570,20 @@ export async function completeCultureResonance(
             kind: currentResonance.kind,
           },
         })
-        const moment = await projectLegacyMoment({
+        const moment = await insertMoment({
           roleId,
           eventId: event.id,
           publishedAt: now,
           text: momentText,
           meta: { resonanceId: currentResonance.id, targetName: currentResonance.targetName, kind: currentResonance.kind },
         }) ?? await getMomentByEventId(roleId, event.id)
-        await recordLegacyEventExecution({ roleId, eventId: event.id, attemptedAt: now, action: 'published', reason: 'culture-resonance-completed', momentId: moment?.id ?? null })
-      })
-    } catch (err) {
-      log.warn('Failed to insert moment from resonance review', { roleId, error: String(err) })
-    }
+        await recordEventExecution({ roleId, eventId: event.id, attemptedAt: now, action: 'published', reason: 'culture-resonance-completed', momentId: moment?.id ?? null })
+      }
+    })
+    await dispatchCompanionWindowOutbox()
+  } catch (err) {
+    log.warn('Culture completion transaction failed; status remains retryable', { roleId, resonanceId: currentResonance.id, error: String(err) })
+    return { ok: false, error: '文化体验记录暂时未完成，请稍后重试。' }
   }
 
   // 4. 共同心愿达成触发专属信物奖励（如梅利号金色小羊铃铛）

@@ -12,7 +12,7 @@ vi.mock('electron', () => ({ shell: { trashItem: electronMocks.trashItem } }))
 vi.mock('../../electron/main/sandbox/effective-sandbox', () => ({
   loadEffectiveSandbox: vi.fn(async () => sandboxState.mode),
 }))
-vi.mock('../../electron/main/agent/project-memory', () => ({
+vi.mock('../../electron/main/workspace/workspace-root', () => ({
   getWorkspaceRoot: vi.fn(() => sandboxState.workspaceRoot),
 }))
 

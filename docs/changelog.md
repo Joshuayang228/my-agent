@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-17：人物世界存储统一迁入 Core，移除运行态镜像。修复本地事务提交未落盘和并发回滚问题、失败命令并发重试、Headless 误报成功，并统一自动生活提醒预算。
+
 2026-11-15：Companion 执行账本增加崩溃恢复。超过租约窗口的 `running` 记录会在下一次命令读取前转为 `retryable` 并记录中断原因，同一幂等命令可以安全恢复重试。
 2026-11-15：Agent Host Context Provider 接入统一权限门禁。`requires` 不满足时不进入会话环境，实际读取再次校验 Agent 身份和权限。
 2026-11-15：Companion Application Gateway 收口旧生活表边界。日剧本和生活事件分别通过 Read Model 与 Projection Adapter 访问旧表，避免 Application 层重新形成旁路。

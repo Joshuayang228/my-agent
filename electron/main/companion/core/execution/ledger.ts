@@ -43,7 +43,15 @@ export async function startCompanionExecution(input: {
     ? db.exec(`SELECT id, role_id, command_id, idempotency_key, event_id, action_type, status, attempt, error_code, error_message, result_json, started_at, completed_at
       FROM companion_execution_runs WHERE role_id = ? AND action_type = ? AND idempotency_key = ? LIMIT 1`, [input.roleId, input.actionType, input.idempotencyKey])[0]?.values[0]
     : undefined
-  if (existing) return rowToExecution(existing)
+  if (existing) {
+    const run = rowToExecution(existing)
+    if (run.status !== 'retryable') return run
+    // 失败重试必须先同步切回 running 并更换 commandId，后续同键请求才能看到当前所有者。
+    const restarted = { ...run, commandId: input.commandId ?? null, status: 'running' as const, attempt: run.attempt + 1, startedAt: Date.now(), completedAt: null, errorCode: null, errorMessage: null, result: undefined }
+    db.run(`UPDATE companion_execution_runs SET command_id = ?, status = 'running', attempt = ?, started_at = ?, completed_at = NULL, error_code = NULL, error_message = NULL, result_json = NULL WHERE id = ? AND status = 'retryable'`, [restarted.commandId, restarted.attempt, restarted.startedAt, run.id])
+    persist()
+    return restarted
+  }
   const run: CompanionExecutionRun = {
     id: randomUUID(),
     roleId: input.roleId,
@@ -68,6 +76,7 @@ export async function startCompanionExecution(input: {
 
 export async function finishCompanionExecution(input: {
   executionId: string
+  commandId?: string
   status: Extract<CompanionExecutionStatus, 'completed' | 'failed' | 'retryable' | 'cancelled'>
   errorCode?: string | null
   errorMessage?: string | null
@@ -77,7 +86,7 @@ export async function finishCompanionExecution(input: {
   const db = await getDatabase()
   db.run(`UPDATE companion_execution_runs
     SET status = ?, error_code = ?, error_message = ?, result_json = ?, completed_at = ?
-    WHERE id = ?`, [input.status, input.errorCode ?? null, input.errorMessage?.slice(0, 500) ?? null, input.result === undefined ? null : JSON.stringify(input.result), Date.now(), input.executionId])
+    WHERE id = ?${input.commandId ? ' AND command_id = ? AND status = \'running\'' : ''}`, [input.status, input.errorCode ?? null, input.errorMessage?.slice(0, 500) ?? null, input.result === undefined ? null : JSON.stringify(input.result), Date.now(), input.executionId, ...(input.commandId ? [input.commandId] : [])])
   persist()
 }
 

@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 /**
  * 宿主环境作息感知与虚实关怀锚点（Host Presence & Care Anchor）单元测试
  *
@@ -37,11 +38,12 @@ vi.mock('electron', () => ({
 }))
 
 vi.mock('../../electron/main/storage/database', () => ({
+  withDatabaseTransaction: async (work: (db: typeof memDb) => Promise<unknown>) => runLocalTransaction(memDb, work),
   getDatabase: vi.fn(async () => memDb),
   persist: vi.fn(),
 }))
 
-vi.mock('../../electron/main/companion/life/store', () => ({
+vi.mock('../../electron/main/companion/core/persistence/life-repository', () => ({
   getRoleState: vi.fn(async (roleId: string) => ({
     roleId,
     world: { schemaVersion: 1, home: '', timezone: 'Asia/Shanghai', situation: '', mood: 65, energy: 70, socialNeed: 40, currentLocation: '', locationDetail: '', currentActivity: '', statusTags: [], updatedAt: 0 },
@@ -70,6 +72,8 @@ vi.mock('../../electron/main/storage/session-store', () => ({
 }))
 
 vi.mock('../../electron/main/companion/identity/loader', () => ({
+  loadRoleWorldDefaults: () => null,
+  resolveRoleUniverseId: () => 'default',
   loadRolePack: vi.fn(async () => ({
     manifest: { name: '蒙奇·D·路飞' },
     profile: { brief: '热血温暖的航海同伴' },

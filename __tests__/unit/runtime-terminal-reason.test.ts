@@ -9,6 +9,24 @@ import * as companion from '../../electron/main/companion/orchestrator'
 afterEach(() => { vi.restoreAllMocks() })
 
 describe('Runtime 终态去重', () => {
+  it('Headless 遇到失败终态必须拒绝，不能把部分文本当作调度成功', async () => {
+    vi.spyOn(store, 'createSession').mockResolvedValue({ id: 'headless-failure', messages: [], createdAt: 1 })
+    vi.spyOn(runtime, 'chat').mockImplementation(async function* () {
+      yield { type: 'text', content: '部分输出' }
+      yield { type: 'done', reason: 'model_error' }
+    })
+    await expect(runtime.runHeadless('运行任务')).rejects.toThrow('后台任务未完成')
+  })
+
+  it('Headless 只有明确完成终态才能返回结果', async () => {
+    vi.spyOn(store, 'createSession').mockResolvedValue({ id: 'headless-success', messages: [], createdAt: 1 })
+    vi.spyOn(runtime, 'chat').mockImplementation(async function* () {
+      yield { type: 'text', content: '任务结果' }
+      yield { type: 'done', reason: 'completed' }
+    })
+    await expect(runtime.runHeadless('运行任务')).resolves.toBe('任务结果')
+  })
+
   it('组装在创建 span 前失败也返回单一终态并释放会话锁', async () => {
     vi.spyOn(runtime, 'getLLMConfig').mockResolvedValue({ apiKey: 'test', baseUrl: '', model: 'fixture' })
     vi.spyOn(budget, 'checkBudget').mockResolvedValue({ allowed: true })

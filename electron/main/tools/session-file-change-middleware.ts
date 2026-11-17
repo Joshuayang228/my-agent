@@ -9,7 +9,7 @@ import {
   recordSessionFileChange,
 } from '../agent/session-file-changes'
 import { resolveToolFilePath } from '../sandbox/file-path-guard'
-import { getWorkspaceRoot } from '../agent/project-memory'
+import { getWorkspaceRoot } from '../workspace/workspace-root'
 import { BrowserWindow } from 'electron'
 
 export const sessionFileChangeMiddleware: ToolMiddleware = async (ctx, next) => {

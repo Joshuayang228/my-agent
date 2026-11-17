@@ -25,7 +25,7 @@ export function LocationEvidenceContent({ result, loading, error, roleId, scope,
   const world = evidenceObject(record?.data.world)
   const timezone = result?.timezone ?? ''
   const definitions = useRoleDefinitionAssets(roleId, WORLD_SOURCE_TYPES, expanded && Boolean(record), revision)
-  const fields: Array<[string, string]> = [['当前位置', text(world.currentLocation) || '未设定'], ['位置细节', text(world.locationDetail) || '未记录'], ['当前活动', text(world.currentActivity) || '未记录'], ['世界更新时间', snapshotTime(world.updatedAt, timezone)], ['时区', timezone], ['来源', 'companion_role_state · codec 解析快照'], ['移动原因', '未记录']]
+  const fields: Array<[string, string]> = [['当前位置', text(world.currentLocation) || '未设定'], ['位置细节', text(world.locationDetail) || '未记录'], ['当前活动', text(world.currentActivity) || '未记录'], ['世界更新时间', snapshotTime(world.updatedAt, timezone)], ['时区', timezone], ['来源', 'companion_runtime_state · Core 运行态快照'], ['移动原因', '未记录']]
   return <section className="debug-location-workbench" data-testid="debug-evidence-location">
     {targetId && <ActionButton variant="plain" onClick={() => onEvidence('location', '')}>返回当前领域列表</ActionButton>}
     {scope && onRoleChange && <div className="debug-location-toolbar debug-focused-scope"><label>人物<SelectField aria-label="诊断人物" value={roleId} onChange={event => onRoleChange(event.target.value)}>{scope.roles.map(role => <option key={role.id} value={role.id}>{role.name}</option>)}</SelectField></label></div>}

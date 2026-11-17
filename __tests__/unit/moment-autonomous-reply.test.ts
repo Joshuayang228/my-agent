@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 /**
  * 朋友圈回复互动与人物/NPC 自主回复决策门禁测试
  */
@@ -38,6 +39,7 @@ let memDb: InstanceType<typeof SQL.Database>
 let activeRoleId = 'luffy'
 
 vi.mock('../../electron/main/storage/database', () => ({
+  withDatabaseTransaction: async (work: (db: typeof memDb) => Promise<unknown>) => runLocalTransaction(memDb, work),
   getDatabase: vi.fn(async () => memDb),
   persist: vi.fn(),
 }))
@@ -70,7 +72,7 @@ const {
   addMomentCommentForRole,
   listMomentUserInteractionsForRole,
 } = await import('../../electron/main/companion/life/moments')
-const store = await import('../../electron/main/companion/life/store')
+const store = await import('../../electron/main/companion/core/persistence/life-repository')
 
 async function seedMoment(roleId: string, eventId: string, text = '在千里阳光号甲板上钓鱼。') {
   const moment = await store.insertMoment({

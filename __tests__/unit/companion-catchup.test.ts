@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 /**
  * W3：Catch-up ≤7×24h 细窗 + Moments 投影；朋友圈按 role 隔离
  */
@@ -26,6 +27,7 @@ let memDb: InstanceType<typeof SQL.Database>
 let activeRoleId = 'luffy'
 
 vi.mock('../../electron/main/storage/database', () => ({
+  withDatabaseTransaction: async (work: (db: typeof memDb) => Promise<unknown>) => runLocalTransaction(memDb, work),
   getDatabase: vi.fn(async () => memDb),
   persist: vi.fn(),
 }))

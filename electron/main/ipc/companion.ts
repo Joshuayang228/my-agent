@@ -1,3 +1,4 @@
+import { getCompanionRuntimeReadModel } from '../companion/core/read-models/runtime-read-model'
 /**
  * Companion IPC — 取代旧 persona:* 通道
  *
@@ -50,8 +51,8 @@ import {
   toggleMomentLikeForRole,
 } from '../companion/life/moments'
 import { describeMomentSocial } from '../../../src/shared/moment-user-interactions'
-import { claimFirstContact } from '../companion/life/store'
-import { getCompanionLegacyRoleState as getRoleState, listCompanionLegacyRelationshipStates as listRelationshipStates } from '../companion/core/read-models/legacy-companion-read-model'
+import { claimFirstContact } from '../companion/core/persistence/life-repository'
+import { listRelationshipStates } from '../companion/core/persistence/life-repository'
 import { resolveMomentVisibilityDays } from '../companion/life/moment-visibility'
 import { getLifeSliceForRole } from '../companion/life/slices'
 import { getTodayTimelineForRole } from '../companion/life/timeline'
@@ -362,7 +363,7 @@ export function registerCompanionIPC(): void {
 
   handle('companion:catchup-status', async () => {
     const roleId = await getActiveRoleId()
-    const state = await getRoleState(roleId)
+    const state = await getCompanionRuntimeReadModel(roleId)
     const universeId = await settings.getSetting('universeId')
     const presence = (await describeCastPresence(roleId, { universeId })) || ''
     return {

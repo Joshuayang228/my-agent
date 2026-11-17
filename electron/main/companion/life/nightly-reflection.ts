@@ -28,7 +28,7 @@ import { compileNightlyReflectionRequest } from '../../prompts/registered-reques
 import { isActiveRole } from '../../storage/settings-store'
 import { loadRolePack } from '../identity/loader'
 import { ensureWorldState } from './world-state'
-import { listCompanionLegacyEvents as listEvents } from '../core/read-models/legacy-companion-read-model'
+import { listEvents } from '../core/persistence/life-repository'
 import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 import { listRecentUserMessagesForRole } from '../../storage/session-store'
 import { addMemory } from '../../storage/memory-store'
@@ -188,6 +188,24 @@ export async function triggerNightlyReflection(
 
   const id = `thought-nightly-${randomUUID()}`
 
+  const record: CompanionInnerThoughtRecord = {
+    id,
+    roleId,
+    title: result.title,
+    content: result.content,
+    mood: result.mood,
+    weather: result.weather,
+    location: result.location,
+    activity: '深夜独坐沉淀',
+    isFavorite: true,
+    createdAt: now,
+    thoughtType: 'nightly_reflection',
+    epiphany: result.epiphany,
+    provenance: contentProvenanceFromEvent({ origin: 'agent', sourceType: 'nightly_reflection', sourceId: id, occurredAt: now }),
+  }
+
+  await recordCompanionEventAndNotify({
+    commit: async () => {
   db.run(
     `INSERT INTO companion_inner_thoughts
      (id, role_id, title, content, mood, weather, location, activity, is_favorite, created_at, thought_type, epiphany, source_type, source_id, trace_id)
@@ -212,34 +230,7 @@ export async function triggerNightlyReflection(
   )
   persist()
 
-  // 同步将心灵感悟写入长期记忆的 feedback（我们之间）分桶
-  try {
-    await addMemory('feedback', `[深夜感悟] ${result.epiphany}`, {
-      roleId,
-      provenance: contentProvenanceFromEvent({ origin: 'agent', sourceType: 'nightly-reflection', sourceId: id, occurredAt: now }),
-    })
-    log.info('Nightly reflection epiphany added to long-term memory feedback bucket', { roleId, epiphany: result.epiphany })
-  } catch (memErr) {
-    log.warn('Failed to add epiphany to memory store', { roleId, error: String(memErr) })
-  }
-
-  const record: CompanionInnerThoughtRecord = {
-    id,
-    roleId,
-    title: result.title,
-    content: result.content,
-    mood: result.mood,
-    weather: result.weather,
-    location: result.location,
-    activity: '深夜独坐沉淀',
-    isFavorite: true,
-    createdAt: now,
-    thoughtType: 'nightly_reflection',
-    epiphany: result.epiphany,
-    provenance: contentProvenanceFromEvent({ origin: 'agent', sourceType: 'nightly_reflection', sourceId: id, occurredAt: now }),
-  }
-
-  await recordCompanionEventAndNotify({
+    },
     roleId,
     type: 'nightly_reflection_created',
     sourceType: 'nightly_reflection',
@@ -252,6 +243,17 @@ export async function triggerNightlyReflection(
       { kind: 'inner-thought-created', dedupeKey: `nightly-inner-thought-created:${id}`, payload: record as unknown as Record<string, unknown> },
     ],
   })
+
+  // 同步将心灵感悟写入长期记忆的 feedback（我们之间）分桶
+  try {
+    await addMemory('feedback', `[深夜感悟] ${result.epiphany}`, {
+      roleId,
+      provenance: contentProvenanceFromEvent({ origin: 'agent', sourceType: 'nightly-reflection', sourceId: id, occurredAt: now }),
+    })
+    log.info('Nightly reflection epiphany added to long-term memory feedback bucket', { roleId, epiphany: result.epiphany })
+  } catch (memErr) {
+    log.warn('Failed to add epiphany to memory store', { roleId, error: String(memErr) })
+  }
 
   void recordAssetUsage({
     assetKey: 'companion:policy:nightly-reflection',

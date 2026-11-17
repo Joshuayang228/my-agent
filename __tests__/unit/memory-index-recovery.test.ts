@@ -1,3 +1,4 @@
+import { runLocalTransaction } from '../helpers/local-transaction'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -13,7 +14,7 @@ vi.mock('electron', () => ({ app: { getPath: () => state.root }, safeStorage: {
 vi.mock('vectra', async importOriginal => await importOriginal())
 vi.mock('../../electron/main/storage/database', async importOriginal => ({
   ...await importOriginal<typeof import('../../electron/main/storage/database')>(),
-  getDatabase: async () => state.db, persist: state.persist,
+  withDatabaseTransaction: async (work: (db: typeof state.db) => Promise<unknown>) => runLocalTransaction(state.db, work), getDatabase: async () => state.db, persist: state.persist,
 }))
 vi.mock('../../electron/main/memory/embeddings', async importOriginal => ({
   ...await importOriginal<typeof import('../../electron/main/memory/embeddings')>(), createEmbedding: state.embedding,
