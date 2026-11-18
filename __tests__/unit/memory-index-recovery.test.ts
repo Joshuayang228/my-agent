@@ -265,6 +265,7 @@ it('清理旧分类、重复和已删除镜像，保留对话向量与角色归�
   await vectors.addToVectorStore(old, config)
   await vectors.addToVectorStore({ ...old, id: 'mem-deleted' }, config)
   await vectors.addToVectorStore({ ...old, id: 'conversation-1', category: 'conversation' }, config)
+  await vectors.addToVectorStore({ ...old, id: 'conversation-1', category: 'conversation' }, config, { retryOnFailure: true })
   await startSync()
   expect(await vectors.getVectorStoreStats()).toMatchObject({ count: 2 })
   expect(await vectors.searchVectorStore('测试', config, { category: 'workflow' })).toEqual([expect.objectContaining({ id: memory.id, text: memory.content })])

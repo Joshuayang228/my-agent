@@ -93,19 +93,22 @@ export interface VectorMemoryEntry {
 export async function addToVectorStore(
   entry: VectorMemoryEntry,
   config: LLMConfig,
+  options?: { retryOnFailure?: boolean },
 ): Promise<void> {
   try {
     await serializeVectorWrite(async () => {
       const idx = await getIndex()
       const embedding = await createEmbedding(entry.text, config, undefined, AbortSignal.timeout(VECTOR_EMBEDDING_TIMEOUT_MS))
-      await idx.insertItem({
+      const item = {
         vector: embedding.vector,
         metadata: {
           ...getEmbeddingMetadata(config, embedding),
           id: entry.id, text: entry.text, category: entry.category,
           sessionId: entry.sessionId ?? '', timestamp: entry.timestamp,
         },
-      })
+      }
+      if (entry.category === 'conversation') await idx.upsertItem({ ...item, id: entry.id })
+      else await idx.insertItem(item)
       log.info('Vector memory added', { id: entry.id, category: entry.category })
       void recordAssetUsage({
         assetKey: MEMORY_STRATEGY_ASSET_KEYS.vectorLifecycle,
@@ -122,6 +125,7 @@ export async function addToVectorStore(
       relation: 'used', usageKind: 'memory-operation', status: 'error',
       metadata: { operation: 'insert', affectedCount: 0 },
     })
+    if (options?.retryOnFailure) throw err
   }
 }
 

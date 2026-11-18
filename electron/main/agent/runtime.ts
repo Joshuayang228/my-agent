@@ -1,4 +1,5 @@
 import { generateSmartTitle } from './session-title-service'
+import { completedTurnCheckpoint, conversationIndexId, resolveCompletedTurn } from './session-turn-recovery'
 /**
  * Agent Runtime — 统一管理会话生命周期和后台任务。
  *
@@ -499,6 +500,7 @@ class AgentRuntime {
 
       // ── 消费事件流 ──
       for await (const ev of stream) {
+        let completedReply: ChatMessage | undefined
         if (ev.type === 'execution_mode_changed') {
           // 安全降级必须跨当前 loop 生效到后续请求，避免下次对话又恢复 auto。
           await settings.setSetting('executionMode', ev.mode)
@@ -529,6 +531,7 @@ class AgentRuntime {
               })
             } else await saveReply()
             assistantSaved = true
+            completedReply = reply
             chatSpan.setAttribute('assistantContentLength', assistantContent.length)
             chatSpan.end('ok')
           }
@@ -564,14 +567,14 @@ class AgentRuntime {
             toolCalls: ev.calls,
           })
         }
-        if (ev.type === 'done' && ev.reason === 'completed' && assistantSaved && !isWorkspace && !headless) {
+        if (completedReply && !isWorkspace && !headless) {
           const sessionKind = sessionMeta?.sessionKind ?? 'main'
           const auxConfig = await this.getAuxLLMConfig()
           settleConversationCompletion({ roleId: assembleRoleId, sessionId, sessionKind, llmConfig: auxConfig })
           await this.enqueuePostTasks(
             sessionId,
             messages,
-            assistantContent,
+            completedReply,
             lastUserMsg,
             auxConfig,
             {
@@ -660,41 +663,41 @@ class AgentRuntime {
   private async enqueuePostTasks(
     sessionId: string,
     messages: ChatMessage[],
-    assistantContent: string,
+    reply: ChatMessage,
     lastUserMsg: ChatMessage | undefined,
     llmConfig: LLMConfig,
     companion?: { roleId: string },
   ): Promise<void> {
+    const checkpoint = completedTurnCheckpoint(reply, lastUserMsg)
     await taskQueue.enqueue(sessionId, 'profile-extract', async () => {
       setQuerySource('memory')
       try {
-        await maybeExtractProfile(messages, llmConfig, assistantContent, {
+        await maybeExtractProfile(messages, llmConfig, reply.content, {
           roleId: companion?.roleId,
           sessionId,
         })
       } finally {
         setQuerySource(null)
       }
-    })
+    }, checkpoint)
 
     await taskQueue.enqueue(sessionId, 'smart-title', async () => {
       setQuerySource('title')
       try {
-        await generateSmartTitle(sessionId, lastUserMsg?.content || '', assistantContent, llmConfig)
+        await generateSmartTitle(sessionId, lastUserMsg?.content || '', reply.content, llmConfig)
       } finally {
         setQuerySource(null)
       }
-    })
+    }, checkpoint)
 
     if (lastUserMsg?.content && lastUserMsg.content.length > 20) {
-      const now = Date.now()
       await taskQueue.enqueue(sessionId, 'vector-index-user', () => addToVectorStore({
-        id: `conv-user-${now}`,
+        id: conversationIndexId(sessionId, lastUserMsg.id),
         text: lastUserMsg.content.slice(0, 500),
         category: 'conversation',
         sessionId,
-        timestamp: now,
-      }, llmConfig))
+        timestamp: lastUserMsg.timestamp,
+      }, llmConfig, { retryOnFailure: true }), checkpoint)
     }
 
     // G1 自我强化循环修复：不再把 assistant 原始回复写入向量库。
@@ -802,33 +805,32 @@ export const runtime = new AgentRuntime()
 function registerTaskRecoveryHandlers(): void {
   taskQueue.registerRecoveryHandler('smart-title', async task => {
     const session = await store.getSession(task.sessionId)
-    const user = session?.messages.filter(message => message.role === 'user').at(-1)
-    const assistant = session?.messages.filter(message => message.role === 'assistant').at(-1)
-    if (!user) return null
-    const llmConfig = await runtime.getLLMConfig()
-    return async () => generateSmartTitle(task.sessionId, user.content, assistant?.content ?? '', llmConfig)
+    const turn = session && resolveCompletedTurn(session, task.checkpoint)
+    if (!turn) return null
+    const llmConfig = await runtime.getAuxLLMConfig()
+    return async () => generateSmartTitle(task.sessionId, turn.user?.content ?? '', turn.reply.content, llmConfig)
   })
 
   taskQueue.registerRecoveryHandler('profile-extract', async task => {
     const session = await store.getSession(task.sessionId)
-    const assistant = session?.messages.filter(message => message.role === 'assistant').at(-1)
-    if (!session || !assistant) return null
-    const llmConfig = await runtime.getLLMConfig()
-    return async () => maybeExtractProfile(session.messages, llmConfig, assistant.content, { roleId: session.roleId, sessionId: task.sessionId })
+    const turn = session && resolveCompletedTurn(session, task.checkpoint)
+    if (!session || !turn) return null
+    const llmConfig = await runtime.getAuxLLMConfig()
+    return async () => maybeExtractProfile(turn.messages, llmConfig, turn.reply.content, { roleId: session.roleId, sessionId: task.sessionId })
   })
 
   taskQueue.registerRecoveryHandler('vector-index-user', async task => {
     const session = await store.getSession(task.sessionId)
-    const user = session?.messages.filter(message => message.role === 'user').at(-1)
+    const user = session && resolveCompletedTurn(session, task.checkpoint)?.user
     if (!user || user.content.length <= 20) return null
-    const llmConfig = await runtime.getLLMConfig()
+    const llmConfig = await runtime.getAuxLLMConfig()
     return async () => addToVectorStore({
-      id: `recovered-user-${task.id}`,
+      id: conversationIndexId(task.sessionId, user.id),
       text: user.content.slice(0, 500),
       category: 'conversation',
       sessionId: task.sessionId,
-      timestamp: task.createdAt,
-    }, llmConfig)
+      timestamp: user.timestamp,
+    }, llmConfig, { retryOnFailure: true })
   })
 
   taskQueue.registerRecoveryHandler('persona-reflection', async task => {

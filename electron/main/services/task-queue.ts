@@ -110,12 +110,12 @@ export class TaskQueueManager {
     this.recoveryHandlers.set(name, handler)
   }
 
-  async enqueue(sessionId: string, name: TaskType, fn: () => Promise<void>): Promise<string> {
+  async enqueue(sessionId: string, name: TaskType, fn: () => Promise<void>, checkpoint?: TaskCheckpoint): Promise<string> {
     if (this.stopped) throw new Error('后台任务队列已停止。')
     if (this.persistenceFailure) throw this.persistenceFailure
     const now = Date.now()
     const task: InternalTask = {
-      id: `task-${randomUUID()}`, name, sessionId, fn,
+      id: `task-${randomUUID()}`, name, sessionId, fn, checkpoint,
       status: 'pending', notified: false, createdAt: now, updatedAt: now,
       linkSpanId: getTraceContext().interactionSpanId,
     }

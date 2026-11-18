@@ -45,7 +45,8 @@ describe('Task Queue 重启恢复', () => {
 
   it('无窗口完成的任务在重启后恢复待通知，确认成功后再次重启不重投', async () => {
     fixture.windows = false
-    const id = await queue.enqueue('session', 'profile-extract', async () => {})
+    const checkpoint = { label: 'completed-turn-source', payload: { replyId: 'reply-a', userId: 'user-a' }, updatedAt: 10 }
+    const id = await queue.enqueue('session', 'profile-extract', async () => {}, checkpoint)
     await complete(id)
     await queue.shutdown()
     database.closeDatabase()
@@ -53,7 +54,7 @@ describe('Task Queue 重启恢复', () => {
     fixture.windows = true
     const recovered = await queue.recoverPendingTasks()
     expect(recovered).toHaveLength(1)
-    expect(recovered[0]).toMatchObject({ id, status: 'completed', notified: false })
+    expect(recovered[0]).toMatchObject({ id, status: 'completed', notified: false, checkpoint })
     expect(queue.syncForRenderer().pendingNotify.map(task => task.id)).toEqual([id])
     expect(await queue.acknowledgeNotification(id)).toBe(true)
     await queue.shutdown()
