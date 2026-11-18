@@ -2,6 +2,7 @@ import { createServer } from 'node:http'
 import { randomBytes, createHash } from 'node:crypto'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
+import { listenOnFetchableLoopback } from './fetchable-loopback'
 
 /** 本地真实 OAuth / MCP 协议服务，不冒充第三方账户互操作。 */
 export async function startMcpOAuthFixture() {
@@ -12,6 +13,7 @@ export async function startMcpOAuthFixture() {
   const stats = { tokenRequests: 0, toolCalls: 0, rejectedTokens: false, tokenDelayMs: 0, maliciousMetadata: false, dcrUnsupported: false }
   let origin = ''
   const server = createServer(async (request, response) => {
+    if (request.url === '/fixture-readiness' && request.method === 'HEAD') { response.writeHead(204).end(); return }
     const url = new URL(request.url ?? '/', origin)
     const json = (status: number, body: unknown) => response.writeHead(status, { 'Content-Type': 'application/json' }).end(JSON.stringify(body))
     try {
@@ -82,10 +84,8 @@ export async function startMcpOAuthFixture() {
       json(404, {})
     } catch { if (!response.headersSent) json(500, { error: 'fixture_error' }); else response.end() }
   })
-  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
-  const address = server.address()
-  if (!address || typeof address === 'string') throw new Error('Fixture unavailable')
-  origin = `http://127.0.0.1:${address.port}`
+  const close = () => new Promise<void>(resolve => { server.closeAllConnections(); server.close(() => resolve()) })
+  origin = await listenOnFetchableLoopback(server)
   return {
     origin, url: `${origin}/mcp`, stats, accessToken,
     async consentCallback(url: string, deny = false) {
@@ -96,6 +96,6 @@ export async function startMcpOAuthFixture() {
       const approved = await fetch(`${origin}/approve?id=${id}${deny ? '&deny=1' : ''}`, { redirect: 'manual' })
       return approved.headers.get('location')!
     },
-    close: () => new Promise<void>(resolve => { server.closeAllConnections(); server.close(() => resolve()) }),
+    close,
   }
 }

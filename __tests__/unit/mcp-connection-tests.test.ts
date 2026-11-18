@@ -1,6 +1,5 @@
 import { createServer, type Server } from 'node:http'
-import { once } from 'node:events'
-import type { AddressInfo } from 'node:net'
+import { listenOnFetchableLoopback } from '../fixtures/fetchable-loopback'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
@@ -23,9 +22,7 @@ async function startFixture() {
     await transport.handleRequest(request, response)
   })
   servers.push(server)
-  server.listen(0, '127.0.0.1')
-  await once(server, 'listening')
-  return `http://127.0.0.1:${(server.address() as AddressInfo).port}/mcp`
+  return `${await listenOnFetchableLoopback(server)}/mcp`
 }
 
 afterEach(async () => {
@@ -84,11 +81,14 @@ describe('MCP 添加连接测试会话', () => {
 
   it('测试总超时和已测试结果过期均清理会话，不写配置', async () => {
     const persist = vi.fn()
-    const held = createServer((_request, _response) => {})
-    servers.push(held); held.listen(0, '127.0.0.1'); await once(held, 'listening')
+    const held = createServer((request, response) => {
+      if (request.url === '/fixture-readiness') response.writeHead(204).end()
+    })
+    servers.push(held)
+    const origin = await listenOnFetchableLoopback(held)
     const timeoutTests = new McpConnectionTests({ confirm: async () => true, persist, adopt: vi.fn(), timeoutMs: 30, retentionMs: 500 })
-    expect((await timeoutTests.test(51, 'timeout', input(`http://127.0.0.1:${(held.address() as AddressInfo).port}/mcp`))).ok).toBe(false)
-const expireTests = new McpConnectionTests({ confirm: async () => true, persist, adopt: vi.fn(), timeoutMs: 5000, retentionMs: 100 })
+    expect((await timeoutTests.test(51, 'timeout', input(`${origin}/mcp`))).ok).toBe(false)
+    const expireTests = new McpConnectionTests({ confirm: async () => true, persist, adopt: vi.fn(), timeoutMs: 5000, retentionMs: 100 })
     expect((await expireTests.test(51, 'expire', input(await startFixture()))).ok).toBe(true)
     await delay(150)
     expect((await expireTests.save(51, 'expire', [])).ok).toBe(false)

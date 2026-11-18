@@ -24,7 +24,11 @@ for (const view of ['recent', 'activity'] as const) for (const theme of ['porcel
     })
     await page.getByTestId('primary-sidebar').getByRole('button', { name: 'Debug', exact: true }).click()
     const panel = page.getByTestId('dev-panel')
-    await panel.getByRole('navigation').getByRole('button', { name: label, exact: true }).click()
+    const openEventView = async () => {
+      await panel.getByRole('navigation').getByRole('button', { name: label, exact: true }).click()
+      if (view === 'activity') await panel.getByRole('button', { name: '查看生活事件', exact: true }).click()
+    }
+    await openEventView()
     const recent = panel.getByTestId(`debug-evidence-${view}`)
     await expect(recent.getByRole('alert')).toContainText('读取失败')
     await expect(recent.getByLabel(countLabel)).toHaveCount(0)
@@ -66,7 +70,7 @@ for (const view of ['recent', 'activity'] as const) for (const theme of ['porcel
     await expect(recent.getByLabel(countLabel)).toHaveText('1 条已读取 · 总数未知')
     expect(await page.evaluate(() => (window as unknown as { __recentQueries: Array<{ date?: string; cursor?: string }> }).__recentQueries.at(-1))).toMatchObject({ date: '2026-10-25' })
     if (view === 'activity') {
-      await expect(recent).toContainText('当前读取生活事件；完整行动日志尚未建立。')
+      await expect(recent).toContainText('此视角读取生活事件；运行行动由独立的保存历史提供。')
       await recent.getByRole('button', { name: '阅读笔记', exact: true }).click()
       await detail.getByRole('button', { name: '查看来源生活事件', exact: true }).click()
       const source = panel.getByTestId('debug-evidence-recent')
@@ -76,7 +80,7 @@ for (const view of ['recent', 'activity'] as const) for (const theme of ['porcel
       await panel.getByRole('button', { name: '刷新当前分区', exact: true }).click()
       await expect(source).toContainText('引用事项未在该人物范围找到，未选择替代记录。')
       await expect(source.getByRole('article', { name: '领域证据详情' })).toHaveCount(0)
-      await panel.getByRole('navigation').getByRole('button', { name: label, exact: true }).click()
+      await openEventView()
     }
     await recent.getByRole('combobox', { name: '诊断人物' }).selectOption('yu')
     await expect(recent).toContainText('此范围没有记录')
@@ -85,7 +89,7 @@ for (const view of ['recent', 'activity'] as const) for (const theme of ['porcel
       await expect(panel.getByRole('heading', { name: '调用链', level: 1, exact: true })).toBeVisible()
       await expect(panel.getByRole('alert')).toContainText('调用链读取失败；未读取的 Span 数量未知。')
       await expect(panel.getByTestId('debug-evidence-traces').locator('[data-record-id]')).toHaveCount(0)
-      await panel.getByRole('navigation').getByRole('button', { name: label, exact: true }).click()
+      await openEventView()
       await recent.getByRole('button', { name: '查看成长与反思', exact: true }).click()
       await expect(panel.getByRole('heading', { name: '成长与反思', level: 1, exact: true })).toBeVisible()
     }
