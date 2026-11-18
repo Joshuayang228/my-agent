@@ -68,8 +68,12 @@ export function getActiveSkillTrace(state?: SkillExecutionState): SkillActivatio
   return active ? getSkillActivationTrace(active) : null
 }
 
+export function toSkillToolName(skillKey: string): string {
+  return `skill_invoke_${skillKey.replace(/[^a-z0-9]/g, '_')}`
+}
+
 export function getSkillToolName(skill: SkillDefinition): string {
-  return `skill_invoke_${skill.meta.name.replace(/[^a-z0-9]/g, '_')}`
+  return toSkillToolName(skill.meta.name)
 }
 
 export function createSkillActivationTool(skill: SkillDefinition, canActivate: () => boolean = () => true): ToolDefinition {
@@ -95,6 +99,7 @@ export function createSkillActivationTool(skill: SkillDefinition, canActivate: (
     execute: async (args, ctx) => {
       if (!canActivate()) throw new Error('此 Skill 已停用、更新或移除，请重试。')
       if (!ctx?.sessionId) throw new Error('Skill 激活缺少会话执行环境。')
+      if (ctx.agentManifest && !ctx.agentManifest.skillKeys.includes(skill.meta.name)) throw new Error('当前执行环境未授权此 Skill。')
       // 并发对话和子 Agent 可同时激活不同方法，状态由执行方持有。
       // 读取时验证定义仍有效，启停或重载后旧正文不能继续限制工具。
       const state = ctx.skillState ??= {}
@@ -175,6 +180,6 @@ export function buildSkillSummary(skills: SkillDefinition[]): string {
   return lines.join('\n')
 }
 
-export function buildSkillSummaryForPrompt(): string {
-  return buildSkillSummary(loadedSkills.filter((skill) => isSkillEnabled(skill.meta.name)))
+export function buildSkillSummaryForPrompt(allowedKeys?: readonly string[]): string {
+  return buildSkillSummary(loadedSkills.filter(skill => isSkillEnabled(skill.meta.name) && (!allowedKeys || allowedKeys.includes(skill.meta.name))))
 }

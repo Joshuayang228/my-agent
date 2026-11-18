@@ -1,6 +1,8 @@
 import type { AgentHostManifest } from '../../../src/shared/agent-host'
 import type { ToolDefinition } from '../../../src/shared/types'
 import { getAgentHostToolNames, getRegisteredAgentHostToolNames } from './host'
+import { toSkillToolName } from '../skills/registry'
+import { shouldAutoApproveHeadlessTool } from '../tools/headless-policy'
 
 /**
  * 会话级 Tool 目录。
@@ -16,11 +18,15 @@ export class AgentHostScopedToolCatalog {
     const available = getAgentHostToolNames(this.manifest)
     const registered = getRegisteredAgentHostToolNames()
     const skillAllowed = allowedTools && allowedTools.length > 0 ? new Set(allowedTools) : null
+    const activationTools = new Set(this.manifest.skillKeys.map(toSkillToolName))
     return tools.filter(tool => {
+      if (this.manifest.permissionPolicyKey === 'unattended-readonly'
+        && (tool.resolveMetadata || !shouldAutoApproveHeadlessTool(tool.name, tool.metadata))) return false
+      if (tool.name.startsWith('skill_invoke_')) return activationTools.has(tool.name)
       if (registered.has(tool.name) || tool.name.startsWith('capability_')) {
         if (!available.has(tool.name)) return false
       }
-      return !skillAllowed || skillAllowed.has(tool.name) || tool.name.startsWith('skill_invoke_')
+      return !skillAllowed || skillAllowed.has(tool.name)
     })
   }
 }

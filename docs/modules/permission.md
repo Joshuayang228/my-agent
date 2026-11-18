@@ -96,7 +96,7 @@ image_generate 按文件写入接受现有审批，不能因为是模型调用�
 | 权限与沙箱生产资产目录 | 已落地 | `sandbox/asset-registry.ts` · Debug「提示词管理器 → 权限与沙箱」 |
 | 安全日志元数据化 | 已落地 | `logger.ts` · 命令 / 路径 / 记忆内容只留长度或短指纹 |
 | 子进程环境凭据隔离 | 已落地 | `safe-process-env.ts` · Terminal / shell_exec / Git / MCP stdio / Eval Runner |
-| Headless 安全批准 | 已落地 | `agent/headless-policy.ts` · 使用运行时有效 metadata，只自动批准明确只读工具，拒绝 Shell / 子 Agent / 继续任务 |
+| Headless 安全批准 | 已落地 | `tools/headless-policy.ts` · 宿主目录和实际执行共用只读限制，拒绝动态权限类型、Shell、子 Agent 与继续任务 |
 
 ## 文件规则执行范围
 

@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto'
 import { AgentHostApplicationOrchestrator, AgentHostCapabilityRegistry, AgentHostDomainRegistry } from './domain-catalog'
 import { createCompanionCoreDomain, createMemoryDomain, createPersonaDomain, createWorkspaceDomain, loadCompanionAgentManifest } from './builtin-domains'
-import type { AgentHostExecutionContext, AgentHostSkillMetadata, AgentHostManifest } from '../../../src/shared/agent-host'
+import type { AgentHostExecutionContext, AgentHostSkillMetadata, AgentHostManifest, AgentHostModelPolicy } from '../../../src/shared/agent-host'
 import { capabilityToTool, getCapabilityToolName } from './adapter'
 import type { SkillDefinition, ToolDefinition } from '../../../src/shared/types'
 import type { ToolRegistry } from '../tools/registry'
-import { isSkillEnabled } from '../skills/registry'
+import { getLoadedSkills, isSkillEnabled, toSkillToolName } from '../skills/registry'
 
 export const agentHostDomainRegistry = new AgentHostDomainRegistry()
 export const agentHostCapabilityRegistry = new AgentHostCapabilityRegistry(agentHostDomainRegistry)
@@ -13,6 +13,23 @@ export const agentHostApplication = new AgentHostApplicationOrchestrator(agentHo
 
 let initialized = false
 let registeredSkills: AgentHostSkillMetadata[] = []
+
+type HostConversationPolicy = Pick<AgentHostManifest, 'modelPolicyKey' | 'permissionPolicyKey'>
+
+export function getHostConversationPolicy(unattended: boolean): HostConversationPolicy {
+  return { modelPolicyKey: 'main', permissionPolicyKey: unattended ? 'unattended-readonly' : 'companion-default' }
+}
+
+export function loadHostConversationManifest(roleId: string, policy: HostConversationPolicy): AgentHostManifest {
+  const skillKeys = policy.permissionPolicyKey === 'unattended-readonly' ? []
+    : getLoadedSkills().filter(skill => isSkillEnabled(skill.meta.name)).map(skill => skill.meta.name)
+  return loadCompanionAgentManifest({ id: roleId, personaKey: `role:${roleId}`, ...policy, skillKeys })
+}
+
+export async function resolveAgentHostModel(policy: AgentHostModelPolicy) {
+  const { loadMainLLMConfig, loadAuxLLMConfig } = await import('../llm/aux-config')
+  return policy === 'auxiliary' ? loadAuxLLMConfig() : loadMainLLMConfig()
+}
 
 /** 注册内置 Domain 一次，入口由主进程启动阶段调用。 */
 export function initializeAgentHost(): void {
@@ -24,10 +41,11 @@ export function initializeAgentHost(): void {
   initialized = true
 }
 
-export async function getAgentHostContext(input: Omit<AgentHostExecutionContext, 'agentId'> & { roleId: string; domainKeys?: readonly string[] }): Promise<string[]> {
+export async function getAgentHostContext(manifest: AgentHostManifest, input: Omit<AgentHostExecutionContext, 'agentId'> & { roleId: string; domainKeys?: readonly string[] }): Promise<string[]> {
   initializeAgentHost()
-  const manifest = loadCompanionAgentManifest({ id: input.roleId, personaKey: `role:${input.roleId}`, domainKeys: input.domainKeys })
-  const environment = agentHostApplication.createEnvironment(manifest)
+  const requestedDomains = input.domainKeys
+  const domainKeys = requestedDomains ? manifest.domainKeys.filter(key => requestedDomains.includes(key)) : manifest.domainKeys
+  const environment = agentHostApplication.createEnvironment({ ...manifest, domainKeys })
   const blocks = await Promise.all(environment.contextProviders.map(provider => agentHostApplication.provideContext(environment, provider.key, { ...input, agentId: manifest.id })))
   return blocks.filter((block): block is string => Boolean(block?.trim()))
 }
@@ -97,7 +115,7 @@ export function getAgentHostDebugRecords(roleId: string): AgentHostDebugRecord[]
         source: skill.source,
         allowedTools: skill.allowedTools,
         capabilityKeys: skill.capabilityKeys,
-        activationTool: `skill_invoke_${skill.key.replace(/[^a-z0-9]/g, '_')}`,
+        activationTool: toSkillToolName(skill.key),
       },
     })
   }

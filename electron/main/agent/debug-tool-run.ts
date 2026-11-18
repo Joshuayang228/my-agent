@@ -20,7 +20,7 @@ import { getAllSettings } from '../storage/settings-store'
 import { checkFileToolPermission, combineFilePermission, createFilePermissionApproval, hasFilePermissionRules } from '../sandbox/file-tool-permission'
 import { createLogger } from '../utils/logger'
 import { startLinkedAsyncSpan } from '../utils/tracer'
-import { loadCompanionAgentManifest } from '../agent-host/builtin-domains'
+import { getHostConversationPolicy, loadHostConversationManifest } from '../agent-host/host'
 import { getDefaultProtagonistId } from '../companion/identity/loader'
 
 const log = createLogger('DebugToolRun')
@@ -165,7 +165,7 @@ export async function runDebugTool(
     const roleId = currentSettings.activeRoleId?.trim() || getDefaultProtagonistId(currentSettings.universeId)
     const [result] = await registry.executeAll([call], {
       roleId,
-      agentManifest: loadCompanionAgentManifest({ id: roleId, personaKey: `role:${roleId}` }),
+      agentManifest: loadHostConversationManifest(roleId, getHostConversationPolicy(false)),
       workdir,
       workspaceRoot: getWorkspaceRoot(),
       sessionId: DEBUG_TOOL_SESSION_ID,

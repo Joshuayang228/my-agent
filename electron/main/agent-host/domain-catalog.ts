@@ -112,7 +112,7 @@ export class AgentHostApplicationOrchestrator {
   ): Promise<unknown> {
     const capability = environment.capabilities.find(item => item.key === capabilityKey)
     if (!capability) throw new Error(`Capability "${capabilityKey}" is unavailable for agent "${environment.manifest.id}"`)
-    if (context.agentId !== environment.manifest.id) throw new Error('Agent execution context does not match manifest')
+    this.assertExecutionContext(environment.manifest, context)
     this.assertPermissions(environment.manifest.grantedPermissions, capability.requiredPermissions, capability.key)
     this.capabilities.markActivated(capability.key, context.agentId)
     return capability.invoke(input, context)
@@ -126,7 +126,7 @@ export class AgentHostApplicationOrchestrator {
   ): Promise<unknown> {
     const workflow = environment.capabilities.find(item => item.key === workflowKey && item.kind === 'workflow')
     if (!workflow) throw new Error(`Workflow "${workflowKey}" is unavailable for agent "${environment.manifest.id}"`)
-    if (context.agentId !== environment.manifest.id) throw new Error('Agent execution context does not match manifest')
+    this.assertExecutionContext(environment.manifest, context)
     this.assertPermissions(environment.manifest.grantedPermissions, workflow.requiredPermissions, workflow.key)
     this.capabilities.markActivated(workflow.key, context.agentId)
     return workflow.invoke(input, context)
@@ -146,9 +146,18 @@ export class AgentHostApplicationOrchestrator {
   ): Promise<string | null> {
     const provider = environment.contextProviders.find(item => item.key === providerKey)
     if (!provider) throw new Error(`Context provider "${providerKey}" is unavailable for agent "${environment.manifest.id}"`)
-    if (context.agentId !== environment.manifest.id) throw new Error('Agent execution context does not match manifest')
+    this.assertExecutionContext(environment.manifest, context)
     this.assertPermissions(environment.manifest.grantedPermissions, provider.requires, provider.key)
     return provider.provide(context)
+  }
+
+  private assertExecutionContext(manifest: AgentHostManifest, context: AgentHostExecutionContext): void {
+    if (context.agentId !== manifest.id) throw new Error('Agent execution context does not match manifest')
+    if (context.roleId && manifest.personaKey.startsWith('role:') && manifest.personaKey !== `role:${context.roleId}`) {
+      throw new Error('Agent execution role does not match manifest')
+    }
+    context.signal?.throwIfAborted()
+    if (context.deadlineAt !== undefined && context.deadlineAt <= Date.now()) throw new Error('Agent 执行期限已到。')
   }
 
   private assertPermissions(granted: readonly string[], required: readonly string[], capabilityKey: string): void {

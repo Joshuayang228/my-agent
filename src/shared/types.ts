@@ -708,6 +708,8 @@ export interface SkillExecutionState {
 export interface ToolContext {
   /** 由工具注册表从本次调用装配，工具参数不能指定。 */
   toolCallId?: string
+  runId?: string
+  deadlineAt?: number
   /** 主进程为本次执行装配的完整宿主授权，模型与 Renderer 不得提供。 */
   agentManifest?: import('./agent-host').AgentHostManifest
   /** 当前工作区根目录 */

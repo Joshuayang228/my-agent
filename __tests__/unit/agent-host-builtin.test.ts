@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createCompanionAgentManifest, createCompanionCoreDomain, createMemoryDomain, createPersonaDomain, createWorkspaceDomain, loadCompanionAgentManifest } from '../../electron/main/agent-host/builtin-domains'
 import { capabilityToTool } from '../../electron/main/agent-host/adapter'
-import { getAgentHostDebugRecords, getAgentHostToolNames, getAgentHostTools, syncAgentHostSkills, registerAgentHostTools } from '../../electron/main/agent-host/host'
+import { getAgentHostDebugRecords, getAgentHostToolNames, getAgentHostTools, syncAgentHostSkills, registerAgentHostTools, resolveAgentHostModel } from '../../electron/main/agent-host/host'
 import { AgentHostScopedToolCatalog } from '../../electron/main/agent-host/scoped-catalog'
 import { ToolRegistry } from '../../electron/main/tools/registry'
+import { createSkillActivationTool } from '../../electron/main/skills/registry'
+import * as modelConfig from '../../electron/main/llm/aux-config'
 
 describe('Agent Host 内置 Domain', () => {
   it('以通用 Manifest 工厂创建人物 Agent，不绑定单一角色', () => {
@@ -17,6 +19,20 @@ describe('Agent Host 内置 Domain', () => {
     const manifest = loadCompanionAgentManifest({ id: 'lin', personaKey: 'role:lin' })
     expect(manifest.version).toBe(1)
     expect(manifest.modelPolicyKey).toBe('main')
+  })
+
+  it('从各实例的模型策略使用对应的正式配置工厂', async () => {
+    const main = vi.spyOn(modelConfig, 'loadMainLLMConfig').mockResolvedValue({ apiKey: '', baseUrl: '', model: 'main-fixture' })
+    const auxiliary = vi.spyOn(modelConfig, 'loadAuxLLMConfig').mockResolvedValue({ apiKey: '', baseUrl: '', model: 'aux-fixture' })
+    try {
+      const first = createCompanionAgentManifest({ id: 'lin', personaKey: 'role:lin' })
+      const second = createCompanionAgentManifest({ id: 'luffy', personaKey: 'role:luffy', modelPolicyKey: 'auxiliary' })
+      expect((await resolveAgentHostModel(first.modelPolicyKey)).model).toBe('main-fixture')
+      expect((await resolveAgentHostModel(second.modelPolicyKey)).model).toBe('aux-fixture')
+    } finally {
+      main.mockRestore()
+      auxiliary.mockRestore()
+    }
   })
 
   it('Persona 和 Memory 通过独立 Capability 接入，不复制 Tool 实现', () => {
@@ -75,7 +91,7 @@ describe('Agent Host 内置 Domain', () => {
   })
 
   it('Scoped Tool Catalog 在 Host 授权后继续应用 Skill allowlist', () => {
-    const manifest = createCompanionAgentManifest({ id: 'lin', personaKey: 'role:lin' })
+    const manifest = createCompanionAgentManifest({ id: 'lin', personaKey: 'role:lin', skillKeys: ['demo'] })
     const catalog = new AgentHostScopedToolCatalog(manifest)
     const tools = [
       ...getAgentHostTools(),
@@ -83,6 +99,24 @@ describe('Agent Host 内置 Domain', () => {
     ]
     const visible = catalog.filter(tools, ['capability_persona_read'])
     expect(visible.map(tool => tool.name)).toEqual(['capability_persona_read', 'skill_invoke_demo'])
+  })
+
+  it('独立 Manifest 的 Skill 和只读策略均作用于目录和实际调用', async () => {
+    const registry = new ToolRegistry()
+    const activation = createSkillActivationTool({ meta: { name: 'demo', description: '测试' }, body: '指南', filePath: 'demo.md', source: 'builtin' })
+    const write = vi.fn(async () => 'stored')
+    const writer = { name: 'write_probe', metadata: { isReadOnly: false, isDestructive: false, isConcurrencySafe: true }, parameters: { type: 'object' as const, properties: {} }, description: '', execute: write }
+    registry.register(activation)
+    registry.register(writer)
+    const interactive = createCompanionAgentManifest({ id: 'lin', personaKey: 'role:lin', skillKeys: ['demo'] })
+    const unattended = createCompanionAgentManifest({ id: 'luffy', personaKey: 'role:luffy', permissionPolicyKey: 'unattended-readonly' })
+    const context = { workdir: '.', sessionId: 'session', agentManifest: unattended }
+    expect(new AgentHostScopedToolCatalog(interactive).filter(registry.getAll()).map(tool => tool.name)).toEqual(['skill_invoke_demo', 'write_probe'])
+    expect(new AgentHostScopedToolCatalog(unattended).filter(registry.getAll())).toEqual([])
+    await expect(activation.execute({}, context)).rejects.toThrow('未授权')
+    const [blocked] = await registry.executeAll([{ id: 'call', name: writer.name, arguments: '{}' }], context)
+    expect(blocked).toMatchObject({ isError: true, content: expect.stringContaining('只读') })
+    expect(write).not.toHaveBeenCalled()
   })
 
   it('空授权 Manifest 不因人物默认配置而重新获得 Host 能力', () => {

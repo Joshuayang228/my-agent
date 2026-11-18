@@ -172,6 +172,9 @@ export function createCompanionAgentManifest(input: {
   personaKey: string
   domainKeys?: readonly string[]
   allowCapabilities?: readonly string[]
+  skillKeys?: readonly string[]
+  modelPolicyKey?: AgentHostManifest['modelPolicyKey']
+  permissionPolicyKey?: AgentHostManifest['permissionPolicyKey']
 }): AgentHostManifest {
   return {
     id: input.id,
@@ -179,10 +182,13 @@ export function createCompanionAgentManifest(input: {
     personaKey: input.personaKey,
     domainKeys: input.domainKeys ?? ['persona', 'memory', 'companion', 'workspace'],
     capabilityPolicy: { allow: input.allowCapabilities ?? ['persona', 'memory', 'companion', 'workspace'], deny: [] },
-    skillKeys: [],
-    modelPolicyKey: 'main',
-    permissionPolicyKey: 'companion-default',
-    grantedPermissions: ['persona.read', 'memory.read', 'workspace.read', 'companion.read', 'companion.write', 'companion.lifecycle'],
+    skillKeys: input.skillKeys ?? [],
+    modelPolicyKey: input.modelPolicyKey ?? 'main',
+    permissionPolicyKey: input.permissionPolicyKey ?? 'companion-default',
+    grantedPermissions: [
+      'persona.read', 'memory.read', 'workspace.read', 'companion.read',
+      ...(input.permissionPolicyKey === 'unattended-readonly' ? [] : ['companion.write', 'companion.lifecycle']),
+    ],
   }
 }
 

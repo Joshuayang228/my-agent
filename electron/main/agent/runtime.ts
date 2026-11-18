@@ -19,9 +19,9 @@ import { characterDefinitionFromRolePack } from '../prompts/compiler'
 import { buildSummonContextPrompt, buildActiveSkillPrompt } from '../prompts/runtime-context'
 import { compileMainSystem } from '../prompts/registered-request'
 import { loadConversationAssemblyInput, createConversationApplicationContext, attachConversationPromptContext, buildConversationContextEvidence, resolveConversationRelationshipHints, settleConversationCompletion, assertConversationSessionRole, resolveConversationCastPresence, formatConversationSummonScene, getConversationDelegationHint, registerConversationStreamingProbe } from './conversation-application-service'
-import { getAgentHostContext, registerAgentHostTools } from '../agent-host/host'
+import { getAgentHostContext, getHostConversationPolicy, loadHostConversationManifest, registerAgentHostTools, resolveAgentHostModel } from '../agent-host/host'
 import { AgentHostScopedToolCatalog } from '../agent-host/scoped-catalog'
-import { loadCompanionAgentManifest } from '../agent-host/builtin-domains'
+import type { AgentHostModelPolicy } from '../../../src/shared/agent-host'
 import {
   formatExpertiseLevelForPrompt,
   resolveExpertiseLevel,
@@ -115,9 +115,8 @@ class AgentRuntime {
   }
 
   /** 附图理解与普通对话均使用主用途；image 用途只供独立生图工具使用。 */
-  async getLLMConfig(): Promise<LLMConfig> {
-    const { loadMainLLMConfig } = await import('../llm/aux-config')
-    return loadMainLLMConfig()
+  async getLLMConfig(policy: AgentHostModelPolicy = 'main'): Promise<LLMConfig> {
+    return resolveAgentHostModel(policy)
   }
 
   /** 获取辅助任务 LLM 配置（唯一入口：loadAuxLLMConfig，含 thinking 策略） */
@@ -152,7 +151,8 @@ class AgentRuntime {
     const abortController = new AbortController()
     this.activeControllers.set(sessionId, abortController)
     try {
-      const llmConfig = await this.getLLMConfig()
+      const hostPolicy = getHostConversationPolicy(Boolean(headless))
+      const llmConfig = await this.getLLMConfig(hostPolicy.modelPolicyKey)
       if (abortController.signal.aborted) {
         yield { type: 'done', reason: 'aborted', sessionId }
         return
@@ -180,7 +180,7 @@ class AgentRuntime {
       // M14：整段对话在 TraceContext 内，子 span / Observer 自动带 sessionId·userId
       yield* runWithTraceContextAsyncGen(
         { sessionId, userId: DEFAULT_TRACE_USER_ID },
-        () => this.chatTracked(sessionId, userMessage, toolRegistry, abortController, llmConfig, confirmTool, workspaceContext, headless),
+        () => this.chatTracked(sessionId, userMessage, toolRegistry, abortController, llmConfig, hostPolicy, confirmTool, workspaceContext, headless),
       )
     } finally {
       this.activeControllers.delete(sessionId)
@@ -194,6 +194,7 @@ class AgentRuntime {
     toolRegistry: ToolRegistry,
     abortController: AbortController,
     llmConfig: LLMConfig,
+    hostPolicy: ReturnType<typeof getHostConversationPolicy>,
     confirmTool?: (name: string, args: Record<string, unknown>) => Promise<boolean>,
     workspaceContext?: WorkspaceChatContext,
     headless?: { universeId?: string },
@@ -221,11 +222,12 @@ class AgentRuntime {
     try {
       // ── 构建上下文 ──
       const customPrompt = await settings.getSetting('systemPrompt')
-      const executionMode = (headless ? 'confirm-all' : await settings.getSetting('executionMode') || 'auto') as ExecutionMode
+      const executionMode = (hostPolicy.permissionPolicyKey === 'unattended-readonly' ? 'confirm-all' : await settings.getSetting('executionMode') || 'auto') as ExecutionMode
       const expertiseOverride = await settings.getSetting('userExpertiseLevel')
       // 会话绑定 role_id 优先；与 active 不一致时仍按会话组装（禁止中途换角偷换人设）
       const sessionMeta = await store.getSession(sessionId)
       const { assembleRoleId, activeRoleId, mismatch } = await assertConversationSessionRole(sessionMeta?.roleId)
+      const agentManifest = loadHostConversationManifest(assembleRoleId, hostPolicy)
       const isSummon = sessionMeta?.sessionKind === 'summon'
       const isWorkspace = sessionMeta?.sessionKind === 'workspace'
       if (mismatch) {
@@ -262,7 +264,7 @@ class AgentRuntime {
         sessionId,
         sessionKind: sessionMeta?.sessionKind || 'main',
         traceId: chatSpan.id,
-        permissionPolicyKey: 'companion-default',
+        permissionPolicyKey: agentManifest.permissionPolicyKey,
         executionMode,
         domain: domainInput,
       })
@@ -290,7 +292,7 @@ class AgentRuntime {
       let activeSkillBody: string | undefined
       let activeSkillTrace = getActiveSkillTrace(skillState)
       try {
-        skillSummary = buildSkillSummaryForPrompt() || undefined
+        skillSummary = buildSkillSummaryForPrompt(agentManifest.skillKeys) || undefined
         const active = getActiveSkill(skillState)
         if (active) {
           activeSkillBody = buildActiveSkillPrompt(active.meta.name, active.body)
@@ -327,10 +329,12 @@ class AgentRuntime {
           .join('\n')
         const project = workspaceContext?.projectPath?.trim()
         try {
-          const hostContext = await getAgentHostContext({
+          const hostContext = await getAgentHostContext(agentManifest, {
             roleId: assembleRoleId,
             sessionId,
             traceId: chatSpan.id,
+            runId: chatSpan.id,
+            signal: abortController.signal,
             domainKeys: ['workspace'],
             workspaceRoot: project,
             workspaceTranscript: transcript,
@@ -342,7 +346,9 @@ class AgentRuntime {
         }
       } else if (!isSummon) {
         try {
-          const hostContext = await getAgentHostContext({ roleId: assembleRoleId, sessionId, traceId: chatSpan.id })
+          const hostContext = await getAgentHostContext(agentManifest, {
+            roleId: assembleRoleId, sessionId, traceId: chatSpan.id, runId: chatSpan.id, signal: abortController.signal,
+          })
           if (hostContext.length > 0) sessionInfoParts.push(`Agent Host 动态上下文：\n${hostContext.join('\n')}`)
         } catch (error) {
           log.warn('Agent Host context provider failed', { roleId: assembleRoleId, errorType: error instanceof Error ? error.name : 'unknown' })
@@ -447,9 +453,9 @@ class AgentRuntime {
       }, isSummon ? 'summon' : isWorkspace ? 'workspace' : 'main')
 
       // ── 运行 Agent Loop ──
-      const agentManifest = loadCompanionAgentManifest({ id: assembleRoleId, personaKey: `role:${assembleRoleId}` })
       const toolContext: ToolContext = {
         agentManifest,
+        runId: chatSpan.id,
         workdir: getWorkspaceRoot() || process.cwd(),
         workspaceRoot: getWorkspaceRoot(),
         sessionId,
@@ -485,9 +491,7 @@ class AgentRuntime {
           filterTools: (allTools) => {
             const active = getActiveSkill(skillState)
             return new AgentHostScopedToolCatalog(agentManifest)
-              .filter(headless
-                ? allTools.filter(tool => !tool.resolveMetadata && shouldAutoApproveHeadlessTool(tool.name, tool.metadata))
-                : allTools, active?.meta.allowed_tools)
+              .filter(allTools, active?.meta.allowed_tools)
           },
         },
         toolRegistry,
@@ -833,6 +837,6 @@ function registerTaskRecoveryHandlers(): void {
 
 // Register headless runner with Scheduler
 import { setHeadlessRunner } from '../scheduler/index'
-import { shouldAutoApproveHeadlessTool } from './headless-policy'
+import { shouldAutoApproveHeadlessTool } from '../tools/headless-policy'
 registerTaskRecoveryHandlers()
 setHeadlessRunner((prompt, taskName, executionContext) => runtime.runHeadless(prompt, taskName, executionContext))

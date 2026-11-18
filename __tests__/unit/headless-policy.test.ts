@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { shouldAutoApproveHeadlessTool } from '../../electron/main/agent/headless-policy'
+import { shouldAutoApproveHeadlessTool } from '../../electron/main/tools/headless-policy'
 
 const readOnly = { isReadOnly: true, isDestructive: false }
 const destructive = { isReadOnly: false, isDestructive: true }

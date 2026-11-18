@@ -3,6 +3,7 @@ import { ToolMiddlewarePipeline, createDefaultPipeline, type ToolMiddlewareNext 
 import { createLogger } from '../utils/logger'
 import { checkFileToolPermission, consumeFilePermissionApproval, hasFilePermissionRules } from '../sandbox/file-tool-permission'
 import { loadEffectiveSandbox } from '../sandbox/effective-sandbox'
+import { shouldAutoApproveHeadlessTool } from './headless-policy'
 
 const TOOL_TIMEOUT_MS = 30_000
 /** 单批 concurrencySafe 工具最大并行数（M04），防止 Promise.all 打爆资源 */
@@ -160,6 +161,10 @@ export class ToolRegistry {
       }
     }
 
+    if (toolContext?.agentManifest?.permissionPolicyKey === 'unattended-readonly'
+      && (tool.resolveMetadata || !shouldAutoApproveHeadlessTool(canonical, tool.metadata))) {
+      return { callId: call.id, name: canonical, isError: true, content: '当前后台执行只允许明确声明为只读的工具。' }
+    }
     // 权限、并发和执行阶段共用同一个 fail-closed metadata 解析入口。
     const effectiveMetadata = this.resolveEffectiveMetadata(canonical, args) ?? tool.metadata
     const effectiveTool: ToolDefinition = { ...tool, metadata: effectiveMetadata }
@@ -196,6 +201,9 @@ export class ToolRegistry {
     const identity = { callId: call.id, name: call.name }
     const parent = toolContext?.signal
     if (parent?.aborted) return { ...identity, isError: true, content: '工具调用已取消，未启动执行。' }
+    const deadlineAt = tool.metadata.longRunning ? toolContext?.deadlineAt
+      : Math.min(toolContext?.deadlineAt ?? Infinity, Date.now() + TOOL_TIMEOUT_MS)
+    if (deadlineAt !== undefined && deadlineAt <= Date.now()) return { ...identity, isError: true, content: '工具执行时间已到，未启动执行。' }
 
     // 超时只取消本次调用，不能取消其他并行工具或整个会话。
     // 长任务仍接受父操作取消，已交给外部系统的写入则必须核实实际结果。
@@ -204,14 +212,14 @@ export class ToolRegistry {
     const timeoutError = new DOMException('工具执行超时。', 'TimeoutError')
     const abortFromParent = () => controller.abort(parent?.reason)
     parent?.addEventListener('abort', abortFromParent, { once: true })
-    const timer = tool.metadata.longRunning ? undefined : setTimeout(() => controller.abort(timeoutError), TOOL_TIMEOUT_MS)
+    const timer = deadlineAt === undefined ? undefined : setTimeout(() => controller.abort(timeoutError), deadlineAt - Date.now())
     let onAbort: (() => void) | undefined
     const cancelled = new Promise<never>((_, reject) => {
       onAbort = () => reject(signal.reason)
       signal.addEventListener('abort', onAbort, { once: true })
     })
     try {
-      const context = toolContext ? { ...toolContext, signal } : undefined
+      const context = toolContext ? { ...toolContext, signal, deadlineAt } : undefined
       const output = await Promise.race([tool.execute(args, context), cancelled])
       signal.throwIfAborted()
       return { ...(typeof output === 'string' ? { content: output } : output), ...identity }

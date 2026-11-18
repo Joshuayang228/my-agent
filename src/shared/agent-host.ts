@@ -3,6 +3,8 @@
 export type AgentHostCapabilityKind = 'query' | 'command' | 'workflow' | 'context' | 'lifecycle'
 
 export const AGENT_HOST_MANIFEST_VERSION = 1
+export type AgentHostModelPolicy = 'main' | 'auxiliary'
+export type AgentHostPermissionPolicy = 'companion-default' | 'unattended-readonly'
 
 export interface AgentHostSkillMetadata {
   key: string
@@ -19,6 +21,8 @@ export interface AgentHostExecutionContext {
   sessionId?: string
   roleId?: string
   traceId: string
+  runId?: string
+  deadlineAt?: number
   operationKey?: string
   signal?: AbortSignal
   workspaceRoot?: string
@@ -73,8 +77,8 @@ export interface AgentHostManifest {
   domainKeys: readonly string[]
   capabilityPolicy: AgentHostCapabilityPolicy
   skillKeys: readonly string[]
-  modelPolicyKey: string
-  permissionPolicyKey: string
+  modelPolicyKey: AgentHostModelPolicy
+  permissionPolicyKey: AgentHostPermissionPolicy
   grantedPermissions: readonly string[]
   lifecyclePolicyKey?: string
 }
