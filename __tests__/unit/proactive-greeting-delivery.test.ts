@@ -5,7 +5,13 @@ import type { Database } from 'sql.js'
 import type { BrowserWindow } from 'electron'
 
 const { preferences, latest } = vi.hoisted(() => ({ preferences: new Map<string, string>(), latest: { id: 'moment-a', text: '不应进入证据的动态正文', publishedAt: 0 } }))
+const { ensureMainSession, enqueueSessionMessage } = vi.hoisted(() => ({
+  ensureMainSession: vi.fn(async (_roleId: string) => ({ id: 'session-a' })),
+  enqueueSessionMessage: vi.fn(async (_input: { roleId: string; sessionId: string; message: { id: string } }) => {}),
+}))
 vi.mock('../../electron/main/storage/settings-store', () => ({ getSetting: async (key: string) => preferences.get(key) ?? '' }))
+vi.mock('../../electron/main/storage/session-store', () => ({ ensureMainSessionForRole: ensureMainSession }))
+vi.mock('../../electron/main/companion/application/session-outbox', () => ({ enqueueCompanionSessionMessage: enqueueSessionMessage }))
 vi.mock('../../electron/main/companion/life/moments', () => ({ listMomentsForRole: async () => [latest] }))
 vi.mock('../../electron/main/companion/identity/loader', () => ({ loadRolePack: () => ({ name: '测试伙伴' }) }))
 
@@ -18,6 +24,8 @@ let db: Database
 let sender: EventEmitter & { send: ReturnType<typeof vi.fn>; id: number }
 const NOW = new Date(2027, 0, 15, 14).getTime()
 beforeEach(async () => {
+  ensureMainSession.mockClear()
+  enqueueSessionMessage.mockClear()
   vi.useFakeTimers(); vi.setSystemTime(NOW)
   db = new (await initSqlJs()).Database()
   createProactiveEvidenceSchema(db)
@@ -35,10 +43,24 @@ it('并发真实决策只产生一次发送，旧全局日标记不阻止其他�
   const results = await Promise.all(Array.from({ length: 20 }, () => maybeProactiveGreeting('role-a', NOW)))
   expect(results.filter(result => result.greeted)).toHaveLength(1)
   expect(sender.send).toHaveBeenCalledTimes(1)
+  const payload = sender.send.mock.calls[0][1]
+  expect(ensureMainSession).toHaveBeenCalledExactlyOnceWith('role-a')
+  expect(enqueueSessionMessage).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+    roleId: 'role-a',
+    sessionId: 'session-a',
+    message: expect.objectContaining({ id: payload.attemptId }),
+  }))
   const records = queryProactiveEvidence({ roleId: 'role-a' }).records
   expect(records.filter(row => row.status === 'dispatched')).toHaveLength(1)
   expect(records.find(row => row.reason === 'already-today')?.checks).toBe(19)
   expect(JSON.stringify(records)).not.toContain(latest.text)
+})
+
+it('没有可见窗口时不创建会话或写入问候消息', async () => {
+  sender.emit('destroyed')
+  expect((await maybeProactiveGreeting('role-a', NOW)).reason).toBe('no-window')
+  expect(ensureMainSession).not.toHaveBeenCalled()
+  expect(enqueueSessionMessage).not.toHaveBeenCalled()
 })
 
 it('关闭与勿扰原因进入证据，不发送提示', async () => {

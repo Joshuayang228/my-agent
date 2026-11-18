@@ -55,6 +55,7 @@ const {
   checkAndProgressAbsorbedResonances,
 } = await import('../../electron/main/companion/life/chat-resonance')
 const { createAsset, getAsset, ASSET_KIND_CULTURE } = await import('../../electron/main/companion/life/assets')
+const { setSetting } = await import('../../electron/main/storage/settings-store')
 const { formatConversationImpulseForPrompt } = await import('../../electron/main/companion/orchestrator')
 
 describe('文化心愿体验闭环与主动反馈（Culture Progression & Review Loop）', () => {
@@ -191,7 +192,8 @@ describe('文化心愿体验闭环与主动反馈（Culture Progression & Review
     expect(impulse).toContain('你之前推荐的书我已经读完了')
   })
 
-  it('checkAndProgressAbsorbedResonances 自动推进超时已吸收的心愿并触发闭环', async () => {
+  it('自动推进超时心愿，静音时仍完成体验但不产生提醒', async () => {
+    await setSetting('companionMomentTipsMuted', 'true')
     const now = Date.now()
     const fiveHoursAgo = now - 5 * 3600 * 1000
 
@@ -225,5 +227,7 @@ describe('文化心愿体验闭环与主动反馈（Culture Progression & Review
 
     expect(row?.status).toBe('completed')
     expect(typeof row?.feedback_text).toBe('string')
+    expect(memDb.exec("SELECT COUNT(*) FROM companion_outbox WHERE kind = 'resonance-completed'")[0]?.values[0][0]).toBe(0)
+    expect(sendMock).not.toHaveBeenCalledWith('companion:resonance-completed', expect.anything())
   })
 })

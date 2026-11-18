@@ -6,7 +6,6 @@
  * 约束：默认关闭；复用勿扰窗；不发系统桌面通知；无 Moment 绝不空喊「想我了吗」。
  */
 
-import { randomUUID } from 'node:crypto'
 import { PROACTIVE_DELIVERY_POLICY } from '../../../../src/shared/proactive-evidence'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm/index'
@@ -169,23 +168,23 @@ export async function maybeProactiveGreeting(
     recordProactiveSkip(id, today, 'role-inactive', now, latest?.id)
     return { greeted: false, reason: 'role-inactive' }
   }
-  let sessionId: string | undefined
-  try {
-    const { ensureMainSessionForRole } = await import('../../storage/session-store')
-    const session = await ensureMainSessionForRole(id)
-    sessionId = session.id
-    const greetingText = toast.replace(/^[^：:]+[：:]\s*/, '').trim()
-    if (greetingText) {
-      await enqueueCompanionSessionMessage({
-        roleId: id,
-        sessionId: session.id,
-        message: { id: randomUUID(), role: 'assistant', content: greetingText, timestamp: now },
-      })
-    }
-  } catch (err) {
-    // 写入会话失败降级；不阻断主动消息呈现与回执记录
-  }
-  return dispatchProactiveGreeting({ roleId: id, localDay: today, momentId: latest!.id, toast, now, sessionId })
+  return dispatchProactiveGreeting({
+    roleId: id, localDay: today, momentId: latest!.id, toast, now,
+    // 窗口有效且当日预留已保存后，仅胜出的发送尝试可写入一次主会话。
+    prepareSession: async attemptId => {
+      const { ensureMainSessionForRole } = await import('../../storage/session-store')
+      const session = await ensureMainSessionForRole(id)
+      const greetingText = toast.replace(/^[^：:]+[：:]\s*/, '').trim()
+      if (greetingText) {
+        await enqueueCompanionSessionMessage({
+          roleId: id,
+          sessionId: session.id,
+          message: { id: attemptId, role: 'assistant', content: greetingText, timestamp: now },
+        })
+      }
+      return session.id
+    },
+  })
 }
 
 export const __test = {

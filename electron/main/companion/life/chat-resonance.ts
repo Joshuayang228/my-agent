@@ -36,6 +36,7 @@ import { executeCompanionCommand } from '../core/commands/gateway'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
 import { recordCompanionEventAndNotify } from '../application/record-event-notify'
+import { enqueueAutomaticProactiveNotification } from '../application/proactive-budget'
 import { recordCompanionProjection } from '../core/projections/receipts'
 import { linkCompanionExecutionEvent } from '../core/execution/ledger'
 import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
@@ -359,6 +360,7 @@ export async function settleChatResonance(
 
 export interface CompleteCultureResonanceOptions {
   llmConfig?: LLMConfig
+  automatic?: boolean
   mockResponse?: {
     reviewText: string
     chatOpener: string
@@ -542,13 +544,17 @@ export async function completeCultureResonance(
           })
           await linkCompanionExecutionEvent({ executionId: context.executionId, eventId: domainEvent.id })
           await recordCompanionProjection({ projectionName: 'legacy-culture-resonance', eventId: domainEvent.id })
-          await enqueueCompanionOutbox({
-            roleId,
-            eventId: domainEvent.id,
-            kind: 'resonance-completed',
-            dedupeKey: `resonance-completed:${currentResonance.id}`,
-            payload: { roleId, resonance: updatedResonance, message: notificationMessage },
-          })
+          const enqueueNotification = async () => {
+            await enqueueCompanionOutbox({
+              roleId,
+              eventId: domainEvent.id,
+              kind: 'resonance-completed',
+              dedupeKey: `resonance-completed:${currentResonance.id}`,
+              payload: { roleId, resonance: updatedResonance, message: notificationMessage },
+            })
+          }
+          if (opts?.automatic) await enqueueAutomaticProactiveNotification(roleId, now, enqueueNotification)
+          else await enqueueNotification()
         },
       })
       if (parsedReview.shouldPostMoment && parsedReview.momentText) {
@@ -598,6 +604,7 @@ export async function completeCultureResonance(
             'luffy-merry-bell',
             `共同心愿达成·体验完「${currentResonance.targetName}」的专属纪念`,
             now,
+            { automatic: true },
           )
         }
       } catch (err) {
@@ -675,7 +682,7 @@ export async function checkAndProgressAbsorbedResonances(
     const absorbedAt = item.absorbedAt ?? item.createdAt
     if (now - absorbedAt >= FOUR_HOURS) {
       const config = opts?.llmConfig ?? (await loadAuxLLMConfig())
-      const res = await completeCultureResonance(item.id, roleId, { llmConfig: config })
+      const res = await completeCultureResonance(item.id, roleId, { llmConfig: config, automatic: true })
       if (res.ok) completedCount++
     }
   }

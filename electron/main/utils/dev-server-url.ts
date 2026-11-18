@@ -7,7 +7,7 @@
  * 关键约束：外部域名、凭据 URL、非 HTTP(S) 和无效 URL 一律返回 undefined；不能让远程网页获得 preload IPC。
  */
 export function normalizeDevServerUrl(value: string | undefined): string | undefined {
-  if (!value) return value
+  if (!value) return undefined
   try {
     const url = new URL(value)
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return undefined

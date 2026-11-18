@@ -15,6 +15,7 @@ describe('normalizeDevServerUrl', () => {
     expect(normalizeDevServerUrl('https://user:pass@localhost:5173/')).toBeUndefined()
     expect(normalizeDevServerUrl('file:///tmp/index.html')).toBeUndefined()
     expect(normalizeDevServerUrl('not-a-url')).toBeUndefined()
+    expect(normalizeDevServerUrl('')).toBeUndefined()
     expect(normalizeDevServerUrl(undefined)).toBeUndefined()
   })
 })

@@ -93,24 +93,24 @@ describe('问候名额与只读证据 SQL', () => {
   })
 })
 
-describe('定向发送与回执', () => {
-  it('未启动只返回不可用，无窗口不占名额，后来有窗口才第一次发出', () => {
+describe('定向发送与回执', async () => {
+  it('未启动只返回不可用，无窗口不占名额，后来有窗口才第一次发出', async () => {
     expect(query().state).toBe('unavailable')
-    expect(dispatch().reason).toBe('evidence-unavailable')
+    expect((await dispatch()).reason).toBe('evidence-unavailable')
     startProactiveEvidence(db, persist)
-    expect(dispatch().reason).toBe('no-window')
+    expect((await dispatch()).reason).toBe('no-window')
     const hidden = windowFixture({ visible: false }); registerProactiveGreetingWindow(hidden.win)
-    expect(dispatch().reason).toBe('no-window')
+    expect((await dispatch()).reason).toBe('no-window')
     const visible = windowFixture(); registerProactiveGreetingWindow(visible.win)
-    expect(dispatch()).toEqual({ greeted: true, reason: 'ok' })
+    expect(await dispatch()).toEqual({ greeted: true, reason: 'ok' })
     expect(visible.sender.send).toHaveBeenCalledTimes(1)
     expect(hidden.sender.send).not.toHaveBeenCalled()
   })
 
-  it('发出不等于呈现，凭据绑定接收窗口和主 frame，重复与伪造被拒绝', () => {
+  it('发出不等于呈现，凭据绑定接收窗口和主 frame，重复与伪造被拒绝', async () => {
     startProactiveEvidence(db, persist)
     const first = windowFixture(); registerProactiveGreetingWindow(first.win)
-    dispatch()
+    await dispatch()
     const receipt = { attemptId: first.payload().attemptId, receiptToken: first.payload().receiptToken }
     expect(query().records[0].status).toBe('dispatched')
     const other = windowFixture(); registerProactiveGreetingWindow(other.win)
@@ -126,44 +126,44 @@ describe('定向发送与回执', () => {
     expect(vi.getTimerCount()).toBe(0)
   })
 
-  it('多窗口凭据各自不同，任一合法呈现结束该 attempt，不能跨窗口代报', () => {
+  it('多窗口凭据各自不同，任一合法呈现结束该 attempt，不能跨窗口代报', async () => {
     startProactiveEvidence(db, persist)
     const first = windowFixture(); const second = windowFixture()
     registerProactiveGreetingWindow(first.win); registerProactiveGreetingWindow(second.win)
-    dispatch()
+    await dispatch()
     expect(first.payload().attemptId).toBe(second.payload().attemptId)
     expect(first.payload().receiptToken).not.toBe(second.payload().receiptToken)
     expect(acknowledgeProactiveGreeting(second.event, { attemptId: first.payload().attemptId, receiptToken: first.payload().receiptToken }).accepted).toBe(false)
     expect(acknowledgeProactiveGreeting(second.event, { attemptId: second.payload().attemptId, receiptToken: second.payload().receiptToken }).accepted).toBe(true)
     expect(query().records[0]).toMatchObject({ status: 'presented', recipientCount: 2, sentCount: 2 })
-    expect(dispatch().reason).toBe('already-today')
+    expect((await dispatch()).reason).toBe('already-today')
   })
 
-  it('超时、发送失败或导航撤销不自动重发；部分窗口失败仍记录真实计数', () => {
+  it('超时、发送失败或导航撤销不自动重发；部分窗口失败仍记录真实计数', async () => {
     startProactiveEvidence(db, persist)
     const failing = windowFixture({ throws: true }); const good = windowFixture()
     registerProactiveGreetingWindow(failing.win); registerProactiveGreetingWindow(good.win)
-    expect(dispatch().greeted).toBe(true)
+    expect((await dispatch()).greeted).toBe(true)
     expect(query().records[0]).toMatchObject({ sentCount: 1, failedCount: 1 })
     good.sender.emit('did-start-navigation', {}, 'new-page', false, true)
     expect(acknowledgeProactiveGreeting(good.event, { attemptId: good.payload().attemptId, receiptToken: good.payload().receiptToken }).accepted).toBe(false)
     vi.advanceTimersByTime(30_001)
     expect(query().records[0]).toMatchObject({ status: 'unconfirmed', reason: 'receipt-timeout' })
-    expect(dispatch().reason).toBe('already-today')
+    expect((await dispatch()).reason).toBe('already-today')
     expect(good.sender.send).toHaveBeenCalledTimes(1)
   })
 
-  it('所有窗口发送失败仍消费当天名额，预留落盘失败完全不发送', () => {
+  it('所有窗口发送失败仍消费当天名额，预留落盘失败完全不发送', async () => {
     startProactiveEvidence(db, persist)
     const bad = windowFixture({ throws: true }); registerProactiveGreetingWindow(bad.win)
-    expect(dispatch().reason).toBe('send-failed')
+    expect((await dispatch()).reason).toBe('send-failed')
     expect(query().records[0].status).toBe('failed')
-    expect(dispatch().reason).toBe('already-today')
+    expect((await dispatch()).reason).toBe('already-today')
     persist.mockImplementationOnce(() => { throw new Error('disk full') })
     const good = windowFixture(); registerProactiveGreetingWindow(good.win)
-    expect(dispatch('role-b').reason).toBe('evidence-unavailable')
+    expect((await dispatch('role-b')).reason).toBe('evidence-unavailable')
     expect(good.sender.send).not.toHaveBeenCalled()
     expect(query('role-b').records[0]).toMatchObject({ status: 'failed', reason: 'reservation-save-failed' })
-    expect(dispatch('role-b').reason).toBe('already-today')
+    expect((await dispatch('role-b')).reason).toBe('already-today')
   })
 })

@@ -30,6 +30,7 @@ import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatc
 import { enqueueCompanionSessionMessage } from '../application/session-outbox'
 import { dispatchCompanionSessionOutbox } from '../adapters/session-outbox-dispatcher'
 import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
+import { enqueueAutomaticProactiveNotification } from '../application/proactive-budget'
 import type { CompanionKeepsakeRecord, CompanionKeepsakeGiftEvent, LLMConfig } from '../../../../src/shared/types'
 
 const log = createLogger('RelationshipKeepsake')
@@ -183,6 +184,7 @@ export async function triggerGiftKeepsake(
   now = Date.now(),
   opts?: {
     llmConfig?: LLMConfig
+    automatic?: boolean
     mockResponse?: {
       giftSpeech: string
       celebrationTitle?: string
@@ -302,19 +304,6 @@ export async function triggerGiftKeepsake(
         [keepsakeRecord.id, keepsakeRecord.roleId, keepsakeRecord.name, keepsakeRecord.description, keepsakeRecord.lore, keepsakeRecord.giftMessage, keepsakeRecord.giftReason, keepsakeRecord.iconName, null, now],
       )
 
-      // 5. 将赠礼消息作为 assistant 写入该角色的主会话；事务内只入 Outbox。
-    const session = await ensureMainSessionForRole(roleId)
-    await enqueueCompanionSessionMessage({
-      roleId,
-      sessionId: session.id,
-      message: {
-        id: randomUUID(),
-        role: 'assistant',
-        content: speech,
-        timestamp: now,
-      },
-      dispatch: false,
-    })
       const domainEvent = await appendCompanionDomainEvent({
         roleId,
         universeId: resolveRoleUniverseId(roleId),
@@ -328,13 +317,25 @@ export async function triggerGiftKeepsake(
         payload: event as unknown as Record<string, unknown>,
         schemaVersion: 1,
       })
-      await enqueueCompanionOutbox({
-        roleId,
-        eventId: domainEvent.id,
-        kind: 'keepsake-gifted',
-        dedupeKey: `keepsake-gifted:${keepsakeRecord.id}`,
-        payload: event as unknown as Record<string, unknown>,
-      })
+      const enqueueNotification = async () => {
+        const session = await ensureMainSessionForRole(roleId)
+        await enqueueCompanionSessionMessage({
+          roleId,
+          eventId: domainEvent.id,
+          sessionId: session.id,
+          message: { id: domainEvent.id, role: 'assistant', content: speech, timestamp: now },
+          dispatch: false,
+        })
+        await enqueueCompanionOutbox({
+          roleId,
+          eventId: domainEvent.id,
+          kind: 'keepsake-gifted',
+          dedupeKey: `keepsake-gifted:${keepsakeRecord.id}`,
+          payload: event as unknown as Record<string, unknown>,
+        })
+      }
+      if (opts?.automatic) await enqueueAutomaticProactiveNotification(roleId, now, enqueueNotification)
+      else await enqueueNotification()
     })
     await dispatchCompanionWindowOutbox()
     await dispatchCompanionSessionOutbox()

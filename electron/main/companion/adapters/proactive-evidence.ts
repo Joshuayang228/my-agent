@@ -55,13 +55,24 @@ export function recordProactiveSkip(roleId: string, localDay: string, reason: Pr
   catch { log.warn('Proactive decision evidence could not be saved') }
 }
 
+function canReceiveGreeting(win: BrowserWindow): boolean {
+  return !win.isDestroyed() && win.isVisible() && !win.isMinimized() && !win.webContents.isDestroyed() && !win.webContents.isLoadingMainFrame()
+}
+
 /** 背景：设置一个全局日标记后广播既不能证明呈现，也会在并发 tick 重复打扰。
  * 意图：先可靠预留人物每日名额，再给登记且可见的窗口各发一次性凭据。
  * 约束：无窗口不消费；预留后失败 / 超时不释放名额、不自动重发；只存元数据。
  */
-export function dispatchProactiveGreeting(input: { roleId: string; localDay: string; momentId: string; toast: string; now: number; sessionId?: string }): { greeted: boolean; reason: 'ok' | 'already-today' | 'no-window' | 'send-failed' | 'evidence-unavailable' } {
+export async function dispatchProactiveGreeting(input: {
+  roleId: string
+  localDay: string
+  momentId: string
+  toast: string
+  now: number
+  prepareSession?: (attemptId: string) => Promise<string | undefined>
+}): Promise<{ greeted: boolean; reason: 'ok' | 'already-today' | 'no-window' | 'send-failed' | 'evidence-unavailable' }> {
   if (!store || pending.size >= PROACTIVE_DELIVERY_POLICY.maxPending) return { greeted: false, reason: 'evidence-unavailable' }
-  const recipients = [...windows.values()].filter(win => !win.isDestroyed() && win.isVisible() && !win.isMinimized() && !win.webContents.isDestroyed() && !win.webContents.isLoadingMainFrame()).slice(0, PROACTIVE_DELIVERY_POLICY.maxRecipients)
+  const recipients = [...windows.values()].filter(canReceiveGreeting).slice(0, PROACTIVE_DELIVERY_POLICY.maxRecipients)
   if (!recipients.length) { recordProactiveSkip(input.roleId, input.localDay, 'no-window', input.now, input.momentId); return { greeted: false, reason: 'no-window' } }
   let attemptId: string | null
   try { attemptId = store.reserve(input.roleId, input.localDay, input.momentId, recipients.length, input.now) }
@@ -74,12 +85,23 @@ export function dispatchProactiveGreeting(input: { roleId: string; localDay: str
   }, RECEIPT_TIMEOUT_MS)
   timer.unref?.()
   pending.set(attemptId, { tokens, timer, expiresAt: Date.now() + RECEIPT_TIMEOUT_MS })
+  let sessionId: string | undefined
+  try {
+    sessionId = await input.prepareSession?.(attemptId)
+  } catch (error) {
+    log.warn('Proactive greeting session message could not be queued', { roleId: input.roleId, errorType: error instanceof Error ? error.name : 'unknown' })
+  }
+  if (!store || !pending.has(attemptId)) return { greeted: false, reason: 'evidence-unavailable' }
   let sent = 0
   let failed = 0
   for (const win of recipients) {
+    if (!canReceiveGreeting(win) || windows.get(win.webContents.id) !== win) {
+      failed += 1
+      continue
+    }
     const token = randomUUID()
     tokens.set(win.webContents.id, token)
-    const payload: ProactiveGreetingPayload = { roleId: input.roleId, momentId: input.momentId, toast: input.toast, attemptId, receiptToken: token, ...(input.sessionId ? { sessionId: input.sessionId } : {}) }
+    const payload: ProactiveGreetingPayload = { roleId: input.roleId, momentId: input.momentId, toast: input.toast, attemptId, receiptToken: token, ...(sessionId ? { sessionId } : {}) }
     try { win.webContents.send('companion:proactive-greeting', payload); sent += 1 }
     catch { tokens.delete(win.webContents.id); failed += 1 }
   }

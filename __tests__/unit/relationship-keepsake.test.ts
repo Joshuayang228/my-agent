@@ -152,4 +152,16 @@ describe('羁绊深度跃迁与专属信物馈赠（Relationship Keepsake Gifts�
     const finalList = await listKeepsakes('luffy')
     expect(finalList.length).toBe(4)
   })
+
+  it('静音后仍保存自动馈赠，但不写聊天或发提醒', async () => {
+    settingsStore.set('companionMomentTipsMuted', 'true')
+    const gifted = await triggerGiftKeepsake('luffy', 'luffy-merry-bell', '共同体验的纪念', Date.now(), {
+      automatic: true,
+      mockResponse: { giftSpeech: '送给你。' },
+    })
+    expect(gifted?.id).toBe('luffy-merry-bell')
+    expect((await listKeepsakes('luffy')).map(record => record.id)).toContain('luffy-merry-bell')
+    expect(memDb.exec('SELECT COUNT(*) FROM messages')[0].values[0][0]).toBe(0)
+    expect(sendMock).not.toHaveBeenCalledWith('companion:keepsake-gifted', expect.anything())
+  })
 })

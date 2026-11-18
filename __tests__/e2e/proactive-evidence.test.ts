@@ -17,16 +17,22 @@ test('真实问候呈现回执、重复 tick 与重启保留名额', async ({}, 
   const root = await mkdtemp(path.join(os.tmpdir(), 'my-agent-proactive-evidence-'))
   const bootstrap = path.join(root, 'bootstrap.cjs')
   let mainOutput = ''
-  let presentationProbe: unknown
+  const presentationProbe: unknown[] = []
   let checkedRoleId = ''
   const entry = pathToFileURL(path.resolve('dist-electron/index.js')).href
-  await writeFile(bootstrap, `const original = global.setTimeout; global.setTimeout = (fn,ms,...args) => { if (typeof fn === 'function' && (ms === 0 || ms >= 300000)) global.__testLifeTick=fn; return original(fn,ms,...args) }; import(${JSON.stringify(entry)});`)
+  await writeFile(bootstrap, `const original = global.setTimeout; global.setTimeout = (fn,ms,...args) => { if (typeof fn === 'function' && ms === 300000 && !global.__testLifeTick) global.__testLifeTick=fn; return original(fn,ms,...args) }; import(${JSON.stringify(entry)});`)
   const launch = async () => {
     const launched = await electron.launch({ args: [bootstrap, `--user-data-dir=${root}`, '--no-sandbox'], env: { ...process.env, NODE_ENV: 'production', VITE_DEV_SERVER_URL: '', LLM_API_KEY: '', LLM_BASE_URL: '', LLM_MODEL: '' } })
     launched.process().stdout?.on('data', data => { mainOutput = (mainOutput + String(data)).slice(-24000) })
+    launched.process().stderr?.on('data', data => { mainOutput = (mainOutput + String(data)).slice(-24000) })
     return launched
   }
   let app: ElectronApplication | undefined
+  const tick = async () => app!.evaluate(() => {
+    const callback = (globalThis as unknown as { __testLifeTick?: () => Promise<void> }).__testLifeTick
+    if (!callback) throw new Error('未取得真实 ticker 回调')
+    return callback()
+  })
   try {
     app = await launch()
     expect(path.resolve(await app.evaluate(({ app }) => app.getPath('userData')))).toBe(path.resolve(root))
@@ -34,11 +40,13 @@ test('真实问候呈现回执、重复 tick 与重启保留名额', async ({}, 
     await expect(page.locator('#startup-splash')).toBeHidden()
     const roleId = await page.evaluate(async () => {
       const roleId = (await window.electronAPI.companion.getActive()).id
-      for (const [key, value] of Object.entries({ developerMode: 'true', activeRoleId: roleId, companionProactiveGreetingEnabled: 'true', companionMomentTipsMuted: 'false', companionMomentTipsQuietStart: '0', companionMomentTipsQuietEnd: '0' })) await window.electronAPI.settings.set(key, value)
+      for (const [key, value] of Object.entries({ developerMode: 'true', activeRoleId: roleId, companionProactiveGreetingEnabled: 'false', companionMomentTipsMuted: 'true', companionMomentTipsQuietStart: '0', companionMomentTipsQuietEnd: '0' })) await window.electronAPI.settings.set(key, value)
       return roleId
     })
     expect(roleId).toBe('luffy')
     checkedRoleId = roleId
+    await expect.poll(() => app!.evaluate(() => typeof (globalThis as { __testLifeTick?: unknown }).__testLifeTick)).toBe('function')
+    await tick()
     await app.close(); app = undefined
     const dbPath = path.join(root, 'my-agent.db')
     const require = createRequire(import.meta.url)
@@ -50,7 +58,7 @@ test('真实问候呈现回执、重复 tick 与重启保留名额', async ({}, 
     db.run("UPDATE companion_events SET status='cancelled' WHERE role_id=? AND status='planned'", [roleId])
     db.run("INSERT INTO companion_events(id,role_id,scheduled_at,status,type,payload_json) VALUES (?,?,?,'published','moment',?)", ['proactive-fixture-event', roleId, now - 1000, JSON.stringify({ activity: '和伙伴整理航线', location: '千里阳光号 · 共享甲板', mood: '平静' })])
     db.run("INSERT INTO companion_moments(id,role_id,event_id,published_at,text,meta_json) VALUES (?,?,?,?,?,'{}')", ['proactive-fixture-moment', roleId, 'proactive-fixture-event', now, '在千里阳光号甲板上和伙伴整理航线'])
-    db.run("UPDATE settings SET value='false' WHERE key='companionProactiveGreetingEnabled'")
+    db.run("UPDATE settings SET value='false' WHERE key='companionMomentTipsMuted'")
     // 本故事只验问候回执，固定低社交需求和中等精力，避免即兴搭话先消费共享提醒预算。
     db.run('INSERT INTO companion_runtime_state(role_id,universe_id,mood,energy,social_need,hunger,sleepiness,updated_at) VALUES (?, ?, 60, 50, 30, 0, 0, ?) ON CONFLICT(role_id) DO UPDATE SET energy=50,social_need=30', [roleId, 'default', now])
     db.run('DELETE FROM companion_greeting_days WHERE role_id=?', [roleId])
@@ -64,13 +72,8 @@ test('真实问候呈现回执、重复 tick 与重启保留名额', async ({}, 
     await page.getByTestId('settings-back').click()
     await page.evaluate(() => {
       window.electronAPI.companion.onProactiveGreeting(payload => {
-        ;(window as unknown as { __testReceipt: { attemptId: string; receiptToken: string } }).__testReceipt = { attemptId: payload.attemptId, receiptToken: payload.receiptToken }
+        ;(window as unknown as { __testReceipt: typeof payload }).__testReceipt = payload
       })
-    })
-    const tick = async () => app!.evaluate(() => {
-      const callback = (globalThis as unknown as { __testLifeTick?: () => Promise<void> }).__testLifeTick
-      if (!callback) throw new Error('未取得真实 ticker 回调')
-      return callback()
     })
     await app.evaluate(({ BrowserWindow }) => { BrowserWindow.getAllWindows()[0].hide() })
     await page.evaluate(() => window.electronAPI.settings.set('companionProactiveGreetingEnabled', 'true'))
@@ -95,7 +98,7 @@ test('真实问候呈现回执、重复 tick 与重启保留名额', async ({}, 
     await tick()
     await expect.poll(async () => {
       const result = await page.evaluate(roleId => window.electronAPI.companion.proactiveEvidenceQuery({ roleId }), roleId)
-      presentationProbe = await page.evaluate(() => ({ visibility: document.visibilityState, focused: document.hasFocus(), received: Boolean((window as unknown as { __testReceipt?: unknown }).__testReceipt), statuses: [...document.querySelectorAll('[role="status"]')].map(node => ({ width: node.getBoundingClientRect().width, opacity: getComputedStyle(node).opacity, text: node.textContent?.slice(0, 100) })) }))
+      presentationProbe.push(await page.evaluate(() => ({ visibility: document.visibilityState, focused: document.hasFocus(), received: Boolean((window as unknown as { __testReceipt?: unknown }).__testReceipt), statuses: [...document.querySelectorAll('[role="status"]')].map(node => ({ width: node.getBoundingClientRect().width, opacity: getComputedStyle(node).opacity, text: node.textContent?.slice(0, 100) })) })))
       return result.records.some(row => row.status === 'presented')
     }).toBe(true)
     const saved = (await page.evaluate(roleId => window.electronAPI.companion.proactiveEvidenceQuery({ roleId }), roleId)).records.find(row => row.status === 'presented')!
@@ -114,26 +117,32 @@ test('真实问候呈现回执、重复 tick 与重启保留名额', async ({}, 
     await reading.getByRole('button', { name: '返回全部记录', exact: true }).click()
     await expect(reading.locator(`[data-record-id="${saved.id}"]`)).toBeVisible()
     expect(await foreign.evaluate(() => (window as unknown as { __foreignReceived: number }).__foreignReceived)).toBe(0)
-    expect((await foreign.evaluate(id => window.electronAPI.companion.acknowledgeProactiveGreeting({ attemptId: id, receiptToken: '11111111-1111-4111-8111-111111111111' }), saved.id)).accepted).toBe(false)
+    await expect(foreign.evaluate(id => window.electronAPI.companion.acknowledgeProactiveGreeting({ attemptId: id, receiptToken: '11111111-1111-4111-8111-111111111111' }), saved.id)).rejects.toThrow('无效的请求来源')
     await app.evaluate(({ BrowserWindow }, id) => BrowserWindow.fromId(id)?.destroy(), foreignWindow)
 
-    const receipt = await page.evaluate(() => (window as unknown as { __testReceipt?: { attemptId: string; receiptToken: string } }).__testReceipt)
-    if (receipt) expect((await page.evaluate(receipt => window.electronAPI.companion.acknowledgeProactiveGreeting(receipt), receipt)).accepted).toBe(false)
+    const payload = await page.evaluate(() => (window as unknown as { __testReceipt: { sessionId: string; attemptId: string; receiptToken: string } }).__testReceipt)
+    const { sessionId, attemptId, receiptToken } = payload
+    const receipt = { attemptId, receiptToken }
+    expect((await page.evaluate(receipt => window.electronAPI.companion.acknowledgeProactiveGreeting(receipt), receipt)).accepted).toBe(false)
     await Promise.all([tick(), tick(), tick()])
     // 共享预算会在问候日级判定前拦截重复 tick，验收持久回执和发送次数，避免绑定内部拦截顺序。
     expect((await page.evaluate(({ roleId, id }) => window.electronAPI.companion.proactiveEvidenceQuery({ roleId, recordId: id }), { roleId, id: saved.id })).records).toEqual([saved])
     expect((await page.evaluate(roleId => window.electronAPI.companion.proactiveEvidenceQuery({ roleId }), roleId)).records.filter(row => row.status !== 'skipped')).toHaveLength(1)
+    const countGreetingMessages = () => page.evaluate(async ({ sessionId, attemptId }) =>
+      (await window.electronAPI.session.get(sessionId))?.messages.filter(message => message.id === attemptId).length, { sessionId, attemptId })
+    expect(await countGreetingMessages()).toBe(1)
     await app.close(); app = undefined
     app = await launch(); page = await app.firstWindow()
     await expect(page.locator('#startup-splash')).toBeHidden()
     await tick()
     const reopened = await page.evaluate(({ roleId, id }) => window.electronAPI.companion.proactiveEvidenceQuery({ roleId, recordId: id }), { roleId, id: saved.id })
     expect(reopened.records).toEqual([saved])
+    expect(await countGreetingMessages()).toBe(1)
     const raw = JSON.stringify((await page.evaluate(roleId => window.electronAPI.companion.proactiveEvidenceQuery({ roleId }), roleId)).records)
     expect(raw).not.toContain('千里阳光号甲板')
     expect(raw).not.toContain('receiptToken')
   } finally {
-    await writeFile(info.outputPath('presentation-probe.json'), JSON.stringify(presentationProbe ?? null, null, 2))
+    await writeFile(info.outputPath('presentation-probe.json'), JSON.stringify(presentationProbe, null, 2))
     if (app && checkedRoleId) {
       const snapshot = await (await app.firstWindow()).evaluate(async roleId => ({ visibility: document.visibilityState, evidence: await window.electronAPI.companion.proactiveEvidenceQuery({ roleId }) }), checkedRoleId).catch(() => null)
       const statePath = info.outputPath('proactive-state.json')
