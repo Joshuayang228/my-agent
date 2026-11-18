@@ -4,6 +4,7 @@ import { createLogger } from '../utils/logger'
 import { checkFileToolPermission, consumeFilePermissionApproval, hasFilePermissionRules } from '../sandbox/file-tool-permission'
 import { loadEffectiveSandbox } from '../sandbox/effective-sandbox'
 import { shouldAutoApproveHeadlessTool } from './headless-policy'
+import { getExecutionSignal, runWithExecutionSignal } from '../utils/execution-cancellation'
 
 const TOOL_TIMEOUT_MS = 30_000
 /** 单批 concurrencySafe 工具最大并行数（M04），防止 Promise.all 打爆资源 */
@@ -199,7 +200,7 @@ export class ToolRegistry {
   private async rawExecute(ctx: { call: ToolCall; tool: ToolDefinition; args: Record<string, unknown>; toolContext?: ToolContext }): Promise<ToolResult> {
     const { tool, call, args, toolContext } = ctx
     const identity = { callId: call.id, name: call.name }
-    const parent = toolContext?.signal
+    const parent = getExecutionSignal(toolContext?.signal)
     if (parent?.aborted) return { ...identity, isError: true, content: '工具调用已取消，未启动执行。' }
     const deadlineAt = tool.metadata.longRunning ? toolContext?.deadlineAt
       : Math.min(toolContext?.deadlineAt ?? Infinity, Date.now() + TOOL_TIMEOUT_MS)
@@ -220,7 +221,7 @@ export class ToolRegistry {
     })
     try {
       const context = toolContext ? { ...toolContext, signal, deadlineAt } : undefined
-      const output = await Promise.race([tool.execute(args, context), cancelled])
+      const output = await Promise.race([runWithExecutionSignal(signal, () => tool.execute(args, context)), cancelled])
       signal.throwIfAborted()
       return { ...(typeof output === 'string' ? { content: output } : output), ...identity }
     } catch (error) {

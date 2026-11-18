@@ -7,6 +7,7 @@ import { MEMORY_STRATEGY_ASSET_KEYS } from '../memory/asset-keys'
 import { detectSensitiveKinds } from '../../../src/shared/sensitive-memory'
 import type { Database } from 'sql.js'
 import { contentProvenanceSchema, type ContentProvenance } from '../../../src/shared/content-integrity'
+import { getExecutionSignal } from '../utils/execution-cancellation'
 
 const log = createLogger('MemoryStore')
 
@@ -148,6 +149,7 @@ export async function addMemory(
   assertMemoryContentAllowed(content)
   await ensureMemoryTable()
   const db = await getDatabase()
+  getExecutionSignal()?.throwIfAborted()
   const result = writeMemoryToDatabase(db, category, content, opts)
   if (result.inserted) {
     try { persist() }
@@ -308,6 +310,7 @@ function readMemoryFromDatabase(db: Database, key: string): MemoryEntry | null {
 export async function deleteMemory(id: string): Promise<void> {
   await ensureMemoryTable()
   const db = await getDatabase()
+  getExecutionSignal()?.throwIfAborted()
   const before = readMemoryFromDatabase(db, id)
   db.run('DELETE FROM memories WHERE id = ?', [id])
   try { persist() }
@@ -324,6 +327,7 @@ export async function updateMemory(id: string, content: string, provenance?: Con
   assertMemoryContentAllowed(content)
   await ensureMemoryTable()
   const db = await getDatabase()
+  getExecutionSignal()?.throwIfAborted()
   const before = readMemoryFromDatabase(db, id)
   if (!before) return
   const now = Date.now()

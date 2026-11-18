@@ -4,6 +4,7 @@ import { buildSafeChildProcessEnv } from '../../utils/safe-process-env'
 import { promisify } from 'node:util'
 import { createLogger, hashForLog } from '../../utils/logger'
 import { getWorkspaceRoot } from '../../workspace/workspace-root'
+import { getExecutionSignal } from '../../utils/execution-cancellation'
 import type { ToolContext, ToolMetadata } from '../../../../src/shared/types'
 
 const execFileAsync = promisify(execFile)
@@ -34,6 +35,7 @@ async function runGit(args: string[], cwd: string): Promise<string> {
   try {
     const { stdout, stderr } = await execFileAsync('git', args, {
       cwd,
+      signal: getExecutionSignal(),
       timeout: TIMEOUT_MS,
       maxBuffer: 1024 * 1024,
       env: buildSafeChildProcessEnv({

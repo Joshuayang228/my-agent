@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { ToolRegistry } from '../../electron/main/tools/registry'
 import type { ToolDefinition, ToolCall } from '../../src/shared/types'
+import { getExecutionSignal } from '../../electron/main/utils/execution-cancellation'
 
 function makeTool(overrides: Partial<ToolDefinition> = {}): ToolDefinition {
   return {
@@ -299,13 +300,15 @@ describe('ToolRegistry', () => {
         const reg = new ToolRegistry()
         const parent = new AbortController()
         let signal: AbortSignal | undefined
+        let internalSignal: AbortSignal | undefined
         let wrote = false
         reg.register(makeTool({
           metadata: { isReadOnly: false, isDestructive: false, isConcurrencySafe: false },
           execute: async (_args, context) => {
             signal = context?.signal
+            internalSignal = getExecutionSignal()
             await new Promise(resolve => setTimeout(resolve, 31_000))
-            signal?.throwIfAborted()
+            getExecutionSignal()?.throwIfAborted()
             wrote = true
             return 'done'
           },
@@ -313,6 +316,7 @@ describe('ToolRegistry', () => {
         const execution = reg.executeAll([makeCall()], { workdir: '.', sessionId: 's', signal: parent.signal })
         await vi.advanceTimersByTimeAsync(31_000)
         expect(signal?.aborted).toBe(true)
+        expect(internalSignal).toBe(signal)
         expect(parent.signal.aborted).toBe(false)
         expect(wrote).toBe(false)
         expect((await execution)[0].content).toContain('请先核实')

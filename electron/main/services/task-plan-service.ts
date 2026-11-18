@@ -6,6 +6,7 @@
  */
 
 import { getDatabase, withDatabaseTransaction } from '../storage/database'
+import { getExecutionSignal } from '../utils/execution-cancellation'
 
 export interface TaskStep {
   id: number
@@ -42,6 +43,7 @@ export async function loadPlan(sessionId: string): Promise<TaskPlan | null> {
 export async function savePlan(plan: TaskPlan): Promise<void> {
   assertSessionId(plan.sessionId)
   await withDatabaseTransaction(async db => {
+    getExecutionSignal()?.throwIfAborted()
     db.run(`CREATE TABLE IF NOT EXISTS task_plans (
       id TEXT PRIMARY KEY,
       session_id TEXT NOT NULL,
@@ -62,12 +64,15 @@ export async function deletePlan(sessionId: string): Promise<void> {
   assertSessionId(sessionId)
   if (!await loadPlan(sessionId)) return
   await withDatabaseTransaction(async db => {
+    getExecutionSignal()?.throwIfAborted()
     db.run('DELETE FROM task_plans WHERE session_id = ?', [sessionId])
   })
 }
 
 export async function updatePlanStep(sessionId: string, stepId: number, status?: TaskStep['status'], result?: string): Promise<TaskPlan | null> {
   return withDatabaseTransaction(async () => {
+    const signal = getExecutionSignal()
+    signal?.throwIfAborted()
     const plan = await loadPlan(sessionId)
     if (!plan) return null
     const step = plan.steps.find(item => item.id === stepId)
@@ -75,6 +80,7 @@ export async function updatePlanStep(sessionId: string, stepId: number, status?:
     if (status) step.status = status
     if (result) step.result = result
     await savePlan(plan)
+    signal?.throwIfAborted()
     return plan
   })
 }
