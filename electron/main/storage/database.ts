@@ -40,7 +40,7 @@ let dbPath = ''
 let committedPersistenceFailure: Error | null = null
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 26
+export const SCHEMA_VERSION = 27
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -615,6 +615,21 @@ export function runMigrations(database: SqlJsDatabase): void {
     (d) => {
       addColumnIfMissing(d, 'background_tasks', 'retry_count', 'INTEGER NOT NULL DEFAULT 0')
       addColumnIfMissing(d, 'background_tasks', 'next_retry_at', 'INTEGER')
+    },
+    (d) => {
+      addColumnIfMissing(d, 'scheduled_tasks', 'role_id', 'TEXT')
+      addColumnIfMissing(d, 'scheduled_tasks', 'universe_id', 'TEXT')
+      d.run(`CREATE TABLE IF NOT EXISTS scheduled_task_runs (
+        task_id TEXT NOT NULL,
+        scheduled_at INTEGER NOT NULL,
+        run_id TEXT NOT NULL UNIQUE,
+        role_id TEXT NOT NULL,
+        universe_id TEXT NOT NULL,
+        status TEXT NOT NULL,
+        started_at INTEGER NOT NULL,
+        finished_at INTEGER,
+        PRIMARY KEY(task_id, scheduled_at)
+      )`)
     },
   ]
 

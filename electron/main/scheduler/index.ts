@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto'
-import { getDatabase, persist } from '../storage/database'
+import { getDatabase, withDatabaseTransaction } from '../storage/database'
 import { createLogger, hashForLog } from '../utils/logger'
 import { BrowserWindow, Notification } from 'electron'
+import { getSetting } from '../storage/settings-store'
+import { getDefaultProtagonistId } from '../companion/identity/loader'
 import type { SqlValue } from 'sql.js'
 
 const log = createLogger('Scheduler')
@@ -17,6 +19,8 @@ export interface HeadlessExecutionContext {
   scheduledAt: number
   traceId: string
   idempotencyKey: string
+  roleId?: string
+  universeId?: string
 }
 
 export function createHeadlessExecutionContext(taskId: string, scheduledAt: number, runId = randomUUID()): HeadlessExecutionContext {
@@ -40,9 +44,14 @@ export interface ScheduledTask {
   lastRunAt?: number
   nextRunAt?: number
   createdAt: number
+  roleId?: string
+  universeId?: string
 }
 
 const timers = new Map<string, ReturnType<typeof setTimeout>>()
+const running = new Set<string>()
+const MAX_TIMER_DELAY = 2_147_483_647
+let stopped = false
 
 export const MAX_TASK_NAME_LENGTH = 200
 export const MAX_TASK_PROMPT_LENGTH = 100_000
@@ -54,95 +63,121 @@ export const MAX_TASK_INTERVAL_MS = 365 * 24 * 60 * 60 * 1_000
  * 计算受限五段式 Cron 的下一次本地触发时间。
  * 背景：桌面端需要在应用内计算唤醒时间，不能依赖常驻系统 cron 服务。
  * 设计意图：只支持当前输入校验允许的分钟/小时语义，保持跨平台行为可预测，避免引入完整解析器。
- * 关键约束：结果不得早于 from；相等时必须顺延一天；返回值供 setTimeout 使用且必须是有限毫秒时间戳。
+ * 关键约束：结果必须严格晚于 from，月、日和星期仅支持通配符。
  */
 export function parseCronNextRun(cron: string, from: number): number | null {
   if (typeof cron !== 'string' || cron.length === 0 || cron.length > MAX_TASK_CRON_LENGTH) return null
   const parts = cron.trim().split(/\s+/)
   if (parts.length !== 5 || !Number.isFinite(from)) return null
 
-  const [minStr, hourStr] = parts
-  const min = minStr === '*' ? new Date(from).getMinutes() : Number(minStr)
-  const hour = hourStr === '*' ? new Date(from).getHours() : Number(hourStr)
-  if (!Number.isInteger(min) || min < 0 || min > 59) return null
-  if (!Number.isInteger(hour) || hour < 0 || hour > 23) return null
-
-  const d = new Date(from)
-  d.setSeconds(0, 0)
-  d.setMinutes(min)
-  d.setHours(hour)
-
-  if (d.getTime() <= from) d.setDate(d.getDate() + 1)
-  return d.getTime()
+  const [minStr, hourStr, ...calendar] = parts
+  if (!calendar.every(part => part === '*')) return null
+  if (minStr !== '*' && (!/^\d{1,2}$/.test(minStr) || Number(minStr) > 59)) return null
+  if (hourStr !== '*' && (!/^\d{1,2}$/.test(hourStr) || Number(hourStr) > 23)) return null
+  const nextMinute = (Math.floor(from / 60_000) + 1) * 60_000
+  // 沿实际时间前进，跳过夏令时不存在的本地时刻。
+  for (let time = nextMinute; time < nextMinute + 48 * 3600_000; time += 60_000) {
+    const date = new Date(time)
+    if ((minStr === '*' || date.getMinutes() === Number(minStr))
+      && (hourStr === '*' || date.getHours() === Number(hourStr))) return time
+  }
+  return null
 }
 
-function scheduleNext(task: ScheduledTask) {
-  const existing = timers.get(task.id)
-  if (existing) clearTimeout(existing)
+function computeNextRun(task: Pick<ScheduledTask, 'intervalMs' | 'cron'>, now: number): number | null {
+  if (task.intervalMs && task.intervalMs > 0) return now + task.intervalMs
+  return task.cron ? parseCronNextRun(task.cron, now) : null
+}
 
-  if (!task.enabled) return
+async function resolveBinding(): Promise<{ roleId: string; universeId: string }> {
+  const universeId = (await getSetting('universeId')).trim() || 'default'
+  const roleId = (await getSetting('activeRoleId')).trim() || getDefaultProtagonistId(universeId)
+  return { roleId, universeId }
+}
 
-  let nextRun: number | null = null
+function clearTaskTimer(id: string): void {
+  clearTimeout(timers.get(id))
+  timers.delete(id)
+}
 
-  if (task.intervalMs && task.intervalMs > 0) {
-    const base = task.lastRunAt || Date.now()
-    nextRun = base + task.intervalMs
-  } else if (task.cron) {
-    nextRun = parseCronNextRun(task.cron, Date.now())
-  }
-
-  if (!nextRun) return
-
-  const delay = Math.max(nextRun - Date.now(), 1000)
-  log.info('Task scheduled', { taskNameHash: hashForLog(task.name), taskNameLength: task.name.length, nextRun: new Date(nextRun).toISOString(), delayMs: delay })
-
-  updateNextRunAt(task.id, nextRun)
-
-  const timer = setTimeout(async () => {
+function scheduleNext(task: ScheduledTask): void {
+  clearTaskTimer(task.id)
+  if (stopped || !task.enabled || !task.nextRunAt || running.has(task.id)) return
+  const scheduledAt = task.nextRunAt
+  const delay = Math.min(MAX_TIMER_DELAY, Math.max(0, scheduledAt - Date.now()))
+  const timer = setTimeout(() => {
+    if (timers.get(task.id) !== timer) return
     timers.delete(task.id)
-    log.info('Task triggered', { taskNameHash: hashForLog(task.name), taskNameLength: task.name.length })
-
-    const db = await getDatabase()
-    db.run('UPDATE scheduled_tasks SET last_run_at = ? WHERE id = ?', [Date.now(), task.id])
-    persist()
-
-    // Headless execution: run Agent loop directly in main process
-    if (headlessRunner) {
-      const executionContext = createHeadlessExecutionContext(task.id, nextRun)
-      try {
-        const result = await headlessRunner(task.prompt, task.name, executionContext)
-        log.info('Headless task completed', { taskNameHash: hashForLog(task.name), taskNameLength: task.name.length, resultLength: result.length, runId: executionContext.runId, idempotencyKey: executionContext.idempotencyKey })
-
-        // Notify user via OS notification
-        if (Notification.isSupported()) {
-          new Notification({
-            title: '定时任务完成',
-            body: '定时任务已完成，点击查看结果。',
-          }).show()
-        }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : String(err)
-        log.error('Headless task failed', { taskNameHash: hashForLog(task.name), taskNameLength: task.name.length, errorType: err instanceof Error ? err.name : 'unknown', errorLength: errorMessage.length, runId: executionContext.runId, idempotencyKey: executionContext.idempotencyKey })
-      }
+    if (Date.now() < scheduledAt) {
+      scheduleNext(task)
+      return
     }
-
-    // Also notify renderer if window exists
-    const wins = BrowserWindow.getAllWindows()
-    if (wins.length > 0) {
-      wins[0].webContents.send('scheduler:triggered', { taskId: task.id, name: task.name, prompt: task.prompt })
-    }
-
-    const updated = await getTask(task.id)
-    if (updated && updated.enabled) scheduleNext(updated)
+    void runOccurrence(task.id, scheduledAt).catch(error => {
+      log.error('Scheduled occurrence could not be persisted', { taskId: task.id, errorType: error instanceof Error ? error.name : 'unknown' })
+    })
   }, delay)
-
   timers.set(task.id, timer)
 }
 
-async function updateNextRunAt(taskId: string, nextRunAt: number) {
-  const db = await getDatabase()
-  db.run('UPDATE scheduled_tasks SET next_run_at = ? WHERE id = ?', [nextRunAt, taskId])
-  persist()
+/** 领取在模型调用前持久化，结算与下次时刻在同一事务中保存。
+ * 重启时已经领取的任务标记中断，防止重复触发可能已经发生的副作用。
+ */
+async function runOccurrence(taskId: string, scheduledAt: number): Promise<void> {
+  if (stopped || running.has(taskId)) return
+  running.add(taskId)
+  try {
+    const context = createHeadlessExecutionContext(taskId, scheduledAt)
+    const task = await withDatabaseTransaction(async db => {
+      if (stopped) return null
+      const current = await getTask(taskId)
+      if (!current?.enabled || current.nextRunAt !== scheduledAt || !current.roleId || !current.universeId) return null
+      if (stopped) return null
+      db.run(`INSERT OR IGNORE INTO scheduled_task_runs
+        (task_id, scheduled_at, run_id, role_id, universe_id, status, started_at)
+        VALUES (?, ?, ?, ?, ?, 'running', ?)`, [taskId, scheduledAt, context.runId, current.roleId, current.universeId, Date.now()])
+      return db.getRowsModified() === 1 ? current : null
+    })
+    if (!task) {
+      running.delete(taskId)
+      const updated = await getTask(taskId)
+      if (updated && updated.nextRunAt !== scheduledAt) scheduleNext(updated)
+      return
+    }
+
+    let status: 'completed' | 'failed' = 'failed'
+    try {
+      if (!headlessRunner || stopped) throw new Error('后台执行器不可用。')
+      const result = await headlessRunner(task.prompt, task.name, { ...context, roleId: task.roleId, universeId: task.universeId })
+      status = 'completed'
+      log.info('Headless task completed', { taskId, runId: context.runId, resultLength: result.length })
+    } catch (error) {
+      log.warn('Headless task failed', { taskId, runId: context.runId, errorType: error instanceof Error ? error.name : 'unknown' })
+    }
+
+    const finalized = await withDatabaseTransaction(async db => {
+      const now = Date.now()
+      db.run("UPDATE scheduled_task_runs SET status = ?, finished_at = ? WHERE run_id = ? AND status = 'running'", [status, now, context.runId])
+      if (db.getRowsModified() !== 1) return false
+      const current = await getTask(taskId)
+      if (current?.nextRunAt === scheduledAt) {
+        const next = current.enabled ? computeNextRun(current, now) : null
+        db.run('UPDATE scheduled_tasks SET last_run_at = ?, next_run_at = ? WHERE id = ?', [now, next, taskId])
+      }
+      return true
+    })
+    try {
+      if (finalized && status === 'completed' && !stopped && Notification.isSupported()) {
+        new Notification({ title: '定时任务完成', body: '定时任务已完成，点击查看结果。' }).show()
+      }
+      if (finalized && !stopped) BrowserWindow.getAllWindows()[0]?.webContents.send('scheduler:triggered', { taskId, name: task.name, prompt: task.prompt })
+    } catch (error) {
+      log.warn('Scheduled occurrence notification unavailable', { taskId, errorType: error instanceof Error ? error.name : 'unknown' })
+    }
+  } finally {
+    running.delete(taskId)
+  }
+  const updated = await getTask(taskId)
+  if (updated) scheduleNext(updated)
 }
 
 // ── CRUD ──
@@ -183,17 +218,15 @@ export function validateScheduledTaskInput(input: {
 export async function createTask(opts: { name: string; prompt: string; cron?: string; intervalMs?: number }): Promise<ScheduledTask> {
   const validationError = validateScheduledTaskInput(opts)
   if (validationError) throw new Error(validationError)
-  const db = await getDatabase()
+  const binding = await resolveBinding()
   const id = randomUUID()
   const now = Date.now()
-
-  db.run(
-    'INSERT INTO scheduled_tasks (id, name, prompt, cron, interval_ms, enabled, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)',
-    [id, opts.name, opts.prompt, opts.cron || null, opts.intervalMs || null, now],
-  )
-  persist()
-
-  const task: ScheduledTask = { id, name: opts.name, prompt: opts.prompt, cron: opts.cron, intervalMs: opts.intervalMs, enabled: true, createdAt: now }
+  const nextRunAt = computeNextRun(opts, now) ?? undefined
+  const task: ScheduledTask = { ...opts, ...binding, id, enabled: true, createdAt: now, nextRunAt }
+  await withDatabaseTransaction(async db => {
+    db.run(`INSERT INTO scheduled_tasks (id, name, prompt, cron, interval_ms, enabled, created_at, next_run_at, role_id, universe_id)
+      VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`, [id, opts.name, opts.prompt, opts.cron || null, opts.intervalMs || null, now, nextRunAt ?? null, binding.roleId, binding.universeId])
+  })
   scheduleNext(task)
   log.info('Task created', { id, nameHash: hashForLog(opts.name), nameLength: opts.name.length })
   return task
@@ -224,7 +257,6 @@ export async function getTask(id: string): Promise<ScheduledTask | null> {
 export async function updateTask(id: string, updates: Partial<Pick<ScheduledTask, 'name' | 'prompt' | 'cron' | 'intervalMs' | 'enabled'>>): Promise<void> {
   const validationError = validateScheduledTaskInput(updates)
   if (validationError) throw new Error(validationError)
-  const db = await getDatabase()
   const sets: string[] = []
   const vals: SqlValue[] = []
 
@@ -235,33 +267,52 @@ export async function updateTask(id: string, updates: Partial<Pick<ScheduledTask
   if (updates.enabled !== undefined) { sets.push('enabled = ?'); vals.push(updates.enabled ? 1 : 0) }
 
   if (sets.length === 0) return
-  vals.push(id)
-  db.run(`UPDATE scheduled_tasks SET ${sets.join(', ')} WHERE id = ?`, vals)
-  persist()
-
-  const task = await getTask(id)
+  const task = await withDatabaseTransaction(async db => {
+    const current = await getTask(id)
+    if (!current) return null
+    if (updates.intervalMs !== undefined || updates.cron !== undefined || updates.enabled !== undefined) {
+      const updated = { ...current, ...updates }
+      sets.push('next_run_at = ?')
+      vals.push(updated.enabled ? computeNextRun(updated, Date.now()) : null)
+    }
+    vals.push(id)
+    db.run(`UPDATE scheduled_tasks SET ${sets.join(', ')} WHERE id = ?`, vals)
+    return getTask(id)
+  })
   if (task) scheduleNext(task)
 }
 
 export async function deleteTask(id: string): Promise<void> {
-  const existing = timers.get(id)
-  if (existing) { clearTimeout(existing); timers.delete(id) }
-
-  const db = await getDatabase()
-  db.run('DELETE FROM scheduled_tasks WHERE id = ?', [id])
-  persist()
+  await withDatabaseTransaction(async db => {
+    db.run('DELETE FROM scheduled_tasks WHERE id = ?', [id])
+  })
+  clearTaskTimer(id)
   log.info('Task deleted', { id })
 }
 
 export async function initScheduler(): Promise<void> {
-  const tasks = await listTasks()
-  for (const task of tasks) {
-    if (task.enabled) scheduleNext(task)
-  }
+  stopped = false
+  const tasks = await withDatabaseTransaction(async db => {
+    const now = Date.now()
+    const binding = await resolveBinding()
+    const interrupted = db.exec("SELECT task_id, scheduled_at FROM scheduled_task_runs WHERE status = 'running'")[0]?.values ?? []
+    const unfinished = new Map(interrupted.map(([taskId, scheduledAt]) => [String(taskId), Number(scheduledAt)]))
+    db.run("UPDATE scheduled_task_runs SET status = 'interrupted', finished_at = ? WHERE status = 'running'", [now])
+    for (const task of await listTasks()) {
+      const interruptedCurrent = unfinished.get(task.id) === task.nextRunAt && unfinished.has(task.id)
+      const next = task.enabled && (interruptedCurrent || !task.nextRunAt) ? computeNextRun(task, now) : task.nextRunAt
+      db.run(`UPDATE scheduled_tasks SET role_id = COALESCE(role_id, ?), universe_id = COALESCE(universe_id, ?),
+        next_run_at = ?, last_run_at = CASE WHEN ? THEN ? ELSE last_run_at END WHERE id = ?`,
+      [binding.roleId, binding.universeId, next ?? null, interruptedCurrent ? 1 : 0, now, task.id])
+    }
+    return listTasks()
+  })
+  for (const task of tasks) scheduleNext(task)
   log.info(`Scheduler initialized, ${tasks.filter(t => t.enabled).length} active tasks`)
 }
 
 export function shutdownScheduler(): void {
+  stopped = true
   for (const [id, timer] of timers) {
     clearTimeout(timer)
     timers.delete(id)
@@ -280,5 +331,7 @@ export function rowToTask(r: Record<string, unknown>): ScheduledTask {
     lastRunAt: (r.last_run_at as number) || undefined,
     nextRunAt: (r.next_run_at as number) || undefined,
     createdAt: r.created_at as number,
+    roleId: typeof r.role_id === 'string' ? r.role_id : undefined,
+    universeId: typeof r.universe_id === 'string' ? r.universe_id : undefined,
   }
 }

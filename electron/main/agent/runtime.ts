@@ -140,6 +140,7 @@ class AgentRuntime {
     toolRegistry: ToolRegistry,
     confirmTool?: (name: string, args: Record<string, unknown>) => Promise<boolean>,
     workspaceContext?: WorkspaceChatContext,
+    headless?: { universeId?: string },
   ): AsyncGenerator<AgentStreamEvent & { sessionId: string }> {
     if (this.activeControllers.has(sessionId)) {
       yield { type: 'error', message: '该会话正在处理中，请等待完成或先中断', code: AgentErrorCode.SESSION_BUSY, sessionId }
@@ -179,7 +180,7 @@ class AgentRuntime {
       // M14：整段对话在 TraceContext 内，子 span / Observer 自动带 sessionId·userId
       yield* runWithTraceContextAsyncGen(
         { sessionId, userId: DEFAULT_TRACE_USER_ID },
-        () => this.chatTracked(sessionId, userMessage, toolRegistry, abortController, llmConfig, confirmTool, workspaceContext),
+        () => this.chatTracked(sessionId, userMessage, toolRegistry, abortController, llmConfig, confirmTool, workspaceContext, headless),
       )
     } finally {
       this.activeControllers.delete(sessionId)
@@ -195,6 +196,7 @@ class AgentRuntime {
     llmConfig: LLMConfig,
     confirmTool?: (name: string, args: Record<string, unknown>) => Promise<boolean>,
     workspaceContext?: WorkspaceChatContext,
+    headless?: { universeId?: string },
   ): AsyncGenerator<AgentStreamEvent & { sessionId: string }> {
     const skillState = {}
 
@@ -219,7 +221,7 @@ class AgentRuntime {
     try {
       // ── 构建上下文 ──
       const customPrompt = await settings.getSetting('systemPrompt')
-      const executionMode = (await settings.getSetting('executionMode') || 'auto') as ExecutionMode
+      const executionMode = (headless ? 'confirm-all' : await settings.getSetting('executionMode') || 'auto') as ExecutionMode
       const expertiseOverride = await settings.getSetting('userExpertiseLevel')
       // 会话绑定 role_id 优先；与 active 不一致时仍按会话组装（禁止中途换角偷换人设）
       const sessionMeta = await store.getSession(sessionId)
@@ -235,7 +237,7 @@ class AgentRuntime {
       }
       // feedback 按会话主角分桶注入（M22-G2）
       const userProfile = isWorkspace ? null : await memory.buildUserProfile(assembleRoleId)
-      const domainInput = await loadConversationAssemblyInput(assembleRoleId)
+      const domainInput = await loadConversationAssemblyInput(assembleRoleId, headless?.universeId)
       const {
         pack,
         mutableBody,
@@ -483,7 +485,9 @@ class AgentRuntime {
           filterTools: (allTools) => {
             const active = getActiveSkill(skillState)
             return new AgentHostScopedToolCatalog(agentManifest)
-              .filter(allTools, active?.meta.allowed_tools)
+              .filter(headless
+                ? allTools.filter(tool => !tool.resolveMetadata && shouldAutoApproveHeadlessTool(tool.name, tool.metadata))
+                : allTools, active?.meta.allowed_tools)
           },
         },
         toolRegistry,
@@ -547,7 +551,7 @@ class AgentRuntime {
           chatSpan.end('ok')
 
           const auxConfig = await this.getAuxLLMConfig()
-          if (!isWorkspace) await this.enqueuePostTasks(
+          if (!isWorkspace && !headless) await this.enqueuePostTasks(
             sessionId,
             messages,
             assistantContent,
@@ -709,7 +713,13 @@ class AgentRuntime {
   async runHeadless(prompt: string, taskName?: string, executionContext?: HeadlessExecutionContext): Promise<string> {
     const label = taskName || 'headless'
     const labelMeta = { labelHash: hashForLog(label), labelLength: label.length }
-    const session = await store.createSession()
+    if (executionContext?.roleId && executionContext.universeId) {
+      const { isKnownProtagonist } = await import('../companion/identity/loader')
+      if (!isKnownProtagonist(executionContext.roleId, executionContext.universeId)) {
+        throw new Error('定时任务绑定的人物已不可用。')
+      }
+    }
+    const session = await store.createSession(executionContext?.roleId)
     const sessionId = session.id
     log.info('Headless run starting', { sessionId, ...labelMeta, runId: executionContext?.runId, traceId: executionContext?.traceId, idempotencyKey: executionContext?.idempotencyKey })
 
@@ -744,7 +754,7 @@ class AgentRuntime {
 
     try {
       await runWithTraceContext({ sessionId, userId: DEFAULT_TRACE_USER_ID, traceId: executionContext?.traceId }, async () => {
-        for await (const event of this.chat(sessionId, userMsg, toolRegistry, headlessConfirm)) {
+          for await (const event of this.chat(sessionId, userMsg, toolRegistry, headlessConfirm, undefined, { universeId: executionContext?.universeId })) {
           if (event.type === 'text') resultText += event.content
           if (event.type === 'done') terminalReason = event.reason
           if (event.type === 'error') {

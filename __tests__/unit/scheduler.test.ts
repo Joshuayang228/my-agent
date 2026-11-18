@@ -44,11 +44,11 @@ describe('parseCronNextRun', () => {
     expect(parseCronNextRun('x 10 * * *', Date.now())).toBeNull()
   })
 
-  it('通配符 * * 返回合理的未来时间', () => {
+  it('通配符 * * 在下一分钟触发', () => {
     const from = Date.now()
     const result = parseCronNextRun('* * * * *', from)
-    expect(result).not.toBeNull()
-    expect(result!).toBeGreaterThan(from - 60_000)
+    expect(result).toBe((Math.floor(from / 60_000) + 1) * 60_000)
+    expect(parseCronNextRun('0 8 * * 1', from)).toBeNull()
   })
 })
 
