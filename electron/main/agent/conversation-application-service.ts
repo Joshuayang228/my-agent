@@ -1,9 +1,7 @@
-import { scheduleReflectionAfterChat } from '../companion/growth/reflection-service'
 import { recoverCompanionFollowups } from '../companion/application/companion-followups'
 import { recordCompanionEventAndNotify } from '../companion/application/record-event-notify'
 import { COMPANION_FOLLOWUP } from '../companion/core/outbox/followup-kinds'
-import type { LLMConfig, PromptContextEvidence } from '../../../src/shared/types'
-import { createLogger } from '../utils/logger'
+import type { PromptContextEvidence } from '../../../src/shared/types'
 import { formatRelationshipStageForPrompt, resolveRelationshipStageForRole } from '../companion/growth/relationship-stage'
 import { getMilestonePromptHint, recordAndBroadcastMilestone } from '../companion/growth/milestones'
 import { loadRoleAssembleInput } from '../companion/orchestrator'
@@ -114,8 +112,6 @@ export function registerConversationStreamingProbe(probe: () => boolean): void {
   registerStreamingProbe(probe)
 }
 
-const log = createLogger('ConversationApplicationService')
-
 /**
  * 背景：主对话正文已保存但进程立即退出时，生命体征和已展示反馈仍需完成结算。
  * 设计意图：以真正保存的回复 ID 为来源，把最小结算任务和回复共同提交。
@@ -139,7 +135,7 @@ export async function commitConversationCompletion(input: {
     payload: { sessionId: input.sessionId, pendingFeedbackId: input.pendingFeedbackId },
     commit: input.saveReply,
     notification: [],
-    followups: [COMPANION_FOLLOWUP.chatVitals, COMPANION_FOLLOWUP.chatResonance, ...(input.pendingFeedbackId ? [COMPANION_FOLLOWUP.chatFeedback] : [])],
+    followups: [COMPANION_FOLLOWUP.chatVitals, COMPANION_FOLLOWUP.chatResonance, COMPANION_FOLLOWUP.personaReflection, ...(input.pendingFeedbackId ? [COMPANION_FOLLOWUP.chatFeedback] : [])],
     dispatch: false,
   })
 }
@@ -149,18 +145,10 @@ export async function commitConversationCompletion(input: {
  *
  * 背景：Runtime 同时承担 Agent Loop 生命周期和伙伴生活结算，新增领域行为会持续扩大通用执行器的依赖面。
  * 设计意图：应用服务接收会话完成事实并编排 Companion 用例，Runtime 只负责调用生命周期边界。
- * 关键约束：只有主角主会话结算生命体征、共鸣和反馈，召唤会话仍只触发反思任务，所有副作用失败都记录后异步收敛。
+ * 关键约束：只有主角主会话登记生活副作用。这里只唤醒已经保存的任务，重启可从同一来源恢复。
  */
-export function settleConversationCompletion(input: {
-  roleId: string
-  sessionId: string
-  sessionKind?: string
-  llmConfig: LLMConfig
-}): void {
-  void scheduleReflectionAfterChat(input.roleId, input.sessionId, input.llmConfig, { sessionKind: input.sessionKind }).catch(error => {
-    log.warn('反思任务入队失败', { roleId: input.roleId, errorType: error instanceof Error ? error.name : 'unknown' })
-  })
-  if (input.sessionKind === 'main') void recoverCompanionFollowups()
+export function settleConversationCompletion(): void {
+  void recoverCompanionFollowups()
 }
 
 export async function resolveConversationRelationshipHints(input: {

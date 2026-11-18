@@ -73,15 +73,16 @@ type RecoveryHandler = (task: BackgroundTaskInfo) => Promise<(() => Promise<void
 /** 任务接受、执行和终态必须先持久化，再发布内存状态或通知。
  * 写盘失败向调用方传播，避免任务执行成功后被存储异常当成业务失败重跑。
  */
-async function dbUpsertTask(task: BackgroundTaskInfo): Promise<void> {
-  await withDatabaseTransaction(async database => {
-    database.run(`INSERT OR REPLACE INTO background_tasks
+async function dbUpsertTask(task: BackgroundTaskInfo, once = false): Promise<boolean> {
+  return withDatabaseTransaction(async database => {
+    database.run(`INSERT ${once ? '' : 'OR REPLACE'} INTO background_tasks
       (id, session_id, type, status, notified, created_at, updated_at, error, checkpoint, retry_count, next_retry_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)${once ? ' ON CONFLICT(id) DO NOTHING' : ''}`, [
       task.id, task.sessionId, task.name, task.status, task.notified ? 1 : 0,
       task.createdAt, task.updatedAt, task.error ?? null,
       task.checkpoint ? JSON.stringify(task.checkpoint) : null, task.retryCount ?? 0, task.nextRetryAt ?? null,
     ])
+    return database.getRowsModified() === 1
   })
 }
 
@@ -111,19 +112,30 @@ export class TaskQueueManager {
   }
 
   async enqueue(sessionId: string, name: TaskType, fn: () => Promise<void>, checkpoint?: TaskCheckpoint): Promise<string> {
+    const id = `task-${randomUUID()}`
+    await this.enqueueTask({ id, sessionId, name, fn, checkpoint })
+    return id
+  }
+
+  /** 持久来源重放时只登记一次。保留同一任务的进度和接收确认，不因登记重试覆盖终态。 */
+  async enqueueOnce(input: { id: string; sessionId: string; name: TaskType; fn: () => Promise<void>; checkpoint: TaskCheckpoint }): Promise<boolean> {
+    return this.enqueueTask(input, true)
+  }
+
+  private async enqueueTask(input: { id: string; sessionId: string; name: TaskType; fn: () => Promise<void>; checkpoint?: TaskCheckpoint }, once = false): Promise<boolean> {
     if (this.stopped) throw new Error('后台任务队列已停止。')
     if (this.persistenceFailure) throw this.persistenceFailure
     const now = Date.now()
     const task: InternalTask = {
-      id: `task-${randomUUID()}`, name, sessionId, fn, checkpoint,
+      ...input,
       status: 'pending', notified: false, createdAt: now, updatedAt: now,
       linkSpanId: getTraceContext().interactionSpanId,
     }
-    await dbUpsertTask(this.toInfo(task))
+    if (!(await dbUpsertTask(this.toInfo(task), once))) return false
     this.tasks.set(task.id, task)
     this.queue.push(task.id)
     this.kick()
-    return task.id
+    return true
   }
 
   async recoverPendingTasks(): Promise<BackgroundTaskInfo[]> {

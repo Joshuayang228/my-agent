@@ -51,6 +51,7 @@ vi.mock('../../electron/main/llm/aux-config', () => ({
 
 vi.mock('../../electron/main/storage/session-store', () => ({
   listRecentUserMessagesForRole: vi.fn(async () => ['今天一起把代码都重构好了，真有默契！']),
+  countUserMessagesForRoleSince: vi.fn(async () => 0),
 }))
 
 const {
@@ -175,6 +176,9 @@ describe('角色深夜反思与心灵领悟（Nightly Reflection & Epiphany）',
     memDb.run('DROP TRIGGER reject_turn_outbox')
     await commitConversationCompletion(input)
     expect(memDb.exec('SELECT id FROM reply_probe')[0]?.values).toEqual([['reply-probe']])
+    expect(memDb.exec(`SELECT jobs.status, event.source_id
+      FROM companion_outbox jobs JOIN companion_domain_events event ON event.id = jobs.event_id
+      WHERE jobs.kind = 'followup:persona-reflection'`)[0]?.values).toEqual([['pending', 'reply-probe']])
     expect((await getCompanionRuntimeState('luffy')).socialNeed).toBe(before)
     const snapshot = memDb.export()
     memDb.close()
@@ -190,6 +194,9 @@ describe('角色深夜反思与心灵领悟（Nightly Reflection & Epiphany）',
     await recoverCompanionFollowups()
     const settled = (await getCompanionRuntimeState('luffy')).socialNeed
     expect(settled).toBeLessThan(before)
+    const { getGrowthStartedAt } = await import('../../electron/main/companion/growth/reflection-gate')
+    expect(await getGrowthStartedAt('luffy')).toBe(input.occurredAt)
+    expect(memDb.exec("SELECT status FROM companion_outbox WHERE kind = 'followup:persona-reflection'")[0]?.values).toEqual([['delivered']])
     memDb.run("UPDATE companion_outbox SET status = 'processing', lease_until = 0 WHERE kind = 'followup:chat-vitals'")
     await recoverCompanionFollowups()
     expect((await getCompanionRuntimeState('luffy')).socialNeed).toBe(settled)

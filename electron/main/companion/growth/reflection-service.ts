@@ -159,6 +159,7 @@ async function runReflectionCore(
     roleId,
     parsed.newMutable,
     `reflection: ${parsed.summary}`,
+    { universeId },
   )
   if (!write.ok) {
     await recordReflectionRun(roleId, {
@@ -211,48 +212,46 @@ export async function scheduleReflectionAfterChat(
   roleId: string,
   sessionId: string,
   llmConfig: LLMConfig,
-  opts?: { sessionKind?: string },
+  source: { id: string; assistantMessageId: string; universeId: string; occurredAt: number },
 ): Promise<{ queued: boolean; reason?: string }> {
-  if (opts?.sessionKind === 'summon') {
-    return { queued: false, reason: 'summon-session' }
-  }
-
-  await ensureGrowthStartedAt(roleId)
-
   if (pendingRoles.has(roleId)) {
     return { queued: false, reason: 'already-queued' }
   }
-
-  const gate = await shouldReflectNow(roleId)
-  if (!gate.allowed) {
-    return { queued: false, reason: gate.reason }
-  }
-
   pendingRoles.add(roleId)
+  let queued = false
   try {
-    await taskQueue.enqueue(sessionId, 'persona-reflection', async () => {
-      try {
-        await runReflectionCore(roleId, llmConfig)
-      } finally {
-        pendingRoles.delete(roleId)
-      }
+    await ensureGrowthStartedAt(roleId, source.occurredAt)
+    const gate = await shouldReflectNow(roleId)
+    if (!gate.allowed) return { queued: false, reason: gate.reason }
+    queued = await taskQueue.enqueueOnce({
+      id: `task-persona-reflection-${source.id}`,
+      sessionId,
+      name: 'persona-reflection',
+      checkpoint: {
+        payload: { roleId, universeId: source.universeId, sourceEventId: source.id, assistantMessageId: source.assistantMessageId },
+        updatedAt: source.occurredAt,
+      },
+      fn: async () => {
+        try { await runReflectionCore(roleId, llmConfig, { universeId: source.universeId }) }
+        finally { pendingRoles.delete(roleId) }
+      },
     })
-  } catch (error) {
-    pendingRoles.delete(roleId)
-    throw error
+    if (!queued) return { queued, reason: 'already-queued' }
+    log.info('Reflection queued', { roleId, sessionId })
+    return { queued }
+  } finally {
+    if (!queued) pendingRoles.delete(roleId)
   }
-  log.info('Reflection queued', { roleId, sessionId })
-  return { queued: true }
 }
 
 /** 设置页/调试：立即跑一轮（可 force） */
 export async function runReflectionNow(
   roleId: string,
   llmConfig: LLMConfig,
-  opts?: { force?: boolean },
+  opts?: { force?: boolean; universeId?: string },
 ): Promise<ReflectionResult> {
   await ensureGrowthStartedAt(roleId)
-  return runReflectionCore(roleId, llmConfig, { force: opts?.force })
+  return runReflectionCore(roleId, llmConfig, opts)
 }
 
 export async function getReflectionStatus(roleId: string): Promise<{

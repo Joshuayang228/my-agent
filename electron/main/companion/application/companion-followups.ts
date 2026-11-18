@@ -102,6 +102,24 @@ export async function recoverCompanionFollowups(): Promise<void> {
     })
     await recoverDelayedMomentReplies()
     await dispatchCompanionOutbox({
+      roleId,
+      universeId,
+      kinds: [COMPANION_FOLLOWUP.personaReflection],
+      deliver: async message => {
+        const event = message.eventId ? await getCompanionDomainEventById(message.eventId) : null
+        const sessionId = event?.payload.sessionId
+        if (event?.type !== 'conversation_turn_completed' || event.roleId !== roleId || event.universeId !== universeId || !event.sourceId || typeof sessionId !== 'string') {
+          throw new Error('人格反思任务缺少原始对话。')
+        }
+        const { scheduleReflectionAfterChat } = await import('../growth/reflection-service')
+        const config = await loadAuxLLMConfig()
+        await assertCompanionOutboxClaim(message)
+        await scheduleReflectionAfterChat(roleId, sessionId, config, {
+          id: event.id, assistantMessageId: event.sourceId, universeId, occurredAt: event.occurredAt,
+        })
+      },
+    })
+    await dispatchCompanionOutbox({
       kinds: [COMPANION_FOLLOWUP.chatResonance],
       leaseMs: 150_000,
       deliver: async message => {

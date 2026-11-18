@@ -568,9 +568,8 @@ class AgentRuntime {
           })
         }
         if (completedReply && !isWorkspace && !headless) {
-          const sessionKind = sessionMeta?.sessionKind ?? 'main'
+          if (!isSummon) settleConversationCompletion()
           const auxConfig = await this.getAuxLLMConfig()
-          settleConversationCompletion({ roleId: assembleRoleId, sessionId, sessionKind, llmConfig: auxConfig })
           await this.enqueuePostTasks(
             sessionId,
             messages,
@@ -835,11 +834,13 @@ function registerTaskRecoveryHandlers(): void {
 
   taskQueue.registerRecoveryHandler('persona-reflection', async task => {
     const session = await store.getSession(task.sessionId)
-    if (!session?.roleId) return null
+    const { roleId, universeId, assistantMessageId } = task.checkpoint?.payload ?? {}
+    if (!session || typeof roleId !== 'string' || session.roleId !== roleId || typeof universeId !== 'string' ||
+      typeof assistantMessageId !== 'string' || !session.messages.some(message => message.id === assistantMessageId && message.role === 'assistant')) return null
     const llmConfig = await runtime.getAuxLLMConfig()
     return async () => {
       const { runReflectionNow } = await import('../companion/growth/reflection-service')
-      await runReflectionNow(session.roleId, llmConfig)
+      await runReflectionNow(roleId, llmConfig, { universeId })
     }
   })
 }

@@ -6,6 +6,7 @@ export const COMPANION_FOLLOWUP = {
   chatVitals: 'followup:chat-vitals',
   chatFeedback: 'followup:chat-feedback',
   chatResonance: 'followup:chat-resonance',
+  personaReflection: 'followup:persona-reflection',
 } as const
 
 export const COMPANION_FOLLOWUP_KINDS = Object.values(COMPANION_FOLLOWUP)

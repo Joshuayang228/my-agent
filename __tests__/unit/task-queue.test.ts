@@ -51,6 +51,22 @@ describe('Task Queue 持久生命周期', () => {
     expect(queue.getActiveTasks()).toEqual([])
   })
 
+  it('同一持久来源重放时保留原任务终态和接收确认', async () => {
+    const fn = vi.fn(async () => {})
+    const task = { id: 'task-persona-reflection-source', sessionId: 'original-session',
+      name: 'persona-reflection' as const, fn, checkpoint: { updatedAt: 123 } }
+    expect(await queue.enqueueOnce(task)).toBe(true)
+    await complete(task.id)
+    expect(await queue.acknowledgeNotification(task.id)).toBe(true)
+    await queue.shutdown()
+    database._resetDatabaseForTests()
+    queue = new TaskQueueManager()
+    expect(await queue.enqueueOnce(task)).toBe(false)
+    expect(fn).toHaveBeenCalledOnce()
+    const db = await database.getDatabase()
+    expect(db.exec('SELECT status, notified FROM background_tasks WHERE id = ?', [task.id])[0]?.values).toEqual([['completed', 1]])
+  })
+
   it('业务失败指数退避，重试耗尽落为 failed 且不暴露内部错误', async () => {
     vi.useFakeTimers()
     const fn = vi.fn(async () => { throw new Error('private failure') })
