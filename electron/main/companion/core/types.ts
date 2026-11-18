@@ -22,6 +22,7 @@ export interface CompanionRuntimeState {
 }
 
 export interface CompanionDomainEvent {
+  executionId?: string | null
   id: string
   roleId: string
   universeId: string
@@ -43,6 +44,7 @@ export interface CompanionExecutionRun {
   roleId: string
   commandId: string | null
   idempotencyKey: string | null
+  correlationId: string | null
   eventId: string | null
   actionType: string
   status: CompanionExecutionStatus
@@ -58,6 +60,9 @@ export interface CompanionOutboxMessage {
   id: string
   roleId: string
   eventId: string | null
+  executionId: string | null
+  commandId: string | null
+  correlationId: string | null
   kind: string
   dedupeKey: string
   payload: Record<string, unknown>

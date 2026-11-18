@@ -52,6 +52,50 @@ describe('人物世界核心层', () => {
     expect(memDb.exec('SELECT status, attempt FROM companion_outbox WHERE id = ?', [message.id])[0]?.values).toEqual([['delivered', 2]])
   })
 
+  it('领取写入失败时不投递，恢复后仅执行一次', async () => {
+    const message = await enqueueCompanionOutbox({ roleId: 'luffy', kind: 'probe', dedupeKey: 'claim-failure', payload: {} })
+    memDb.run("CREATE TRIGGER reject_claim BEFORE UPDATE ON companion_outbox WHEN NEW.status = 'processing' BEGIN SELECT RAISE(ABORT, 'fixture-claim-failure'); END")
+    const deliver = vi.fn(async () => {})
+    await expect(dispatchCompanionOutbox({ deliver })).rejects.toThrow('fixture-claim-failure')
+    expect(deliver).not.toHaveBeenCalled()
+    expect(memDb.exec('SELECT status, attempt FROM companion_outbox WHERE id = ?', [message.id])[0]?.values).toEqual([['pending', 0]])
+    memDb.run('DROP TRIGGER reject_claim')
+    expect(await dispatchCompanionOutbox({ deliver })).toBe(1)
+    expect(deliver).toHaveBeenCalledTimes(1)
+  })
+
+  it('根命令重试保留关联号，领域事件及消息可定位到各自执行', async () => {
+    const command = { roleId: 'luffy', actionType: 'cause-test', idempotencyKey: 'request-id' }
+    await expect(executeCompanionCommand({
+      ...command, correlationId: 'original-request',
+      handler: async () => { throw new Error('fixture-failure') },
+    })).rejects.toThrow('fixture-failure')
+    const graph = await executeCompanionCommand({
+      ...command, correlationId: 'retry-request',
+      handler: async parent => executeCompanionCommand({
+        roleId: 'luffy', actionType: 'cause-test-child', local: true,
+        handler: async child => {
+          const append = (index: number) => appendCompanionDomainEvent({
+            roleId: 'luffy', universeId: 'default', type: 'test-probe', sourceType: 'fixture', sourceId: String(index),
+            causationId: null, correlationId: 'fixture', idempotencyKey: `fixture:${index}`, occurredAt: 1, payload: {}, schemaVersion: 1,
+          })
+          const first = await append(1)
+          const second = await append(2)
+          const notification = await enqueueCompanionOutbox({ roleId: 'luffy', kind: 'probe', dedupeKey: 'causal-test', payload: {}, eventId: second.id })
+          const message = await enqueueCompanionOutbox({ roleId: 'luffy', kind: 'main-session-message', dedupeKey: 'message-cause-test', payload: {} })
+          return { parent, child, first, second, notification, message }
+        },
+      }),
+    })
+    expect(graph.parent.correlationId).toBe('original-request')
+    expect(graph.child.correlationId).toBe('original-request')
+    expect(graph.first).toMatchObject({ correlationId: 'original-request', causationId: graph.child.commandId, executionId: graph.child.executionId })
+    expect(graph.second).toMatchObject({ correlationId: 'original-request', causationId: graph.child.commandId, executionId: graph.child.executionId })
+    expect(graph.notification).toMatchObject({ eventId: graph.second.id, commandId: graph.child.commandId, executionId: graph.child.executionId })
+    expect(graph.message).toMatchObject({ eventId: null, correlationId: 'original-request', executionId: graph.child.executionId })
+    await expect(enqueueCompanionOutbox({ roleId: 'other', kind: 'probe', dedupeKey: 'wrong-role', payload: {}, eventId: graph.first.id })).rejects.toThrow('不属于当前人物')
+  })
+
   it('从 Role Pack 初始化唯一运行态快照，并按版本应用有界状态变化', async () => {
     const first = await getCompanionRuntimeState('luffy')
     expect(first.mood).toBeGreaterThanOrEqual(0)

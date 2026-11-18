@@ -37,6 +37,7 @@ export async function recoverStaleCompanionExecutions(input?: { now?: number; st
 export async function startCompanionExecution(input: {
   roleId: string
   commandId?: string | null
+  correlationId?: string | null
   idempotencyKey?: string | null
   eventId?: string | null
   actionType: string
@@ -46,15 +47,15 @@ export async function startCompanionExecution(input: {
   await recoverStaleCompanionExecutions()
   const db = await getDatabase()
   const existing = input.idempotencyKey
-    ? db.exec(`SELECT id, role_id, command_id, idempotency_key, event_id, action_type, status, attempt, error_code, error_message, result_json, started_at, completed_at
+    ? db.exec(`SELECT id, role_id, command_id, idempotency_key, event_id, action_type, status, attempt, error_code, error_message, result_json, started_at, completed_at, correlation_id
       FROM companion_execution_runs WHERE role_id = ? AND action_type = ? AND idempotency_key = ? LIMIT 1`, [input.roleId, input.actionType, input.idempotencyKey])[0]?.values[0]
     : undefined
   if (existing) {
     const run = rowToExecution(existing)
     if (run.status !== 'retryable') return run
     // 失败重试必须先同步切回 running 并更换 commandId，后续同键请求才能看到当前所有者。
-    const restarted = { ...run, commandId: input.commandId ?? null, status: 'running' as const, attempt: run.attempt + 1, startedAt: Date.now(), completedAt: null, errorCode: null, errorMessage: null, result: undefined }
-    db.run(`UPDATE companion_execution_runs SET command_id = ?, status = 'running', attempt = ?, started_at = ?, completed_at = NULL, error_code = NULL, error_message = NULL, result_json = NULL WHERE id = ? AND status = 'retryable'`, [restarted.commandId, restarted.attempt, restarted.startedAt, run.id])
+    const restarted = { ...run, commandId: input.commandId ?? null, correlationId: run.correlationId ?? input.correlationId ?? null, status: 'running' as const, attempt: run.attempt + 1, startedAt: Date.now(), completedAt: null, errorCode: null, errorMessage: null, result: undefined }
+    db.run(`UPDATE companion_execution_runs SET command_id = ?, correlation_id = ?, status = 'running', attempt = ?, started_at = ?, completed_at = NULL, error_code = NULL, error_message = NULL, result_json = NULL WHERE id = ? AND status = 'retryable'`, [restarted.commandId, restarted.correlationId, restarted.attempt, restarted.startedAt, run.id])
     persist()
     return restarted
   }
@@ -63,6 +64,7 @@ export async function startCompanionExecution(input: {
     roleId: input.roleId,
     commandId: input.commandId ?? null,
     idempotencyKey: input.idempotencyKey ?? null,
+    correlationId: input.correlationId ?? null,
     eventId: input.eventId ?? null,
     actionType: input.actionType,
     status: 'running',
@@ -74,8 +76,8 @@ export async function startCompanionExecution(input: {
     completedAt: null,
   }
   db.run(`INSERT INTO companion_execution_runs
-    (id, role_id, command_id, idempotency_key, event_id, action_type, status, attempt, started_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [run.id, run.roleId, run.commandId, run.idempotencyKey, run.eventId, run.actionType, run.status, run.attempt, run.startedAt])
+    (id, role_id, command_id, idempotency_key, event_id, action_type, status, attempt, started_at, correlation_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [run.id, run.roleId, run.commandId, run.idempotencyKey, run.eventId, run.actionType, run.status, run.attempt, run.startedAt, run.correlationId])
   persist()
   return run
 }
@@ -113,6 +115,7 @@ function rowToExecution(row: unknown[]): CompanionExecutionRun {
     result: row[10] == null ? undefined : JSON.parse(String(row[10])),
     startedAt: Number(row[11]) || 0,
     completedAt: row[12] == null ? null : Number(row[12]),
+    correlationId: row[13] == null ? null : String(row[13]),
   }
 }
 

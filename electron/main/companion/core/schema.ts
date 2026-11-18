@@ -46,6 +46,7 @@ export async function ensureCompanionCoreSchema(): Promise<void> {
       source_id TEXT,
       causation_id TEXT,
       correlation_id TEXT NOT NULL,
+      execution_id TEXT,
       idempotency_key TEXT NOT NULL,
       occurred_at INTEGER NOT NULL,
       payload_json TEXT NOT NULL,
@@ -53,14 +54,17 @@ export async function ensureCompanionCoreSchema(): Promise<void> {
       UNIQUE(role_id, idempotency_key)
     )
   `)
+  try { db.run('ALTER TABLE companion_domain_events ADD COLUMN execution_id TEXT') } catch { /* 已存在 */ }
   db.run('CREATE INDEX IF NOT EXISTS idx_companion_domain_events_role_time ON companion_domain_events(role_id, occurred_at DESC)')
   db.run('CREATE INDEX IF NOT EXISTS idx_companion_domain_events_correlation ON companion_domain_events(correlation_id, occurred_at)')
+  db.run('CREATE INDEX IF NOT EXISTS idx_companion_domain_events_execution ON companion_domain_events(execution_id)')
   db.run(`
     CREATE TABLE IF NOT EXISTS companion_execution_runs (
       id TEXT PRIMARY KEY,
       role_id TEXT NOT NULL,
       command_id TEXT,
       idempotency_key TEXT,
+      correlation_id TEXT,
       event_id TEXT,
       action_type TEXT NOT NULL,
       status TEXT NOT NULL,
@@ -73,6 +77,7 @@ export async function ensureCompanionCoreSchema(): Promise<void> {
     )
   `)
   try { db.run('ALTER TABLE companion_execution_runs ADD COLUMN idempotency_key TEXT') } catch { /* 已存在 */ }
+  try { db.run('ALTER TABLE companion_execution_runs ADD COLUMN correlation_id TEXT') } catch { /* 已存在 */ }
   try { db.run('ALTER TABLE companion_execution_runs ADD COLUMN result_json TEXT') } catch { /* 已存在 */ }
   db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_companion_execution_idempotency ON companion_execution_runs(role_id, action_type, idempotency_key) WHERE idempotency_key IS NOT NULL')
   db.run('CREATE INDEX IF NOT EXISTS idx_companion_execution_role_time ON companion_execution_runs(role_id, started_at DESC)')
@@ -81,6 +86,9 @@ export async function ensureCompanionCoreSchema(): Promise<void> {
       id TEXT PRIMARY KEY,
       role_id TEXT NOT NULL,
       event_id TEXT,
+      execution_id TEXT,
+      command_id TEXT,
+      correlation_id TEXT,
       kind TEXT NOT NULL,
       dedupe_key TEXT NOT NULL,
       payload_json TEXT NOT NULL,
@@ -97,6 +105,9 @@ export async function ensureCompanionCoreSchema(): Promise<void> {
     )
   `)
   for (const column of [
+    ['execution_id', 'TEXT'],
+    ['command_id', 'TEXT'],
+    ['correlation_id', 'TEXT'],
     ['claimed_at', 'INTEGER'],
     ['lease_until', 'INTEGER'],
     ['next_attempt_at', 'INTEGER'],
@@ -105,6 +116,8 @@ export async function ensureCompanionCoreSchema(): Promise<void> {
     try { db.run(`ALTER TABLE companion_outbox ADD COLUMN ${column[0]} ${column[1]}`) } catch { /* 已存在 */ }
   }
   db.run('CREATE INDEX IF NOT EXISTS idx_companion_outbox_pending ON companion_outbox(status, created_at)')
+  db.run('CREATE INDEX IF NOT EXISTS idx_companion_outbox_execution ON companion_outbox(execution_id)')
+  db.run('CREATE INDEX IF NOT EXISTS idx_companion_outbox_correlation ON companion_outbox(role_id, correlation_id)')
   db.run(`
     CREATE TABLE IF NOT EXISTS companion_projection_receipts (
       projection_name TEXT NOT NULL,

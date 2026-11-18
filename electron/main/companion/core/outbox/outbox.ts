@@ -1,7 +1,11 @@
 import { randomUUID } from 'node:crypto'
-import { getDatabase, persist } from '../../../storage/database'
+import { getDatabase, withDatabaseTransaction } from '../../../storage/database'
+import { commandExecutionScope } from '../commands/execution-scope'
 import { ensureCompanionCoreSchema } from '../schema'
+import { withCompanionUnitOfWork } from '../transaction/unit-of-work'
 import type { CompanionOutboxMessage } from '../types'
+
+const OUTBOX_COLUMNS = 'id, role_id, event_id, kind, dedupe_key, payload_json, status, attempt, last_error, claimed_at, lease_until, next_attempt_at, max_attempts, created_at, delivered_at, execution_id, command_id, correlation_id'
 
 export async function enqueueCompanionOutbox(input: {
   roleId: string
@@ -10,32 +14,42 @@ export async function enqueueCompanionOutbox(input: {
   dedupeKey: string
   payload: Record<string, unknown>
 }): Promise<CompanionOutboxMessage> {
-  await ensureCompanionCoreSchema()
-  const db = await getDatabase()
-  const existing = db.exec('SELECT id, role_id, event_id, kind, dedupe_key, payload_json, status, attempt, last_error, claimed_at, lease_until, next_attempt_at, max_attempts, created_at, delivered_at FROM companion_outbox WHERE role_id = ? AND dedupe_key = ?', [input.roleId, input.dedupeKey])[0]?.values[0]
-  if (existing) return rowToOutbox(existing)
-  const message: CompanionOutboxMessage = {
-    id: randomUUID(),
-    roleId: input.roleId,
-    eventId: input.eventId ?? null,
-    kind: input.kind,
-    dedupeKey: input.dedupeKey,
-    payload: input.payload,
-    status: 'pending',
-    attempt: 0,
-    lastError: null,
-    claimedAt: null,
-    leaseUntil: null,
-    nextAttemptAt: null,
-    maxAttempts: 8,
-    createdAt: Date.now(),
-    deliveredAt: null,
-  }
-  db.run(`INSERT INTO companion_outbox
-    (id, role_id, event_id, kind, dedupe_key, payload_json, status, attempt, last_error, claimed_at, lease_until, next_attempt_at, max_attempts, created_at, delivered_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [message.id, message.roleId, message.eventId, message.kind, message.dedupeKey, JSON.stringify(message.payload), message.status, message.attempt, message.lastError, message.claimedAt, message.leaseUntil, message.nextAttemptAt, message.maxAttempts, message.createdAt, message.deliveredAt])
-  persist()
-  return message
+  return withCompanionUnitOfWork(async () => {
+    const db = await getDatabase()
+    const command = commandExecutionScope.getStore()
+    if (command && command.roleId !== input.roleId) throw new Error('人物世界出站消息不属于当前命令。')
+    const fact = input.eventId ? db.exec('SELECT correlation_id, execution_id, causation_id FROM companion_domain_events WHERE id = ? AND role_id = ?', [input.eventId, input.roleId])[0]?.values[0] : undefined
+    if (input.eventId && !fact) throw new Error('人物世界出站消息引用了缺失或不属于当前人物的事件。')
+    const existing = db.exec(`SELECT ${OUTBOX_COLUMNS} FROM companion_outbox WHERE role_id = ? AND dedupe_key = ?`, [input.roleId, input.dedupeKey])[0]?.values[0]
+    if (existing) return rowToOutbox(existing)
+    const message: CompanionOutboxMessage = {
+      id: randomUUID(),
+      roleId: input.roleId,
+      eventId: input.eventId ?? null,
+      executionId: command?.executionId ?? (fact?.[1] == null ? null : String(fact[1])),
+      commandId: command?.commandId ?? (fact?.[1] == null || fact[2] == null ? null : String(fact[2])),
+      correlationId: command?.correlationId ?? (fact ? String(fact[0]) : null),
+      kind: input.kind,
+      dedupeKey: input.dedupeKey,
+      payload: input.payload,
+      status: 'pending',
+      attempt: 0,
+      lastError: null,
+      claimedAt: null,
+      leaseUntil: null,
+      nextAttemptAt: null,
+      maxAttempts: 8,
+      createdAt: Date.now(),
+      deliveredAt: null,
+    }
+    db.run(`INSERT INTO companion_outbox (${OUTBOX_COLUMNS})
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+      message.id, message.roleId, message.eventId, message.kind, message.dedupeKey, JSON.stringify(message.payload), message.status,
+      message.attempt, message.lastError, message.claimedAt, message.leaseUntil, message.nextAttemptAt, message.maxAttempts,
+      message.createdAt, message.deliveredAt, message.executionId, message.commandId, message.correlationId,
+    ])
+    return message
+  })
 }
 
 export async function dispatchCompanionOutbox(input: {
@@ -61,31 +75,43 @@ export async function dispatchCompanionOutbox(input: {
    * 设计意图：先把这类记录落为 failed 终态，再用同一查询领取仍有额度的消息，放弃让过期记录永久停留在 processing 的做法。
    * 关键约束：只有租约已过期且 attempt >= max_attempts 才能终止，正常失败仍由 next_attempt_at 控制退避；状态变化必须持久化。
    */
-  db.run(`UPDATE companion_outbox
-    SET status = 'failed', last_error = ?, claimed_at = NULL, lease_until = NULL, next_attempt_at = NULL
-    WHERE status = 'processing' AND lease_until IS NOT NULL AND lease_until <= ? AND attempt >= max_attempts`, ['达到最大投递次数，停止自动重试。', now])
-  const terminalizedCount = db.getRowsModified()
-  const rows = db.exec(`SELECT id, role_id, event_id, kind, dedupe_key, payload_json, status, attempt, last_error, claimed_at, lease_until, next_attempt_at, max_attempts, created_at, delivered_at
+  if (db.exec("SELECT 1 FROM companion_outbox WHERE status = 'processing' AND lease_until <= ? AND attempt >= max_attempts LIMIT 1", [now]).length) {
+    await withDatabaseTransaction(async transaction => {
+      transaction.run(`UPDATE companion_outbox
+        SET status = 'failed', last_error = ?, claimed_at = NULL, lease_until = NULL, next_attempt_at = NULL
+        WHERE status = 'processing' AND lease_until <= ? AND attempt >= max_attempts`, ['达到最大投递次数，停止自动重试。', now])
+    })
+  }
+  const rows = (await getDatabase()).exec(`SELECT ${OUTBOX_COLUMNS}
     FROM companion_outbox WHERE ((status = 'pending' AND attempt < max_attempts) OR (status = 'failed' AND attempt < max_attempts AND (next_attempt_at IS NULL OR next_attempt_at <= ?)) OR (status = 'processing' AND attempt < max_attempts AND lease_until IS NOT NULL AND lease_until <= ?))${kindFilter}${excludeFilter} ORDER BY created_at ASC LIMIT ?`, [now, now, ...(input.kinds ?? []), ...(input.excludeKinds ?? []), limit])[0]?.values ?? []
   let delivered = 0
   for (const row of rows) {
     const message = rowToOutbox(row)
-    const leaseUntil = now + 30_000
-    db.run(`UPDATE companion_outbox SET status = 'processing', attempt = attempt + 1, claimed_at = ?, lease_until = ?, last_error = NULL WHERE id = ? AND ((status = 'pending') OR (status = 'failed' AND (next_attempt_at IS NULL OR next_attempt_at <= ?)) OR (status = 'processing' AND lease_until IS NOT NULL AND lease_until <= ?))`, [now, leaseUntil, message.id, now, now])
-    if (db.getRowsModified() !== 1) continue
-    persist()
+    const claimedAt = Date.now()
+    const leaseUntil = claimedAt + 30_000
+    const attempt = message.attempt + 1
+    const claimed = await withDatabaseTransaction(async transaction => {
+      transaction.run(`UPDATE companion_outbox SET status = 'processing', attempt = ?, claimed_at = ?, lease_until = ?, last_error = NULL
+        WHERE id = ? AND attempt = ? AND attempt < max_attempts AND ((status = 'pending') OR (status = 'failed' AND (next_attempt_at IS NULL OR next_attempt_at <= ?)) OR (status = 'processing' AND lease_until <= ?))`,
+      [attempt, claimedAt, leaseUntil, message.id, message.attempt, claimedAt, claimedAt])
+      return transaction.getRowsModified() === 1
+    })
+    if (!claimed) continue
     try {
-      // 租约过期可被重新领取，完成与失败仅允许当前 attempt 写回，避免迟到投递覆盖新结果。
-      await input.deliver({ ...message, status: 'processing', attempt: message.attempt + 1, claimedAt: now, leaseUntil, lastError: null })
-      db.run(`UPDATE companion_outbox SET status = 'delivered', delivered_at = ?, claimed_at = NULL, lease_until = NULL, next_attempt_at = NULL WHERE id = ? AND status = 'processing' AND attempt = ?`, [Date.now(), message.id, message.attempt + 1])
-      delivered += db.getRowsModified()
+      await input.deliver({ ...message, status: 'processing', attempt, claimedAt, leaseUntil, lastError: null })
     } catch (error) {
       const nextAttemptAt = Date.now() + Math.min(15 * 60_000, 1_000 * (2 ** Math.min(message.attempt, 8)))
-      db.run(`UPDATE companion_outbox SET status = 'failed', last_error = ?, claimed_at = NULL, lease_until = NULL, next_attempt_at = ? WHERE id = ? AND status = 'processing' AND attempt = ?`, [error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500), nextAttemptAt, message.id, message.attempt + 1])
+      await withDatabaseTransaction(async transaction => {
+        transaction.run(`UPDATE companion_outbox SET status = 'failed', last_error = ?, claimed_at = NULL, lease_until = NULL, next_attempt_at = ? WHERE id = ? AND status = 'processing' AND attempt = ?`, [error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500), nextAttemptAt, message.id, attempt])
+      })
+      continue
     }
-    persist()
+    // 外部调用返回后另开事务。过期执行无法更新新一轮领取，磁盘写入失败也不会被标成消费失败。
+    delivered += await withDatabaseTransaction(async transaction => {
+      transaction.run(`UPDATE companion_outbox SET status = 'delivered', delivered_at = ?, claimed_at = NULL, lease_until = NULL, next_attempt_at = NULL WHERE id = ? AND status = 'processing' AND attempt = ?`, [Date.now(), message.id, attempt])
+      return transaction.getRowsModified()
+    })
   }
-  if (terminalizedCount > 0 || rows.length > 0) persist()
   return delivered
 }
 
@@ -94,6 +120,9 @@ function rowToOutbox(row: unknown[]): CompanionOutboxMessage {
     id: String(row[0]),
     roleId: String(row[1]),
     eventId: row[2] == null ? null : String(row[2]),
+    executionId: row[15] == null ? null : String(row[15]),
+    commandId: row[16] == null ? null : String(row[16]),
+    correlationId: row[17] == null ? null : String(row[17]),
     kind: String(row[3]),
     dedupeKey: String(row[4]),
     payload: JSON.parse(String(row[5])) as Record<string, unknown>,

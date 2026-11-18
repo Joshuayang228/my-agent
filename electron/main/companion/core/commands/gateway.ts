@@ -3,6 +3,7 @@ import { isActiveRole } from '../../../storage/settings-store'
 import { startCompanionExecution, finishCompanionExecution } from '../execution/ledger'
 import { commandExecutionScope, type CompanionCommandContext } from './execution-scope'
 import { withCompanionUnitOfWork } from '../transaction/unit-of-work'
+import { getTraceContext } from '../../../utils/trace-context'
 
 export type { CompanionCommandContext } from './execution-scope'
 
@@ -26,12 +27,18 @@ export async function executeCompanionCommand<T>(input: {
   input.signal?.throwIfAborted()
   if (!(await isActiveRole(input.roleId))) throw new Error('伙伴已切换，请刷新人物页面后重试。')
   const commandId = randomUUID()
-  const correlationId = input.correlationId ?? commandId
-  const execution = await startCompanionExecution({ roleId: input.roleId, commandId, idempotencyKey: input.idempotencyKey ?? null, actionType: input.actionType })
+  const parent = commandExecutionScope.getStore()
+  const trace = getTraceContext()
+  const correlationId = input.correlationId
+    ?? (parent?.roleId === input.roleId ? parent.correlationId : undefined)
+    ?? trace.interactionSpanId
+    ?? trace.traceId
+    ?? commandId
+  const execution = await startCompanionExecution({ roleId: input.roleId, commandId, correlationId, idempotencyKey: input.idempotencyKey ?? null, actionType: input.actionType })
   if (input.idempotencyKey && execution.status === 'completed') return execution.result as T
   if (input.idempotencyKey && execution.status === 'running' && execution.commandId !== commandId) throw new Error('同一命令正在执行，请勿重复提交。')
   try {
-    const context = { commandId, executionId: execution.id, correlationId, roleId: input.roleId, occurredAt: Date.now(), signal: input.signal }
+    const context = { commandId, executionId: execution.id, correlationId: execution.correlationId ?? correlationId, roleId: input.roleId, occurredAt: Date.now(), signal: input.signal }
     return await commandExecutionScope.run(context, async () => {
       const execute = async () => {
         input.signal?.throwIfAborted()
