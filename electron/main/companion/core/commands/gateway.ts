@@ -4,7 +4,8 @@ import { startCompanionExecution, finishCompanionExecution } from '../execution/
 import { commandExecutionScope, type CompanionCommandContext } from './execution-scope'
 import { withCompanionUnitOfWork } from '../transaction/unit-of-work'
 import { getTraceContext } from '../../../utils/trace-context'
-import { getExecutionSignal } from '../../../utils/execution-cancellation'
+import { getExecutionSignal, runWithExecutionSignal } from '../../../utils/execution-cancellation'
+import { captureCompanionLifecycle } from '../../../utils/companion-lifecycle'
 
 export type { CompanionCommandContext } from './execution-scope'
 
@@ -13,7 +14,7 @@ export type { CompanionCommandContext } from './execution-scope'
  *
  * 背景：Chat、LifeTicker 和 IPC 曾各自处理角色校验、失败日志和重试状态，导致同一行为在不同入口表现不同。
  * 设计意图：核心层领取命令执行所有权，本地事实由用例的 Unit of Work 提交，生命周期允许跨模型等待。
- * 关键约束：显式 roleId 必须仍是 activeRole，失败只能记录脱敏错误并标记 retryable，不能伪造 completed。
+ * 关键约束：显式 roleId 必须仍是 activeRole，且切走再切回不能复用旧代执行；失败须保留可重试账本。
  */
 export async function executeCompanionCommand<T>(input: {
   roleId: string
@@ -25,9 +26,12 @@ export async function executeCompanionCommand<T>(input: {
   local?: boolean
   handler: (context: CompanionCommandContext) => Promise<T>
 }): Promise<T> {
-  const signal = getExecutionSignal(input.signal)
-  signal?.throwIfAborted()
+  const callerSignal = getExecutionSignal(input.signal)
+  const lifecycle = captureCompanionLifecycle()
+  const signal = callerSignal ? AbortSignal.any([callerSignal, lifecycle]) : lifecycle
+  signal.throwIfAborted()
   if (!(await isActiveRole(input.roleId))) throw new Error('伙伴已切换，请刷新人物页面后重试。')
+  signal.throwIfAborted()
   const commandId = randomUUID()
   const parent = commandExecutionScope.getStore()
   const trace = getTraceContext()
@@ -37,20 +41,23 @@ export async function executeCompanionCommand<T>(input: {
     ?? trace.traceId
     ?? commandId
   const execution = await startCompanionExecution({ roleId: input.roleId, commandId, correlationId, idempotencyKey: input.idempotencyKey ?? null, actionType: input.actionType })
-  if (input.idempotencyKey && execution.status === 'completed') return execution.result as T
+  if (input.idempotencyKey && execution.status === 'completed') {
+    signal.throwIfAborted()
+    return execution.result as T
+  }
   if (input.idempotencyKey && execution.status === 'running' && execution.commandId !== commandId) throw new Error('同一命令正在执行，请勿重复提交。')
   try {
     const context = { commandId, executionId: execution.id, correlationId: execution.correlationId ?? correlationId, roleId: input.roleId, occurredAt: Date.now(), signal }
     return await commandExecutionScope.run(context, async () => {
       const execute = async () => {
-        signal?.throwIfAborted()
+        signal.throwIfAborted()
         const result = await input.handler(context)
-        signal?.throwIfAborted()
+        signal.throwIfAborted()
         const completed = await finishCompanionExecution({ executionId: execution.id, commandId, status: 'completed', result })
         if (!completed) throw new Error('人物世界命令已失去执行权。')
         return result
       }
-      return input.local ? withCompanionUnitOfWork(execute) : execute()
+      return runWithExecutionSignal(signal, () => input.local ? withCompanionUnitOfWork(execute) : execute())
     })
   } catch (error) {
     await finishCompanionExecution({

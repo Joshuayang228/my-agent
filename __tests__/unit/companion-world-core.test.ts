@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import initSqlJs from 'sql.js'
 import { runWithExecutionSignal } from '../../electron/main/utils/execution-cancellation'
+import { invalidateCompanionLifecycle } from '../../electron/main/utils/companion-lifecycle'
 import { runLocalTransaction } from '../helpers/local-transaction'
 
 const SQL = await initSqlJs()
@@ -300,6 +301,31 @@ describe('人物世界核心层', () => {
     })).rejects.toThrow('tool cancelled')
     expect(memDb.exec('SELECT value FROM cancel_probe')).toEqual([])
     expect(memDb.exec("SELECT status FROM companion_execution_runs WHERE action_type = 'cancel-local'")[0].values).toEqual([['retryable']])
+  })
+
+  it('人物范围切走再恢复时，旧命令不能以相同人物继续提交', async () => {
+    memDb.run('CREATE TABLE generation_probe (value TEXT)')
+    const write = (value: string) => withCompanionUnitOfWork(async () => {
+      memDb.run('INSERT INTO generation_probe VALUES (?)', [value])
+    })
+    const command = { roleId: 'luffy', actionType: 'generate-role-fact' }
+    let begin!: () => void
+    let resume!: () => void
+    const started = new Promise<void>(resolve => { begin = resolve })
+    const waitForModel = new Promise<void>(resolve => { resume = resolve })
+    const oldCommand = executeCompanionCommand({ ...command, handler: async () => {
+      begin()
+      await waitForModel
+      await write('旧代结果')
+    } })
+    const cancelled = expect(oldCommand).rejects.toThrow('人物世界运行范围已变更')
+    await started
+    invalidateCompanionLifecycle()
+    invalidateCompanionLifecycle()
+    await executeCompanionCommand({ ...command, handler: () => write('当前代结果') })
+    resume()
+    await cancelled
+    expect(memDb.exec('SELECT value FROM generation_probe')[0].values).toEqual([['当前代结果']])
   })
 
   it('Outbox 投递成功后标记 delivered，失败后保留 failed 供重试', async () => {
