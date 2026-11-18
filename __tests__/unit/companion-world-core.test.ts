@@ -230,6 +230,20 @@ describe('人物世界核心层', () => {
     expect(db.exec('SELECT value FROM command_probe')[0].values).toEqual([['committed']])
   })
 
+  it('工具取消发生在命令事务中时回滚事实并保留可重试账本', async () => {
+    const controller = new AbortController()
+    memDb.run('CREATE TABLE cancel_probe (value TEXT)')
+    await expect(executeCompanionCommand({
+      roleId: 'luffy', actionType: 'cancel-local', signal: controller.signal, local: true,
+      handler: async () => {
+        memDb.run('INSERT INTO cancel_probe VALUES (?)', ['pending'])
+        controller.abort(new Error('tool cancelled'))
+      },
+    })).rejects.toThrow('tool cancelled')
+    expect(memDb.exec('SELECT value FROM cancel_probe')).toEqual([])
+    expect(memDb.exec("SELECT status FROM companion_execution_runs WHERE action_type = 'cancel-local'")[0].values).toEqual([['retryable']])
+  })
+
   it('Outbox 投递成功后标记 delivered，失败后保留 failed 供重试', async () => {
     await enqueueCompanionOutbox({ roleId: 'luffy', kind: 'test-success', dedupeKey: 'success-1', payload: { ok: true } })
     await enqueueCompanionOutbox({ roleId: 'luffy', kind: 'test-failure', dedupeKey: 'failure-1', payload: { ok: false } })

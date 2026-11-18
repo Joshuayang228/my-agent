@@ -18,10 +18,12 @@ export async function executeCompanionCommand<T>(input: {
   actionType: string
   idempotencyKey?: string
   correlationId?: string
+  signal?: AbortSignal
   /** 仅本地 SQL 命令可启用，成功回执与事实共用事务。 */
   local?: boolean
   handler: (context: CompanionCommandContext) => Promise<T>
 }): Promise<T> {
+  input.signal?.throwIfAborted()
   if (!(await isActiveRole(input.roleId))) throw new Error('伙伴已切换，请刷新人物页面后重试。')
   const commandId = randomUUID()
   const correlationId = input.correlationId ?? commandId
@@ -29,10 +31,12 @@ export async function executeCompanionCommand<T>(input: {
   if (input.idempotencyKey && execution.status === 'completed') return execution.result as T
   if (input.idempotencyKey && execution.status === 'running' && execution.commandId !== commandId) throw new Error('同一命令正在执行，请勿重复提交。')
   try {
-    const context = { commandId, executionId: execution.id, correlationId, roleId: input.roleId, occurredAt: Date.now() }
+    const context = { commandId, executionId: execution.id, correlationId, roleId: input.roleId, occurredAt: Date.now(), signal: input.signal }
     return await commandExecutionScope.run(context, async () => {
       const execute = async () => {
+        input.signal?.throwIfAborted()
         const result = await input.handler(context)
+        input.signal?.throwIfAborted()
         const completed = await finishCompanionExecution({ executionId: execution.id, commandId, status: 'completed', result })
         if (!completed) throw new Error('人物世界命令已失去执行权。')
         return result

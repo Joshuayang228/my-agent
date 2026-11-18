@@ -133,8 +133,8 @@ export function mcpToolToDefinition(tool: McpTool): ToolDefinition {
       ...(schema.allOf ? { allOf: schema.allOf } : {}),
     } as ToolDefinition['parameters'],
     metadata: { ...DEFAULT_MCP_TOOL_METADATA },
-    execute: async (args: Record<string, unknown>) => {
-      return mcpManager.callTool(tool.serverId, tool.name, args)
+    execute: async (args, context) => {
+      return mcpManager.callTool(tool.serverId, tool.name, args, context?.signal)
     },
   }
 }

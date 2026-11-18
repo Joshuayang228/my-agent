@@ -125,6 +125,7 @@ export const fileEditTool = buildTool({
     }
 
     try {
+      ctx?.signal?.throwIfAborted()
       await fs.writeFile(resolved, result, 'utf-8')
     } catch (err) {
       log.warn('Edit target write failed', { pathHash: hashForLog(resolved), errorType: err instanceof Error ? err.name : 'unknown' })

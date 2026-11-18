@@ -169,6 +169,8 @@ export const companionCreateAssetTool = buildTool({
       return executeCompanionCommand({
         roleId,
         actionType: 'create-asset-tool',
+        signal: context?.signal,
+        local: true,
         handler: async () => {
           const result = await createAsset({ roleId, kind, name, payload: payload as Record<string, unknown> | undefined })
           return result.ok ? `已添加${name}到人物世界（资产 ID：${result.asset.id}）。` : `生活资产未保存：${result.error}`
@@ -235,6 +237,8 @@ export const companionAddReadingNoteTool = buildTool({
     return executeCompanionCommand({
       roleId,
       actionType: 'add-reading-note',
+      signal: context?.signal,
+      local: true,
       handler: async () => {
         const result = await updateAsset(assetId, { payload: { readingNotes } }, { expectedRoleId: roleId })
         return result.ok ? `已保存《${asset.name}》的阅读笔记${duplicate ? '（已存在相同来源记录）' : ''}。${author === 'companion' ? '记录者：人物。' : '记录者：用户。'}来源：${source}${page === undefined ? '' : `，第 ${page} 页`}${chapter ? `，${chapter}` : ''}` : `阅读笔记未保存：${result.error}`
@@ -269,7 +273,7 @@ export const companionCommentMomentTool = buildTool({
     const momentId = textArg(args, 'momentId', 200)
     const text = textArg(args, 'text', 280)
     if (!momentId || !text) return '动态 ID 和评论内容不能为空，评论不能超过 280 字。'
-    const result = await executeCompanionCommand({ roleId, actionType: 'comment-moment-tool', handler: () => addMomentCommentForRole(roleId, momentId, text) })
+    const result = await executeCompanionCommand({ roleId, actionType: 'comment-moment-tool', signal: context?.signal, handler: () => addMomentCommentForRole(roleId, momentId, text) })
     if (!result.ok) return `朋友圈评论未保存：${result.error}`
     const reply = result.social.comments.find(item => item.source === 'protagonist' && item.parentInteractionId)
     return reply?.text ? `已评论朋友圈，${roleId} 回复：${reply.text}` : '已评论朋友圈；人物回复暂未生成。'

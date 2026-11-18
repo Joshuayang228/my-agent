@@ -121,9 +121,10 @@ export const shellExecTool = buildTool({
 
     const isWin = process.platform === 'win32'
     const actualCommand = isWin ? `chcp 65001 >nul && ${command}` : command
+    ctx?.signal?.throwIfAborted()
 
     return new Promise<string>((resolve) => {
-      exec(actualCommand, { timeout: TIMEOUT_MS, cwd, maxBuffer: 2 * 1024 * 1024, env: sanitizedEnv, encoding: 'utf-8' }, (error, stdout, stderr) => {
+      exec(actualCommand, { timeout: TIMEOUT_MS, signal: ctx?.signal, cwd, maxBuffer: 2 * 1024 * 1024, env: sanitizedEnv, encoding: 'utf-8' }, (error, stdout, stderr) => {
         const parts: string[] = []
 
         if (stdout) {

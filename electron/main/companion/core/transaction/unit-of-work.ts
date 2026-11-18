@@ -20,7 +20,10 @@ export async function withCompanionUnitOfWork<T>(work: () => Promise<T>): Promis
     const command = commandExecutionScope.getStore()
     // 领取事务后再查租约，排队期间已被其他执行接替的处理器不能写入。
     if (command) await assertCompanionExecutionOwner(command.executionId, command.commandId)
-    return work()
+    command?.signal?.throwIfAborted()
+    const result = await work()
+    command?.signal?.throwIfAborted()
+    return result
   }
   if (isCompanionCommitActive()) return execute()
   // 建表必须发生在事务外，否则首次运行时 DDL 会随业务回滚，下一次查询会得到“表不存在”。

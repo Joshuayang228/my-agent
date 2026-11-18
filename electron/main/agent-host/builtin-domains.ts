@@ -39,6 +39,7 @@ export function createCompanionCoreDomain(): AgentHostDomainDefinition {
           sessionId: context.sessionId,
           roleId: context.roleId,
           operationKey: context.operationKey,
+          signal: context.signal,
         })
       },
     }, {

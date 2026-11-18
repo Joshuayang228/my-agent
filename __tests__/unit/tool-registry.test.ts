@@ -293,6 +293,43 @@ describe('ToolRegistry', () => {
   })
 
   describe('G7: longRunning 超时豁免', () => {
+    it('超时会取消工具自己的信号，并提示核实写入结果', async () => {
+      vi.useFakeTimers()
+      try {
+        const reg = new ToolRegistry()
+        const parent = new AbortController()
+        let signal: AbortSignal | undefined
+        let wrote = false
+        reg.register(makeTool({
+          metadata: { isReadOnly: false, isDestructive: false, isConcurrencySafe: false },
+          execute: async (_args, context) => {
+            signal = context?.signal
+            await new Promise(resolve => setTimeout(resolve, 31_000))
+            signal?.throwIfAborted()
+            wrote = true
+            return 'done'
+          },
+        }))
+        const execution = reg.executeAll([makeCall()], { workdir: '.', sessionId: 's', signal: parent.signal })
+        await vi.advanceTimersByTimeAsync(31_000)
+        expect(signal?.aborted).toBe(true)
+        expect(parent.signal.aborted).toBe(false)
+        expect(wrote).toBe(false)
+        expect((await execution)[0].content).toContain('请先核实')
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('父操作已取消时不启动工具', async () => {
+      const reg = new ToolRegistry()
+      const execute = vi.fn(async () => 'should not run')
+      reg.register(makeTool({ execute }))
+      const result = await reg.executeAll([makeCall()], { workdir: '.', sessionId: 's', signal: AbortSignal.abort() })
+      expect(execute).not.toHaveBeenCalled()
+      expect(result[0]).toMatchObject({ isError: true, content: expect.stringContaining('取消') })
+    })
+
     it('普通工具超过 30s 被超时杀掉', async () => {
       vi.useFakeTimers()
       try {

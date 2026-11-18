@@ -357,7 +357,8 @@ class McpClientManager {
     await Promise.allSettled(ids.map(id => this.disconnect(id)))
   }
 
-  async callTool(serverId: string, toolName: string, args: Record<string, unknown>): Promise<string> {
+  async callTool(serverId: string, toolName: string, args: Record<string, unknown>, signal?: AbortSignal): Promise<string> {
+    signal?.throwIfAborted()
     const conn = this.connections.get(serverId)
     if (!conn) throw new Error(`MCP server not connected: ${serverId}`)
     if (conn.status !== 'connected') throw new Error(`MCP server not ready: ${conn.config.name} (${conn.status})`)
@@ -368,7 +369,7 @@ class McpClientManager {
     log.info('MCP callTool', { serverId, toolName, argKeys: Object.keys(args).slice(0, 32) })
 
     try {
-      const result = await conn.client.callTool({ name: toolName, arguments: args })
+      const result = await conn.client.callTool({ name: toolName, arguments: args }, undefined, { signal })
 
       if (result.isError) {
         const errorText = Array.isArray(result.content)

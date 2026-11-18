@@ -37,6 +37,7 @@ export function capabilityToTool(capability: AgentHostCapability, input: {
         roleId,
         sessionId: context?.sessionId,
         traceId: context?.parentSpanId ?? `tool:${capability.key}`,
+        signal: context?.signal,
         operationKey: context?.sessionId && context.toolCallId
           ? JSON.stringify([context.sessionId, context.toolCallId])
           : undefined,

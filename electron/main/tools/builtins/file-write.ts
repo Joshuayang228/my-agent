@@ -66,7 +66,9 @@ export const fileWriteTool = buildTool({
     log.info('Writing file', { pathHash: hashForLog(resolved), append, contentLength: content.length, effectiveSandbox: mode })
 
     try {
+      ctx?.signal?.throwIfAborted()
       await fs.mkdir(path.dirname(resolved), { recursive: true })
+      ctx?.signal?.throwIfAborted()
 
       if (append) {
         await fs.appendFile(resolved, content, 'utf-8')

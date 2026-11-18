@@ -9,13 +9,6 @@ const TOOL_TIMEOUT_MS = 30_000
 const MAX_CONCURRENT_TOOLS = 10
 const log = createLogger('ToolRegistry')
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`Tool "${label}" timed out after ${ms}ms`)), ms)
-    promise.then(resolve, reject).finally(() => clearTimeout(timer))
-  })
-}
-
 export class ToolRegistry {
   private tools = new Map<string, ToolDefinition>()
   /** 别名 → 主工具名 */
@@ -199,11 +192,38 @@ export class ToolRegistry {
 
   /** 原始执行器 — 中间件链的终点 */
   private async rawExecute(ctx: { call: ToolCall; tool: ToolDefinition; args: Record<string, unknown>; toolContext?: ToolContext }): Promise<ToolResult> {
-    // longRunning 工具（如 delegate_task 跑完整子 Agent 循环）跳过 30s 超时，
-    // 否则会被误杀。这类工具自己靠子 Agent 的 maxIterations / abort signal 兜底。
-    const output = ctx.tool.metadata.longRunning
-      ? await ctx.tool.execute(ctx.args, ctx.toolContext)
-      : await withTimeout(ctx.tool.execute(ctx.args, ctx.toolContext), TOOL_TIMEOUT_MS, ctx.call.name)
-    return { ...(typeof output === 'string' ? { content: output } : output), callId: ctx.call.id, name: ctx.call.name }
+    const { tool, call, args, toolContext } = ctx
+    const identity = { callId: call.id, name: call.name }
+    const parent = toolContext?.signal
+    if (parent?.aborted) return { ...identity, isError: true, content: '工具调用已取消，未启动执行。' }
+
+    // 超时只取消本次调用，不能取消其他并行工具或整个会话。
+    // 长任务仍接受父操作取消，已交给外部系统的写入则必须核实实际结果。
+    const controller = new AbortController()
+    const signal = controller.signal
+    const timeoutError = new DOMException('工具执行超时。', 'TimeoutError')
+    const abortFromParent = () => controller.abort(parent?.reason)
+    parent?.addEventListener('abort', abortFromParent, { once: true })
+    const timer = tool.metadata.longRunning ? undefined : setTimeout(() => controller.abort(timeoutError), TOOL_TIMEOUT_MS)
+    let onAbort: (() => void) | undefined
+    const cancelled = new Promise<never>((_, reject) => {
+      onAbort = () => reject(signal.reason)
+      signal.addEventListener('abort', onAbort, { once: true })
+    })
+    try {
+      const context = toolContext ? { ...toolContext, signal } : undefined
+      const output = await Promise.race([tool.execute(args, context), cancelled])
+      signal.throwIfAborted()
+      return { ...(typeof output === 'string' ? { content: output } : output), ...identity }
+    } catch (error) {
+      if (!signal.aborted) throw error
+      const reason = signal.reason === timeoutError ? '工具执行超时。' : '工具调用已取消。'
+      const outcome = tool.metadata.isReadOnly ? '' : '写入结果可能尚未确定，请先核实实际状态再决定是否重试。'
+      return { ...identity, isError: true, content: reason + outcome }
+    } finally {
+      clearTimeout(timer)
+      parent?.removeEventListener('abort', abortFromParent)
+      if (onAbort) signal.removeEventListener('abort', onAbort)
+    }
   }
 }

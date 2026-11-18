@@ -8,6 +8,7 @@
 
 import type { LLMConfig, AddMomentCommentOptions } from '../../../../src/shared/types'
 import { startSpan } from '../../utils/tracer'
+import { createLogger } from '../../utils/logger'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm/index'
@@ -27,7 +28,11 @@ import { formatMomentText } from './moment-format'
 import { buildRosterLines } from '../cast/roster'
 import { resolveCastInteractions } from './moment-comment-service'
 import { resolveMomentText } from './moment-polish'
+import { commandExecutionScope } from '../core/commands/execution-scope'
+import { executeCompanionCommand } from '../core/commands/gateway'
 import * as store from '../core/persistence/life-repository'
+
+const log = createLogger('CompanionMoments')
 import { getSetting } from '../../storage/settings-store'
 import { generateAutomaticMomentMedia } from './automatic-moment-media'
 import { recordCompanionEventAndNotify } from '../application/record-event-notify'
@@ -537,7 +542,8 @@ export async function addMomentCommentForRole(
   const moment = await getMomentById(id)
   if (!moment) return { ok: false, code: 'NOT_FOUND', error: '动态不存在' }
   if (moment.roleId !== roleId) return { ok: false, code: 'ROLE_MISMATCH', error: '只能互动当前主角的动态' }
-  const inserted = await store.insertMomentUserInteraction({
+  const command = commandExecutionScope.getStore()
+  const inserted = await withCompanionUnitOfWork(() => store.insertMomentUserInteraction({
     momentId: id,
     roleId,
     kind: 'comment',
@@ -547,7 +553,7 @@ export async function addMomentCommentForRole(
     parentInteractionId: opts?.parentInteractionId ?? null,
     replyToActorName: opts?.replyToActorName ?? null,
     text: normalized.text,
-  })
+  }))
 
   // 自主回复：由模型/在场 NPC 自主决策是否回复、谁来回复以及延迟时长
   try {
@@ -578,10 +584,12 @@ export async function addMomentCommentForRole(
           recentComments,
         }),
         caller: 'moment-reply',
+        signal: command?.signal,
         temperature: 0.65,
         maxTokens: 280,
       })
 
+      command?.signal?.throwIfAborted()
       const decision = parseAutonomousReply(raw, roleId, pack.name)
       if (decision && decision.shouldReply) {
         if (opts?.immediate || decision.delaySeconds <= 0) {
@@ -596,22 +604,29 @@ export async function addMomentCommentForRole(
             occurredAt: Date.now(),
           })
         } else {
-          setTimeout(async () => {
+          // 延迟回复在评论命令已结算后独立执行，使用原评论的关联 ID 和稳定键。
+          commandExecutionScope.exit(() => setTimeout(async () => {
             try {
-              await persistMomentReplyAndNotify({
+              await executeCompanionCommand({
                 roleId,
-                momentId: id,
-                parentInteractionId: inserted.id,
-                responderId: decision.responderId,
-                responderName: decision.responderName,
-                actorType: decision.actorType,
-                reply: decision.reply,
-                occurredAt: Date.now(),
+                actionType: 'reply-to-moment-comment',
+                idempotencyKey: inserted.id,
+                correlationId: command?.correlationId,
+                handler: () => persistMomentReplyAndNotify({
+                  roleId,
+                  momentId: id,
+                  parentInteractionId: inserted.id,
+                  responderId: decision.responderId,
+                  responderName: decision.responderName,
+                  actorType: decision.actorType,
+                  reply: decision.reply,
+                  occurredAt: Date.now(),
+                }),
               })
-            } catch {
-              // 异步回复落盘失败静默忽略
+            } catch (error) {
+              log.warn('Delayed moment reply did not commit', { roleId, momentId: id, errorType: error instanceof Error ? error.name : 'unknown' })
             }
-          }, decision.delaySeconds * 1000)
+          }, decision.delaySeconds * 1000))
         }
       }
     }

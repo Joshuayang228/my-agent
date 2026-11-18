@@ -45,6 +45,7 @@ vi.mock('../../electron/main/storage/database', () => ({
 }))
 
 vi.mock('../../electron/main/storage/settings-store', () => ({
+  isActiveRole: async (roleId: string) => activeRoleId === roleId,
   getSetting: vi.fn(async (key: string) => {
     if (key === 'universeId') return 'default'
     if (key === 'activeRoleId') return activeRoleId
@@ -73,6 +74,7 @@ const {
   listMomentUserInteractionsForRole,
 } = await import('../../electron/main/companion/life/moments')
 const store = await import('../../electron/main/companion/core/persistence/life-repository')
+const { executeCompanionCommand } = await import('../../electron/main/companion/core/commands/gateway')
 
 async function seedMoment(roleId: string, eventId: string, text = '在千里阳光号甲板上钓鱼。') {
   const moment = await store.insertMoment({
@@ -153,8 +155,10 @@ describe('朋友圈回复互动与 NPC 自主决策', () => {
       reason: '索隆被用户直接挑衅，性格要强，延迟15秒反击',
     })
 
-    const saved = await addMomentCommentForRole('luffy', moment.id, '索隆你闭嘴！', {
-      replyToActorName: '索隆',
+    const saved = await executeCompanionCommand({
+      roleId: 'luffy',
+      actionType: 'add-moment-comment',
+      handler: () => addMomentCommentForRole('luffy', moment.id, '索隆你闭嘴！', { replyToActorName: '索隆' }),
     })
     expect(saved.ok).toBe(true)
 

@@ -20,6 +20,7 @@ export interface AgentHostExecutionContext {
   roleId?: string
   traceId: string
   operationKey?: string
+  signal?: AbortSignal
   workspaceRoot?: string
   workspaceTranscript?: string
   workspaceFocus?: { kind: string; path: string; content: string }

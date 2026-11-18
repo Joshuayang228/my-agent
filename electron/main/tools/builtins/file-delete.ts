@@ -138,6 +138,7 @@ export const fileDeleteTool = buildTool({
       if (isWhitelisted) {
         // 白名单路径：永久删除
         const stat = await fs.stat(absolutePath)
+        ctx?.signal?.throwIfAborted()
         if (stat.isDirectory()) {
           await fs.rm(absolutePath, { recursive: true, force: true })
         } else {
@@ -146,6 +147,7 @@ export const fileDeleteTool = buildTool({
         log.info('File permanently deleted (whitelisted)', { pathHash: hashForLog(absolutePath), isDirectory: stat.isDirectory() })
       } else {
         // 非白名单路径：移动到回收站
+        ctx?.signal?.throwIfAborted()
         await shell.trashItem(absolutePath)
         log.info('File moved to trash (recoverable)', { pathHash: hashForLog(absolutePath) })
       }

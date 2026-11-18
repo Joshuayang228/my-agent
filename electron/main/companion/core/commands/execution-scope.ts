@@ -6,6 +6,7 @@ export interface CompanionCommandContext {
   correlationId: string
   roleId: string
   occurredAt: number
+  signal?: AbortSignal
 }
 
 export const commandExecutionScope = new AsyncLocalStorage<CompanionCommandContext>()
