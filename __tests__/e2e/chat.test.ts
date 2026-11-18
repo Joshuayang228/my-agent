@@ -89,7 +89,6 @@ for (const theme of ['porcelain-blue', 'yao-stone']) for (const width of [1166, 
       return widths
     })
     expect(samples.some(value => value > 0 && value < 248)).toBeTruthy()
-    await expect(reopen).toBeHidden()
     await expect(sidebar).toHaveCSS('width', '0px')
     await expect(sidebar).toHaveAttribute('inert', '')
     await expect(reopen).toBeFocused()
@@ -2600,7 +2599,12 @@ test('正式生图入口回流到 Chat 并保持操作槽尺寸', async ({ page 
   await expect(chatImageButton).toBeVisible()
   const composerBefore = await composer.boundingBox()
   await chatImageButton.click()
-  await expect(page.getByRole('textbox', { name: '消息', exact: true })).toHaveValue('请生成一张图片：窗边的茶、木桌、午后的自然光。')
+  const input = page.getByRole('textbox', { name: '消息', exact: true })
+  await expect(input).toHaveValue('请生成一张图片：')
+  await expect(input).toBeFocused()
+  await input.fill('保留我写的生图草稿')
+  await chatImageButton.click()
+  await expect(input).toHaveValue('保留我写的生图草稿')
   expect(await composer.boundingBox()).toEqual(composerBefore)
 
   await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
@@ -2608,13 +2612,7 @@ test('正式生图入口回流到 Chat 并保持操作槽尺寸', async ({ page 
   const panel = page.getByTestId('world-assets-panel')
   await panel.getByRole('tab', { name: '全部', exact: true }).click()
   await expect(panel).toContainText('测试伙伴的外套')
-  const actions = panel.getByTestId('world-asset-actions').first()
-  const actionsBefore = await actions.boundingBox()
-  const assetImageButton = actions.getByRole('button', { name: '为 测试伙伴的外套 生成图片', exact: true })
-  await expect(assetImageButton).toBeVisible()
-  await assetImageButton.click()
-  await expect(page.getByRole('textbox', { name: '消息', exact: true })).toHaveValue('请为人物世界资产“测试伙伴的外套”生成一张图片。资产 ID：coat-1。生成后请使用 image_generate 的 targetAssetId 绑定到这个资产。')
-  expect(actionsBefore?.width).toBe(104)
+  await expect(panel.getByRole('button', { name: /生成图片|编辑 测试伙伴的外套|删除 测试伙伴的外套/ })).toHaveCount(0)
 })
 
 for (const theme of ['porcelain-blue', 'yao-stone', 'deep-plum', 'song-smoke']) {
@@ -2714,73 +2712,6 @@ for (const tab of ['culture', 'home', 'footprints']) {
     await expect(panel).not.toContainText('lin的记录')
     await openRecord('zhou')
   })
-}
-
-for (const tab of ['wardrobe', 'culture', 'home', 'footprints']) {
-  for (const outcome of ['success', 'failure', 'pending']) {
-    for (const operation of ['update', 'delete']) {
-      test('正式生活面旧写入不影响新角色 ' + tab + ' ' + outcome + ' ' + operation, async ({ page }, testInfo) => {
-        await installProductionElectronStub(page)
-        await page.setViewportSize({ width: outcome === 'success' ? 1166 : 600, height: 731 })
-        await page.addInitScript(theme => localStorage.setItem('theme', theme), outcome === 'success' ? 'porcelain-blue' : 'yao-stone')
-        await page.addInitScript(() => {
-          const listeners = new Set<(value: any) => void>()
-          const h = { role: 'lin', release: null as null | ((ok: boolean) => void),
-            switchRole: () => { h.role = 'zhou'; listeners.forEach(fn => fn({ roleId: 'zhou' })) } }
-          ;(window as any).__livingWrite = h
-          const api = (window as any).electronAPI.companion
-          api.onRoleChanged = (fn: (value: any) => void) => { listeners.add(fn); return () => listeners.delete(fn) }
-          api.getActive = async () => ({ id: h.role, name: h.role, description: '' })
-          api.catchupStatus = async () => ({ roleId: h.role, presence: '' })
-          api.getMoments = async () => ({ roleId: h.role, items: [] })
-          api.getAssets = async () => ({ roleId: h.role, items: ['wardrobe', 'culture', 'furniture', 'footprint'].map(kind => ({ id: h.role + kind, roleId: h.role, kind, name: h.role + '的记录', payload: kind === 'wardrobe' ? { category: 'top' } : kind === 'culture' ? { type: 'reading' } : kind === 'furniture' ? { displayInHome: true, displayReason: '日常使用', displayEvidence: ['经常在这里读书'] } : { recordType: 'trip', status: 'completed', destination: '苏州', start: '2026-09-01', end: '2026-09-02' }, acquiredAt: 1, sourceEventId: null })) })
-          api.createAsset = api.updateAsset = api.deleteAsset = () => new Promise(resolve => { h.release = ok => resolve({ ok, error: ok ? undefined : 'OLD_ROLE_FAILURE' }) })
-        })
-        await page.goto('/')
-        await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
-        await page.getByTestId('world-tab-' + tab).click()
-        const selectCollection = async () => {
-          if (tab === 'wardrobe') await page.getByTestId('world-assets-panel').getByRole('tab', { name: '全部', exact: true }).click()
-          if (tab === 'home') await page.getByTestId('world-details').getByRole('tab', { name: '未归置', exact: true }).click()
-        }
-        await selectCollection()
-        const openRecord = async (role: string) => {
-          if (tab !== 'wardrobe') await page.getByRole('button', { name: tab === 'culture' ? `查看作品：${role}的记录` : tab === 'home' ? `查看物件：${role}的记录` : `查看旅行 ${role}的记录`, exact: true }).click()
-        }
-        await expect(page.getByText('lin的记录', { exact: true }).first()).toBeVisible()
-        {
-          await openRecord('lin')
-          await page.getByRole('button', { name: (operation === 'update' ? '编辑 ' : '删除 ') + 'lin的记录', exact: true }).click()
-          if (operation === 'update') {
-            await page.getByTestId('world-asset-form').getByRole('textbox').first().fill('旧伙伴提交')
-            await page.getByTestId('world-asset-form').getByRole('button', { name: /^保存/ }).click()
-          } else await page.getByRole('button', { name: '删除', exact: true }).click()
-        }
-        await expect.poll(() => page.evaluate(() => Boolean((window as any).__livingWrite.release))).toBe(true)
-        await page.evaluate(() => { const h = (window as any).__livingWrite; h.oldRelease = h.release; h.switchRole() })
-        await selectCollection()
-        await expect(page.getByText('zhou的记录', { exact: true }).first()).toBeVisible()
-        await openRecord('zhou')
-        await page.getByRole('button', { name: '编辑 zhou的记录', exact: true }).click()
-        const form = page.getByTestId('world-asset-form')
-        const input = form.getByRole('textbox').first()
-        await input.fill('新伙伴草稿')
-        if (outcome === 'pending') {
-          await form.getByRole('button', { name: /^保存/ }).click()
-          await expect(input).toBeDisabled()
-        }
-        await page.evaluate(async ok => { (window as any).__livingWrite.oldRelease(ok); await new Promise(resolve => setTimeout(resolve, 100)) }, outcome !== 'failure')
-        await expect(input).toHaveValue('新伙伴草稿')
-        if (operation === 'update' && outcome !== 'pending') await page.screenshot({ path: testInfo.outputPath('role-write.png') })
-        if (outcome === 'pending') {
-          await expect(input).toBeDisabled()
-          await page.evaluate(() => (window as any).__livingWrite.release(true))
-          await expect(form).toHaveCount(0)
-        } else await expect(input).toBeEnabled()
-        await expect(page.getByText(/未添加，内容仍保留|未保存，修改仍保留|未删除，请重试/)).toHaveCount(0)
-      })
-    }
-  }
 }
 
 async function installTerminalLifecycleStub(page: import('@playwright/test').Page) {
@@ -2909,7 +2840,6 @@ test.describe('My Agent UI', () => {
     await expect(sidebarShell.getByRole('separator')).toBeVisible()
 
     const closeButton = page.getByTitle('收起侧栏 Ctrl+B')
-    const closeBounds = await closeButton.boundingBox()
     const openWidth = await sidebarShell.evaluate((element) => getComputedStyle(element).width)
     await closeButton.click()
     await expect(sidebarShell).toHaveAttribute('data-open', 'false')
@@ -2919,9 +2849,11 @@ test.describe('My Agent UI', () => {
     const reopenButton = page.getByTitle('展开侧边栏 (Ctrl+B)')
     await expect(reopenButton).toBeVisible()
     const reopenBounds = await reopenButton.boundingBox()
-    expect(closeBounds).not.toBeNull()
+    const toolbarBounds = await page.getByTestId('chat-toolbar').boundingBox()
     expect(reopenBounds).not.toBeNull()
-    expect(Math.abs(reopenBounds!.y + reopenBounds!.height / 2 - closeBounds!.y - closeBounds!.height / 2)).toBeLessThanOrEqual(1)
+    expect(toolbarBounds).not.toBeNull()
+    expect(reopenBounds!.y - toolbarBounds!.y).toBe(22)
+    await expect(reopenButton).toBeFocused()
 
     await reopenButton.click()
     await expect(reopenButton).toBeHidden()
@@ -5918,11 +5850,9 @@ test.describe('My Agent UI', () => {
         await expect(page.getByTestId('settings-mcp-add')).toHaveCount(0)
         await expect(page.getByTestId('memory-group-identity')).toHaveText('身份信息 26')
         await expect(page.getByTestId('memory-item-fact')).toBeVisible()
-        const scroll = page.getByTestId('memory-list-scroll')
-        expect(await scroll.evaluate((node) => node.scrollHeight > node.clientHeight)).toBe(true)
-        const toolbarBox = await page.getByTestId('memory-surface-toolbar').boundingBox()
-        await scroll.evaluate((node) => { node.scrollTop = node.scrollHeight })
-        expect(await page.getByTestId('memory-surface-toolbar').boundingBox()).toEqual(toolbarBox)
+        const lastEntry = page.getByTestId('memory-list-scroll').locator('[data-testid^="memory-item-"]').last()
+        await lastEntry.scrollIntoViewIfNeeded()
+        await expect(lastEntry).toBeInViewport()
         await page.getByRole('button', { name: '添加一条记忆', exact: true }).click()
         const draft = page.getByLabel('新记忆内容', { exact: true })
         await draft.fill('身份分组的新草稿\n保留第二行')
@@ -5942,10 +5872,12 @@ test.describe('My Agent UI', () => {
         await page.getByRole('button', { name: '取消新增记忆', exact: true }).click()
         await selectGroup('communication')
         await expect(page.getByTestId('memory-group-communication')).toHaveText('沟通偏好 2')
-        const tabsBox = await tabs.boundingBox()
+        const toolbar = page.getByTestId('memory-surface-toolbar')
+        const toolbarHeight = (await toolbar.boundingBox())?.height
         await page.getByRole('button', { name: '搜索记忆', exact: true }).click()
-        expect(await tabs.boundingBox()).toEqual(tabsBox)
         const search = page.getByRole('textbox', { name: '搜索记忆', exact: true })
+        await expect(search).toBeFocused()
+        expect((await toolbar.boundingBox())?.height).toBe(toolbarHeight)
         await search.fill('PREFERENCE')
         await expect(page.getByTestId('memory-item-preference')).toBeVisible()
         await expect(page.getByTestId('memory-item-voice')).toHaveCount(0)
@@ -5979,7 +5911,7 @@ test.describe('My Agent UI', () => {
         await added.getByRole('button', { name: /^删除记忆 / }).click()
         await added.getByRole('button', { name: /^确认删除记忆 / }).click()
         await expect(page.getByTestId('memory-group-identity')).toHaveText('身份信息 26')
-        await scroll.evaluate((node) => { node.scrollTop = 0 })
+        await toolbar.scrollIntoViewIfNeeded()
         expect(await page.getByTestId('settings-panel').evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true)
         await page.screenshot({ path: testInfo.outputPath('memory-management.png'), animations: 'disabled' })
       })
@@ -7108,55 +7040,30 @@ test.describe('My Agent UI', () => {
     }
   }
 
-  test('正式家居编辑空间与物件保留失败草稿并写入结构化字段', async ({ page }) => {
+  test('正式家居读取空间与符合展示条件的物件', async ({ page }) => {
     await installProductionElectronStub(page)
     await page.addInitScript(() => {
-      const state = { fail: true, items: [
-        { id: 'house', roleId: 'lin', kind: 'home', name: '真实住所', payload: { recordType: 'residence' } },
-        { id: 'room', roleId: 'lin', kind: 'home', name: '旧空间', payload: { recordType: 'space', residenceId: 'house' } },
-        { id: 'cup', roleId: 'lin', kind: 'furniture', name: '旧杯子', payload: { displayInHome: true, displayReason: '每天使用', displayEvidence: ['喝茶'] } },
-      ] as any[], writes: [] as any[] }
-      ;(window as any).__homeWrite = state
       const api = (window as any).electronAPI.companion
       api.getActive = async () => ({ id: 'lin', name: '测试伙伴', description: '' })
       api.catchupStatus = async () => ({ roleId: 'lin', presence: '' })
       api.getMoments = async () => ({ roleId: 'lin', items: [] })
-      api.getAssets = async () => ({ roleId: 'lin', items: state.items })
-      api.updateAsset = async (id: string, input: any) => {
-        state.writes.push(input)
-        if (state.fail) return { ok: false, error: '保存失败', code: 'INVALID' }
-        const asset = state.items.find(item => item.id === id)
-        Object.assign(asset, input)
-        return { ok: true, asset }
-      }
+      api.getAssets = async () => ({ roleId: 'lin', items: [
+        { id: 'house', roleId: 'lin', kind: 'home', name: '真实住所', payload: { recordType: 'residence' } },
+        { id: 'room', roleId: 'lin', kind: 'home', name: '卧室', payload: { recordType: 'space', residenceId: 'house', description: '每天读书的地方' } },
+        { id: 'cup', roleId: 'lin', kind: 'furniture', name: '纪念杯', payload: { spaceId: 'room', description: '生日收到的礼物', displayInHome: true, displayReason: '每天使用', displayEvidence: ['喝茶'] } },
+        { id: 'other', roleId: 'lin', kind: 'furniture', name: '普通杯', payload: { spaceId: 'room', displayInHome: true, displayReason: '只记录过位置' } },
+      ] })
     })
     await page.goto('/')
     await page.getByTestId('primary-sidebar').getByRole('button', { name: '人物世界', exact: true }).click()
     await page.getByTestId('world-tab-home').click()
     const details = page.getByTestId('world-details')
-    await details.getByRole('tab', { name: '旧空间', exact: true }).click()
-    await details.getByRole('button', { name: '编辑 旧空间', exact: true }).click()
-    await details.getByLabel('空间名称', { exact: true }).fill('卧室')
-    await details.getByLabel('所属住所', { exact: true }).selectOption('house')
-    await details.getByLabel('空间描述', { exact: true }).fill('真实空间描述')
-    await details.getByRole('button', { name: '保存生活物件', exact: true }).click()
-    await expect(details.getByRole('alert')).toContainText('未保存')
-    await expect(details.getByLabel('空间名称', { exact: true })).toHaveValue('卧室')
-    await page.evaluate(() => { (window as any).__homeWrite.fail = false })
-    await details.getByRole('button', { name: '保存生活物件', exact: true }).click()
-    await expect(details.getByRole('tab', { name: '卧室', exact: true })).toBeVisible()
-    await details.getByRole('tab', { name: '未归置', exact: true }).click()
-    await details.getByRole('button', { name: '查看物件：旧杯子', exact: true }).click()
-    await details.getByRole('button', { name: '编辑 旧杯子', exact: true }).click()
-    await details.getByLabel('物件', { exact: true }).fill('纪念杯')
-    await details.getByLabel('所属空间', { exact: true }).selectOption('room')
-    await details.getByLabel('在家居中展示', { exact: true }).check()
-    await details.getByLabel('展示理由', { exact: true }).fill('朋友送的礼物')
-    await details.getByLabel('故事或习惯依据', { exact: true }).fill('生日礼物\n每天泡茶')
-    await details.getByRole('button', { name: '保存生活物件', exact: true }).click()
     await details.getByRole('tab', { name: '卧室', exact: true }).click()
-    await expect(details.getByTestId('home-object-card')).toContainText('纪念杯')
-    expect(await page.evaluate(() => (window as any).__homeWrite.writes.at(-1).payload)).toMatchObject({ spaceId: 'room', displayInHome: true, displayEvidence: ['生日礼物', '每天泡茶'] })
+    await expect(details).not.toContainText('普通杯')
+    await details.getByRole('button', { name: '查看物件：纪念杯', exact: true }).click()
+    await expect(details.getByRole('heading', { name: '纪念杯', exact: true })).toBeVisible()
+    await expect(details).toContainText('生日收到的礼物')
+    await expect(details.getByRole('button', { name: /^(编辑|删除)/ })).toHaveCount(0)
   })
 
   test.skip('正式生活资产编辑失败保留草稿（正式人物世界已改为只读）', async ({ page }) => {
