@@ -1,3 +1,4 @@
+import { trustedIpcEvent } from '../helpers/trusted-ipc-event'
 import { EventEmitter } from 'node:events'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { McpServerConfig } from '../../src/shared/types'
@@ -23,7 +24,7 @@ const config: McpServerConfig = { id: 'saved', name: 'saved', command: '', args:
 function owner(id: number) {
   const sender = Object.assign(new EventEmitter(), { id, mainFrame: {}, isDestroyed: () => false })
   mocks.windows.push({ webContents: sender, isDestroyed: () => false, show: vi.fn(), focus: vi.fn(), isMinimized: () => false })
-  return { sender, senderFrame: sender.mainFrame }
+  return trustedIpcEvent(sender)
 }
 beforeEach(() => {
   vi.clearAllMocks(); mocks.handlers.clear(); mocks.windows.length = 0
@@ -36,7 +37,7 @@ const invoke = (name: string, ...args: any[]) => mocks.handlers.get(name)!(...ar
 describe('OAuth IPC 窗口归属与迟到结果', () => {
   it('子框架不能发起授权，其他窗口不能取消当前窗口的登录', async () => {
     const first = owner(1); const other = owner(2)
-    expect((await invoke('mcp:connect', { ...first, senderFrame: {} }, config)).success).toBe(false)
+    expect(() => invoke('mcp:connect', { ...first, senderFrame: {} }, config)).toThrow('无效的请求来源')
     expect(mocks.confirm).not.toHaveBeenCalled()
     let release!: () => void
     mocks.authorize.mockImplementation(() => new Promise<void>(resolve => { release = resolve }))

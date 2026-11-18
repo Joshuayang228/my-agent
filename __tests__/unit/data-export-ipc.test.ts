@@ -1,3 +1,4 @@
+import { trustedIpcEvent } from '../helpers/trusted-ipc-event'
 import { EventEmitter } from 'node:events'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -24,7 +25,7 @@ import { registerDataExportIPC } from '../../electron/main/ipc/data-export'
 
 function request() {
   const sender = Object.assign(new EventEmitter(), { mainFrame: {}, isDestroyed: () => false, window: { isDestroyed: () => false } })
-  return { sender, senderFrame: sender.mainFrame }
+  return trustedIpcEvent(sender)
 }
 const invoke = (action: 'export' | 'import', event = request()) => state.handlers.get(`data:${action}`)!(event)
 const emptyBackup = { version: 1, exportedAt: 1, sessions: [], memories: [], settings: {} }

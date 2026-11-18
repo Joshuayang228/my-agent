@@ -1,3 +1,4 @@
+import { trustedIpcEvent } from '../helpers/trusted-ipc-event'
 import { EventEmitter } from 'node:events'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -44,9 +45,9 @@ afterEach(() => {
 })
 
 async function start() {
-  const result = await handlers.get('terminal:run')!({ sender }, { command: 'echo fixture' })
+  const result = await handlers.get('terminal:run')!(trustedIpcEvent(sender), { command: 'echo fixture' })
   expect(result.ok).toBe(true)
-  await handlers.get('terminal:ready')!({ sender }, result.runId)
+  await handlers.get('terminal:ready')!(trustedIpcEvent(sender), result.runId)
   return result.runId as string
 }
 
@@ -54,25 +55,25 @@ describe('终端真实 handler 生命周期', () => {
   it.skipIf(process.platform !== 'win32')('终止合并重复请求，直到 close 才成功', async () => {
     const id = await start()
     let settled = false
-    const stopping = handlers.get('terminal:kill')!({ sender }, id).then((result: unknown) => { settled = true; return result })
-    const duplicate = handlers.get('terminal:kill')!({ sender }, id)
+    const stopping = handlers.get('terminal:kill')!(trustedIpcEvent(sender), id).then((result: unknown) => { settled = true; return result })
+    const duplicate = handlers.get('terminal:kill')!(trustedIpcEvent(sender), id)
     await Promise.resolve()
     expect(settled).toBe(false)
     expect(mocks.execFile).toHaveBeenCalledTimes(1)
     child.emit('close', -1)
     expect(await stopping).toEqual({ ok: true })
     expect(await duplicate).toEqual({ ok: true })
-    expect(await handlers.get('terminal:ready')!({ sender }, id)).toEqual({ ok: false })
+    expect(await handlers.get('terminal:ready')!(trustedIpcEvent(sender), id)).toEqual({ ok: false })
     expect(sender.listenerCount('destroyed')).toBe(0)
   })
 
   it('早到的大块 stdout/stderr 和退出按序缓存，握手后无截断地冲刷', async () => {
-    const { runId } = await handlers.get('terminal:run')!({ sender }, { command: 'echo fixture' })
+    const { runId } = await handlers.get('terminal:run')!(trustedIpcEvent(sender), { command: 'echo fixture' })
     child.stdout.emit('data', 'x'.repeat(12_000))
     child.stderr.emit('data', 'error output\n')
     child.emit('close', 0)
     expect(sender.send).not.toHaveBeenCalled()
-    await handlers.get('terminal:ready')!({ sender }, runId)
+    await handlers.get('terminal:ready')!(trustedIpcEvent(sender), runId)
     expect(sender.send.mock.calls.filter(([channel]) => channel === 'terminal:stdout').map(([, payload]) => payload.chunk).join('')).toBe('x'.repeat(12_000))
     expect(sender.send.mock.calls.map(([channel]) => channel)).toEqual(['terminal:stdout', 'terminal:stdout', 'terminal:stderr', 'terminal:exit'])
     expect(mocks.execFile).not.toHaveBeenCalled()
@@ -81,18 +82,18 @@ describe('终端真实 handler 生命周期', () => {
   it('异窗不能握手或终止他人的 run', async () => {
     const id = await start()
     const outsider = fakeSender(2)
-    expect(await handlers.get('terminal:ready')!({ sender: outsider }, id)).toEqual({ ok: false })
-    expect(await handlers.get('terminal:kill')!({ sender: outsider }, id)).toEqual({ ok: false })
+    expect(await handlers.get('terminal:ready')!(trustedIpcEvent(outsider), id)).toEqual({ ok: false })
+    expect(await handlers.get('terminal:kill')!(trustedIpcEvent(outsider), id)).toEqual({ ok: false })
     expect(mocks.execFile).not.toHaveBeenCalled()
   })
 
   it('已退出但始终没有握手的缓存会到期释放', async () => {
     vi.useFakeTimers()
-    const { runId } = await handlers.get('terminal:run')!({ sender }, { command: 'echo fixture' })
+    const { runId } = await handlers.get('terminal:run')!(trustedIpcEvent(sender), { command: 'echo fixture' })
     child.stdout.emit('data', 'early')
     child.emit('close', 0)
     await vi.advanceTimersByTimeAsync(10_000)
-    expect(await handlers.get('terminal:ready')!({ sender }, runId)).toEqual({ ok: false })
+    expect(await handlers.get('terminal:ready')!(trustedIpcEvent(sender), runId)).toEqual({ ok: false })
     expect(sender.listenerCount('destroyed')).toBe(0)
     expect(sender.send).not.toHaveBeenCalled()
   })
@@ -105,14 +106,14 @@ describe('终端真实 handler 生命周期', () => {
     child.emit('close', -1)
     await Promise.resolve()
     expect(sender.send).not.toHaveBeenCalled()
-    expect(await handlers.get('terminal:ready')!({ sender }, id)).toEqual({ ok: false })
+    expect(() => handlers.get('terminal:ready')!(trustedIpcEvent(sender), id)).toThrow('无效的请求来源')
   })
 
   it.skipIf(process.platform !== 'win32')('taskkill 失败不假报成功，运行记录允许再次终止', async () => {
     const id = await start()
     mocks.execFile.mockImplementation((_file, _args, _options, callback) => callback(new Error('fixture denied')))
-    expect(await handlers.get('terminal:kill')!({ sender }, id)).toMatchObject({ ok: false })
-    expect(await handlers.get('terminal:ready')!({ sender }, id)).toMatchObject({ ok: true })
+    expect(await handlers.get('terminal:kill')!(trustedIpcEvent(sender), id)).toMatchObject({ ok: false })
+    expect(await handlers.get('terminal:ready')!(trustedIpcEvent(sender), id)).toMatchObject({ ok: true })
   })
 
   it('spawn error 之后 close 仅推送一次退出', async () => {
@@ -126,11 +127,11 @@ describe('终端真实 handler 生命周期', () => {
   it.skipIf(process.platform !== 'win32')('终止超时返回失败，后续可以重新终止', async () => {
     vi.useFakeTimers()
     const id = await start()
-    const stopping = handlers.get('terminal:kill')!({ sender }, id)
+    const stopping = handlers.get('terminal:kill')!(trustedIpcEvent(sender), id)
     await vi.advanceTimersByTimeAsync(5_000)
     expect(await stopping).toEqual({ ok: false })
     expect(sender.send.mock.calls.filter(([channel]) => channel === 'terminal:exit')).toHaveLength(0)
-    const retry = handlers.get('terminal:kill')!({ sender }, id)
+    const retry = handlers.get('terminal:kill')!(trustedIpcEvent(sender), id)
     child.emit('close', -1)
     expect(await retry).toEqual({ ok: true })
     expect(mocks.execFile).toHaveBeenCalledTimes(2)
@@ -138,11 +139,11 @@ describe('终端真实 handler 生命周期', () => {
 
   it.skipIf(process.platform !== 'win32')('未握手的活进程到期终止，不再接受迟到握手', async () => {
     vi.useFakeTimers()
-    const { runId } = await handlers.get('terminal:run')!({ sender }, { command: 'echo fixture' })
+    const { runId } = await handlers.get('terminal:run')!(trustedIpcEvent(sender), { command: 'echo fixture' })
     child.stdout.emit('data', 'early')
     await vi.advanceTimersByTimeAsync(10_000)
     expect(mocks.execFile).toHaveBeenCalledTimes(1)
-    expect(await handlers.get('terminal:ready')!({ sender }, runId)).toEqual({ ok: false })
+    expect(await handlers.get('terminal:ready')!(trustedIpcEvent(sender), runId)).toEqual({ ok: false })
     child.emit('close', -1)
     expect(sender.send).not.toHaveBeenCalled()
     expect(sender.listenerCount('destroyed')).toBe(0)

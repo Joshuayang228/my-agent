@@ -1,46 +1,67 @@
-import type { IpcMainInvokeEvent } from 'electron'
-import { ipcMain } from 'electron'
+import { ipcMain, type BrowserWindow, type IpcMainEvent, type IpcMainInvokeEvent, type WebContents } from 'electron'
 
-/**
- * 统一校验特权 IPC 的调用来源。
- *
- * 背景：单个 handler 分散实现 senderFrame 校验时容易漏掉写入、删除或外部调用入口。
- * 设计意图：把“仍属于存活的主框架”作为所有特权 handler 的共同前置条件，业务 handler 只处理业务参数。
- * 关键约束：必须同时满足 sender 未销毁、主框架存在且调用来自主框架，并且宿主窗口仍然存活，否则不得继续访问本地数据或外部能力。
- */
-export function assertTrustedIpcSender(event: IpcMainInvokeEvent): void {
-  // 仅测试夹具会省略 invoke event。真实 Electron invoke 始终提供 sender，生产请求不能走这条分支。
-  if (!event || !event.sender) return
-  if (event.sender.isDestroyed()) throw new Error('无效的请求来源。')
-  const frame = event.senderFrame
-  if (frame && (frame.detached || frame !== event.sender.mainFrame)) throw new Error('无效的请求来源。')
-  const senderWithOwner = event.sender as Electron.WebContents & { getOwnerBrowserWindow?: () => Electron.BrowserWindow | null }
-  const owner = typeof senderWithOwner.getOwnerBrowserWindow === 'function' ? senderWithOwner.getOwnerBrowserWindow() : null
-  if (owner && owner.isDestroyed()) throw new Error('无效的请求来源。')
+type IpcSender = Pick<IpcMainInvokeEvent, 'sender' | 'senderFrame'>
+const trustedWindows = new WeakMap<WebContents, { window: BrowserWindow; url: string }>()
+
+function documentUrl(value: string): string {
+  const url = new URL(value)
+  url.hash = ''
+  return url.href
 }
 
-export function isTrustedIpcSender(event: IpcMainInvokeEvent): boolean {
+/** 主进程在导航前绑定窗口与应用文档，开发和打包使用各自的实际入口。 */
+export function registerTrustedIpcWindow(window: BrowserWindow, url: string): void {
+  trustedWindows.set(window.webContents, { window, url: documentUrl(url) })
+}
+
+/** 特权请求必须由已登记窗口的当前应用主文档发出。缺字段、子框架和离页文档一律拒绝。 */
+export function isTrustedIpcSender(event: IpcSender | null | undefined): boolean {
+  if (!event?.sender || event.sender.isDestroyed()) return false
+  const trusted = trustedWindows.get(event.sender)
+  const frame = event.senderFrame
+  if (!trusted || trusted.window.isDestroyed() || !frame || frame.detached || frame !== event.sender.mainFrame) return false
   try {
-    assertTrustedIpcSender(event)
-    return true
+    return documentUrl(frame.url) === trusted.url
   } catch {
     return false
   }
 }
 
-/**
- * 统一注册特权 IPC handler。
- *
- * 背景：逐个 handler 手写来源校验会在新增通道时留下遗漏。
- * 设计意图：让每个 IPC 模块只声明业务处理器，所有入口先经过同一 sender 门禁。
- * 关键约束：业务处理器不得绕过此包装器直接注册特权 invoke 通道，来源失败必须在访问本地能力前终止。
- */
 export function registerSecureIpcHandler(
   channel: string,
   listener: (event: IpcMainInvokeEvent, ...args: any[]) => unknown,
 ): void {
   ipcMain.handle(channel, (event, ...args) => {
-    assertTrustedIpcSender(event)
+    if (!isTrustedIpcSender(event)) throw new Error('无效的请求来源。')
     return listener(event, ...args)
   })
+}
+
+/** 动态回复和普通 invoke 使用同一来源检查，非法消息不会消耗合法请求的监听器。 */
+export function listenForSecureIpcResponse(
+  channel: string,
+  sender: WebContents,
+  listener: (event: IpcMainEvent, ...args: any[]) => void,
+): () => void {
+  const originalFrame = sender.mainFrame
+  const onResponse = (event: IpcMainEvent, ...args: any[]) => {
+    if (event.sender === sender && event.senderFrame === originalFrame && isTrustedIpcSender(event)) listener(event, ...args)
+  }
+  ipcMain.on(channel, onResponse)
+  return () => { ipcMain.removeListener(channel, onResponse) }
+}
+
+/** 请求在发起文档关闭、进程退出或跨文档导航时取消，同页导航保留。 */
+export function watchIpcDocument(sender: WebContents, cancel: () => void): () => void {
+  const navigate = (_event: unknown, _url: string, inPlace: boolean, isMainFrame: boolean) => {
+    if (isMainFrame && !inPlace) cancel()
+  }
+  sender.on('destroyed', cancel)
+  sender.on('render-process-gone', cancel)
+  sender.on('did-start-navigation', navigate)
+  return () => {
+    sender.removeListener('destroyed', cancel)
+    sender.removeListener('render-process-gone', cancel)
+    sender.removeListener('did-start-navigation', navigate)
+  }
 }

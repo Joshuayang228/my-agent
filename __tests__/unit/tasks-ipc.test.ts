@@ -1,3 +1,4 @@
+import { trustedIpcEvent } from '../helpers/trusted-ipc-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { handlers, getActiveTasks, syncForRenderer, cancel, acknowledgeNotification } = vi.hoisted(() => ({
@@ -34,29 +35,29 @@ describe('任务 IPC 输入边界', () => {
     const list = handlers.get('task:list')!
     const sync = handlers.get('task:sync')!
 
-    expect(list({}, undefined)).toEqual([{ id: 'task-1' }])
+    expect(list(trustedIpcEvent(), undefined)).toEqual([{ id: 'task-1' }])
     expect(getActiveTasks).toHaveBeenCalledWith(undefined)
-    expect(list({}, 'x'.repeat(201))).toEqual([])
-    expect(list({}, 42)).toEqual([])
-    expect(sync({}, 'x'.repeat(201))).toEqual({ active: [], pendingNotify: [] })
+    expect(list(trustedIpcEvent(), 'x'.repeat(201))).toEqual([])
+    expect(list(trustedIpcEvent(), 42)).toEqual([])
+    expect(sync(trustedIpcEvent(), 'x'.repeat(201))).toEqual({ active: [], pendingNotify: [] })
   })
 
   it('cancel 只接受有界 taskId', () => {
     const handler = handlers.get('task:cancel')!
-    expect(handler({}, 'task-1')).toBe(true)
+    expect(handler(trustedIpcEvent(), 'task-1')).toBe(true)
     expect(cancel).toHaveBeenCalledWith('task-1')
-    expect(handler({}, '')).toBe(false)
-    expect(handler({}, 'x'.repeat(201))).toBe(false)
-    expect(handler({}, null)).toBe(false)
+    expect(handler(trustedIpcEvent(), '')).toBe(false)
+    expect(handler(trustedIpcEvent(), 'x'.repeat(201))).toBe(false)
+    expect(handler(trustedIpcEvent(), null)).toBe(false)
   })
 
   it('通知确认只接受有界 taskId 并委托持久化服务', async () => {
     const handler = handlers.get('task:acknowledge')!
-    expect(await handler({}, 'task-1')).toBe(true)
+    expect(await handler(trustedIpcEvent(), 'task-1')).toBe(true)
     expect(acknowledgeNotification).toHaveBeenCalledWith('task-1')
-    expect(await handler({}, '')).toBe(false)
-    expect(await handler({}, 'x'.repeat(201))).toBe(false)
-    expect(await handler({}, null)).toBe(false)
+    expect(await handler(trustedIpcEvent(), '')).toBe(false)
+    expect(await handler(trustedIpcEvent(), 'x'.repeat(201))).toBe(false)
+    expect(await handler(trustedIpcEvent(), null)).toBe(false)
     expect(acknowledgeNotification).toHaveBeenCalledOnce()
   })
 })

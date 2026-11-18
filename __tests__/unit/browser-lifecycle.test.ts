@@ -1,3 +1,4 @@
+import { trustedIpcEvent } from '../helpers/trusted-ipc-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -28,11 +29,11 @@ describe('受限浏览器请求生命周期', () => {
     }))
     const owner = sender(7)
     const outsider = sender(8)
-    const request = mocks.handlers.get('browser:load')!({ sender: owner }, 'https://example.com/', 'request-1')
+    const request = mocks.handlers.get('browser:load')!(trustedIpcEvent(owner), 'https://example.com/', 'request-1')
     await Promise.resolve()
-    expect(await mocks.handlers.get('browser:cancel')!({ sender: outsider }, 'request-1')).toEqual({ ok: false })
-    expect(await mocks.handlers.get('browser:cancel')!({ sender: owner }, 'request-1')).toEqual({ ok: true })
+    expect(await mocks.handlers.get('browser:cancel')!(trustedIpcEvent(outsider), 'request-1')).toEqual({ ok: false })
+    expect(await mocks.handlers.get('browser:cancel')!(trustedIpcEvent(owner), 'request-1')).toEqual({ ok: true })
     await expect(request).resolves.toEqual({ ok: false, error: '网页加载已取消' })
-    expect(await mocks.handlers.get('browser:cancel')!({ sender: owner }, 'request-1')).toEqual({ ok: false })
+    expect(await mocks.handlers.get('browser:cancel')!(trustedIpcEvent(owner), 'request-1')).toEqual({ ok: false })
   })
 })

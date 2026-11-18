@@ -51,7 +51,7 @@ describe('受限浏览器请求生命周期', () => {
     expect(preload).toContain("ipcRenderer.invoke('browser:cancel', requestId)")
     expect(rendererTypes).toMatch(/load: \(url: string, requestId: string\)/)
     expect(rendererTypes).toMatch(/cancel: \(requestId: string\)/)
-    expect(main).toContain("ipcMain.handle('browser:cancel'")
+    expect(main).toContain("registerSecureIpcHandler('browser:cancel'")
     expect(main).toContain('activeRequests')
   })
 })

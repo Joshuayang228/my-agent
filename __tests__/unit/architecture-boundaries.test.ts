@@ -12,6 +12,14 @@ function files(directory: string): string[] {
   })
 }
 
+it('主进程的 IPC 注册统一经过来源校验', () => {
+  const bypasses = files(root).filter(file => {
+    if (file === path.join(root, 'ipc', 'ipc-security.ts')) return false
+    return /\bipcMain\s*\.\s*(?:handle|handleOnce|on|once)\s*\(/.test(fs.readFileSync(file, 'utf8'))
+  })
+  expect(bypasses).toEqual([])
+})
+
 it('主进程分层依赖保持单向，工具内置实现通过端口使用子任务运行时', () => {
   const rules = [
     { source: 'storage', forbidden: ['agent', 'ipc', 'llm'] },

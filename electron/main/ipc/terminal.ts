@@ -1,3 +1,4 @@
+import { registerSecureIpcHandler } from './ipc-security'
 /**
  * 右坞命令控制台 IPC（非 PTY）
  *
@@ -6,7 +7,6 @@
  * 关键约束：事件推送到发起 run 的 webContents；超时 30s。
  */
 
-import { ipcMain } from 'electron'
 import { execFile, spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import path from 'node:path'
@@ -106,7 +106,7 @@ export function limitTerminalOutput(text: string, emittedChars: number): {
 }
 
 export function registerTerminalIPC(): void {
-  ipcMain.handle(
+  registerSecureIpcHandler(
     'terminal:run',
     async (
       event,
@@ -238,7 +238,7 @@ export function registerTerminalIPC(): void {
     },
   )
 
-  ipcMain.handle('terminal:ready', (event, runId: unknown) => {
+  registerSecureIpcHandler('terminal:ready', (event, runId: unknown) => {
     if (typeof runId !== 'string' || runId.length === 0 || runId.length > 200) return { ok: false }
     const run = runs.get(runId)
     if (!run || run.abandoned || run.senderId !== event.sender.id) return { ok: false }
@@ -256,7 +256,7 @@ export function registerTerminalIPC(): void {
     return { ok: true }
   })
 
-  ipcMain.handle('terminal:kill', async (event, runId: unknown) => {
+  registerSecureIpcHandler('terminal:kill', async (event, runId: unknown) => {
     if (typeof runId !== 'string' || runId.length === 0 || runId.length > 200) return { ok: false }
     const run = runs.get(runId)
     if (!run || run.senderId !== event.sender.id) return { ok: false }

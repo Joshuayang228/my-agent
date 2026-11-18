@@ -1,3 +1,4 @@
+import { registerSecureIpcHandler } from './ipc-security'
 import { getCompanionRuntimeReadModel } from '../companion/core/read-models/runtime-read-model'
 /**
  * Companion IPC — 取代旧 persona:* 通道
@@ -5,7 +6,7 @@ import { getCompanionRuntimeReadModel } from '../companion/core/read-models/runt
  * 四处同步：本文件 / preload / vite-env / 调用方（SettingsPanel 等）
  */
 
-import { ipcMain, shell } from 'electron'
+import { shell } from 'electron'
 import { acknowledgeProactiveGreeting, queryProactiveEvidence } from '../companion/adapters/proactive-evidence'
 import type { CompanionAssetCreateInput, CompanionWardrobeChangeInput } from '../../../src/shared/types'
 import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
@@ -65,7 +66,6 @@ import { readGeneratedImageReference, loadGeneratedImageReference } from '../sto
 import { getHostPresenceStatus, checkAndTriggerHostCare } from '../companion/life/host-presence'
 import { replanRemainingSlots } from '../companion/life/replan'
 import { executeCompanionCommand } from '../companion/core/commands/gateway'
-import { assertTrustedIpcSender } from './ipc-security'
 
 const log = createLogger('CompanionIPC')
 const boundedLimit = (value: unknown, fallback = 50, maximum = 200): number => Number.isSafeInteger(value) ? Math.max(1, Math.min(maximum, value as number)) : fallback
@@ -85,12 +85,7 @@ async function requireActiveWriteRole(roleId?: unknown): Promise<string> {
 }
 
 export function registerCompanionIPC(): void {
-  const handle = (channel: string, listener: (event: Electron.IpcMainInvokeEvent, ...args: any[]) => unknown): void => {
-    ipcMain.handle(channel, (event, ...args) => {
-      assertTrustedIpcSender(event)
-      return listener(event, ...args)
-    })
-  }
+  const handle = registerSecureIpcHandler
   handle('companion:proactive-greeting-receipt', (event, input: unknown) => acknowledgeProactiveGreeting(event, input))
   handle('companion:proactive-evidence-query', (_event, input: unknown) => {
     try { return queryProactiveEvidence(input) } catch { throw new Error('无法读取问候记录，请检查人物与查询范围后重试') }

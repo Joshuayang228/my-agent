@@ -1,3 +1,4 @@
+import { trustedIpcEvent } from '../helpers/trusted-ipc-event'
 import { runLocalTransaction } from '../helpers/local-transaction'
 import { EventEmitter } from 'node:events'
 import fs from 'node:fs'
@@ -47,7 +48,7 @@ afterEach(() => { vi.restoreAllMocks(); db.close(); fs.rmSync(root, { recursive:
 
 function invoke(action: 'export' | 'import') {
   const sender = Object.assign(new EventEmitter(), { mainFrame: {}, isDestroyed: () => false, window: { isDestroyed: () => false } })
-  return state.handlers.get(`data:${action}`)!({ sender, senderFrame: sender.mainFrame })
+  return state.handlers.get(`data:${action}`)!(trustedIpcEvent(sender))
 }
 async function fixture(compressionLevel = 6) {
   const session = await createSession('role')

@@ -1,3 +1,4 @@
+import { trustedIpcEvent } from '../helpers/trusted-ipc-event'
 import { runLocalTransaction } from '../helpers/local-transaction'
 import { EventEmitter } from 'node:events'
 import fs from 'node:fs'
@@ -63,7 +64,7 @@ afterEach(async () => {
 function invoke() {
   expect(isValidExportData(JSON.parse(fs.readFileSync(backupPath, 'utf8')))).toBe(true)
   const sender = Object.assign(new EventEmitter(), { mainFrame: {}, isDestroyed: () => false, window: { isDestroyed: () => false } })
-  return state.handlers.get('data:import')!({ sender, senderFrame: sender.mainFrame })
+  return state.handlers.get('data:import')!(trustedIpcEvent(sender))
 }
 function counts(database = db) {
   return ['sessions', 'messages', 'memories', 'settings', 'companion_assets', 'companion_asset_seeds']

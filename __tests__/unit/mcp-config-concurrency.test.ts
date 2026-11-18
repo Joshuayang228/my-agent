@@ -1,3 +1,4 @@
+import { trustedIpcEvent } from '../helpers/trusted-ipc-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { McpServerConfig } from '../../src/shared/types'
 
@@ -63,9 +64,9 @@ describe('MCP 主进程配置写入串行', () => {
   it('整表写盘尚未完成时工具许可不得读取旧快照', async () => {
     const started = deferred(); const release = deferred()
     mocks.setSetting.mockImplementationOnce(async (_key, value) => { started.resolve(); await release.promise; stored = value })
-    const whole = mocks.handlers.get('settings:set')!({}, 'mcpServers', JSON.stringify([{ ...config, name: '新名称' }]))
+    const whole = mocks.handlers.get('settings:set')!(trustedIpcEvent(), 'mcpServers', JSON.stringify([{ ...config, name: '新名称' }]))
     await started.promise
-    const permission = mocks.handlers.get('mcp:set-tool-allowed')!({}, 'existing', 'one', false)
+    const permission = mocks.handlers.get('mcp:set-tool-allowed')!(trustedIpcEvent(), 'existing', 'one', false)
     await Promise.resolve(); await Promise.resolve()
     expect(mocks.getSetting).toHaveBeenCalledTimes(1)
     release.resolve()
@@ -75,14 +76,14 @@ describe('MCP 主进程配置写入串行', () => {
   })
 
   it('两个并发工具禁用均保留，保存失败不更新活动许可且释放锁', async () => {
-    await Promise.all(['one', 'two'].map((tool) => mocks.handlers.get('mcp:set-tool-allowed')!({}, 'existing', tool, false)))
+    await Promise.all(['one', 'two'].map((tool) => mocks.handlers.get('mcp:set-tool-allowed')!(trustedIpcEvent(), 'existing', tool, false)))
     expect(JSON.parse(stored)[0].allowedTools).toEqual([])
     mocks.setAllowedTools.mockClear()
     mocks.setSetting.mockRejectedValueOnce(new Error('fixture storage failure'))
-    expect(await mocks.handlers.get('mcp:set-tool-allowed')!({}, 'existing', 'one', true)).toEqual({ success: false, error: '工具许可未保存，请重试。' })
+    expect(await mocks.handlers.get('mcp:set-tool-allowed')!(trustedIpcEvent(), 'existing', 'one', true)).toEqual({ success: false, error: '工具许可未保存，请重试。' })
     expect(mocks.setAllowedTools).not.toHaveBeenCalled()
     expect(JSON.parse(stored)[0].allowedTools).toEqual([])
-    expect((await mocks.handlers.get('mcp:set-tool-allowed')!({}, 'existing', 'one', true)).success).toBe(true)
+    expect((await mocks.handlers.get('mcp:set-tool-allowed')!(trustedIpcEvent(), 'existing', 'one', true)).success).toBe(true)
     expect(JSON.parse(stored)[0].allowedTools).toEqual(['one'])
   })
 
@@ -90,14 +91,14 @@ describe('MCP 主进程配置写入串行', () => {
     const started = deferred(); const release = deferred()
     const held = withMcpConfigLock(async () => { started.resolve(); await release.promise })
     await started.promise
-    const next = mocks.handlers.get('settings:set')!({}, 'mcpServers', stored)
+    const next = mocks.handlers.get('settings:set')!(trustedIpcEvent(), 'mcpServers', stored)
     await Promise.resolve(); await Promise.resolve()
     expect(mocks.getSetting).not.toHaveBeenCalled()
     release.resolve(); await held; await next
     mocks.confirm.mockResolvedValueOnce({ response: 0 })
-    await expect(mocks.handlers.get('settings:set')!({}, 'mcpServers', JSON.stringify([{ ...config, command: 'other' }]))).rejects.toThrow('用户取消')
+    await expect(mocks.handlers.get('settings:set')!(trustedIpcEvent(), 'mcpServers', JSON.stringify([{ ...config, command: 'other' }]))).rejects.toThrow('用户取消')
     mocks.setSetting.mockRejectedValueOnce(new Error('fixture write error'))
-    await expect(mocks.handlers.get('settings:set')!({}, 'mcpServers', stored)).rejects.toThrow()
-    await expect(mocks.handlers.get('settings:set')!({}, 'mcpServers', stored)).resolves.toBeUndefined()
+    await expect(mocks.handlers.get('settings:set')!(trustedIpcEvent(), 'mcpServers', stored)).rejects.toThrow()
+    await expect(mocks.handlers.get('settings:set')!(trustedIpcEvent(), 'mcpServers', stored)).resolves.toBeUndefined()
   })
 })

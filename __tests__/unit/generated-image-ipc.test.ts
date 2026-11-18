@@ -1,3 +1,4 @@
+import { trustedIpcEvent } from '../helpers/trusted-ipc-event'
 import { beforeEach, expect, it, vi } from 'vitest'
 const state = vi.hoisted(() => ({ handlers: new Map<string, (...args: any[]) => Promise<unknown>>(), read: vi.fn(), load: vi.fn(), reveal: vi.fn() }))
 vi.mock('electron', () => ({ ipcMain: { handle: (channel: string, handler: (...args: any[]) => Promise<unknown>) => state.handlers.set(channel, handler) }, shell: { showItemInFolder: state.reveal } }))
@@ -10,11 +11,11 @@ it('媒体读取只接受存活主框架，子框架和销毁窗口没有文件�
   const mainFrame = {}
   const handle = state.handlers.get('session:readGeneratedImage')!
   const sender = { mainFrame, isDestroyed: () => false }
-  expect(await handle({ sender, senderFrame: {} }, 'session', 'image')).toMatchObject({ ok: false })
-  expect(await handle({ sender: { ...sender, isDestroyed: () => true }, senderFrame: mainFrame }, 'session', 'image')).toMatchObject({ ok: false })
+  expect(() => handle({ ...trustedIpcEvent(sender), senderFrame: {} }, 'session', 'image')).toThrow('无效的请求来源')
+  expect(() => handle({ sender: { ...sender, isDestroyed: () => true }, senderFrame: mainFrame }, 'session', 'image')).toThrow('无效的请求来源')
   expect(state.read).not.toHaveBeenCalled()
   state.read.mockResolvedValue({ ok: true, dataUrl: 'fixture', fileName: 'test.png' })
-  expect(await handle({ sender, senderFrame: mainFrame }, 'session', 'image')).toMatchObject({ ok: true })
+  expect(await handle(trustedIpcEvent(sender), 'session', 'image')).toMatchObject({ ok: true })
   expect(state.read).toHaveBeenCalledExactlyOnceWith('session', 'image')
 })
 
@@ -22,13 +23,13 @@ it('定位只打开会话校验后的文件，不回传绝对路径；无归属�
   const mainFrame = { url: 'app://fixture', detached: false }
   const sender = { mainFrame, isDestroyed: () => false }
   const handle = state.handlers.get('session:revealGeneratedImage')!
-  expect(await handle({ sender, senderFrame: {} }, 'session', '/arbitrary/path')).toMatchObject({ ok: false })
+  expect(() => handle({ ...trustedIpcEvent(sender), senderFrame: {} }, 'session', '/arbitrary/path')).toThrow('无效的请求来源')
   expect(state.load).not.toHaveBeenCalled()
   state.load.mockResolvedValue({ ok: false, error: '此会话没有可读取的生成图片。' })
-  expect(await handle({ sender, senderFrame: mainFrame }, 'session', 'missing')).toMatchObject({ ok: false })
+  expect(await handle(trustedIpcEvent(sender), 'session', 'missing')).toMatchObject({ ok: false })
   expect(state.reveal).not.toHaveBeenCalled()
   state.load.mockResolvedValue({ ok: true, bytes: Buffer.from('fixture'), filePath: '/verified/images/image.png' })
-  expect(await handle({ sender, senderFrame: mainFrame }, 'session', 'image')).toEqual({ ok: true })
+  expect(await handle(trustedIpcEvent(sender), 'session', 'image')).toEqual({ ok: true })
   expect(state.reveal).toHaveBeenCalledExactlyOnceWith('/verified/images/image.png')
   expect(state.load).toHaveBeenLastCalledWith('session', 'image')
 })
@@ -44,13 +45,13 @@ it.each(['destroyed', 'navigated', 'detached', 'replaced'] as const)('定位等�
     if (kind === 'replaced') sender.mainFrame = { ...mainFrame }
     return { ok: true, bytes: Buffer.from('fixture'), filePath: '/verified/images/image.png' }
   })
-  expect(await state.handlers.get('session:revealGeneratedImage')!({ sender, senderFrame: mainFrame }, 'session', 'image')).toMatchObject({ ok: false })
+  expect(await state.handlers.get('session:revealGeneratedImage')!(trustedIpcEvent(sender), 'session', 'image')).toMatchObject({ ok: false })
   expect(state.reveal).not.toHaveBeenCalled()
 })
 
 it('系统定位失败返回可重试提示而不泄露内部路径', async () => {
   const mainFrame = { url: 'app://fixture' }
-  const event = { sender: { mainFrame, isDestroyed: () => false }, senderFrame: mainFrame }
+  const event = trustedIpcEvent({ mainFrame, isDestroyed: () => false })
   state.load.mockResolvedValue({ ok: true, bytes: Buffer.from('fixture'), filePath: '/private/images/image.png' })
   state.reveal.mockImplementationOnce(() => { throw new Error('/private/system/error') })
   const handle = state.handlers.get('session:revealGeneratedImage')!

@@ -1,4 +1,5 @@
-import { ipcMain, BrowserWindow, dialog, shell } from 'electron'
+import { registerSecureIpcHandler, listenForSecureIpcResponse, watchIpcDocument } from './ipc-security'
+import { BrowserWindow, dialog, shell } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { ToolRegistry } from '../tools/registry'
 import { mcpManager } from '../mcp/client'
@@ -92,7 +93,6 @@ export function registerMcpIPC(toolRegistry: ToolRegistry): void {
   })
 
   const observedOwners = new WeakSet<Electron.WebContents>()
-  const isMainFrame = (event: Electron.IpcMainInvokeEvent) => !event.sender.isDestroyed() && Boolean(event.senderFrame) && event.senderFrame === event.sender.mainFrame
   const observeOwner = (event: Electron.IpcMainInvokeEvent) => {
     const owner = event.sender.id
     if (!observedOwners.has(event.sender)) {
@@ -109,17 +109,16 @@ export function registerMcpIPC(toolRegistry: ToolRegistry): void {
       })
     }
   }
-  ipcMain.handle('mcp:test-connection', async (event, requestId: string, config: unknown) => {
-    if (!isMainFrame(event)) return { ok: false, error: '请从应用主窗口连接服务。' }
+  registerSecureIpcHandler('mcp:test-connection', async (event, requestId: string, config: unknown) => {
     observeOwner(event)
     return connectionTests.test(event.sender.id, requestId, config)
   })
-  ipcMain.handle('mcp:cancel-test', async (event, requestId: string) =>
-    isMainFrame(event) ? connectionTests.cancel(event.sender.id, requestId) : { ok: false, error: '无效的请求窗口。' })
-  ipcMain.handle('mcp:save-tested', async (event, requestId: string, allowedTools: unknown) =>
-    isMainFrame(event) ? connectionTests.save(event.sender.id, requestId, allowedTools) : { ok: false, error: '无效的请求窗口。' })
-  ipcMain.handle('mcp:cancel-login', async (event, serverId: string) => {
-    if (!isMainFrame(event) || !isBoundedString(serverId, MAX_MCP_ID_LENGTH)) return { success: false }
+  registerSecureIpcHandler('mcp:cancel-test', async (event, requestId: string) =>
+    connectionTests.cancel(event.sender.id, requestId))
+  registerSecureIpcHandler('mcp:save-tested', async (event, requestId: string, allowedTools: unknown) =>
+    connectionTests.save(event.sender.id, requestId, allowedTools))
+  registerSecureIpcHandler('mcp:cancel-login', async (event, serverId: string) => {
+    if (!isBoundedString(serverId, MAX_MCP_ID_LENGTH)) return { success: false }
     const pending = pendingLogins.get(serverId)
     if (pending && pending.owner !== event.sender.id) return { success: false }
     pending?.controller.abort()
@@ -144,11 +143,11 @@ export function registerMcpIPC(toolRegistry: ToolRegistry): void {
         if (settled) return
         settled = true
         clearTimeout(timer)
-        ipcMain.removeListener(channel, onResponse)
+        removeResponseListener()
+        stopWatchingDocument()
         resolve(values)
       }
-      function onResponse(event: Electron.IpcMainEvent, values: Record<string, unknown> | null) {
-        if (event.sender !== win.webContents) return
+      function onResponse(_event: Electron.IpcMainEvent, values: Record<string, unknown> | null) {
         if (values !== null && (!values || typeof values !== 'object' || Array.isArray(values))) return finish(null)
         if (values !== null) {
           try {
@@ -157,17 +156,19 @@ export function registerMcpIPC(toolRegistry: ToolRegistry): void {
         }
         finish(values)
       }
-      ipcMain.once(channel, onResponse)
-      win.webContents.send('mcp:elicit-request', { requestId, serverId, message, schema })
+      const removeResponseListener = listenForSecureIpcResponse(channel, win.webContents, onResponse)
+      const stopWatchingDocument = watchIpcDocument(win.webContents, () => finish(null))
       const timer = setTimeout(() => {
         log.warn('MCP elicitation timed out', { requestId, serverId })
         finish(null)
       }, ELICIT_TIMEOUT_MS)
+      try {
+        win.webContents.send('mcp:elicit-request', { requestId, serverId, message, schema })
+      } catch { finish(null) }
     })
   })
 
-  ipcMain.handle('mcp:connect', async (event, config: McpServerConfig) => {
-    if (!isMainFrame(event)) return { success: false, error: '请从应用主窗口连接服务。' }
+  registerSecureIpcHandler('mcp:connect', async (event, config: McpServerConfig) => {
     observeOwner(event)
     const storedConfigs = parseStoredMcpConfigs(await settings.getSetting('mcpServers'))
     const hydratedConfig = hydrateMcpConfigSecrets(config, storedConfigs)
@@ -212,7 +213,7 @@ export function registerMcpIPC(toolRegistry: ToolRegistry): void {
     }
   })
 
-  ipcMain.handle('mcp:disconnect', async (_event, serverId: string) => {
+  registerSecureIpcHandler('mcp:disconnect', async (_event, serverId: string) => {
     if (!isBoundedString(serverId, MAX_MCP_ID_LENGTH)) return { success: false, error: 'MCP 服务 ID 无效' }
     pendingLogins.get(serverId)?.controller.abort()
     removeMcpToolsFromRegistry(toolRegistry, serverId)
@@ -220,17 +221,17 @@ export function registerMcpIPC(toolRegistry: ToolRegistry): void {
     return { success: true }
   })
 
-  ipcMain.handle('mcp:status', () => {
+  registerSecureIpcHandler('mcp:status', () => {
     return mcpManager.getStatus()
   })
 
-  ipcMain.handle('mcp:list-tools', (_event, serverId?: string) => {
+  registerSecureIpcHandler('mcp:list-tools', (_event, serverId?: string) => {
     const tools = mcpManager.getAllTools().map((tool) => ({ ...tool, allowed: mcpManager.isToolAllowed(tool.serverId, tool.name) }))
     if (serverId) return tools.filter(t => t.serverId === serverId)
     return tools
   })
 
-  ipcMain.handle('mcp:set-tool-allowed', async (_event, serverId: string, toolName: string, allowed: boolean) => {
+  registerSecureIpcHandler('mcp:set-tool-allowed', async (_event, serverId: string, toolName: string, allowed: boolean) => {
     if (!isBoundedString(serverId, MAX_MCP_ID_LENGTH) || !isBoundedString(toolName, MAX_MCP_ID_LENGTH) || typeof allowed !== 'boolean') {
       return { success: false, error: 'MCP 工具参数无效' }
     }
@@ -251,13 +252,13 @@ export function registerMcpIPC(toolRegistry: ToolRegistry): void {
     })
   })
 
-  ipcMain.handle('mcp:list-resources', (_event, serverId?: string) => {
+  registerSecureIpcHandler('mcp:list-resources', (_event, serverId?: string) => {
     const resources = mcpManager.getAllResources()
     if (serverId) return resources.filter(r => r.serverId === serverId)
     return resources
   })
 
-  ipcMain.handle('mcp:read-resource', async (_event, serverId: string, uri: string) => {
+  registerSecureIpcHandler('mcp:read-resource', async (_event, serverId: string, uri: string) => {
     if (!isBoundedString(serverId, MAX_MCP_ID_LENGTH) || !isBoundedString(uri, 16_384)) {
       return { success: false, error: 'MCP 资源参数无效' }
     }

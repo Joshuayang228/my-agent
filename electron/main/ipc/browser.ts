@@ -1,3 +1,4 @@
+import { registerSecureIpcHandler } from './ipc-security'
 /**
  * 工作区安全网页查看器 IPC。
  *
@@ -10,8 +11,6 @@
  *       Renderer 只将结果放入无权限 sandbox，不能把该查看器当作完整浏览器或登录容器。
  */
 
-import { ipcMain } from 'electron'
-import { assertTrustedIpcSender } from './ipc-security'
 import { validateFetchUrl } from '../tools/builtins/url-fetch'
 import { createLogger, hashForLog } from '../utils/logger'
 
@@ -53,8 +52,7 @@ async function readBody(response: Response): Promise<string | null> {
 }
 
 export function registerBrowserIPC(): void {
-  ipcMain.handle('browser:load', async (event, rawUrl: unknown, rawRequestId: unknown) => {
-    if (event) assertTrustedIpcSender(event)
+  registerSecureIpcHandler('browser:load', async (event, rawUrl: unknown, rawRequestId: unknown) => {
     if (typeof rawRequestId !== 'string' || rawRequestId.length === 0 || rawRequestId.length > MAX_REQUEST_ID_LENGTH) {
       return { ok: false, error: '网页请求标识无效' }
     }
@@ -95,8 +93,7 @@ export function registerBrowserIPC(): void {
       if (activeRequests.get(key) === controller) activeRequests.delete(key)
     }
   })
-  ipcMain.handle('browser:cancel', (event, rawRequestId: unknown) => {
-    if (event) assertTrustedIpcSender(event)
+  registerSecureIpcHandler('browser:cancel', (event, rawRequestId: unknown) => {
     if (typeof rawRequestId !== 'string' || rawRequestId.length === 0 || rawRequestId.length > MAX_REQUEST_ID_LENGTH) return { ok: false }
     const key = requestKey(event.sender.id, rawRequestId)
     const controller = activeRequests.get(key)

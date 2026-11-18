@@ -1,3 +1,4 @@
+import { trustedIpcEvent } from '../helpers/trusted-ipc-event'
 import { EventEmitter } from 'node:events'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -48,14 +49,14 @@ describe('Chat / Session 真实 handler 生命周期', () => {
       await cleanup.promise
     })
     const owner = sender(1)
-    const run = handlers.get('chat:send')!({ sender: owner }, 'side-1', message)
+    const run = handlers.get('chat:send')!(trustedIpcEvent(owner), 'side-1', message)
     await reachedDone.promise
-    const remove = handlers.get('session:delete')!({ sender: owner }, 'side-1')
-    const duplicate = handlers.get('session:delete')!({ sender: owner }, 'side-1')
+    const remove = handlers.get('session:delete')!(trustedIpcEvent(owner), 'side-1')
+    const duplicate = handlers.get('session:delete')!(trustedIpcEvent(owner), 'side-1')
     await Promise.resolve()
     expect(mocks.abort).toHaveBeenCalledWith('side-1')
     expect(mocks.remove).not.toHaveBeenCalled()
-    await expect(handlers.get('chat:send')!({ sender: owner }, 'side-1', message)).rejects.toThrow('正在关闭')
+    await expect(handlers.get('chat:send')!(trustedIpcEvent(owner), 'side-1', message)).rejects.toThrow('正在关闭')
     cleanup.resolve()
     await Promise.all([run, remove, duplicate])
     expect(mocks.remove).toHaveBeenCalledExactlyOnceWith('side-1')
@@ -67,13 +68,13 @@ describe('Chat / Session 真实 handler 生命周期', () => {
     mocks.chat.mockImplementation(async function* () { await cleanup.promise })
     const owner = sender(2)
     const outsider = sender(3)
-    const run = handlers.get('chat:send')!({ sender: owner }, 'side-2', message)
-    await handlers.get('chat:abort')!({ sender: outsider }, 'side-2')
-    await handlers.get('chat:abort')!({ sender: owner })
+    const run = handlers.get('chat:send')!(trustedIpcEvent(owner), 'side-2', message)
+    await handlers.get('chat:abort')!(trustedIpcEvent(outsider), 'side-2')
+    await handlers.get('chat:abort')!(trustedIpcEvent(owner))
     expect(mocks.abort).not.toHaveBeenCalled()
-    await expect(handlers.get('session:delete')!({ sender: outsider }, 'side-2')).rejects.toThrow('另一个窗口')
-    await expect(handlers.get('chat:send')!({ sender: owner }, 'side-2', message)).rejects.toThrow('正在处理中')
-    await handlers.get('chat:abort')!({ sender: owner }, 'side-2')
+    await expect(handlers.get('session:delete')!(trustedIpcEvent(outsider), 'side-2')).rejects.toThrow('另一个窗口')
+    await expect(handlers.get('chat:send')!(trustedIpcEvent(owner), 'side-2', message)).rejects.toThrow('正在处理中')
+    await handlers.get('chat:abort')!(trustedIpcEvent(owner), 'side-2')
     expect(mocks.abort).toHaveBeenCalledExactlyOnceWith('side-2')
     cleanup.resolve()
     await run
@@ -85,14 +86,14 @@ describe('Chat / Session 真实 handler 生命周期', () => {
       approved = await confirm('write_file', { path: 'a.txt' })
     })
     const owner = sender(4)
-    const run = handlers.get('chat:send')!({ sender: owner }, 'side-confirm', message)
+    const run = handlers.get('chat:send')!(trustedIpcEvent(owner), 'side-confirm', message)
     const payload = owner.send.mock.calls.find(([channel]) => channel === 'tool:confirm-request')![1]
     const channel = `tool:confirm-response:${payload.requestId}`
     ipcMain.emit(channel, { sender: sender(5) }, true)
     await Promise.resolve()
     expect(approved).toBeUndefined()
     expect(ipcMain.listenerCount(channel)).toBe(1)
-    await handlers.get('session:delete')!({ sender: owner }, 'side-confirm')
+    await handlers.get('session:delete')!(trustedIpcEvent(owner), 'side-confirm')
     await run
     expect(approved).toBe(false)
     expect(ipcMain.listenerCount(channel)).toBe(0)
@@ -101,8 +102,8 @@ describe('Chat / Session 真实 handler 生命周期', () => {
   it('删除失败保留记录并释放删除锁，允许重试', async () => {
     const owner = sender(6)
     mocks.remove.mockRejectedValueOnce(new Error('disk unavailable'))
-    await expect(handlers.get('session:delete')!({ sender: owner }, 'side-error')).rejects.toThrow('会话删除失败，请稍后重试')
-    await handlers.get('session:delete')!({ sender: owner }, 'side-error')
+    await expect(handlers.get('session:delete')!(trustedIpcEvent(owner), 'side-error')).rejects.toThrow('会话删除失败，请稍后重试')
+    await handlers.get('session:delete')!(trustedIpcEvent(owner), 'side-error')
     expect(mocks.remove).toHaveBeenCalledTimes(2)
   })
 
@@ -112,7 +113,7 @@ describe('Chat / Session 真实 handler 生命周期', () => {
       yield { type: 'done', reason: 'aborted' }
     })
     const owner = sender(7)
-    const run = handlers.get('chat:send')!({ sender: owner }, 'side-destroyed', message)
+    const run = handlers.get('chat:send')!(trustedIpcEvent(owner), 'side-destroyed', message)
     owner.isDestroyed.mockReturnValue(true)
     owner.emit('destroyed')
     await run

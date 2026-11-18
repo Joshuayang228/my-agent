@@ -1,3 +1,4 @@
+import { trustedIpcEvent } from '../helpers/trusted-ipc-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -111,7 +112,7 @@ describe('Skill 启停真实持久化与 IPC', () => {
   })
 
   it('IPC 拒绝伪造名称和布尔值；内置正文真实可读且不可改删', async () => {
-    const call = (name: string, ...args: unknown[]) => fixture.handlers.get(name)!(null, ...args)
+    const call = (name: string, ...args: unknown[]) => fixture.handlers.get(name)!(trustedIpcEvent(), ...args)
     expect(await call('skills:set-enabled', 'test-helper', 'false')).toMatchObject({ success: false })
     expect(await call('skills:set-enabled', '../outside', false)).toMatchObject({ success: false })
     expect(await call('skills:set-enabled', 'test-helper', false)).toEqual({ success: true, enabled: false })

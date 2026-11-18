@@ -1,11 +1,11 @@
+import { registerSecureIpcHandler } from './ipc-security'
 import { generateSmartTitle } from '../agent/session-title-service'
-import { ipcMain, shell } from 'electron'
+import { shell } from 'electron'
 import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 import * as store from '../storage/session-store'
 import { createLogger } from '../utils/logger'
 import { deleteChatSession } from './chat'
 import { loadGeneratedImageFile, readGeneratedImage } from '../storage/generated-images'
-import { assertTrustedIpcSender } from './ipc-security'
 
 const log = createLogger('SessionIPC')
 const MAX_ID_LENGTH = 200
@@ -16,13 +16,8 @@ function validId(value: unknown): value is string {
 }
 
 export function registerSessionIPC(): void {
-  const handle = (channel: string, listener: (event: Electron.IpcMainInvokeEvent, ...args: any[]) => unknown): void => {
-    ipcMain.handle(channel, (event, ...args) => {
-      assertTrustedIpcSender(event)
-      return listener(event, ...args)
-    })
-  }
-  ipcMain.handle('session:revealGeneratedImage', async (event, sessionId: unknown, imageId: unknown) => {
+  const handle = registerSecureIpcHandler
+  registerSecureIpcHandler('session:revealGeneratedImage', async (event, sessionId: unknown, imageId: unknown) => {
     try {
       const frame = event.senderFrame
       if (event.sender.isDestroyed() || !frame || frame !== event.sender.mainFrame) return { ok: false, error: '当前页面不能定位会话图片。' }
@@ -35,7 +30,7 @@ export function registerSessionIPC(): void {
       return { ok: true }
     } catch { return { ok: false, error: '无法定位图片，请稍后重试。' } }
   })
-  ipcMain.handle('session:readGeneratedImage', async (event, sessionId: unknown, imageId: unknown) => {
+  registerSecureIpcHandler('session:readGeneratedImage', async (event, sessionId: unknown, imageId: unknown) => {
     if (event.sender.isDestroyed() || !event.senderFrame || event.senderFrame !== event.sender.mainFrame) return { ok: false, error: '当前页面不能读取会话图片。' }
     return readGeneratedImage(sessionId, imageId)
   })

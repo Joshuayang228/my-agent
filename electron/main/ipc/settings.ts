@@ -1,5 +1,6 @@
+import { registerSecureIpcHandler } from './ipc-security'
 import { compileConnectionRequest } from '../prompts/registered-request'
-import { BrowserWindow, dialog, ipcMain } from 'electron'
+import { BrowserWindow, dialog } from 'electron'
 import * as settings from '../storage/settings-store'
 import type { AppSettings } from '../storage/settings-store'
 import { loadRules, validatePermissionRules } from '../sandbox/permission-engine'
@@ -120,9 +121,9 @@ async function confirmHighRiskSettingChange(title: string, detail: string): Prom
 }
 
 export function registerSettingsIPC(): void {
-  ipcMain.handle('settings:get', async () => getRendererSettings())
+  registerSecureIpcHandler('settings:get', async () => getRendererSettings())
 
-  ipcMain.handle('settings:save-model-configuration', async (_event, input: unknown) => {
+  registerSecureIpcHandler('settings:save-model-configuration', async (_event, input: unknown) => {
     const parsed = modelConfigurationSchema.safeParse(input)
     if (!parsed.success) throw new Error('模型配置无效或超出长度限制')
     let connections: unknown, routes: unknown
@@ -140,7 +141,7 @@ export function registerSettingsIPC(): void {
     })
   })
 
-  ipcMain.handle('settings:set', async (_event, key: string, value: string) => {
+  registerSecureIpcHandler('settings:set', async (_event, key: string, value: string) => {
     if (!isRendererWritableSettingKey(key)) {
       throw new Error('无效的设置项')
     }
@@ -191,7 +192,7 @@ export function registerSettingsIPC(): void {
     }
   })
 
-  ipcMain.handle('settings:test-connection', async (event, input: LLMConnectionTestInput): Promise<LLMConnectionTestResult> => {
+  registerSecureIpcHandler('settings:test-connection', async (event, input: LLMConnectionTestInput): Promise<LLMConnectionTestResult> => {
     const validated = validateLLMConnectionTestInput(input)
     if (!validated.ok) return validated
 
@@ -233,7 +234,7 @@ export function registerSettingsIPC(): void {
     }
   })
 
-  ipcMain.handle('settings:fetch-models', async (event, input: LLMModelFetchInput): Promise<LLMModelFetchResult> => {
+  registerSecureIpcHandler('settings:fetch-models', async (event, input: LLMModelFetchInput): Promise<LLMModelFetchResult> => {
     const validated = validateLLMModelFetchInput(input)
     if (!validated.ok) return { ok: false, error: validated.error, reason: validated.reason, retryable: validated.reason !== 'missing-key' }
     const cancelled: LLMModelFetchResult = { ok: false, error: '获取模型已取消，请重新发起', reason: 'network', retryable: true }

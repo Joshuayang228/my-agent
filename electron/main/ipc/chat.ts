@@ -1,12 +1,11 @@
+import { registerSecureIpcHandler, listenForSecureIpcResponse, isTrustedIpcSender, watchIpcDocument } from './ipc-security'
 import { randomUUID } from 'node:crypto'
-import { ipcMain } from 'electron'
 import { runtime } from '../agent/runtime'
 import { ToolRegistry } from '../tools/registry'
 import { createLogger } from '../utils/logger'
 import { toAgentError } from '../errs'
 import type { ChatMessage, WorkspaceChatContext } from '../../../src/shared/types'
 import { recordUserActivity } from '../companion/life/host-presence'
-import { assertTrustedIpcSender } from './ipc-security'
 
 const log = createLogger('ChatIPC')
 
@@ -69,12 +68,7 @@ function readWorkspaceChatContext(value: unknown): WorkspaceChatContext | undefi
 }
 
 export function registerChatIPC(toolRegistry: ToolRegistry): void {
-  const handle = (channel: string, listener: (event: Electron.IpcMainInvokeEvent, ...args: any[]) => unknown): void => {
-    ipcMain.handle(channel, (event, ...args) => {
-      assertTrustedIpcSender(event)
-      return listener(event, ...args)
-    })
-  }
+  const handle = registerSecureIpcHandler
   handle('ping', () => 'pong')
 
   handle('chat:abort', (event, sessionId?: string) => {
@@ -106,14 +100,18 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
       },
     }
     activeChatSenders.set(sessionId, active)
-    event.sender.once('destroyed', active.cancel)
+    let documentGone = false
+    const stopWatchingDocument = watchIpcDocument(event.sender, () => {
+      documentGone = true
+      active.cancel()
+    })
     const workspaceContext = readWorkspaceChatContext(rawContext)
     const emit = (ev: Record<string, unknown>) => {
-      if (!event.sender.isDestroyed()) event.sender.send('chat:event', { ...ev, sessionId })
+      if (!documentGone && isTrustedIpcSender(event)) event.sender.send('chat:event', { ...ev, sessionId })
     }
 
     const confirmTool = (name: string, args: Record<string, unknown>): Promise<boolean> => {
-      if (cancelled || event.sender.isDestroyed()) return Promise.resolve(false)
+      if (cancelled || !isTrustedIpcSender(event)) return Promise.resolve(false)
       return new Promise((resolve) => {
         // UUID 避免 Date.now() 同毫秒碰撞；动态频道靠 requestId 配对
         const requestId = `confirm-${randomUUID()}`
@@ -125,7 +123,7 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
           if (settled) return
           settled = true
           if (timer !== undefined) clearTimeout(timer)
-          ipcMain.removeListener(channel, onResponse)
+          removeResponseListener()
           pendingConfirms.delete(deny)
           resolve(approved)
         }
@@ -133,11 +131,9 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
         const deny = () => finish(false)
         pendingConfirms.add(deny)
 
-        function onResponse(responseEvent: Electron.IpcMainEvent, approved: boolean) {
-          if (responseEvent.sender.id === event.sender.id) finish(approved === true)
-        }
-
-        ipcMain.on(channel, onResponse)
+        const removeResponseListener = listenForSecureIpcResponse(channel, event.sender, (_response, approved: unknown) => {
+          finish(approved === true)
+        })
         event.sender.send('tool:confirm-request', { requestId, name, args, sessionId })
 
         timer = setTimeout(() => {
@@ -162,7 +158,7 @@ export function registerChatIPC(toolRegistry: ToolRegistry): void {
       emit({ type: 'done', reason: 'model_error' })
     } finally {
       for (const deny of pendingConfirms) deny()
-      event.sender.removeListener('destroyed', active.cancel)
+      stopWatchingDocument()
       activeChatSenders.delete(sessionId)
       finishRun()
     }

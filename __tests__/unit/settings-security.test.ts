@@ -1,9 +1,10 @@
+import { trustedIpcEvent } from '../helpers/trusted-ipc-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { EventEmitter } from 'node:events'
 
 function modelEvent() {
   const sender = Object.assign(new EventEmitter(), { isDestroyed: () => false, mainFrame: {} })
-  return { sender, senderFrame: sender.mainFrame }
+  return trustedIpcEvent(sender)
 }
 
 const { getAllSettings, getSetting, setSetting, saveModelConfiguration, handlers, showMessageBox, loadMainLLMConfig, chatComplete, fetchRemoteModels, browserState } = vi.hoisted(() => ({
@@ -47,7 +48,7 @@ describe('设置 IPC 安全视图', () => {
     registerSettingsIPC()
     const event = modelEvent()
     event.senderFrame = {}
-    expect(await handlers.get(channel)!(event, { useStoredApiKey: true, connectionId: 'conn-1', baseUrl: 'https://example.test/v1', model: 'model' })).toMatchObject({ ok: false })
+    expect(() => handlers.get(channel)!(event, { useStoredApiKey: true, connectionId: 'conn-1', baseUrl: 'https://example.test/v1', model: 'model' })).toThrow('无效的请求来源')
     expect(getAllSettings).not.toHaveBeenCalled()
     expect(loadMainLLMConfig).not.toHaveBeenCalled()
     expect(event.sender.eventNames()).toEqual([])
@@ -186,10 +187,10 @@ describe('设置 IPC 安全视图', () => {
     const routes = JSON.stringify([{ purpose: 'primary', connectionId: 'c', model: 'm', enabled: true }])
     const call = handlers.get('settings:save-model-configuration')!
     for (const invalid of [null, { connections: '[]', routes: '{}' }, { connections: '[null]', routes }, { connections: JSON.stringify([connection, connection]), routes }]) {
-      await expect(call({}, invalid)).rejects.toThrow()
+      await expect(call(trustedIpcEvent(), invalid)).rejects.toThrow()
     }
     expect(saveModelConfiguration).not.toHaveBeenCalled()
-    await call({}, { connections: JSON.stringify([connection]), routes })
+    await call(trustedIpcEvent(), { connections: JSON.stringify([connection]), routes })
     expect(saveModelConfiguration).toHaveBeenCalledTimes(1)
     const saved = saveModelConfiguration.mock.calls[0][0]
     expect(JSON.parse(saved.connections)[0]).toMatchObject({ id: 'c', apiKey: 'fixture-stored' })
@@ -203,9 +204,9 @@ describe('设置 IPC 安全视图', () => {
     saveModelConfiguration.mockImplementationOnce(() => new Promise<void>((_resolve, reject) => { release = () => reject(new Error('fixture-write-failed')) }))
     const input = { connections: '[]', routes: '[]' }
     const call = handlers.get('settings:save-model-configuration')!
-    const first = call({}, input)
+    const first = call(trustedIpcEvent(), input)
     const rejected = expect(first).rejects.toThrow('fixture-write-failed')
-    const second = call({}, input)
+    const second = call(trustedIpcEvent(), input)
     await vi.waitFor(() => expect(saveModelConfiguration).toHaveBeenCalledTimes(1))
     expect(getSetting).toHaveBeenCalledTimes(1)
     release()

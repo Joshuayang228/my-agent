@@ -1,3 +1,4 @@
+import { trustedIpcEvent } from '../helpers/trusted-ipc-event'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { registerRagIPC } from '../../electron/main/ipc/rag'
 
@@ -23,7 +24,7 @@ beforeEach(() => {
 it('本地无 Key 连接由统一工厂传入 RAG，不借用其他连接的凭据', async () => {
   const config = { apiKey: '', baseUrl: 'http://127.0.0.1:11434/v1', model: 'local' }
   state.loadConfig.mockResolvedValue(config)
-  await expect(state.handlers.get('rag:ingest')!()).resolves.toEqual([{ id: 'fixture-document' }])
+  await expect(state.handlers.get('rag:ingest')!(trustedIpcEvent())).resolves.toEqual([{ id: 'fixture-document' }])
   expect(state.loadConfig).toHaveBeenCalledTimes(1)
   expect(state.ingest).toHaveBeenCalledWith('fixture.md', config)
 })
@@ -33,13 +34,13 @@ it.each([
   { apiKey: 'unused', baseUrl: 'http://localhost/v1', model: ' ' },
 ])('缺少有效用途连接时拒绝导入，不因残留 Key 放行：%j', async config => {
   state.loadConfig.mockResolvedValue(config)
-  await expect(state.handlers.get('rag:ingest')!()).rejects.toThrow('请先配置可用的模型连接')
+  await expect(state.handlers.get('rag:ingest')!(trustedIpcEvent())).rejects.toThrow('请先配置可用的模型连接')
   expect(state.ingest).not.toHaveBeenCalled()
 })
 
 it('取消选文件不加载配置也不产生导入', async () => {
   state.dialog.mockResolvedValue({ canceled: true, filePaths: [] })
-  await expect(state.handlers.get('rag:ingest')!()).resolves.toEqual([])
+  await expect(state.handlers.get('rag:ingest')!(trustedIpcEvent())).resolves.toEqual([])
   expect(state.loadConfig).not.toHaveBeenCalled()
   expect(state.ingest).not.toHaveBeenCalled()
 })

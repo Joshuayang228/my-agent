@@ -1,6 +1,6 @@
-import { app, BrowserWindow, shell, Tray, Menu, globalShortcut, nativeImage, ipcMain, powerMonitor } from 'electron'
+import { app, BrowserWindow, shell, Tray, Menu, globalShortcut, nativeImage, powerMonitor } from 'electron'
 import { autoUpdater } from 'electron-updater'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
 import { config } from 'dotenv'
 import { ToolRegistry } from './tools/registry'
@@ -16,6 +16,7 @@ import { startMemoryIndexSync } from './memory/index-sync'
 import { llmDebugStore } from './storage/llm-debug-store'
 import { assetUsageStore } from './storage/asset-usage-store'
 import { createModelContextAssetResolver } from './debug/model-context-assets'
+import { registerSecureIpcHandler, registerTrustedIpcWindow } from './ipc/ipc-security'
 import { registerAllIPC } from './ipc/index'
 import { initializeAgentHost, registerAgentHostTools, syncAgentHostSkills } from './agent-host/host'
 import { mcpManager } from './mcp/client'
@@ -85,6 +86,7 @@ async function createWindow() {
   })
 
   const currentWindow = win
+  registerTrustedIpcWindow(currentWindow, VITE_DEV_SERVER_URL ?? pathToFileURL(indexHtml).href)
   registerProactiveGreetingWindow(currentWindow)
   // 模型草稿可取消退出；恢复托盘关闭语义并显示已有留页提示，不能强制放行卸载。
   // 后台停止必须等 will-quit，before-quit 并不表示应用最终会退出。
@@ -261,7 +263,7 @@ function setupAutoUpdater() {
     log.warn('Auto-update error', { error: err.message })
   })
 
-  ipcMain.handle('updater:check', async () => {
+  registerSecureIpcHandler('updater:check', async () => {
     try {
       const result = await autoUpdater.checkForUpdates()
       return { available: !!result?.updateInfo, version: result?.updateInfo?.version }
@@ -270,11 +272,11 @@ function setupAutoUpdater() {
     }
   })
 
-  ipcMain.handle('updater:download', async () => {
+  registerSecureIpcHandler('updater:download', async () => {
     await autoUpdater.downloadUpdate()
   })
 
-  ipcMain.handle('updater:install', () => {
+  registerSecureIpcHandler('updater:install', () => {
     isQuitting = true
     autoUpdater.quitAndInstall()
   })
