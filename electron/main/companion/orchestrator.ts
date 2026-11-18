@@ -25,8 +25,8 @@ import {
   type RosterLine,
 } from './cast/roster'
 import { getMutable } from './growth/mutable-store'
-import { runCatchup } from './life/catchup'
-import { pauseRole, resumeRole } from './life/engine'
+import { recoverActiveCatchup } from './life/catchup'
+import { resumeRole } from './life/engine'
 import { listEmotionEvents, listRelationshipStates, listEvents } from './core/persistence/life-repository'
 import { getCompanionRuntimeReadModel } from './core/read-models/runtime-read-model'
 import { narrativeMood } from './life/world-codec'
@@ -509,7 +509,7 @@ export async function assertSessionRole(sessionRoleId: string | undefined | null
 
 /**
  * 完整切换活跃主角。
- * 成功：pause 旧角色 → 写 activeRoleId → 若新角色曾暂停则 runCatchup，否则 resume。
+ * 选择与暂停边界先原子提交；已暂停的新人物由公共恢复入口补叙。
  * 并向渲染进程广播 Surfaces rebind。
  */
 export function requestSwitch(roleId: string): Promise<SwitchResult> {
@@ -530,26 +530,24 @@ async function switchProtagonist(roleId: string): Promise<SwitchResult> {
   }
 
   const now = Date.now()
-  await pauseRole(current, now)
-
-  const targetPrev = await getCompanionRuntimeReadModel(roleId)
-  const pausedAt = targetPrev?.pausedAt ?? null
-
-  let catchupQueued = false
+  let catchupQueued: boolean
   try {
-    await settings.setSetting('activeRoleId', roleId)
-    if (pausedAt != null) {
-      await runCatchup(roleId, pausedAt, now)
-      catchupQueued = true
-    } else {
-      await resumeRole(roleId)
-    }
+    catchupQueued = await withCompanionUnitOfWork(async () => {
+      const target = await getCompanionRuntimeReadModel(roleId)
+      await updateCompanionRuntimeLifecycle({ roleId: current, pausedAt: now, updatedAt: now })
+      settings.writePreparedSetting(await getDatabase(), settings.prepareSettingWrite('activeRoleId', roleId))
+      if (target?.pausedAt == null) await resumeRole(roleId)
+      return target?.pausedAt != null
+    })
   } catch (error) {
-    // 切换必须是一个可回滚的边界。Catch-up 或目标恢复失败时，不能留下新旧角色同时暂停的半状态。
-    log.warn('Role switch failed; rolling back active role', { current, roleId, error: String(error) })
-    await settings.setSetting('activeRoleId', current)
-    await resumeRole(current)
+    log.warn('Role switch transaction failed', { current, roleId, errorType: error instanceof Error ? error.name : 'unknown' })
     return { ok: false, code: 'SWITCH_FAILED' }
+  }
+  settings.publishCompanionSelectionCommitted(['activeRoleId'])
+  if (catchupQueued) {
+    await recoverActiveCatchup().catch(error => {
+      log.warn('Role switch catch-up deferred', { roleId, errorType: error instanceof Error ? error.name : 'unknown' })
+    })
   }
 
   // M28-G3：再认识微文案（不碰成长时钟）

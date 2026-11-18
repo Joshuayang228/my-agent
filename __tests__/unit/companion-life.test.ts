@@ -26,7 +26,6 @@ vi.mock('../../electron/main/utils/logger', () => ({
 
 const SQL = await initSqlJs()
 let memDb: InstanceType<typeof SQL.Database>
-let activeRoleId = 'luffy'
 const settingValues: Record<string, string> = {}
 
 vi.mock('../../electron/main/storage/database', () => ({
@@ -36,14 +35,12 @@ vi.mock('../../electron/main/storage/database', () => ({
   persist: vi.fn(),
 }))
 
-vi.mock('../../electron/main/storage/settings-store', () => ({
+vi.mock('../../electron/main/storage/settings-store', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../electron/main/storage/settings-store')>()
+  return {
+  ...actual,
   getSetting: vi.fn(async (key: string) => {
-    if (key === 'universeId') return 'default'
-    if (key === 'activeRoleId') return activeRoleId
-    return settingValues[key] ?? ''
-  }),
-  setSetting: vi.fn(async (key: string, value: string) => {
-    if (key === 'activeRoleId') activeRoleId = value
+    return settingValues[key] ?? actual.getSetting(key as Parameters<typeof actual.getSetting>[0])
   }),
   getAllSettings: vi.fn(async () => ({
     llmApiKey: '',
@@ -56,7 +53,8 @@ vi.mock('../../electron/main/storage/settings-store', () => ({
     universeId: 'default',
     activeRoleId: 'luffy',
   })),
-}))
+  }
+})
 
 const {
   pauseRole,
@@ -109,7 +107,6 @@ describe('life dates', () => {
 describe('LifeEngine', () => {
   beforeEach(() => {
     memDb = new SQL.Database()
-    activeRoleId = 'luffy'
     for (const key of Object.keys(settingValues)) delete settingValues[key]
     registerStreamingProbe(() => false)
   })
@@ -351,7 +348,8 @@ describe('LifeEngine', () => {
     const spy = vi
       .spyOn(identity, 'isKnownProtagonist')
       .mockImplementation((id) => id === 'luffy' || id === 'other')
-    activeRoleId = 'other'
+    const { setSetting } = await import('../../electron/main/storage/settings-store')
+    await setSetting('activeRoleId', 'other')
 
     const later = localDateTimeMs('2026-08-03', 12, 0)
     await tickActiveRole(later)

@@ -58,6 +58,8 @@ export interface ProjectMomentOpts {
   universeId?: string
   /** 自动生活发布路径；自动配图偏好只约束该路径，用户明确发布不受影响。 */
   automatic?: boolean
+  /** 追赶完成依赖本次确实检查过待发布事件，不能按普通时钟的空操作处理并发。 */
+  requireExclusive?: boolean
   /** 自动分享按实际发布时间计数，生活事件仍保留原计划时间。 */
   publishedAt?: number
   /** 保留事件事实但跳过朋友圈投影。 */
@@ -266,7 +268,10 @@ export async function publishAndProjectRange(
   opts?: ProjectMomentOpts,
 ): Promise<number> {
   if (!opts?.automatic) return projectRange(roleId, fromMs, toMs, opts)
-  if (automaticPublishingRoles.has(roleId)) return 0
+  if (automaticPublishingRoles.has(roleId)) {
+    if (opts.requireExclusive) throw new Error('正在推进该人物的生活事件，请稍后恢复补叙。')
+    return 0
+  }
   automaticPublishingRoles.add(roleId)
   try {
     return await projectRange(roleId, fromMs, toMs, opts)
@@ -295,11 +300,11 @@ async function projectRange(
     try {
       const published: CompanionEvent = { ...ev, status: 'published' }
       // M25-G2：payload.grantAsset → 幂等入库（无则 noop）
-      await maybeGrantFromEvent({
+      await withCompanionUnitOfWork(() => maybeGrantFromEvent({
         roleId: ev.roleId,
         eventId: ev.id,
         eventPayload: ev.payload,
-      })
+      }))
       const moment = await projectMomentFromEvent(published, {
         ...opts,
         suppressMoment: opts?.automatic ? !decision.allow || ev.id !== selected?.id : opts?.suppressMoment,

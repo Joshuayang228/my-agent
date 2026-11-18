@@ -16,10 +16,14 @@ import { createLogger } from '../../utils/logger'
 import { loadRolePack } from '../identity/loader'
 import { compileCatchupRequest } from '../../prompts/registered-request'
 import { eachLocalDateInclusive, toLocalDateString } from './dates'
-import { ensureDayScripts } from './engine'
+import { ensureDayScripts, resolveActiveLifeScope } from './engine'
 import { publishAndProjectRange } from './moments'
 import { ensureWorldState } from './world-state'
 import { updateCompanionRuntimeLifecycle } from '../core/state/runtime-state'
+import { getCompanionRuntimeReadModel } from '../core/read-models/runtime-read-model'
+import { executeCompanionCommand } from '../core/commands/gateway'
+import { captureCompanionLifecycle } from '../../utils/companion-lifecycle'
+import { getExecutionSignal } from '../../utils/execution-cancellation'
 
 const log = createLogger('Catchup')
 
@@ -111,6 +115,7 @@ export async function generateCatchupSummaryViaLlm(
     }
     return normalized
   } catch (err) {
+    getExecutionSignal()?.throwIfAborted()
     log.warn('Catch-up LLM summary failed', { roleId, error: String(err) })
     return null
   }
@@ -159,7 +164,7 @@ export async function runCatchup(
   opts?: { preferLlmSummary?: boolean; llmConfig?: LLMConfig; universeId?: string },
 ): Promise<{ fineDays: number; summaryUpdated: boolean; published: number; summarySource?: 'llm' | 'template' }> {
   const fineStart = computeFineStart(pausedAt, now)
-  let summaryUpdated = false
+  let summary: string | undefined
   let summarySource: 'llm' | 'template' | undefined
 
   if (pausedAt < fineStart) {
@@ -168,19 +173,20 @@ export async function runCatchup(
       llmConfig: opts?.llmConfig,
       universeId: opts?.universeId,
     })
-    await updateCompanionRuntimeLifecycle({ roleId, catchupSummary: resolved.summary })
-    summaryUpdated = true
+    summary = resolved.summary
     summarySource = resolved.source
   }
 
   const fromDate = toLocalDateString(fineStart)
   const toDate = toLocalDateString(now)
   // 细补剧本仍默认哈希（不连打多日 LLM）
-  await ensureDayScripts(roleId, fromDate, toDate)
+  getExecutionSignal()?.throwIfAborted()
+  await ensureDayScripts(roleId, fromDate, toDate, { universeId: opts?.universeId })
   const fineDays = eachLocalDateInclusive(fromDate, toDate).length
 
-  const published = await publishAndProjectRange(roleId, fineStart, now, { automatic: true })
-  await updateCompanionRuntimeLifecycle({ roleId, pausedAt: null, lastTickAt: now, updatedAt: now })
+  const published = await publishAndProjectRange(roleId, fineStart, now, { automatic: true, requireExclusive: true, universeId: opts?.universeId })
+  await updateCompanionRuntimeLifecycle({ roleId, pausedAt: null, catchupSummary: summary, lastTickAt: now, updatedAt: now })
+  const summaryUpdated = summary !== undefined
 
   log.info('Catch-up done', {
     roleId,
@@ -192,6 +198,36 @@ export async function runCatchup(
     now,
   })
   return { fineDays, summaryUpdated, published, summarySource }
+}
+
+let activeCatchup: { generation: AbortSignal; work: Promise<void> } | undefined
+
+/**
+ * 切角已经提交但补叙中断时，活跃人物仍持有已保存的暂停时间。
+ * 启动、时钟和切角复用这个恢复入口，同一代只执行一次。暂停状态与摘要在补叙完成后一起结算。
+ */
+export function recoverActiveCatchup(): Promise<void> {
+  const generation = captureCompanionLifecycle()
+  if (activeCatchup?.generation === generation) return activeCatchup.work
+  const run = async () => {
+    const { roleId, universeId } = await resolveActiveLifeScope()
+    const snapshot = await getCompanionRuntimeReadModel(roleId)
+    if (snapshot?.pausedAt == null) return
+    const pausedAt = snapshot.pausedAt
+    await executeCompanionCommand({
+      roleId, actionType: 'catchup-active-role', signal: generation,
+      handler: async () => {
+        const current = await resolveActiveLifeScope()
+        if (current.roleId !== roleId || current.universeId !== universeId) throw new Error('补叙所属人物世界已切换。')
+        await runCatchup(roleId, pausedAt, Date.now(), { universeId })
+      },
+    })
+  }
+  const work = run().finally(() => {
+    if (activeCatchup?.generation === generation) activeCatchup = undefined
+  })
+  activeCatchup = { generation, work }
+  return work
 }
 
 export const __test = {

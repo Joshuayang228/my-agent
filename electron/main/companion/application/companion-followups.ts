@@ -14,6 +14,7 @@ import { recoverDelayedMomentReplies } from '../life/moments'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { getSetting } from '../../storage/settings-store'
 import { executeCompanionCommand } from '../core/commands/gateway'
+import { recoverActiveCatchup } from '../life/catchup'
 
 const log = createLogger('CompanionFollowups')
 
@@ -24,6 +25,9 @@ const log = createLogger('CompanionFollowups')
  */
 export async function recoverCompanionFollowups(): Promise<void> {
   if (isCompanionCommitActive()) return
+  await recoverActiveCatchup().catch(error => {
+    log.warn('Active role catch-up deferred', { errorType: error instanceof Error ? error.name : 'unknown' })
+  })
   try {
     const roleId = await getSetting('activeRoleId')
     const universeId = await getSetting('universeId')

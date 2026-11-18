@@ -47,15 +47,6 @@ const {
 
 const { requestSwitch } = await import('../../electron/main/companion/orchestrator')
 
-vi.mock('../../electron/main/storage/settings-store', () => ({
-  getSetting: vi.fn(async (key: string) => {
-    if (key === 'universeId') return 'default'
-    if (key === 'activeRoleId') return 'lin'
-    return ''
-  }),
-  setSetting: vi.fn(async () => {}),
-}))
-
 describe('companion mutable store', () => {
   beforeEach(() => {
     memDb = new SQL.Database()
@@ -118,8 +109,10 @@ describe('companion mutable store', () => {
 })
 
 describe('companion requestSwitch 流式门控', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     memDb = new SQL.Database()
+    const { setSetting } = await import('../../electron/main/storage/settings-store')
+    await setSetting('activeRoleId', 'lin')
     registerStreamingProbe(() => false)
   })
 
@@ -147,13 +140,11 @@ describe('companion requestSwitch 流式门控', () => {
     const identity = await import('../../electron/main/companion/identity/loader')
     const spyKnown = vi.spyOn(identity, 'isKnownProtagonist').mockImplementation((id) => id === 'lin' || id === 'other')
     const settings = await import('../../electron/main/storage/settings-store')
-    const setSpy = vi.spyOn(settings, 'setSetting').mockResolvedValue()
     registerStreamingProbe(() => false)
     const r = await requestSwitch('other')
     expect(r).toMatchObject({ ok: true, catchupQueued: false })
     if (r.ok) expect(r.reacquaint.toast).toContain('又见面了')
-    expect(setSpy).toHaveBeenCalledWith('activeRoleId', 'other')
+    expect(await settings.getSetting('activeRoleId')).toBe('other')
     spyKnown.mockRestore()
-    setSpy.mockRestore()
   })
 })
