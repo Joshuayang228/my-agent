@@ -88,6 +88,25 @@ it('用户明确选择书架条目后可保存阅读笔记并拒绝跨人物资�
   expect(rejected.content).toContain('只能为当前人物')
 })
 
+it('不同会话同时为同一本书保存笔记时保留两条记录', async () => {
+  const tools = registry()
+  const context = { sessionId: 'first-session', workdir: process.cwd(), roleId: 'luffy' }
+  await tools.executeAll([{ id: 'create', name: 'companion_create_asset', arguments: '{"kind":"bookshelf","name":"共读笔记"}' }], context)
+  const [book] = await listAssets('luffy', { kind: 'bookshelf' })
+  const saveNote = (sessionId: string, note: string) => tools.executeAll([{
+    id: 'note',
+    name: 'companion_add_reading_note',
+    arguments: JSON.stringify({ assetId: book.id, note, source: '同一本书', author: 'user' }),
+  }], { ...context, sessionId })
+  const outcomes = await Promise.all([saveNote('first-session', '第一条并发笔记'), saveNote('second-session', '第二条并发笔记')])
+  expect(outcomes.map(([result]) => result.content)).toEqual([expect.stringContaining('已保存'), expect.stringContaining('已保存')])
+  const [updated] = await listAssets('luffy', { kind: 'bookshelf' })
+  expect(updated.payload.readingNotes).toEqual(expect.arrayContaining([
+    expect.objectContaining({ text: '第一条并发笔记' }),
+    expect.objectContaining({ text: '第二条并发笔记' }),
+  ]))
+})
+
 it('图片材料观察只接受当前会话附件，缺图时不触发模型也不写回', async () => {
   const tools = registry()
   const [result] = await tools.executeAll([{ id: 'observe', name: 'companion_observe_material', arguments: JSON.stringify({ messageId: 'missing', source: '用户提供的书页照片，第 12 页' }) }], { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' })

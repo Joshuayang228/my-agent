@@ -225,23 +225,27 @@ export const companionAddReadingNoteTool = buildTool({
     if (args.chapter !== undefined && !chapter) return '章节或段落范围不能为空，且不能超过 120 字。'
     const asset = await getAsset(assetId)
     if (!asset || asset.roleId !== roleId || asset.kind !== 'bookshelf') return '只能为当前人物已存在的书架条目保存笔记。'
-    const existingNotes = Array.isArray(asset.payload.readingNotes) ? asset.payload.readingNotes : []
-    const normalizedNotes = existingNotes.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
-    const duplicate = normalizedNotes.some(item => item.text === note && item.source === source && item.page === page && item.chapter === chapter)
-    const readingNotes = duplicate ? normalizedNotes : [...normalizedNotes, {
-      id: randomUUID(), text: note, source, author,
-      ...(observation ? { grounding: { observation, ...(inference ? { inference } : {}) } } : {}),
-      confirmation: { by: author, at: Date.now() },
-      ...(page === undefined ? {} : { page }), ...(chapter ? { chapter } : {}), createdAt: Date.now(),
-    }].slice(-50)
     return executeCompanionCommand({
       roleId,
       actionType: 'add-reading-note',
       signal: context?.signal,
       local: true,
       handler: async () => {
+        // 两个会话可同时追加笔记。事务内重读并合并，避免写入事务外算出的旧列表覆盖另一条笔记。
+        const current = await getAsset(assetId)
+        if (!current || current.roleId !== roleId || current.kind !== 'bookshelf') return '只能为当前人物已存在的书架条目保存笔记。'
+        const existingNotes = Array.isArray(current.payload.readingNotes) ? current.payload.readingNotes : []
+        const normalizedNotes = existingNotes.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
+        const duplicate = normalizedNotes.some(item => item.text === note && item.source === source && item.page === page && item.chapter === chapter)
+        const now = Date.now()
+        const readingNotes = duplicate ? normalizedNotes : [...normalizedNotes, {
+          id: randomUUID(), text: note, source, author,
+          ...(observation ? { grounding: { observation, ...(inference ? { inference } : {}) } } : {}),
+          confirmation: { by: author, at: now },
+          ...(page === undefined ? {} : { page }), ...(chapter ? { chapter } : {}), createdAt: now,
+        }].slice(-50)
         const result = await updateAsset(assetId, { payload: { readingNotes } }, { expectedRoleId: roleId })
-        return result.ok ? `已保存《${asset.name}》的阅读笔记${duplicate ? '（已存在相同来源记录）' : ''}。${author === 'companion' ? '记录者：人物。' : '记录者：用户。'}来源：${source}${page === undefined ? '' : `，第 ${page} 页`}${chapter ? `，${chapter}` : ''}` : `阅读笔记未保存：${result.error}`
+        return result.ok ? `已保存《${current.name}》的阅读笔记${duplicate ? '（已存在相同来源记录）' : ''}。${author === 'companion' ? '记录者：人物。' : '记录者：用户。'}来源：${source}${page === undefined ? '' : `，第 ${page} 页`}${chapter ? `，${chapter}` : ''}` : `阅读笔记未保存：${result.error}`
       },
     })
   },
