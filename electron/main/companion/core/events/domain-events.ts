@@ -3,20 +3,34 @@ import { getDatabase, persist } from '../../../storage/database'
 import { ensureCompanionCoreSchema } from '../schema'
 import type { CompanionDomainEvent } from '../types'
 import { contentIntegrityError } from '../../../../../src/shared/content-integrity'
+import { commandExecutionScope } from '../commands/execution-scope'
+import { assertCompanionExecutionOwner } from '../execution/ledger'
 
 export async function appendCompanionDomainEvent(input: Omit<CompanionDomainEvent, 'id'>): Promise<CompanionDomainEvent> {
   const integrityError = contentIntegrityError(input)
   if (integrityError) throw new Error(integrityError)
   await ensureCompanionCoreSchema()
   const db = await getDatabase()
+  const command = commandExecutionScope.getStore()
+  if (command) {
+    if (command.roleId !== input.roleId) throw new Error('人物世界事件不属于当前命令。')
+    await assertCompanionExecutionOwner(command.executionId, command.commandId)
+  }
   const existing = db.exec('SELECT id, role_id, universe_id, type, source_type, source_id, causation_id, correlation_id, idempotency_key, occurred_at, payload_json, schema_version FROM companion_domain_events WHERE role_id = ? AND idempotency_key = ?', [input.roleId, input.idempotencyKey])[0]?.values[0]
   if (existing) return rowToEvent(existing)
-  const event: CompanionDomainEvent = { ...input, id: randomUUID() }
+  const event: CompanionDomainEvent = {
+    ...input,
+    id: randomUUID(),
+    ...(command && { correlationId: command.correlationId, causationId: command.commandId }),
+  }
   db.run(`
     INSERT INTO companion_domain_events
       (id, role_id, universe_id, type, source_type, source_id, causation_id, correlation_id, idempotency_key, occurred_at, payload_json, schema_version)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [event.id, event.roleId, event.universeId, event.type, event.sourceType, event.sourceId, event.causationId, event.correlationId, event.idempotencyKey, event.occurredAt, JSON.stringify(event.payload), event.schemaVersion])
+  if (command) {
+    db.run('UPDATE companion_execution_runs SET event_id = COALESCE(event_id, ?) WHERE id = ? AND command_id = ?', [event.id, command.executionId, command.commandId])
+  }
   persist()
   return event
 }

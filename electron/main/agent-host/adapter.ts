@@ -37,6 +37,9 @@ export function capabilityToTool(capability: AgentHostCapability, input: {
         roleId,
         sessionId: context?.sessionId,
         traceId: context?.parentSpanId ?? `tool:${capability.key}`,
+        operationKey: context?.sessionId && context.toolCallId
+          ? JSON.stringify([context.sessionId, context.toolCallId])
+          : undefined,
       }
       const missingPermissions = capability.requiredPermissions.filter(permission => !manifest.grantedPermissions.includes(permission))
       if (missingPermissions.length > 0) throw new Error(`Capability "${capability.key}" lacks required permissions: ${missingPermissions.join(', ')}`)

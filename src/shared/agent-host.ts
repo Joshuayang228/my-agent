@@ -19,6 +19,7 @@ export interface AgentHostExecutionContext {
   sessionId?: string
   roleId?: string
   traceId: string
+  operationKey?: string
   workspaceRoot?: string
   workspaceTranscript?: string
   workspaceFocus?: { kind: string; path: string; content: string }

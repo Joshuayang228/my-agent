@@ -176,6 +176,7 @@ export class ToolRegistry {
     const scopedToolContext = toolContext
       ? {
           ...toolContext,
+          toolCallId: call.id,
           skillState: toolContext.skillState ??= {},
           assetUsageReporter: toolContext.assetUsageReporter
             ? (report: ToolAssetUsageReport) => toolContext.assetUsageReporter?.({

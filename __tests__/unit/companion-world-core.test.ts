@@ -187,6 +187,49 @@ describe('人物世界核心层', () => {
     expect(memDb.exec('SELECT status, attempt FROM companion_execution_runs WHERE idempotency_key = ?', [input.idempotencyKey])[0]?.values[0]).toEqual(['completed', 2])
   })
 
+  it('过期命令失去租约后不能提交迟到事实', async () => {
+    const input = { roleId: 'luffy', actionType: 'late-write', idempotencyKey: 'one-operation' }
+    const db = memDb
+    db.run('CREATE TABLE command_probe (value TEXT)')
+    let release!: () => void
+    let entered!: () => void
+    const waiting = new Promise<void>(resolve => { entered = resolve })
+    const gate = new Promise<void>(resolve => { release = resolve })
+    const old = executeCompanionCommand({ ...input, handler: async () => {
+      entered()
+      await gate
+      return withCompanionUnitOfWork(async () => { db.run('INSERT INTO command_probe VALUES (?)', ['old']) })
+    } })
+    const rejected = expect(old).rejects.toThrow('执行权')
+    await waiting
+    db.run('UPDATE companion_execution_runs SET started_at = 1 WHERE idempotency_key = ?', [input.idempotencyKey])
+    await executeCompanionCommand({ ...input, handler: () => withCompanionUnitOfWork(async () => {
+      db.run('INSERT INTO command_probe VALUES (?)', ['new'])
+    }) })
+    release()
+    await rejected
+    expect(db.exec('SELECT value FROM command_probe')[0].values).toEqual([['new']])
+  })
+
+  it('本地命令事实和成功回执共同提交，结算失败时共同回滚', async () => {
+    const db = memDb
+    db.run('CREATE TABLE command_probe (value TEXT)')
+    await startCompanionExecution({ roleId: 'luffy', actionType: 'initialize-ledger' })
+    db.run("CREATE TRIGGER fail_receipt BEFORE UPDATE ON companion_execution_runs WHEN NEW.status = 'completed' BEGIN SELECT RAISE(ABORT, 'receipt failure'); END")
+    const input = { roleId: 'luffy', actionType: 'local-command', idempotencyKey: 'atomic-receipt', local: true }
+    const handler = vi.fn(async () => {
+      db.run('INSERT INTO command_probe VALUES (?)', ['committed'])
+      return 'receipt'
+    })
+    await expect(executeCompanionCommand({ ...input, handler })).rejects.toThrow('receipt failure')
+    expect(db.exec('SELECT value FROM command_probe')).toEqual([])
+    db.run('DROP TRIGGER fail_receipt')
+    await expect(executeCompanionCommand({ ...input, handler })).resolves.toBe('receipt')
+    await expect(executeCompanionCommand({ ...input, handler })).resolves.toBe('receipt')
+    expect(handler).toHaveBeenCalledTimes(2)
+    expect(db.exec('SELECT value FROM command_probe')[0].values).toEqual([['committed']])
+  })
+
   it('Outbox 投递成功后标记 delivered，失败后保留 failed 供重试', async () => {
     await enqueueCompanionOutbox({ roleId: 'luffy', kind: 'test-success', dedupeKey: 'success-1', payload: { ok: true } })
     await enqueueCompanionOutbox({ roleId: 'luffy', kind: 'test-failure', dedupeKey: 'failure-1', payload: { ok: false } })

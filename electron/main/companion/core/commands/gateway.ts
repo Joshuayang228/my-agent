@@ -1,14 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import { isActiveRole } from '../../../storage/settings-store'
 import { startCompanionExecution, finishCompanionExecution } from '../execution/ledger'
+import { commandExecutionScope, type CompanionCommandContext } from './execution-scope'
+import { withCompanionUnitOfWork } from '../transaction/unit-of-work'
 
-export interface CompanionCommandContext {
-  commandId: string
-  executionId: string
-  correlationId: string
-  roleId: string
-  occurredAt: number
-}
+export type { CompanionCommandContext } from './execution-scope'
 
 /**
  * 执行人物世界命令并统一记录执行状态。
@@ -22,6 +18,8 @@ export async function executeCompanionCommand<T>(input: {
   actionType: string
   idempotencyKey?: string
   correlationId?: string
+  /** 仅本地 SQL 命令可启用，成功回执与事实共用事务。 */
+  local?: boolean
   handler: (context: CompanionCommandContext) => Promise<T>
 }): Promise<T> {
   if (!(await isActiveRole(input.roleId))) throw new Error('伙伴已切换，请刷新人物页面后重试。')
@@ -31,9 +29,16 @@ export async function executeCompanionCommand<T>(input: {
   if (input.idempotencyKey && execution.status === 'completed') return execution.result as T
   if (input.idempotencyKey && execution.status === 'running' && execution.commandId !== commandId) throw new Error('同一命令正在执行，请勿重复提交。')
   try {
-    const result = await input.handler({ commandId, executionId: execution.id, correlationId, roleId: input.roleId, occurredAt: Date.now() })
-    await finishCompanionExecution({ executionId: execution.id, commandId, status: 'completed', result })
-    return result
+    const context = { commandId, executionId: execution.id, correlationId, roleId: input.roleId, occurredAt: Date.now() }
+    return await commandExecutionScope.run(context, async () => {
+      const execute = async () => {
+        const result = await input.handler(context)
+        const completed = await finishCompanionExecution({ executionId: execution.id, commandId, status: 'completed', result })
+        if (!completed) throw new Error('人物世界命令已失去执行权。')
+        return result
+      }
+      return input.local ? withCompanionUnitOfWork(execute) : execute()
+    })
   } catch (error) {
     await finishCompanionExecution({
       executionId: execution.id,

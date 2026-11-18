@@ -2,7 +2,6 @@ import type { ToolDefinition } from '../../../../src/shared/types'
 import { getSession } from '../../storage/session-store'
 import { loadRelations } from '../identity/loader'
 import { executeCompanionCommand } from '../core/commands/gateway'
-import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 import { createCompanionLifeEvent } from './life-event'
 import { projectMomentFromEvent } from '../life/moments'
 
@@ -52,7 +51,7 @@ export const POST_MOMENT_DEFINITION: Pick<ToolDefinition, 'description' | 'param
  * 设计意图：参数校验、人物校验和事务提交由应用用例承担，两种入口只负责协议转换。
  * 关键约束：图片归属本会话，关系参与者来自当前人物关系表，投影失败回滚整个本地事务。
  */
-export async function publishCompanionMoment(args: Record<string, unknown>, context?: { roleId?: string; sessionId?: string }): Promise<string> {
+export async function publishCompanionMoment(args: Record<string, unknown>, context?: { roleId?: string; sessionId?: string; operationKey?: string; toolCallId?: string }): Promise<string> {
   const roleId = context?.roleId?.trim()
   if (!roleId) return '当前会话没有绑定人物，暂时不能发布朋友圈。'
   const text = textArg(args, 'text', 2000)
@@ -70,7 +69,11 @@ export async function publishCompanionMoment(args: Record<string, unknown>, cont
   return executeCompanionCommand({
     roleId,
     actionType: 'post-moment',
-    handler: () => withCompanionUnitOfWork(async () => {
+    idempotencyKey: context?.operationKey ?? (context?.sessionId && context.toolCallId
+      ? JSON.stringify([context.sessionId, context.toolCallId])
+      : undefined),
+    local: true,
+    handler: async () => {
       const event = await createCompanionLifeEvent({
         roleId,
         scheduledAt: Date.now(),
@@ -93,6 +96,6 @@ export async function publishCompanionMoment(args: Record<string, unknown>, cont
       } catch (error) {
         throw new Error(`朋友圈发布失败，已回滚未完成的记录：${error instanceof Error ? error.message : '投影失败'}`)
       }
-    }),
+    },
   })
 }

@@ -1,6 +1,8 @@
 import { withDatabaseTransaction } from '../../../storage/database'
 import { ensureCompanionCoreSchema } from '../schema'
 import { AsyncLocalStorage } from 'node:async_hooks'
+import { commandExecutionScope } from '../commands/execution-scope'
+import { assertCompanionExecutionOwner } from '../execution/ledger'
 
 const scope = new AsyncLocalStorage<{ active: boolean }>()
 
@@ -14,11 +16,17 @@ export function isCompanionCommitActive(): boolean { return scope.getStore()?.ac
  * 关键约束：事务提交前任何核心事实都不能被视为完成，异常必须回滚并由调用方决定重试。
  */
 export async function withCompanionUnitOfWork<T>(work: () => Promise<T>): Promise<T> {
-  if (isCompanionCommitActive()) return work()
+  const execute = async () => {
+    const command = commandExecutionScope.getStore()
+    // 领取事务后再查租约，排队期间已被其他执行接替的处理器不能写入。
+    if (command) await assertCompanionExecutionOwner(command.executionId, command.commandId)
+    return work()
+  }
+  if (isCompanionCommitActive()) return execute()
   // 建表必须发生在事务外，否则首次运行时 DDL 会随业务回滚，下一次查询会得到“表不存在”。
   await ensureCompanionCoreSchema()
   const owner = { active: true }
   try {
-    return await scope.run(owner, () => withDatabaseTransaction(async () => work()))
+    return await scope.run(owner, () => withDatabaseTransaction(execute))
   } finally { owner.active = false }
 }

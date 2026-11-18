@@ -5,6 +5,12 @@ import type { CompanionExecutionRun, CompanionExecutionStatus } from '../types'
 
 const STALE_EXECUTION_AFTER_MS = 10 * 60 * 1000
 
+export async function assertCompanionExecutionOwner(executionId: string, commandId: string): Promise<void> {
+  const db = await getDatabase()
+  const row = db.exec("SELECT 1 FROM companion_execution_runs WHERE id = ? AND command_id = ? AND status = 'running'", [executionId, commandId])
+  if (!row.length) throw new Error('人物世界命令已失去执行权。')
+}
+
 /**
  * 把进程崩溃遗留的运行中账本恢复为可重试状态。
  *
@@ -81,13 +87,15 @@ export async function finishCompanionExecution(input: {
   errorCode?: string | null
   errorMessage?: string | null
   result?: unknown
-}): Promise<void> {
+}): Promise<boolean> {
   await ensureCompanionCoreSchema()
   const db = await getDatabase()
   db.run(`UPDATE companion_execution_runs
     SET status = ?, error_code = ?, error_message = ?, result_json = ?, completed_at = ?
     WHERE id = ?${input.commandId ? ' AND command_id = ? AND status = \'running\'' : ''}`, [input.status, input.errorCode ?? null, input.errorMessage?.slice(0, 500) ?? null, input.result === undefined ? null : JSON.stringify(input.result), Date.now(), input.executionId, ...(input.commandId ? [input.commandId] : [])])
-  persist()
+  const updated = db.getRowsModified() === 1
+  if (updated) persist()
+  return updated
 }
 
 function rowToExecution(row: unknown[]): CompanionExecutionRun {

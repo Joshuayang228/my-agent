@@ -706,6 +706,8 @@ export interface SkillExecutionState {
 
 /** 工具执行时注入的运行时上下文 */
 export interface ToolContext {
+  /** 由工具注册表从本次调用装配，工具参数不能指定。 */
+  toolCallId?: string
   /** 主进程为本次执行装配的完整宿主授权，模型与 Renderer 不得提供。 */
   agentManifest?: import('./agent-host').AgentHostManifest
   /** 当前工作区根目录 */

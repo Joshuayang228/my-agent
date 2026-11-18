@@ -31,6 +31,21 @@ function registry() {
 beforeEach(() => { db = new SQL.Database() })
 afterEach(() => db.close())
 
+it('同一会话重复提交同一朋友圈工具调用时复用已提交回执和事件', async () => {
+  const tools = registry()
+  const context = { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' }
+  const calls = [{ id: 'stable-post', name: 'companion_post_moment', arguments: JSON.stringify({ text: '只发布一次' }) }]
+  const [first] = await tools.executeAll(calls, context)
+  const [repeated] = await tools.executeAll(calls, context)
+  expect(first.content).toContain('已发布朋友圈')
+  expect(repeated.content).toBe(first.content)
+  expect(await listMoments('luffy')).toHaveLength(1)
+  const evidence = db.exec(`SELECT runs.command_id = events.causation_id, events.correlation_id
+    FROM companion_execution_runs AS runs JOIN companion_domain_events AS events ON events.id = runs.event_id
+    WHERE runs.action_type = 'post-moment' AND runs.status = 'completed'`)[0]?.values
+  expect(evidence).toEqual([[1, expect.any(String)]])
+})
+
 it('Chat 查询真实动态 ID 后可评论，其他人物读不到该动态', async () => {
   const tools = registry()
   const context = { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' }

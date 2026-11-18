@@ -36,8 +36,9 @@ export function createCompanionCoreDomain(): AgentHostDomainDefinition {
       invoke: async (input, context) => {
         if (!context.roleId) throw new Error('Moment workflow requires roleId')
         return publishCompanionMoment(input as Record<string, unknown>, {
-          sessionId: context.sessionId ?? `agent-host-${context.roleId}`,
+          sessionId: context.sessionId,
           roleId: context.roleId,
+          operationKey: context.operationKey,
         })
       },
     }, {
