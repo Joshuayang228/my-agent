@@ -192,6 +192,47 @@ it('评论工具只报告本次评论的回复，不把历史回复当成本次�
   expect(second.content).toContain('人物回复暂未生成')
 })
 
+it('已选定的延迟回复在原评论提交后保留持久任务和到期时间', async () => {
+  const tools = registry()
+  const context = { sessionId: 'delayed-reply', workdir: process.cwd(), roleId: 'luffy' }
+  await tools.executeAll([{ id: 'post', name: 'companion_post_moment', arguments: '{"text":"明早出发。"}' }], context)
+  const [moment] = await listMoments('luffy')
+  vi.mocked(chatComplete).mockResolvedValueOnce('{"shouldReply":true,"reply":"明早见。","delaySeconds":120}')
+  const start = Date.now()
+  const [result] = await tools.executeAll([{
+    id: 'comment', name: 'companion_comment_moment', arguments: JSON.stringify({ momentId: moment.id, text: '我去码头等你。' }),
+  }], context)
+  expect(result.content).toContain('人物回复暂未生成')
+  const [comment] = await listMomentUserInteractions('luffy')
+  const job = db.exec(`SELECT jobs.status, jobs.next_attempt_at, event.source_id
+    FROM companion_outbox jobs JOIN companion_domain_events event ON jobs.event_id = event.id
+    WHERE jobs.kind = 'followup:moment-delayed-reply'`)[0]?.values[0]
+  expect(job).toEqual(['pending', expect.any(Number), comment.id])
+  expect(Number(job?.[1])).toBeGreaterThanOrEqual(start + 120_000)
+
+  const { recoverCompanionFollowups } = await import('../../electron/main/companion/application/companion-followups')
+  const { setSetting } = await import('../../electron/main/storage/settings-store')
+  const snapshot = db.export()
+  db.close()
+  db = new SQL.Database(snapshot)
+  const replies = async () => (await listMomentUserInteractions('luffy')).filter(item => item.parentInteractionId === comment.id)
+  await recoverCompanionFollowups()
+  expect(await replies()).toEqual([])
+
+  db.run("UPDATE companion_outbox SET next_attempt_at = 0 WHERE kind = 'followup:moment-delayed-reply'")
+  await setSetting('universeId', 'unrelated-world')
+  await recoverCompanionFollowups()
+  expect(await replies()).toEqual([])
+  await setSetting('universeId', 'default')
+  await recoverCompanionFollowups()
+  expect(await replies()).toEqual([expect.objectContaining({ text: '明早见。', parentInteractionId: comment.id })])
+  db.run("UPDATE companion_execution_runs SET status = 'retryable' WHERE action_type = 'reply-to-moment-comment'")
+  db.run("UPDATE companion_outbox SET status = 'processing', lease_until = 0 WHERE kind = 'followup:moment-delayed-reply'")
+  await recoverCompanionFollowups()
+  expect(await replies()).toHaveLength(1)
+  expect(db.exec("SELECT status FROM companion_outbox WHERE kind = 'followup:moment-delayed-reply'")[0]?.values).toEqual([['delivered']])
+})
+
 it('Chat 评论工具拒绝跨人物动态，且不写入互动记录', async () => {
   await registry().executeAll([{ id: 'post', name: 'companion_post_moment', arguments: JSON.stringify({ text: '只属于路飞的动态。' }) }], { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' })
   const moment = (await listMoments('luffy'))[0]

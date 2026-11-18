@@ -3,13 +3,14 @@ import { getDatabase } from '../../storage/database'
 import { ensureMemoryTable, writeMemoryToDatabase } from '../../storage/memory-store'
 import { createLogger } from '../../utils/logger'
 import { getCompanionDomainEventById } from '../core/events/domain-events'
-import { COMPANION_FOLLOWUP, COMPANION_FOLLOWUP_KINDS } from '../core/outbox/followup-kinds'
+import { COMPANION_FOLLOWUP } from '../core/outbox/followup-kinds'
 import { assertCompanionOutboxClaim, dispatchCompanionOutbox } from '../core/outbox/outbox'
 import { recordCompanionProjection } from '../core/projections/receipts'
 import { isCompanionCommitActive, withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 import { tryRecordMilestone } from '../growth/milestones'
 import { markResonanceFeedbackDelivered, settleChatResonance } from '../life/chat-resonance'
 import { settleVitalsAfterChat } from '../life/world-state'
+import { recoverDelayedMomentReplies } from '../life/moments'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { getSetting } from '../../storage/settings-store'
 import { executeCompanionCommand } from '../core/commands/gateway'
@@ -59,7 +60,7 @@ export async function recoverCompanionFollowups(): Promise<void> {
       },
     })
     await dispatchCompanionOutbox({
-      kinds: COMPANION_FOLLOWUP_KINDS.filter(kind => kind !== COMPANION_FOLLOWUP.chatResonance && kind !== COMPANION_FOLLOWUP.cultureKeepsake),
+      kinds: [COMPANION_FOLLOWUP.nightlyMemory, COMPANION_FOLLOWUP.keepsakeMilestone, COMPANION_FOLLOWUP.chatVitals, COMPANION_FOLLOWUP.chatFeedback],
       deliver: async message => {
         const { eventId, kind, roleId, payload } = message
         if (!eventId) throw new Error('人物后续任务缺少来源事件。')
@@ -99,6 +100,7 @@ export async function recoverCompanionFollowups(): Promise<void> {
         afterCommit?.()
       },
     })
+    await recoverDelayedMomentReplies()
     await dispatchCompanionOutbox({
       kinds: [COMPANION_FOLLOWUP.chatResonance],
       leaseMs: 150_000,

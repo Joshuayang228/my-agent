@@ -9,6 +9,8 @@
 import type { LLMConfig, AddMomentCommentOptions } from '../../../../src/shared/types'
 import { startSpan } from '../../utils/tracer'
 import { createLogger } from '../../utils/logger'
+import { runWithoutExecutionSignal } from '../../utils/execution-cancellation'
+import { z } from 'zod'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm/index'
@@ -36,7 +38,9 @@ const log = createLogger('CompanionMoments')
 import { getSetting } from '../../storage/settings-store'
 import { generateAutomaticMomentMedia } from './automatic-moment-media'
 import { recordCompanionEventAndNotify } from '../application/record-event-notify'
-import { appendCompanionDomainEvent } from '../core/events/domain-events'
+import { appendCompanionDomainEvent, getCompanionDomainEventById } from '../core/events/domain-events'
+import { assertCompanionOutboxClaim, dispatchCompanionOutbox, enqueueCompanionOutbox, getNextScopedOutboxAttempt } from '../core/outbox/outbox'
+import { COMPANION_FOLLOWUP } from '../core/outbox/followup-kinds'
 import { recordCompanionProjection } from '../core/projections/receipts'
 import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
@@ -487,22 +491,27 @@ function parseAutonomousReply(raw: string, defaultRoleId: string, defaultName: s
   }
 }
 
-async function persistMomentReplyAndNotify(input: {
-  roleId: string
-  momentId: string
-  parentInteractionId: string
-  responderId: string
-  responderName: string
-  actorType: 'protagonist' | 'cast'
-  reply: string
-  occurredAt: number
-}): Promise<void> {
+const momentReplySchema = z.object({
+  roleId: z.string(),
+  momentId: z.string(),
+  parentInteractionId: z.string(),
+  responderId: z.string(),
+  responderName: z.string(),
+  actorType: z.enum(['protagonist', 'cast']),
+  reply: z.string(),
+  occurredAt: z.number(),
+})
+
+type MomentReply = z.infer<typeof momentReplySchema>
+
+async function persistMomentReplyAndNotify(input: MomentReply, accept?: () => Promise<boolean>): Promise<void> {
   const replyPayload = {
     momentId: input.momentId,
     roleId: input.roleId,
     reply: { actorName: input.responderName, text: input.reply },
   }
   await withCompanionUnitOfWork(async () => {
+    if (accept && !(await accept())) return
     await store.insertMomentUserInteraction({
       momentId: input.momentId,
       roleId: input.roleId,
@@ -531,6 +540,86 @@ async function persistMomentReplyAndNotify(input: {
     })
   })
   await dispatchCompanionWindowOutbox()
+}
+
+let replyWake: { at: number; timer: ReturnType<typeof setTimeout> } | undefined
+
+/**
+ * 延迟回复的内容和到期时间由 Outbox 持有，计时器只唤醒下一次领取。
+ * 原评论工具可能已经退出或超时，恢复必须以当前人物和世界观重新建立执行范围。
+ */
+function wakeDelayedMomentReplies(at: number): void {
+  if (replyWake && replyWake.at <= at) return
+  if (replyWake) clearTimeout(replyWake.timer)
+  const timer = commandExecutionScope.exit(() => runWithoutExecutionSignal(() => setTimeout(() => {
+    replyWake = undefined
+    void recoverDelayedMomentReplies().catch(error => {
+      log.warn('Delayed moment reply recovery deferred', { errorType: error instanceof Error ? error.name : 'unknown' })
+    })
+  }, Math.max(10, at - Date.now()))))
+  timer.unref()
+  replyWake = { at, timer }
+}
+
+async function scheduleDelayedMomentReply(reply: MomentReply, universeId: string, availableAt: number): Promise<void> {
+  await withCompanionUnitOfWork(async () => {
+    const event = await appendCompanionDomainEvent({
+      roleId: reply.roleId,
+      universeId,
+      type: 'moment_comment_reply_scheduled',
+      sourceType: 'moment_comment',
+      sourceId: reply.parentInteractionId,
+      causationId: reply.parentInteractionId,
+      correlationId: reply.parentInteractionId,
+      idempotencyKey: `moment-comment-reply-scheduled:${reply.parentInteractionId}`,
+      occurredAt: reply.occurredAt,
+      payload: { momentId: reply.momentId },
+      schemaVersion: 1,
+    })
+    await enqueueCompanionOutbox({
+      roleId: reply.roleId,
+      eventId: event.id,
+      kind: COMPANION_FOLLOWUP.momentDelayedReply,
+      dedupeKey: `${COMPANION_FOLLOWUP.momentDelayedReply}:${event.id}`,
+      payload: reply,
+      availableAt,
+    })
+  })
+  wakeDelayedMomentReplies(availableAt)
+}
+
+export async function recoverDelayedMomentReplies(): Promise<void> {
+  const roleId = await getSetting('activeRoleId')
+  const universeId = await getSetting('universeId')
+  const kind = COMPANION_FOLLOWUP.momentDelayedReply
+  await dispatchCompanionOutbox({
+    roleId,
+    universeId,
+    kinds: [kind],
+    deliver: async message => {
+      const event = message.eventId ? await getCompanionDomainEventById(message.eventId) : null
+      const reply = momentReplySchema.parse(message.payload)
+      if (event?.type !== 'moment_comment_reply_scheduled' || event.roleId !== roleId || reply.roleId !== roleId || event.universeId !== universeId ||
+        event.sourceId !== reply.parentInteractionId || event.payload.momentId !== reply.momentId) {
+        throw new Error('延迟回复缺少原评论。')
+      }
+      await executeCompanionCommand({
+        roleId,
+        actionType: 'reply-to-moment-comment',
+        idempotencyKey: event.id,
+        correlationId: event.correlationId,
+        handler: () => persistMomentReplyAndNotify({ ...reply, occurredAt: Date.now() }, async () => {
+          if (await getSetting('universeId') !== universeId) throw new Error('朋友圈原世界观已切换。')
+          await assertCompanionOutboxClaim(message)
+          const parent = await store.getMomentUserInteraction(roleId, reply.parentInteractionId)
+          if (parent?.kind !== 'comment' || parent.momentId !== reply.momentId || parent.actorType !== 'user') return false
+          return recordCompanionProjection({ projectionName: kind, eventId: event.id })
+        }),
+      })
+    },
+  })
+  const next = await getNextScopedOutboxAttempt({ kind, roleId, universeId })
+  if (next !== null) wakeDelayedMomentReplies(next)
 }
 
 export async function addMomentCommentForRole(
@@ -596,46 +685,26 @@ export async function addMomentCommentForRole(
       command?.signal?.throwIfAborted()
       const decision = parseAutonomousReply(raw, roleId, pack.name)
       if (decision && decision.shouldReply) {
+        const reply: MomentReply = {
+          roleId,
+          momentId: id,
+          parentInteractionId: inserted.id,
+          responderId: decision.responderId,
+          responderName: decision.responderName,
+          actorType: decision.actorType,
+          reply: decision.reply,
+          occurredAt: Date.now(),
+        }
         if (opts?.immediate || decision.delaySeconds <= 0) {
-          await persistMomentReplyAndNotify({
-            roleId,
-            momentId: id,
-            parentInteractionId: inserted.id,
-            responderId: decision.responderId,
-            responderName: decision.responderName,
-            actorType: decision.actorType,
-            reply: decision.reply,
-            occurredAt: Date.now(),
-          })
+          await persistMomentReplyAndNotify(reply)
         } else {
-          // 延迟回复在评论命令已结算后独立执行，使用原评论的关联 ID 和稳定键。
-          commandExecutionScope.exit(() => setTimeout(async () => {
-            try {
-              await executeCompanionCommand({
-                roleId,
-                actionType: 'reply-to-moment-comment',
-                idempotencyKey: inserted.id,
-                correlationId: command?.correlationId,
-                handler: () => persistMomentReplyAndNotify({
-                  roleId,
-                  momentId: id,
-                  parentInteractionId: inserted.id,
-                  responderId: decision.responderId,
-                  responderName: decision.responderName,
-                  actorType: decision.actorType,
-                  reply: decision.reply,
-                  occurredAt: Date.now(),
-                }),
-              })
-            } catch (error) {
-              log.warn('Delayed moment reply did not commit', { roleId, momentId: id, errorType: error instanceof Error ? error.name : 'unknown' })
-            }
-          }, decision.delaySeconds * 1000))
+          await scheduleDelayedMomentReply(reply, universeId, reply.occurredAt + decision.delaySeconds * 1000)
         }
       }
     }
-  } catch {
+  } catch (error) {
     // 用户评论已经持久化；回复失败只留下可见的用户评论，不伪造成功状态。
+    log.warn('Moment comment saved without an autonomous reply', { roleId, errorType: error instanceof Error ? error.name : 'unknown' })
   }
   const rows = await store.listMomentUserInteractions(roleId)
   return { ok: true, social: describeMomentSocial(id, rows), interactionId: inserted.id }

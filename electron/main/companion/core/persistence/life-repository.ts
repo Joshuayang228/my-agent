@@ -728,6 +728,18 @@ export async function findMomentUserLike(
   return row
 }
 
+export async function getMomentUserInteraction(roleId: string, id: string): Promise<MomentUserInteraction | null> {
+  await ensureTables()
+  const db = await getDatabase()
+  const statement = db.prepare(`SELECT id, moment_id, role_id, kind, actor_id, actor_type, actor_name, parent_interaction_id, reply_to_actor_name, text, created_at
+    FROM companion_moment_user_interactions WHERE id = ? AND role_id = ?`, [id, roleId])
+  try {
+    return statement.step() ? mapMomentUserInteraction(statement.getAsObject()) : null
+  } finally {
+    statement.free()
+  }
+}
+
 export async function insertMomentUserInteraction(input: {
   momentId: string
   roleId: string

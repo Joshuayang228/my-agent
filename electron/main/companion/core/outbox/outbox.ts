@@ -14,6 +14,7 @@ export async function enqueueCompanionOutbox(input: {
   kind: string
   dedupeKey: string
   payload: Record<string, unknown>
+  availableAt?: number
 }): Promise<CompanionOutboxMessage> {
   return withCompanionUnitOfWork(async () => {
     const db = await getDatabase()
@@ -38,7 +39,7 @@ export async function enqueueCompanionOutbox(input: {
       lastError: null,
       claimedAt: null,
       leaseUntil: null,
-      nextAttemptAt: null,
+      nextAttemptAt: input.availableAt ?? null,
       maxAttempts: 8,
       createdAt: Date.now(),
       deliveredAt: null,
@@ -93,7 +94,10 @@ export async function dispatchCompanionOutbox(input: {
     })
   }
   const rows = (await getDatabase()).exec(`SELECT ${OUTBOX_COLUMNS}
-    FROM companion_outbox WHERE ((status = 'pending' AND attempt < max_attempts) OR (status = 'failed' AND attempt < max_attempts AND (next_attempt_at IS NULL OR next_attempt_at <= ?)) OR (status = 'processing' AND attempt < max_attempts AND lease_until IS NOT NULL AND lease_until <= ?))${kindFilter}${excludeFilter}${roleFilter}${universeFilter} ORDER BY created_at ASC LIMIT ?`, [now, now, ...(input.kinds ?? []), ...(input.excludeKinds ?? []), ...(input.roleId ? [input.roleId] : []), ...(input.universeId ? [input.universeId] : []), limit])[0]?.values ?? []
+    FROM companion_outbox WHERE attempt < max_attempts
+      AND ((status IN ('pending', 'failed') AND (next_attempt_at IS NULL OR next_attempt_at <= ?)) OR (status = 'processing' AND lease_until <= ?))
+      ${kindFilter}${excludeFilter}${roleFilter}${universeFilter} ORDER BY created_at ASC LIMIT ?`,
+  [now, now, ...(input.kinds ?? []), ...(input.excludeKinds ?? []), ...(input.roleId ? [input.roleId] : []), ...(input.universeId ? [input.universeId] : []), limit])[0]?.values ?? []
   let delivered = 0
   for (const row of rows) {
     const message = rowToOutbox(row)
@@ -103,7 +107,8 @@ export async function dispatchCompanionOutbox(input: {
     const claimed = await withDatabaseTransaction(async transaction => {
       signal?.throwIfAborted()
       transaction.run(`UPDATE companion_outbox SET status = 'processing', attempt = ?, claimed_at = ?, lease_until = ?, last_error = NULL
-        WHERE id = ? AND attempt = ? AND attempt < max_attempts AND ((status = 'pending') OR (status = 'failed' AND (next_attempt_at IS NULL OR next_attempt_at <= ?)) OR (status = 'processing' AND lease_until <= ?))`,
+        WHERE id = ? AND attempt = ? AND attempt < max_attempts
+          AND ((status IN ('pending', 'failed') AND (next_attempt_at IS NULL OR next_attempt_at <= ?)) OR (status = 'processing' AND lease_until <= ?))`,
       [attempt, claimedAt, leaseUntil, message.id, message.attempt, claimedAt, claimedAt])
       return transaction.getRowsModified() === 1
     })
@@ -132,6 +137,15 @@ export async function assertCompanionOutboxClaim(message: Pick<CompanionOutboxMe
   if (!db.exec("SELECT 1 FROM companion_outbox WHERE id = ? AND attempt = ? AND status = 'processing' AND lease_until > ?", [message.id, message.attempt, Date.now()]).length) {
     throw new Error('人物出站任务已失去执行权。')
   }
+}
+
+export async function getNextScopedOutboxAttempt(input: { kind: string; roleId: string; universeId: string }): Promise<number | null> {
+  const db = await getDatabase()
+  const next = db.exec(`SELECT MIN(CASE WHEN jobs.status = 'processing' THEN jobs.lease_until ELSE COALESCE(jobs.next_attempt_at, 0) END)
+    FROM companion_outbox jobs JOIN companion_domain_events event ON event.id = jobs.event_id
+    WHERE jobs.kind = ? AND jobs.role_id = ? AND event.universe_id = ? AND jobs.attempt < jobs.max_attempts
+      AND jobs.status IN ('pending', 'failed', 'processing')`, [input.kind, input.roleId, input.universeId])[0]?.values[0]?.[0]
+  return typeof next === 'number' ? next : null
 }
 
 function rowToOutbox(row: unknown[]): CompanionOutboxMessage {
