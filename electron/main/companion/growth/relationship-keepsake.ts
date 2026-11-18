@@ -187,6 +187,7 @@ export async function triggerGiftKeepsake(
   opts?: {
     llmConfig?: LLMConfig
     automatic?: boolean
+    assertClaim?: () => Promise<void>
     mockResponse?: {
       giftSpeech: string
       celebrationTitle?: string
@@ -206,6 +207,8 @@ export async function triggerGiftKeepsake(
 
   // 1. 获取该角色已有信物
   const existing = await listKeepsakes(roleId)
+  const previouslyAwarded = opts?.assertClaim && existing.find(item => item.id === targetKeepsakeKey)
+  if (previouslyAwarded) return previouslyAwarded
   const existingIds = new Set(existing.map((k) => k.id))
 
   // 2. 匹配候选信物定义
@@ -298,7 +301,13 @@ export async function triggerGiftKeepsake(
   }
 
   try {
-    await withCompanionUnitOfWork(async () => {
+    const committed = await withCompanionUnitOfWork(async () => {
+      if (opts?.assertClaim) {
+        // 奖励生成可能跨模型等待，进入事实事务后重新检查领取与信物归属。
+        await opts.assertClaim()
+        const awarded = (await listKeepsakes(roleId)).find(item => item.id === keepsakeRecord.id)
+        if (awarded) return awarded
+      }
       db.run(
         `INSERT OR REPLACE INTO companion_keepsakes
          (id, role_id, name, description, lore, gift_message, gift_reason, icon_name, image_url, acquired_at)
@@ -344,16 +353,17 @@ export async function triggerGiftKeepsake(
       }
       if (opts?.automatic) await enqueueAutomaticProactiveNotification(roleId, now, enqueueNotification)
       else await enqueueNotification()
+      return keepsakeRecord
     })
     await dispatchCompanionWindowOutbox()
     await dispatchCompanionSessionOutbox()
+    // 恢复消费者稍后统一处理新生成的里程碑，避免在消费中递归进入恢复队列。
+    if (!opts?.assertClaim) await recoverCompanionFollowups()
+    log.info('Keepsake gifted successfully', { roleId, keepsakeId: committed.id, name: committed.name })
+    return committed
   } catch (err) {
     log.warn('Keepsake transaction failed; no partial record retained', { roleId, keepsakeId: keepsakeRecord.id, error: String(err) })
     return null
   }
 
-  await recoverCompanionFollowups()
-
-  log.info('Keepsake gifted successfully', { roleId, keepsakeId: keepsakeRecord.id, name: keepsakeRecord.name })
-  return keepsakeRecord
 }

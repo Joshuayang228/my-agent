@@ -11,6 +11,8 @@ import { tryRecordMilestone } from '../growth/milestones'
 import { markResonanceFeedbackDelivered, settleChatResonance } from '../life/chat-resonance'
 import { settleVitalsAfterChat } from '../life/world-state'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
+import { getSetting } from '../../storage/settings-store'
+import { executeCompanionCommand } from '../core/commands/gateway'
 
 const log = createLogger('CompanionFollowups')
 
@@ -22,8 +24,42 @@ const log = createLogger('CompanionFollowups')
 export async function recoverCompanionFollowups(): Promise<void> {
   if (isCompanionCommitActive()) return
   try {
+    const roleId = await getSetting('activeRoleId')
+    const universeId = await getSetting('universeId')
     await dispatchCompanionOutbox({
-      kinds: COMPANION_FOLLOWUP_KINDS.filter(kind => kind !== COMPANION_FOLLOWUP.chatResonance),
+      roleId,
+      universeId,
+      kinds: [COMPANION_FOLLOWUP.cultureKeepsake],
+      leaseMs: 150_000,
+      deliver: async message => {
+        const event = message.eventId ? await getCompanionDomainEventById(message.eventId) : null
+        const { keepsakeKey } = message.payload
+        const targetName = event?.payload.targetName
+        if (event?.type !== 'culture_experience_completed' || event.roleId !== roleId || event.universeId !== universeId || typeof keepsakeKey !== 'string' || typeof targetName !== 'string') {
+          throw new Error('文化奖励缺少原始体验或信物标识。')
+        }
+        const { triggerGiftKeepsake } = await import('../growth/relationship-keepsake')
+        await executeCompanionCommand({
+          roleId,
+          actionType: 'award-culture-keepsake',
+          idempotencyKey: event.id,
+          correlationId: event.correlationId,
+          handler: async () => {
+            const result = await triggerGiftKeepsake(roleId, keepsakeKey, `共同心愿达成·体验完「${targetName}」的专属纪念`, event.occurredAt, {
+              automatic: true,
+              assertClaim: async () => {
+                if (await getSetting('universeId') !== universeId) throw new Error('文化奖励原世界观已切换。')
+                await assertCompanionOutboxClaim(message)
+              },
+            })
+            if (!result) throw new Error('文化奖励暂未保存。')
+            return { keepsakeId: result.id }
+          },
+        })
+      },
+    })
+    await dispatchCompanionOutbox({
+      kinds: COMPANION_FOLLOWUP_KINDS.filter(kind => kind !== COMPANION_FOLLOWUP.chatResonance && kind !== COMPANION_FOLLOWUP.cultureKeepsake),
       deliver: async message => {
         const { eventId, kind, roleId, payload } = message
         if (!eventId) throw new Error('人物后续任务缺少来源事件。')

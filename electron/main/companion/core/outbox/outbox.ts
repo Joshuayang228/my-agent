@@ -56,6 +56,7 @@ export async function enqueueCompanionOutbox(input: {
 export async function dispatchCompanionOutbox(input: {
   limit?: number
   roleId?: string
+  universeId?: string
   leaseMs?: number
   kinds?: readonly string[]
   excludeKinds?: readonly string[]
@@ -73,6 +74,9 @@ export async function dispatchCompanionOutbox(input: {
     ? ` AND kind NOT IN (${input.excludeKinds.map(() => '?').join(', ')})`
     : ''
   const roleFilter = input.roleId ? ' AND role_id = ?' : ''
+  const universeFilter = input.universeId
+    ? ' AND EXISTS (SELECT 1 FROM companion_domain_events event WHERE event.id = companion_outbox.event_id AND event.universe_id = ?)'
+    : ''
   const now = Date.now()
   /**
    * 回收达到重试上限的过期租约。
@@ -89,7 +93,7 @@ export async function dispatchCompanionOutbox(input: {
     })
   }
   const rows = (await getDatabase()).exec(`SELECT ${OUTBOX_COLUMNS}
-    FROM companion_outbox WHERE ((status = 'pending' AND attempt < max_attempts) OR (status = 'failed' AND attempt < max_attempts AND (next_attempt_at IS NULL OR next_attempt_at <= ?)) OR (status = 'processing' AND attempt < max_attempts AND lease_until IS NOT NULL AND lease_until <= ?))${kindFilter}${excludeFilter}${roleFilter} ORDER BY created_at ASC LIMIT ?`, [now, now, ...(input.kinds ?? []), ...(input.excludeKinds ?? []), ...(input.roleId ? [input.roleId] : []), limit])[0]?.values ?? []
+    FROM companion_outbox WHERE ((status = 'pending' AND attempt < max_attempts) OR (status = 'failed' AND attempt < max_attempts AND (next_attempt_at IS NULL OR next_attempt_at <= ?)) OR (status = 'processing' AND attempt < max_attempts AND lease_until IS NOT NULL AND lease_until <= ?))${kindFilter}${excludeFilter}${roleFilter}${universeFilter} ORDER BY created_at ASC LIMIT ?`, [now, now, ...(input.kinds ?? []), ...(input.excludeKinds ?? []), ...(input.roleId ? [input.roleId] : []), ...(input.universeId ? [input.universeId] : []), limit])[0]?.values ?? []
   let delivered = 0
   for (const row of rows) {
     const message = rowToOutbox(row)

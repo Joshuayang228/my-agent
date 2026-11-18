@@ -131,6 +131,11 @@ describe('文化心愿体验闭环与主动反馈（Culture Progression & Review
     expect(res.resonance?.status).toBe('completed')
     expect(res.resonance?.feedbackText).toContain('快跟我聊聊')
 
+    const reward = memDb.exec(`SELECT jobs.status, event.type, event.source_id
+      FROM companion_outbox jobs JOIN companion_domain_events event ON jobs.event_id = event.id
+      WHERE jobs.kind = 'followup:culture-keepsake'`)[0]?.values
+    expect(reward).toEqual([['pending', 'culture_experience_completed', resonanceId]])
+
     // 验证文化资产已更新为 finished 且包含评语笔记
     const updatedAsset = await getAsset(assetId)
     expect(updatedAsset?.payload.readingStatus).toBe('finished')
@@ -144,6 +149,26 @@ describe('文化心愿体验闭环与主动反馈（Culture Progression & Review
       roleId: 'luffy',
       message: expect.stringContaining('空岛见闻录'),
     }))
+
+    const { recoverCompanionFollowups } = await import('../../electron/main/companion/application/companion-followups')
+    const { listKeepsakes } = await import('../../electron/main/companion/growth/relationship-keepsake')
+    const snapshot = memDb.export()
+    memDb.close()
+    memDb = new SQL.Database(snapshot)
+    await setSetting('universeId', 'unrelated-world')
+    await recoverCompanionFollowups()
+    expect((await listKeepsakes('luffy')).some(item => item.id === 'luffy-merry-bell')).toBe(false)
+    expect(memDb.exec("SELECT status, attempt FROM companion_outbox WHERE kind = 'followup:culture-keepsake'")[0]?.values).toEqual([['pending', 0]])
+
+    await setSetting('universeId', 'default')
+    await recoverCompanionFollowups()
+    const first = (await listKeepsakes('luffy')).filter(item => item.id === 'luffy-merry-bell')
+    expect(first).toEqual([expect.objectContaining({ giftReason: expect.stringContaining('空岛见闻录') })])
+    expect(memDb.exec("SELECT status FROM companion_outbox WHERE kind = 'followup:culture-keepsake'")[0]?.values).toEqual([['delivered']])
+    memDb.run("UPDATE companion_outbox SET status = 'processing', lease_until = 0 WHERE kind = 'followup:culture-keepsake'")
+    await recoverCompanionFollowups()
+    expect((await listKeepsakes('luffy')).filter(item => item.id === 'luffy-merry-bell')).toEqual(first)
+    expect(memDb.exec("SELECT status FROM companion_outbox WHERE kind = 'followup:culture-keepsake'")[0]?.values).toEqual([['delivered']])
   })
 
   it('待反馈心愿可通过 getPendingResonanceFeedback 查询并在送达后标记已投递', async () => {

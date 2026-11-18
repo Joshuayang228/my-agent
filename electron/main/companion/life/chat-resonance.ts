@@ -551,6 +551,16 @@ export async function completeCultureResonance(
           })
           await linkCompanionExecutionEvent({ executionId: context.executionId, eventId: domainEvent.id })
           await recordCompanionProjection({ projectionName: 'legacy-culture-resonance', eventId: domainEvent.id })
+          if (roleId === 'luffy') {
+            // 体验完成后即使进程退出，原人物和世界观的奖励也能和体验事实一起恢复。
+            await enqueueCompanionOutbox({
+              roleId,
+              eventId: domainEvent.id,
+              kind: COMPANION_FOLLOWUP.cultureKeepsake,
+              dedupeKey: `${COMPANION_FOLLOWUP.cultureKeepsake}:${domainEvent.id}`,
+              payload: { keepsakeKey: 'luffy-merry-bell' },
+            })
+          }
           const enqueueNotification = async () => {
             await enqueueCompanionOutbox({
               roleId,
@@ -597,27 +607,6 @@ export async function completeCultureResonance(
   } catch (err) {
     log.warn('Culture completion transaction failed; status remains retryable', { roleId, resonanceId: currentResonance.id, error: String(err) })
     return { ok: false, error: '文化体验记录暂时未完成，请稍后重试。' }
-  }
-
-  // 4. 共同心愿达成触发专属信物奖励（如梅利号金色小羊铃铛）
-  if (roleId === 'luffy') {
-    void (async () => {
-      try {
-        const { triggerGiftKeepsake, listKeepsakes } = await import('../growth/relationship-keepsake')
-        const owned = await listKeepsakes(roleId)
-        if (!owned.some((k) => k.id === 'luffy-merry-bell')) {
-          await triggerGiftKeepsake(
-            roleId,
-            'luffy-merry-bell',
-            `共同心愿达成·体验完「${currentResonance.targetName}」的专属纪念`,
-            now,
-            { automatic: true },
-          )
-        }
-      } catch (err) {
-        log.warn('Failed to check keepsake on resonance completed', { roleId, error: String(err) })
-      }
-    })()
   }
 
   log.info('Culture resonance completed', { roleId, resonanceId: currentResonance.id, targetName: currentResonance.targetName })
