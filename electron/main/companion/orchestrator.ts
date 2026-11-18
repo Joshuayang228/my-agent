@@ -34,9 +34,24 @@ import { recordAndBroadcastMilestone } from './growth/milestones'
 import { buildReacquaintCopy } from './presence'
 import { isStreamingActive } from './streaming-gate'
 import { createLogger } from '../utils/logger'
+import { getDatabase } from '../storage/database'
+import { updateCompanionRuntimeLifecycle } from './core/state/runtime-state'
+import { withCompanionUnitOfWork } from './core/transaction/unit-of-work'
 
 const log = createLogger('CompanionOrchestrator')
 import type { RolePack, RoleSummary, SwitchResult } from './types'
+
+let selectionTail: Promise<void> = Promise.resolve()
+
+/**
+ * 两种切换共享同一人物世界选择。让后到请求在前一个提交或回滚后重新读取状态，
+ * 避免补叙失败时用旧选择覆盖已完成的另一次切换。
+ */
+function serializeCompanionSelection<T>(switchSelection: () => Promise<T>): Promise<T> {
+  const result = selectionTail.then(switchSelection)
+  selectionTail = result.then(() => undefined, () => undefined)
+  return result
+}
 
 export type { CastBrief, RosterLine }
 
@@ -436,13 +451,18 @@ export function listAvailableUniverseIds(): string[] {
  * 切换当前世界观套装，并把 activeRoleId 指向目标世界默认主角。
  *
  * 背景：世界观设置和主角设置分开保存，先改其中一个会让运行时短暂读取到跨世界组合。
- * 设计意图：先校验目标 manifest 与默认主角，再在暂停旧角色后连续写入世界观 / 主角并恢复新角色。
- * 关键约束：流式会话期间拒绝切换；目标世界不存在、默认主角无效或写入失败时不宣称切换成功。
+ * 设计意图：先校验目标 manifest 与默认主角，再把人物暂停、恢复及选择写入同一事务。
+ * 关键约束：流式会话期间拒绝切换，持久提交后才更新人物世界代次及通知窗口。
  */
-export async function requestUniverseSwitch(universeId: string): Promise<
+type UniverseSwitchResult =
   | { ok: true; universeId: string; roleId: string; name: string }
   | { ok: false; code: 'UNKNOWN_UNIVERSE' | 'SESSION_ACTIVE' | 'ALREADY_ACTIVE' | 'INVALID_UNIVERSE' }
-> {
+
+export function requestUniverseSwitch(universeId: string): Promise<UniverseSwitchResult> {
+  return serializeCompanionSelection(() => switchUniverse(universeId))
+}
+
+async function switchUniverse(universeId: string): Promise<UniverseSwitchResult> {
   const id = universeId.trim()
   if (!/^[a-zA-Z0-9_-]{1,80}$/.test(id)) return { ok: false, code: 'INVALID_UNIVERSE' }
   let manifest
@@ -452,22 +472,16 @@ export async function requestUniverseSwitch(universeId: string): Promise<
   const currentRole = await getActiveRoleId()
   if (currentUniverse === id) return { ok: false, code: 'ALREADY_ACTIVE' }
   if (isStreamingActive()) return { ok: false, code: 'SESSION_ACTIVE' }
-  const now = Date.now()
-  await pauseRole(currentRole, now)
-  try {
-    await settings.setSetting('universeId', id)
-    await settings.setSetting('activeRoleId', manifest.defaultProtagonistId)
-    await resumeRole(manifest.defaultProtagonistId)
-  } catch (error) {
-    // 两个设置键不是同一个 SQL 事务；失败时尽力恢复旧组合，避免留下跨世界半切换状态。
-    try {
-      await settings.setSetting('universeId', currentUniverse)
-      await settings.setSetting('activeRoleId', currentRole)
-      await resumeRole(currentRole)
-    } catch { /* 下次启动会按旧世界 / 默认主角校验并报告异常 */ }
-    throw error
-  }
   const pack = identity.loadRolePack(manifest.defaultProtagonistId, id)
+  const now = Date.now()
+  await withCompanionUnitOfWork(async () => {
+    const db = await getDatabase()
+    await updateCompanionRuntimeLifecycle({ roleId: currentRole, pausedAt: now, updatedAt: now })
+    settings.writePreparedSetting(db, settings.prepareSettingWrite('universeId', id))
+    settings.writePreparedSetting(db, settings.prepareSettingWrite('activeRoleId', manifest.defaultProtagonistId))
+    await resumeRole(manifest.defaultProtagonistId)
+  })
+  settings.publishCompanionSelectionCommitted(['universeId', 'activeRoleId'])
   broadcastRoleChanged({ roleId: manifest.defaultProtagonistId, catchupQueued: false, previousRoleId: currentRole, reacquaint: buildReacquaintCopy({ fromName: currentRole, toName: pack.name, catchupQueued: false }) })
   return { ok: true, universeId: id, roleId: manifest.defaultProtagonistId, name: pack.name }
 }
@@ -498,7 +512,11 @@ export async function assertSessionRole(sessionRoleId: string | undefined | null
  * 成功：pause 旧角色 → 写 activeRoleId → 若新角色曾暂停则 runCatchup，否则 resume。
  * 并向渲染进程广播 Surfaces rebind。
  */
-export async function requestSwitch(roleId: string): Promise<SwitchResult> {
+export function requestSwitch(roleId: string): Promise<SwitchResult> {
+  return serializeCompanionSelection(() => switchProtagonist(roleId))
+}
+
+async function switchProtagonist(roleId: string): Promise<SwitchResult> {
   const universeId = await settings.getSetting('universeId')
   if (!identity.isKnownProtagonist(roleId, universeId)) {
     return { ok: false, code: 'UNKNOWN_ROLE' }
