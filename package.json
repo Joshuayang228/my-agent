@@ -15,10 +15,11 @@
     "typecheck": "tsc --noEmit && tsc -p tsconfig.node.json --noEmit",
     "eval:run": "vitest run --config vitest.eval.config.ts",
     "eval:persona": "vitest run --config vitest.eval-persona.config.ts",
+    "pretest": "install-electron",
     "test": "vitest run",
     "test:e2e": "npx playwright test --project=ui",
     "test:e2e:electron": "npm run build && npx playwright test --config=playwright.electron.config.ts",
-    "test:all": "vitest run && npx playwright test --project=ui",
+    "test:all": "npm test && npx playwright test --project=ui",
     "bench:database": "node scripts/database-benchmark.mjs",
     "dev:ui-e2e": "vite --mode ui-e2e --host 127.0.0.1 --strictPort --port 5174",
     "eval:skill": "vitest run --config vitest.skill-eval.config.ts",
@@ -31,22 +32,22 @@
     "docs:self-review:prompt": "node scripts/docs-review-prompt.mjs"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "dotenv": "^17.4.2",
     "electron-updater": "^6.8.9",
-    "js-yaml": "^4.3.1",
+    "js-yaml": "^4.3.2",
     "lucide-react": "^1.21.0",
-    "mermaid": "^11.16.1",
+    "mermaid": "^12.3.0",
     "react-markdown": "^10.1.0",
     "react-syntax-highlighter": "^16.1.1",
     "remark-gfm": "^4.0.1",
-    "sharp": "0.35.4",
+    "sharp": "0.35.5",
     "sql.js": "^1.14.1",
     "vectra": "^0.15.0",
-    "zod": "^4.4.3"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@electron/rebuild": "^4.0.4",
+    "@electron/rebuild": "^4.2.1",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/vite": "^4.3.0",
     "@types/js-yaml": "^4.0.9",
@@ -55,16 +56,16 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/sql.js": "^1.4.11",
     "@vitejs/plugin-react": "^6.0.2",
-    "electron": "^42.1.0",
-    "electron-builder": "^26.8.1",
+    "electron": "^42.11.18",
+    "electron-builder": "^26.18.0",
     "playwright": "^1.60.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3",
-    "vite": "^8.0.16",
+    "vite": "^8.3.8",
     "vite-plugin-electron": "^1.0.1",
     "vite-plugin-electron-renderer": "^1.0.0",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.12"
   }
 }

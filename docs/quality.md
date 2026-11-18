@@ -1,5 +1,7 @@
 # 质量总控
 
+A09 在官方 npm Registry 分别扫描完整锁文件和生产依赖。Electron 42、MCP SDK、Sharp、Zod、js-yaml、Mermaid、Vite、Vitest 与打包工具升级后，1825 个 Unit、构建、三个正式 Electron 流程与五个 Markdown / Mermaid UI 用例通过。测试启动会先串行准备 Electron 二进制，避免多测试进程同时下载。
+
 A08 检查所有主进程 IPC 注册经过统一守卫。单测验证缺少窗口或框架、子框架、离页、销毁和动态确认来源隔离。涉及业务 IPC 的夹具现在登记测试窗口并传入对应主框架。
 
 A06 使用实际 SQLite 和隔离 userData 测试先领取后运行、结算后推进时钟、重开恢复未领取时刻、已领取时刻标记中断，以及切换主角后任务仍使用原绑定。

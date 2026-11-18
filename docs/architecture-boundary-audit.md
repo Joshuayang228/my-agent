@@ -12,6 +12,8 @@ A01 已通过提交后 export / write / rename 故障隔离、重启恢复与全
 
 ## 继续保留的架构
 
+A09 升级锁定依赖后，官方 `npm audit --omit=dev` 为零，完整扫描仍报告 14 项开发依赖及其传递告警（9 高、5 中）。`picomatch` 4.0.7 仍在公告受影响范围。修复版 `minimatch` 11 超过打包工具声明的依赖主版本。当前保留具有验证证据的工具链版本，开发依赖公告继续跟踪。构建与打包使用仓库维护的 glob 配置，仍需把构建输入视为有权限边界的开发环境数据。[picomatch 公告](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) · [minimatch 公告](https://github.com/advisories/GHSA-g3hv-75wg-m249)
+
 模块化单体、Loop 与 Runtime 分离、Persona / Memory / Context 边界、Companion Core 唯一运行态、事件历史、同库事务与 Outbox 继续作为基础。执行生命周期遵循 DEC-2026-11-13-01，Capability 边界遵循 DEC-2026-11-13-02，状态与投影采用 DEC-2026-11-17-01。
 
 当前缺口集中在提交失败一致性、实际授权与会话隔离、后台持久恢复、宿主与领域依赖，以及覆盖这些不变量的门禁。现有通过数量与冻结施工快照只证明其对应范围，完整修复须逐项提供反例转正和真实入口证据。
