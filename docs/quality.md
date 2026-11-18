@@ -1,5 +1,7 @@
 # 质量总控
 
+架构审计 A01—A18 终审收口门禁（2026-11-18）：人物资产增改删与换装 IPC 原子回执、聊天资产与读书笔记工具调用幂等键、资产与朋友圈配图挂载 Unit of Work 及 SQL 中止时孤立图片清理、人物草稿与世界观切换取消信号检查，以及 `architecture-boundaries.test.ts` 对 `companion/growth`、`companion/cast` 与全局状态防回流的静态门禁全部通过。全量 Unit 289 文件 passed、1 skipped（1853 tests passed、1 skipped），双进程类型检查、生产构建、23 项离线 Eval、1 项 Skill Eval、12 文件 113 项 `assets:check`、浏览器 E2E 全量（665 passed、0 failed、3 skipped）与正式 Electron 回归全绿。
+
 Playground 控制区通过独立容器呈现时，按可访问名称定位状态开关，读取内容和样式仍在人物样张内断言。Skills、足迹、衣柜图标与换装共 17 项定向回归通过。
 
 A17 将正式提示词、生活事件的读取与失败重试、人物切换后的详情隔离和只读资产断言对准当前入口。在四个主题宽度组合及设置宽窄宽度下，44 项定向浏览器回归通过。MCP 本地 HTTP / OAuth 夹具先实测可访问的临时端口，浏览器禁止端口导致的失败仅在夹具内重新分配。

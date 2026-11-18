@@ -18,6 +18,7 @@ import { materializeRoleVisualImage } from '../adapters/starter-visual-media'
 import { normalizeGrantAsset } from './grant-asset'
 import { normalizeWorldRecordField, wardrobeCategorySchema, wardrobeSlotsSchema, worldRecordConsistencyError } from '../../../../src/shared/world-records'
 import type { CompanionWardrobeChangeInput } from '../../../../src/shared/types'
+import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 
 export { normalizeGrantAsset } from './grant-asset'
 
@@ -354,24 +355,26 @@ export async function changeWardrobe(input: CompanionWardrobeChangeInput): Promi
  */
 export async function attachWorldAssetImage(assetId: string, image: GeneratedImageReference, opts: { expectedRoleId: string; expectedOutfitVersion?: number }): Promise<AssetMutationResult> {
   await ensureTables()
-  const db = await getDatabase()
-  const stmt = db.prepare('SELECT * FROM companion_assets WHERE id = ?')
-  let asset: CompanionAsset | null = null
-  try { stmt.bind([assetId]); if (stmt.step()) asset = rowToAsset(stmt.getAsObject()) } finally { stmt.free() }
-  if (!asset) return { ok: false, code: 'NOT_FOUND', error: '资产不存在，未绑定图片。' }
-  if (asset.roleId !== opts.expectedRoleId) return { ok: false, code: 'ROLE_MISMATCH', error: '图片不属于当前伙伴。' }
-  const normalized = normalizeImageReference(image)
-  if (!normalized) return { ok: false, code: 'INVALID', error: '图片引用无效，未保存。' }
-  const payload: Record<string, unknown> = { ...asset.payload, image: normalized }
-  if (asset.kind === ASSET_KIND_WARDROBE && ['outfit', 'wear-state'].includes(String(asset.payload.recordType))) {
-    if (!Number.isSafeInteger(opts.expectedOutfitVersion) || asset.payload.outfitVersion !== opts.expectedOutfitVersion) return { ok: false, code: 'INVALID', error: '生成期间穿搭已改变，未覆盖当前图片。' }
-    const error = wardrobeReferenceError(db, asset.roleId, asset.kind, payload)
-    if (error) return { ok: false, code: 'INVALID', error }
-    payload.imageOutfitVersion = opts.expectedOutfitVersion
-  }
-  db.run('UPDATE companion_assets SET payload_json = ? WHERE id = ? AND role_id = ?', [JSON.stringify(payload), assetId, opts.expectedRoleId])
-  persist()
-  return { ok: true, asset: { ...asset, payload } }
+  return withCompanionUnitOfWork(async () => {
+    const db = await getDatabase()
+    const stmt = db.prepare('SELECT * FROM companion_assets WHERE id = ?')
+    let asset: CompanionAsset | null = null
+    try { stmt.bind([assetId]); if (stmt.step()) asset = rowToAsset(stmt.getAsObject()) } finally { stmt.free() }
+    if (!asset) return { ok: false, code: 'NOT_FOUND', error: '资产不存在，未绑定图片。' }
+    if (asset.roleId !== opts.expectedRoleId) return { ok: false, code: 'ROLE_MISMATCH', error: '图片不属于当前伙伴。' }
+    const normalized = normalizeImageReference(image)
+    if (!normalized) return { ok: false, code: 'INVALID', error: '图片引用无效，未保存。' }
+    const payload: Record<string, unknown> = { ...asset.payload, image: normalized }
+    if (asset.kind === ASSET_KIND_WARDROBE && ['outfit', 'wear-state'].includes(String(asset.payload.recordType))) {
+      if (!Number.isSafeInteger(opts.expectedOutfitVersion) || asset.payload.outfitVersion !== opts.expectedOutfitVersion) return { ok: false, code: 'INVALID', error: '生成期间穿搭已改变，未覆盖当前图片。' }
+      const error = wardrobeReferenceError(db, asset.roleId, asset.kind, payload)
+      if (error) return { ok: false, code: 'INVALID', error }
+      payload.imageOutfitVersion = opts.expectedOutfitVersion
+    }
+    db.run('UPDATE companion_assets SET payload_json = ? WHERE id = ? AND role_id = ?', [JSON.stringify(payload), assetId, opts.expectedRoleId])
+    persist()
+    return { ok: true, asset: { ...asset, payload } }
+  })
 }
 
 /**

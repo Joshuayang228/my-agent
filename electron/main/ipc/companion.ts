@@ -409,6 +409,7 @@ export function registerCompanionIPC(): void {
       return executeCompanionCommand({
         roleId,
         actionType: 'create-asset',
+        local: true,
         handler: async () => {
           const result = await createAsset({ roleId, kind: input.kind, name: input.name, payload: input.payload })
           if (!result.ok) return { ok: false as const, error: result.error, code: result.code }
@@ -424,7 +425,7 @@ export function registerCompanionIPC(): void {
       || !Number.isSafeInteger(input.expectedVersion) || input.expectedVersion < 0) return { ok: false as const, code: 'INVALID', error: '换装信息无效，请重新读取衣柜。' }
     const roleId = await getActiveRoleId()
     if (input.roleId !== roleId) return { ok: false as const, code: 'ROLE_MISMATCH', error: '伙伴已切换，请重新读取衣柜。' }
-    try { return await executeCompanionCommand({ roleId, actionType: 'change-wardrobe', handler: () => changeWardrobe({ ...input, roleId }) }) } catch (error) {
+    try { return await executeCompanionCommand({ roleId, actionType: 'change-wardrobe', local: true, handler: () => changeWardrobe({ ...input, roleId }) }) } catch (error) {
       log.error('Wardrobe change failed', { errorType: error instanceof Error ? error.name : 'unknown' })
       return { ok: false as const, code: 'INVALID', error: '换装暂时未能保存，请重新读取衣柜后重试。' }
     }
@@ -448,6 +449,7 @@ export function registerCompanionIPC(): void {
       return executeCompanionCommand({
         roleId,
         actionType: 'update-asset',
+        local: true,
         handler: async () => {
           const result = await updateAsset(assetId.trim(), patch, { expectedRoleId: roleId })
           if (!result.ok) return { ok: false as const, error: result.error, code: result.code }
@@ -466,6 +468,7 @@ export function registerCompanionIPC(): void {
     return executeCompanionCommand({
       roleId,
       actionType: 'delete-asset',
+      local: true,
       handler: async () => {
         const result = await deleteAsset(assetId.trim(), { expectedRoleId: roleId })
         if (!result.ok) return { ok: false as const, error: result.error, code: result.code }

@@ -169,6 +169,9 @@ export const companionCreateAssetTool = buildTool({
       return executeCompanionCommand({
         roleId,
         actionType: 'create-asset-tool',
+        idempotencyKey: context?.sessionId && context.toolCallId
+          ? JSON.stringify([context.sessionId, context.toolCallId])
+          : undefined,
         signal: context?.signal,
         local: true,
         handler: async () => {
@@ -228,6 +231,9 @@ export const companionAddReadingNoteTool = buildTool({
     return executeCompanionCommand({
       roleId,
       actionType: 'add-reading-note',
+      idempotencyKey: context?.sessionId && context.toolCallId
+        ? JSON.stringify([context.sessionId, context.toolCallId])
+        : undefined,
       signal: context?.signal,
       local: true,
       handler: async () => {

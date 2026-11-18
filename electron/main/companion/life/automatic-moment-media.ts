@@ -11,6 +11,7 @@ import { getCompanionRuntimeReadModel } from '../core/read-models/runtime-read-m
 import { narrativeMood } from './world-codec'
 import { getSetting } from '../../storage/settings-store'
 import { getExecutionSignal } from '../../utils/execution-cancellation'
+import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 
 function localDay(ms: number): string { return new Date(ms).toLocaleDateString('sv-SE') }
 
@@ -70,15 +71,17 @@ export async function generateAutomaticMomentMedia(roleId: string, event: Compan
     const response = await requestGeneratedImage(config, compileImageGenerationRequest(description), signal)
     const image = await normalizeGeneratedImage(response.bytes)
     signal?.throwIfAborted()
-    const stored = await storeMomentMedia({ roleId, eventId: event.id, momentId: moment.id, mimeType: 'image/png', width: image.width, height: image.height, byteLength: image.bytes.length, bytes: image.bytes })
-    signal?.throwIfAborted()
-    const linked = await attachMomentImageForRole(roleId, moment.id, stored.id)
-    if (!linked.ok) {
-      await recordMomentMediaAttempt({ roleId, eventId: event.id, momentId: moment.id, status: 'failed', reason: 'moment-link-rejected', imageId: stored.id, attemptedAt, completedAt: Date.now() })
-      return { ok: false, reason: 'moment-link-rejected' }
-    }
-    await recordMomentMediaAttempt({ roleId, eventId: event.id, momentId: moment.id, status: 'stored', reason: 'stored-and-linked', imageId: stored.id, attemptedAt, completedAt: Date.now() })
-    return { ok: true, imageId: stored.id }
+    return await withCompanionUnitOfWork(async () => {
+      const stored = await storeMomentMedia({ roleId, eventId: event.id, momentId: moment.id, mimeType: 'image/png', width: image.width, height: image.height, byteLength: image.bytes.length, bytes: image.bytes })
+      signal?.throwIfAborted()
+      const linked = await attachMomentImageForRole(roleId, moment.id, stored.id)
+      if (!linked.ok) {
+        await recordMomentMediaAttempt({ roleId, eventId: event.id, momentId: moment.id, status: 'failed', reason: 'moment-link-rejected', imageId: stored.id, attemptedAt, completedAt: Date.now() })
+        return { ok: false as const, reason: 'moment-link-rejected' }
+      }
+      await recordMomentMediaAttempt({ roleId, eventId: event.id, momentId: moment.id, status: 'stored', reason: 'stored-and-linked', imageId: stored.id, attemptedAt, completedAt: Date.now() })
+      return { ok: true as const, imageId: stored.id }
+    })
   } catch (error) {
     await recordMomentMediaAttempt({ roleId, eventId: event.id, momentId: moment.id, status: 'failed', reason: signal?.aborted ? 'lifecycle-cancelled' : error instanceof Error ? error.message.slice(0, 120) : 'generation-failed', imageId: null, attemptedAt, completedAt: Date.now() })
     signal?.throwIfAborted()

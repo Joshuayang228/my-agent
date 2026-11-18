@@ -152,14 +152,26 @@ export const imageGenerateTool = buildTool({
       commitImage(current, image.bytes)
       const generatedImages: GeneratedImageReference[] = [{ id: createHash('sha256').update(image.bytes).digest('hex'), path: current.target, mimeType: image.mimeType, width: image.width, height: image.height, byteLength: image.bytes.length }]
       if (targetAssetId) {
-        const linked = await attachWorldAssetImage(targetAssetId, generatedImages[0], { expectedRoleId: context!.roleId!, expectedOutfitVersion })
+        let linked: Awaited<ReturnType<typeof attachWorldAssetImage>>
+        try {
+          linked = await attachWorldAssetImage(targetAssetId, generatedImages[0], { expectedRoleId: context!.roleId!, expectedOutfitVersion })
+        } catch (error) {
+          try { fs.unlinkSync(current.target) } catch { log.warn('Generated image cleanup failed after asset link error', { target: current.target }) }
+          throw error
+        }
         if (!linked.ok) {
           try { fs.unlinkSync(current.target) } catch { log.warn('Generated image cleanup failed after asset link rejection', { target: current.target }) }
           throw new ImageGenerationError(linked.error)
         }
       }
       if (targetMomentId) {
-        const linked = await attachMomentImageForRole(context!.roleId!, targetMomentId, generatedImages[0].id)
+        let linked: Awaited<ReturnType<typeof attachMomentImageForRole>>
+        try {
+          linked = await attachMomentImageForRole(context!.roleId!, targetMomentId, generatedImages[0].id)
+        } catch (error) {
+          try { fs.unlinkSync(current.target) } catch { log.warn('Generated image cleanup failed after moment link error', { target: current.target }) }
+          throw error
+        }
         if (!linked.ok) {
           try { fs.unlinkSync(current.target) } catch { log.warn('Generated image cleanup failed after moment link rejection', { target: current.target }) }
           throw new ImageGenerationError(linked.error)

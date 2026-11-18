@@ -53,16 +53,25 @@ it('Companion Core 独立拥有运行态和生活存储，过渡文件保持移�
 })
 
 it('人物世界规则和应用用例通过适配边界使用宿主能力', () => {
-  const sources = ['companion/core', 'companion/life', 'companion/application']
+  const sources = ['companion/core', 'companion/life', 'companion/application', 'companion/growth', 'companion/cast']
     .flatMap(directory => files(path.join(root, directory)))
   sources.push(path.join(root, 'agent-host/builtin-domains.ts'))
   const violations = sources.flatMap(file => {
     const imports = ts.preProcessFile(fs.readFileSync(file, 'utf8'), true, true).importedFiles
     return imports.flatMap(({ fileName }) => {
       const target = path.relative(root, path.resolve(path.dirname(file), fileName)).replaceAll(path.sep, '/')
-      const forbidden = fileName === 'electron' || target.startsWith('tools/') || target.startsWith('agent-host/')
+      const forbidden = fileName === 'electron' || target.startsWith('ipc/') || target.startsWith('agent/') || target.startsWith('tools/') || target.startsWith('agent-host/')
       return forbidden ? [`${path.relative(root, file)} -> ${fileName}`] : []
     })
   })
   expect(violations).toEqual([])
+})
+
+it('Skill 与任务计划不再使用模块级全局激活或默认会话状态', () => {
+  const skillRegistry = fs.readFileSync(path.join(root, 'skills/registry.ts'), 'utf8')
+  const taskPlanService = fs.readFileSync(path.join(root, 'services/task-plan-service.ts'), 'utf8')
+  const scopedCatalog = fs.readFileSync(path.join(root, 'agent-host/scoped-catalog.ts'), 'utf8')
+  expect(skillRegistry).not.toMatch(/lets+activeSkill/)
+  expect(taskPlanService).not.toMatch(/lets+currentSessionId/)
+  expect(scopedCatalog).not.toMatch(/getAgentHostToolNamesForRole/)
 })

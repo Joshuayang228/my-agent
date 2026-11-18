@@ -20,8 +20,6 @@
 
 ## 进行中
 
-[架构源码审计修复](./architecture-audit-remediation-v1.md) 覆盖 WISH-050 的 A01—A18，用户已授权完整修复并在复审通过后结束目标。
-
 | 文档 | 说明 |
 |------|------|
 | [prompt-coverage-and-review-v2.md](./prompt-coverage-and-review-v2.md) | 全量方案已确认：推进用途 / 消费者门禁、集中展示、缺失生成闭环和人物扩展；新增 UI 待候选验收后统一回流 |
@@ -47,7 +45,7 @@
 
 ## 已完成施工快照（冻结）
 
-2026-11-17 架构源码复审发现部分全局不变量仍有缺口，历史完工快照保留原施工范围，当前完成度见 [架构审计现状](../architecture-boundary-audit.md)，待处理项由 WISH-050 跟踪。
+架构源码审计修复：[architecture-audit-remediation-v1.md](./architecture-audit-remediation-v1.md)，已完成 WISH-050 的 A01—A18 全部反例转正、真实入口回归与独立源码终审；当前架构事实与外部边界见 [架构审计现状](../architecture-boundary-audit.md)、[系统架构](../architecture.md) 与 [质量总控](../quality.md)。
 
 目标架构迁移收口：[architecture-migration-final-v1.md](./architecture-migration-final-v1.md)，完成 Core 存储所有权、事务并发、恢复与依赖方向的源码迁移和故障验收。
 

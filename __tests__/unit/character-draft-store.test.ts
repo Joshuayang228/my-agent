@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { listCharacterDrafts, publishCharacterDraft, saveCharacterDraft } from '../../electron/main/companion/authoring/draft-store'
 import { listAvailableUniverseIds, loadRolePack, loadUniverseManifest } from '../../electron/main/companion/identity/loader'
 import { getCompanionAssetCatalog } from '../../electron/main/companion/asset-registry'
+import { runWithExecutionSignal } from '../../electron/main/utils/execution-cancellation'
 
 const fixture = vi.hoisted(() => ({ directory: '' }))
 vi.mock('electron', () => ({ app: { getPath: () => fixture.directory } }))
@@ -54,5 +55,22 @@ describe('人物体系草稿存储', () => {
     expect(assets.some(asset => asset.sourcePath.endsWith('/scenes/first-contact.md'))).toBe(true)
     expect(assets.some(asset => asset.sourcePath.endsWith('/timeline/continuity.md'))).toBe(true)
     expect(loadRolePack(published.roleId, continuityWorld).protected).toContain('测试主角')
+  })
+
+  it('执行信号取消后拒绝保存或发布人物草稿，且不残留临时目录', async () => {
+    const created = await saveCharacterDraft({ action: 'create', universeId: 'cancel-world', title: '取消测试', roleId: 'hero', roleName: '测试主角' })
+    await saveCharacterDraft({ action: 'submit_for_review', draftId: created.id })
+    const controller = new AbortController()
+    controller.abort(new Error('fixture-draft-cancelled'))
+    await expect(runWithExecutionSignal(controller.signal, () => saveCharacterDraft({
+      action: 'update',
+      draftId: created.id,
+      section: 'identity',
+      content: '已取消的内容不应保存。',
+    }))).rejects.toThrow('fixture-draft-cancelled')
+    await expect(runWithExecutionSignal(controller.signal, () => publishCharacterDraft(created.id))).rejects.toThrow('fixture-draft-cancelled')
+    expect(listAvailableUniverseIds()).not.toContain('cancel-world')
+    const draftFiles = await readdir(path.join(fixture.directory, 'character-drafts'))
+    expect(draftFiles.some(name => name.includes('.tmp-'))).toBe(false)
   })
 })

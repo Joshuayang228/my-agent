@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
+import { getExecutionSignal } from '../../utils/execution-cancellation'
 
 export type CharacterDraftStatus = 'draft' | 'review'
 export type CharacterDraftSection =
@@ -62,11 +63,19 @@ function assertText(value: string, label: string, max = MAX_TEXT): string {
 function draftPath(id: string): string { return join(draftsRoot(), `${id}.json`) }
 
 async function writeDraft(draft: CharacterDraft): Promise<void> {
+  const signal = getExecutionSignal()
+  signal?.throwIfAborted()
   const root = draftsRoot()
   await mkdir(root, { recursive: true })
   const temporary = `${draftPath(draft.id)}.tmp-${process.pid}-${Date.now()}`
-  await writeFile(temporary, JSON.stringify(draft, null, 2), 'utf8')
-  await rename(temporary, draftPath(draft.id))
+  try {
+    await writeFile(temporary, JSON.stringify(draft, null, 2), { encoding: 'utf8', signal })
+    signal?.throwIfAborted()
+    await rename(temporary, draftPath(draft.id))
+  } catch (error) {
+    await rm(temporary, { force: true }).catch(() => undefined)
+    throw error
+  }
 }
 
 export async function readCharacterDraft(id: string): Promise<CharacterDraft | null> {
@@ -94,6 +103,8 @@ export async function listCharacterDrafts(): Promise<CharacterDraft[]> {
  * 关键约束：只接受 review 草稿，拒绝覆盖既有世界；只写 manifest / relations / 必需 Role Pack，缺失的详细档案保持未设定而不是编造。
  */
 export async function publishCharacterDraft(id: string): Promise<{ universeId: string; roleId: string; title: string }> {
+  const signal = getExecutionSignal()
+  signal?.throwIfAborted()
   const draft = await readCharacterDraft(id)
   if (!draft) throw new Error('找不到人物草稿。')
   if (draft.status !== 'review') throw new Error('人物草稿必须先提交审阅。')
@@ -112,29 +123,31 @@ export async function publishCharacterDraft(id: string): Promise<{ universeId: s
   const externalEvidence = draft.sections.externalEvidence || '尚无待确认的外部搜索证据。'
   try {
     await mkdir(join(roleRoot, 'scenes'), { recursive: true })
-    await writeFile(join(temporaryRoot, 'manifest.json'), JSON.stringify({ id: universeId, title: draft.title, version: 1, protagonistIds: [roleId], castIds: [], plannedProtagonistSlots: 1, defaultProtagonistId: roleId, ownership: 'user' }, null, 2), 'utf8')
-    await writeFile(join(temporaryRoot, 'relations.json'), JSON.stringify({ edges: [] }, null, 2), 'utf8')
-    await writeFile(join(roleRoot, 'manifest.json'), JSON.stringify({ id: roleId, name: draft.roleName, description: identity.slice(0, 240), canBeProtagonist: true, asideStyle: '沿用已确认的人物表达，缺少资料时明确说明。', ownership: 'user', sourceDraftId: draft.id }, null, 2), 'utf8')
-    await writeFile(join(roleRoot, 'protected.md'), `你是${draft.roleName}。\n\n${identity}\n\n世界观资料：\n${world}`, 'utf8')
-    await writeFile(join(roleRoot, 'mutable.default.md'), '当前可变行为状态尚未设定，只根据用户确认逐步形成。', 'utf8')
-    await writeFile(join(roleRoot, 'summary.txt'), identity.slice(0, 1000), 'utf8')
-    await writeFile(join(roleRoot, 'scenes', 'first-contact.md'), firstContact, 'utf8')
+    await writeFile(join(temporaryRoot, 'manifest.json'), JSON.stringify({ id: universeId, title: draft.title, version: 1, protagonistIds: [roleId], castIds: [], plannedProtagonistSlots: 1, defaultProtagonistId: roleId, ownership: 'user' }, null, 2), { encoding: 'utf8', signal })
+    await writeFile(join(temporaryRoot, 'relations.json'), JSON.stringify({ edges: [] }, null, 2), { encoding: 'utf8', signal })
+    await writeFile(join(roleRoot, 'manifest.json'), JSON.stringify({ id: roleId, name: draft.roleName, description: identity.slice(0, 240), canBeProtagonist: true, asideStyle: '沿用已确认的人物表达，缺少资料时明确说明。', ownership: 'user', sourceDraftId: draft.id }, null, 2), { encoding: 'utf8', signal })
+    await writeFile(join(roleRoot, 'protected.md'), `你是${draft.roleName}。\n\n${identity}\n\n世界观资料：\n${world}`, { encoding: 'utf8', signal })
+    await writeFile(join(roleRoot, 'mutable.default.md'), '当前可变行为状态尚未设定，只根据用户确认逐步形成。', { encoding: 'utf8', signal })
+    await writeFile(join(roleRoot, 'summary.txt'), identity.slice(0, 1000), { encoding: 'utf8', signal })
+    await writeFile(join(roleRoot, 'scenes', 'first-contact.md'), firstContact, { encoding: 'utf8', signal })
     await mkdir(join(roleRoot, 'timeline'), { recursive: true })
-    await writeFile(join(roleRoot, 'timeline', 'continuity.md'), continuity, 'utf8')
-    await writeFile(join(roleRoot, 'timeline', 'canon.md'), canon, 'utf8')
-    await writeFile(join(roleRoot, 'timeline', 'external-evidence.md'), externalEvidence, 'utf8')
+    await writeFile(join(roleRoot, 'timeline', 'continuity.md'), continuity, { encoding: 'utf8', signal })
+    await writeFile(join(roleRoot, 'timeline', 'canon.md'), canon, { encoding: 'utf8', signal })
+    await writeFile(join(roleRoot, 'timeline', 'external-evidence.md'), externalEvidence, { encoding: 'utf8', signal })
+    signal?.throwIfAborted()
     // 背景：Windows 文件索引或 Defender 可能短暂占用刚写入的目录，导致原子提升偶发 EPERM。
     // 设计意图：只重试同一个目录 rename，保留临时目录发布的原子性，不退化成逐文件复制。
     // 关键约束：仅对 EPERM 做有限重试，其他错误立即上抛，避免把权限或路径错误伪装成暂态问题。
     let promoted = false
     for (let attempt = 0; attempt < 3; attempt++) {
+      signal?.throwIfAborted()
       try {
         await rename(temporaryRoot, root)
         promoted = true
         break
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'EPERM' || attempt === 2) throw error
-        await delay(40)
+        await delay(40, undefined, { signal })
       }
     }
     if (!promoted) throw new Error('人物草稿发布失败。')

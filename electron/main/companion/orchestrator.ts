@@ -37,6 +37,7 @@ import { createLogger } from '../utils/logger'
 import { getDatabase } from '../storage/database'
 import { updateCompanionRuntimeLifecycle } from './core/state/runtime-state'
 import { withCompanionUnitOfWork } from './core/transaction/unit-of-work'
+import { getExecutionSignal } from '../utils/execution-cancellation'
 
 const log = createLogger('CompanionOrchestrator')
 import type { RolePack, RoleSummary, SwitchResult } from './types'
@@ -463,6 +464,7 @@ export function requestUniverseSwitch(universeId: string): Promise<UniverseSwitc
 }
 
 async function switchUniverse(universeId: string): Promise<UniverseSwitchResult> {
+  getExecutionSignal()?.throwIfAborted()
   const id = universeId.trim()
   if (!/^[a-zA-Z0-9_-]{1,80}$/.test(id)) return { ok: false, code: 'INVALID_UNIVERSE' }
   let manifest

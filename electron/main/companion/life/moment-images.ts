@@ -38,18 +38,20 @@ export async function prepareMomentImageTarget(roleId: string, momentId: string)
  */
 export async function attachMomentImageForRole(roleId: string, momentId: string, imageId: string): Promise<MomentImageTarget> {
   if (!/^[a-f0-9]{64}$/.test(imageId)) return { ok: false, error: '图片引用无效，未绑定到动态。' }
-  const target = await prepareMomentImageTarget(roleId, momentId)
-  if (!target.ok) return target
-  const links = await listEventLinks(roleId, target.eventId)
-  await withCompanionUnitOfWork(() => replaceEventLinks(roleId, target.eventId, [...links, {
-    eventId: target.eventId,
-    roleId,
-    targetType: 'image',
-    targetId: imageId,
-    relation: 'depicts',
-    metadata: { position: target.position },
-  }]))
-  return target
+  return withCompanionUnitOfWork(async () => {
+    const target = await prepareMomentImageTarget(roleId, momentId)
+    if (!target.ok) return target
+    const links = await listEventLinks(roleId, target.eventId)
+    await replaceEventLinks(roleId, target.eventId, [...links, {
+      eventId: target.eventId,
+      roleId,
+      targetType: 'image',
+      targetId: imageId,
+      relation: 'depicts',
+      metadata: { position: target.position },
+    }])
+    return target
+  })
 }
 
 export async function momentImageIdsForRole(roleId: string, momentId: string): Promise<string[]> {

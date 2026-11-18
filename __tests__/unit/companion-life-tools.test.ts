@@ -77,15 +77,15 @@ it('用户明确选择书架条目后可保存阅读笔记并拒绝跨人物资�
   const context = { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' }
   await tools.executeAll([{ id: 'create', name: 'companion_create_asset', arguments: JSON.stringify({ kind: 'bookshelf', name: '航海日志' }) }], context)
   const book = (await listAssets('luffy', { kind: 'bookshelf' }))[0]
-  const [saved] = await tools.executeAll([{ id: 'note', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '读到选择路线时停下来记了一句。', source: '用户提供的第 12 页摘录', author: 'user', page: 12, chapter: '选择路线' }) }], context)
+  const [saved] = await tools.executeAll([{ id: 'note-user', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '读到选择路线时停下来记了一句。', source: '用户提供的第 12 页摘录', author: 'user', page: 12, chapter: '选择路线' }) }], context)
   expect(saved.content).toContain('已保存')
   expect((await listAssets('luffy', { kind: 'bookshelf' }))[0].payload.readingNotes).toEqual([expect.objectContaining({ text: expect.stringContaining('选择路线'), source: expect.stringContaining('第 12 页'), author: 'user', page: 12, chapter: '选择路线' })])
-  const [characterSaved] = await tools.executeAll([{ id: 'note', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '这一章让人物重新想起航线选择。', source: '人物读取的第 13 章材料', author: 'companion', observation: '第 13 章明确写到航线选择需要重新核对。', inference: '人物因此重新想起此前的航线选择。', chapter: '第 13 章' }) }], context)
+  const [characterSaved] = await tools.executeAll([{ id: 'note-companion', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '这一章让人物重新想起航线选择。', source: '人物读取的第 13 章材料', author: 'companion', observation: '第 13 章明确写到航线选择需要重新核对。', inference: '人物因此重新想起此前的航线选择。', chapter: '第 13 章' }) }], context)
   expect(characterSaved.content).toContain('记录者：人物')
   expect((await listAssets('luffy', { kind: 'bookshelf' }))[0].payload.readingNotes).toEqual(expect.arrayContaining([expect.objectContaining({ grounding: { observation: expect.stringContaining('重新核对'), inference: expect.stringContaining('重新想起') } })]))
-  const [ungrounded] = await tools.executeAll([{ id: 'note', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '只凭书名猜出来的感想。', source: '书名', author: 'companion' }) }], context)
+  const [ungrounded] = await tools.executeAll([{ id: 'note-ungrounded', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '只凭书名猜出来的感想。', source: '书名', author: 'companion' }) }], context)
   expect(ungrounded.content).toContain('必须提供材料观察')
-  const [rejected] = await tools.executeAll([{ id: 'note', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '跨人物', source: '不存在的来源', author: 'user' }) }], { ...context, roleId: 'nami' })
+  const [rejected] = await tools.executeAll([{ id: 'note-rejected', name: 'companion_add_reading_note', arguments: JSON.stringify({ assetId: book.id, note: '跨人物', source: '不存在的来源', author: 'user' }) }], { ...context, roleId: 'nami' })
   expect(rejected.content).toContain('只能为当前人物')
 })
 
@@ -159,10 +159,15 @@ it('Chat 记录路飞关系修复事件时写入已验证参与者与关系阶�
   ]))
 })
 
-it('Chat 可为路飞创建家居资料，并保留角色隔离', async () => {
-  const result = await registry().executeAll([{ id: 'asset', name: 'companion_create_asset', arguments: JSON.stringify({ kind: 'furniture', name: '甲板望远镜架', payload: { description: '方便观察远处航线。' } }) }], { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' })
-  expect(result[0].content).toContain('已添加甲板望远镜架')
-  expect((await listAssets('luffy', { kind: 'furniture' })).some(asset => asset.name === '甲板望远镜架')).toBe(true)
+it('Chat 可为路飞创建家居资料，并保留角色隔离与同一调用重放幂等', async () => {
+  const tools = registry()
+  const context = { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' }
+  const call = [{ id: 'asset', name: 'companion_create_asset', arguments: JSON.stringify({ kind: 'furniture', name: '甲板望远镜架', payload: { description: '方便观察远处航线。' } }) }]
+  const [first] = await tools.executeAll(call, context)
+  const [repeated] = await tools.executeAll(call, context)
+  expect(first.content).toContain('已添加甲板望远镜架')
+  expect(repeated.content).toBe(first.content)
+  expect((await listAssets('luffy', { kind: 'furniture' })).filter(asset => asset.name === '甲板望远镜架')).toHaveLength(1)
 })
 
 it('Chat 评论路飞朋友圈时复用真实互动与主角回复链', async () => {

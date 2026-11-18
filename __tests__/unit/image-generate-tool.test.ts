@@ -153,6 +153,18 @@ it('上游等待期间权限改变或取消，迟到结果不能写盘', async (
   expect((await run()).isError).toBe(true)
   expect(fs.existsSync(path.join(root, 'images'))).toBe(false)
 })
+
+it('绑定资产配图时若取消发生在本地事务提交前，回滚数据库且清理生成的图片文件', async () => {
+  context.roleId = 'luffy'
+  const created = await createAsset({ roleId: 'luffy', kind: 'furniture', name: '草帽挂钩', payload: { description: '甲板门边的木挂钩。' } })
+  if (!created.ok) throw new Error('资产初始化失败')
+  assetDb.run("CREATE TRIGGER reject_asset_image BEFORE UPDATE ON companion_assets BEGIN SELECT RAISE(ABORT, 'fixture-asset-image-abort'); END")
+  const result = await run({ ...args, path: 'images/aborted-link.png', targetAssetId: created.asset.id })
+  expect(result.isError).toBe(true)
+  expect(fs.existsSync(path.join(root, 'images', 'aborted-link.png'))).toBe(false)
+  expect((await getAsset(created.asset.id))?.payload).not.toHaveProperty('image')
+  assetDb.run('DROP TRIGGER reject_asset_image')
+})
 it('原子提交失败清理自己创建的临时文件，不能发布图片引用', async () => {
   vi.spyOn(fs, 'linkSync').mockImplementation(() => { throw new Error('fixture commit failure') })
   const result = await run()
