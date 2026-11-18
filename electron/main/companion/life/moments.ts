@@ -372,6 +372,10 @@ type MomentSocialMutationResult =
   | { ok: true; social: MomentSocialView }
   | { ok: false; error: string; code: 'NOT_FOUND' | 'ROLE_MISMATCH' | 'INVALID' }
 
+type MomentCommentMutationResult =
+  | { ok: true; social: MomentSocialView; interactionId: string }
+  | Extract<MomentSocialMutationResult, { ok: false }>
+
 export async function listMomentUserInteractionsForRole(
   roleId: string,
 ): Promise<MomentUserInteraction[]> {
@@ -534,7 +538,7 @@ export async function addMomentCommentForRole(
   momentId: string,
   text: unknown,
   opts?: AddMomentCommentOptions,
-): Promise<MomentSocialMutationResult> {
+): Promise<MomentCommentMutationResult> {
   const id = typeof momentId === 'string' ? momentId.trim() : ''
   if (!id) return { ok: false, code: 'INVALID', error: '动态不存在' }
   const normalized = normalizeMomentCommentText(text)
@@ -634,5 +638,5 @@ export async function addMomentCommentForRole(
     // 用户评论已经持久化；回复失败只留下可见的用户评论，不伪造成功状态。
   }
   const rows = await store.listMomentUserInteractions(roleId)
-  return { ok: true, social: describeMomentSocial(id, rows) }
+  return { ok: true, social: describeMomentSocial(id, rows), interactionId: inserted.id }
 }

@@ -229,7 +229,8 @@ export function registerCompanionIPC(): void {
         return { ok: false as const, error: '动态不存在', code: 'INVALID' }
       }
       const roleId = await getActiveRoleId()
-      return executeCompanionCommand({ roleId, actionType: 'add-moment-comment', handler: () => addMomentCommentForRole(roleId, momentId.trim(), text, opts) })
+      const result = await executeCompanionCommand({ roleId, actionType: 'add-moment-comment', handler: () => addMomentCommentForRole(roleId, momentId.trim(), text, opts) })
+      return result.ok ? { ok: true as const, social: result.social } : result
     },
   )
 

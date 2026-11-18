@@ -279,7 +279,7 @@ export const companionCommentMomentTool = buildTool({
     if (!momentId || !text) return '动态 ID 和评论内容不能为空，评论不能超过 280 字。'
     const result = await executeCompanionCommand({ roleId, actionType: 'comment-moment-tool', signal: context?.signal, handler: () => addMomentCommentForRole(roleId, momentId, text) })
     if (!result.ok) return `朋友圈评论未保存：${result.error}`
-    const reply = result.social.comments.find(item => item.source === 'protagonist' && item.parentInteractionId)
+    const reply = result.social.comments.find(item => item.source === 'protagonist' && item.parentInteractionId === result.interactionId)
     return reply?.text ? `已评论朋友圈，${roleId} 回复：${reply.text}` : '已评论朋友圈；人物回复暂未生成。'
   },
 })

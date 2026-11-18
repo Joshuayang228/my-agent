@@ -9,6 +9,7 @@ import { queryCompanionEvidence } from '../../electron/main/debug/companion-evid
 import type { DebugEvidenceScope } from '../../src/shared/debug-evidence'
 import { getSession } from '../../electron/main/storage/session-store'
 import { builtinTools, getBuiltinToolSource } from '../../electron/main/tools/builtins'
+import { chatComplete } from '../../electron/main/llm'
 
 const SQL = await initSqlJs()
 let db: InstanceType<typeof SQL.Database>
@@ -172,6 +173,23 @@ it('Chat 评论路飞朋友圈时复用真实互动与主角回复链', async ()
   expect(result[0].isError).not.toBe(true)
   expect(result[0].content).toContain('已评论朋友圈')
   expect((await listMomentUserInteractions('luffy')).some(item => item.momentId === moment.id && item.actorType === 'user' && item.text === '下一站也带我看看。')).toBe(true)
+})
+
+it('评论工具只报告本次评论的回复，不把历史回复当成本次结果', async () => {
+  const tools = registry()
+  const context = { sessionId: 'moment-replies', workdir: process.cwd(), roleId: 'luffy' }
+  await tools.executeAll([{ id: 'post', name: 'companion_post_moment', arguments: '{"text":"明早出发。"}' }], context)
+  const [moment] = await listMoments('luffy')
+  const comment = (id: string, text: string) => tools.executeAll([{
+    id, name: 'companion_comment_moment', arguments: JSON.stringify({ momentId: moment.id, text }),
+  }], context)
+  vi.mocked(chatComplete).mockResolvedValueOnce('{"reply":"第一站去岛上。"}')
+  const [first] = await comment('first-comment', '第一站去哪儿？')
+  expect(first.content).toContain('第一站去岛上。')
+
+  vi.mocked(chatComplete).mockResolvedValueOnce('{"shouldReply":false}')
+  const [second] = await comment('second-comment', '路上小心。')
+  expect(second.content).toContain('人物回复暂未生成')
 })
 
 it('Chat 评论工具拒绝跨人物动态，且不写入互动记录', async () => {
