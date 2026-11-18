@@ -1,6 +1,7 @@
 import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { getCompanionRuntimeState } from '../core/state/runtime-state'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
+import type { CompanionFollowupKind } from '../core/outbox/followup-kinds'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
 import { isCompanionCommitActive, withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 import { attachContentProvenance, contentProvenanceFromEvent } from '../../../../src/shared/content-integrity'
@@ -31,6 +32,7 @@ export async function recordCompanionEventAndNotify(input: {
     dedupeKey: string
     payload: Record<string, unknown>
   }>
+  followups?: readonly CompanionFollowupKind[]
   dispatch?: boolean
 }): Promise<{ eventId: string }> {
   const event = await withCompanionUnitOfWork(async () => {
@@ -62,6 +64,15 @@ export async function recordCompanionEventAndNotify(input: {
         kind: notification.kind,
         dedupeKey: notification.dedupeKey,
         payload: notification.payload,
+      })
+    }
+    for (const kind of input.followups ?? []) {
+      await enqueueCompanionOutbox({
+        roleId: input.roleId,
+        eventId: domainEvent.id,
+        kind,
+        dedupeKey: `${kind}:${domainEvent.id}`,
+        payload: {},
       })
     }
     return domainEvent

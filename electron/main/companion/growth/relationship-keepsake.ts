@@ -31,6 +31,8 @@ import { enqueueCompanionSessionMessage } from '../application/session-outbox'
 import { dispatchCompanionSessionOutbox } from '../adapters/session-outbox-dispatcher'
 import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 import { enqueueAutomaticProactiveNotification } from '../application/proactive-budget'
+import { COMPANION_FOLLOWUP } from '../core/outbox/followup-kinds'
+import { recoverCompanionFollowups } from '../application/companion-followups'
 import type { CompanionKeepsakeRecord, CompanionKeepsakeGiftEvent, LLMConfig } from '../../../../src/shared/types'
 
 const log = createLogger('RelationshipKeepsake')
@@ -317,6 +319,12 @@ export async function triggerGiftKeepsake(
         payload: event as unknown as Record<string, unknown>,
         schemaVersion: 1,
       })
+      await enqueueCompanionOutbox({
+        roleId, eventId: domainEvent.id,
+        kind: COMPANION_FOLLOWUP.keepsakeMilestone,
+        dedupeKey: `${COMPANION_FOLLOWUP.keepsakeMilestone}:${domainEvent.id}`,
+        payload: { roleDisplayName: pack.name, occurredAt: now },
+      })
       const enqueueNotification = async () => {
         const session = await ensureMainSessionForRole(roleId)
         await enqueueCompanionSessionMessage({
@@ -344,8 +352,7 @@ export async function triggerGiftKeepsake(
     return null
   }
 
-  // 6. 记录关系里程碑
-  await tryRecordMilestone(roleId, 'keepsake_gifted', { roleDisplayName: pack.name, now })
+  await recoverCompanionFollowups()
 
   log.info('Keepsake gifted successfully', { roleId, keepsakeId: keepsakeRecord.id, name: keepsakeRecord.name })
   return keepsakeRecord

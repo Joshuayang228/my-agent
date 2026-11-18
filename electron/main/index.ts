@@ -25,6 +25,7 @@ import { parseStoredMcpConfigs } from './mcp/config-security'
 import { getLoadedSkills, initSkillSystem } from './skills/registry'
 import { runtime } from './agent/runtime'
 import { startLifeTicker, stopLifeTicker } from './agent/companion-life-ticker'
+import { recoverCompanionFollowups } from './companion/application/companion-followups'
 import * as settings from './storage/settings-store'
 import { initScheduler, shutdownScheduler } from './scheduler/index'
 import { registerHostPresenceIdleReader } from './companion/life/host-presence'
@@ -329,6 +330,7 @@ app.whenReady().then(async () => {
   // M11：恢复上次崩溃中断的后台任务（从 SQLite background_tasks 表重载 pending 状态）
   const { taskQueue } = await import('./services/task-queue')
   taskQueue.recoverPendingTasks().catch(err => log.warn('Task recovery failed', { error: String(err) }))
+  void recoverCompanionFollowups()
 
   // W2：活跃主角生活世界 tick（非活跃不推进）
   startLifeTicker()

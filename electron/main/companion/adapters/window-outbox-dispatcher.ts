@@ -1,6 +1,7 @@
 import { BrowserWindow } from 'electron'
 import { dispatchCompanionOutbox } from '../core/outbox/outbox'
 import { commandExecutionScope } from '../core/commands/execution-scope'
+import { COMPANION_FOLLOWUP_KINDS } from '../core/outbox/followup-kinds'
 
 /**
  * 投递人物世界出站通知到渲染层。
@@ -13,7 +14,7 @@ export async function dispatchCompanionWindowOutbox(limit = 20): Promise<number>
   return dispatchCompanionOutbox({
     limit,
     roleId: commandExecutionScope.getStore()?.roleId,
-    excludeKinds: ['main-session-message'],
+    excludeKinds: ['main-session-message', ...COMPANION_FOLLOWUP_KINDS],
     deliver: async (message) => {
       let sent = 0
       for (const win of BrowserWindow.getAllWindows()) {

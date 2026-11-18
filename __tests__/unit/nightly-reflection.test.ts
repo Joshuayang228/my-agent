@@ -63,7 +63,8 @@ const { listInnerThoughts, ensureInnerThoughtTable } = await import(
   '../../electron/main/companion/life/inner-thoughts'
 )
 
-const { listFeedbackForRole } = await import('../../electron/main/storage/memory-store')
+const { ensureMemoryTable, listFeedbackForRole } = await import('../../electron/main/storage/memory-store')
+const { recoverCompanionFollowups } = await import('../../electron/main/companion/application/companion-followups')
 
 describe('角色深夜反思与心灵领悟（Nightly Reflection & Epiphany）', () => {
   beforeEach(async () => {
@@ -129,5 +130,30 @@ describe('角色深夜反思与心灵领悟（Nightly Reflection & Epiphany）',
     // 开启 force 时允许强制触发
     const forced = await checkAndTriggerNightlyReflection('luffy', nightTime2, { force: true })
     expect(forced).not.toBeNull()
+  })
+
+  it('日记先保存，记忆写入失败后可从数据库重开恢复，重复投递不会重建已删除记忆', async () => {
+    await ensureMemoryTable()
+    memDb.run("CREATE TRIGGER reject_nightly_memory BEFORE INSERT ON memories BEGIN SELECT RAISE(ABORT, 'fixture-memory-failure'); END")
+    const result = await triggerNightlyReflection('luffy', Date.now(), { force: true })
+    expect((await listInnerThoughts('luffy')).some(thought => thought.id === result?.id)).toBe(true)
+    expect(await listFeedbackForRole('luffy')).toHaveLength(0)
+    expect(memDb.exec("SELECT status FROM companion_outbox WHERE kind = 'followup:nightly-memory'")[0]?.values).toEqual([['failed']])
+
+    const snapshot = memDb.export()
+    memDb.close()
+    memDb = new SQL.Database(snapshot)
+    memDb.run('DROP TRIGGER reject_nightly_memory')
+    memDb.run("UPDATE companion_outbox SET next_attempt_at = 0 WHERE kind = 'followup:nightly-memory'")
+    await recoverCompanionFollowups()
+    expect(await listFeedbackForRole('luffy')).toHaveLength(1)
+    expect(memDb.exec("SELECT status FROM companion_outbox WHERE kind = 'followup:nightly-memory'")[0]?.values).toEqual([['delivered']])
+
+    // 模拟消费已提交但 Outbox 确认未写盘，用户删除后的记忆不能因重投递复活。
+    memDb.run("DELETE FROM memories WHERE category = 'feedback'")
+    memDb.run("UPDATE companion_outbox SET status = 'processing', lease_until = 0 WHERE kind = 'followup:nightly-memory'")
+    await recoverCompanionFollowups()
+    expect(await listFeedbackForRole('luffy')).toHaveLength(0)
+    expect(memDb.exec("SELECT status FROM companion_outbox WHERE kind = 'followup:nightly-memory'")[0]?.values).toEqual([['delivered']])
   })
 })

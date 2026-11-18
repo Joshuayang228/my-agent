@@ -62,6 +62,8 @@ const {
 } = await import('../../electron/main/companion/growth/relationship-keepsake')
 const { getSession } = await import('../../electron/main/storage/session-store')
 const { listMilestoneKinds } = await import('../../electron/main/companion/growth/milestones')
+const { recoverCompanionFollowups } = await import('../../electron/main/companion/application/companion-followups')
+const { setSetting } = await import('../../electron/main/storage/settings-store')
 
 describe('羁绊深度跃迁与专属信物馈赠（Relationship Keepsake Gifts）', () => {
   beforeEach(async () => {
@@ -163,5 +165,24 @@ describe('羁绊深度跃迁与专属信物馈赠（Relationship Keepsake Gifts�
     expect((await listKeepsakes('luffy')).map(record => record.id)).toContain('luffy-merry-bell')
     expect(memDb.exec('SELECT COUNT(*) FROM messages')[0].values[0][0]).toBe(0)
     expect(sendMock).not.toHaveBeenCalledWith('companion:keepsake-gifted', expect.anything())
+  })
+
+  it('里程碑保存失败时信物仍存在，重开后补偿里程碑', async () => {
+    await ensureKeepsakeTable()
+    settingsStore.delete('companionMilestonesByRole')
+    vi.mocked(setSetting).mockRejectedValueOnce(new Error('fixture-milestone-write-failure'))
+    const result = await triggerGiftKeepsake('luffy', 'luffy-merry-bell', '共同体验的纪念', Date.now(), {
+      mockResponse: { giftSpeech: '送给你。' },
+    })
+    expect(result?.id).toBe('luffy-merry-bell')
+    expect(await listMilestoneKinds('luffy')).not.toContain('keepsake_gifted')
+    expect(memDb.exec("SELECT status FROM companion_outbox WHERE kind = 'followup:keepsake-milestone'")[0]?.values).toEqual([['failed']])
+    const snapshot = memDb.export()
+    memDb.close()
+    memDb = new SQL.Database(snapshot)
+    memDb.run("UPDATE companion_outbox SET next_attempt_at = 0 WHERE kind = 'followup:keepsake-milestone'")
+    await recoverCompanionFollowups()
+    expect(await listMilestoneKinds('luffy')).toContain('keepsake_gifted')
+    expect(memDb.exec("SELECT status FROM companion_outbox WHERE kind = 'followup:keepsake-milestone'")[0]?.values).toEqual([['delivered']])
   })
 })

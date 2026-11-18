@@ -11,6 +11,7 @@ vi.mock('electron', () => ({
   BrowserWindow: { getAllWindows: () => [{ isDestroyed: () => false, webContents: { send } }] },
 }))
 vi.mock('../../electron/main/agent-host/host', () => ({ runCompanionLifeTickWorkflow: workflow }))
+vi.mock('../../electron/main/companion/application/companion-followups', () => ({ recoverCompanionFollowups: async () => {} }))
 vi.mock('../../electron/main/companion/life/engine', () => ({
   resolveActiveLifeScope: async () => ({ roleId: 'luffy', universeId: 'one-piece' }),
 }))

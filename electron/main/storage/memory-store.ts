@@ -69,7 +69,7 @@ export interface AddMemoryOpts {
   provenance?: ContentProvenance
 }
 
-async function ensureTable(): Promise<void> {
+export async function ensureMemoryTable(): Promise<void> {
   const db = await getDatabase()
   db.run(`
     CREATE TABLE IF NOT EXISTS memories (
@@ -146,7 +146,7 @@ export async function addMemory(
   opts?: AddMemoryOpts,
 ): Promise<MemoryEntry> {
   assertMemoryContentAllowed(content)
-  await ensureTable()
+  await ensureMemoryTable()
   const db = await getDatabase()
   const result = writeMemoryToDatabase(db, category, content, opts)
   if (result.inserted) {
@@ -235,7 +235,7 @@ export function writeMemoryToDatabase(db: Database, category: MemoryCategory, co
 }
 
 export async function listMemories(category?: MemoryCategory): Promise<MemoryEntry[]> {
-  await ensureTable()
+  await ensureMemoryTable()
   const db = await getDatabase()
 
   const sql = category
@@ -263,7 +263,7 @@ export async function listFeedbackForRole(
 ): Promise<MemoryEntry[]> {
   const id = roleId.trim()
   if (!id) return []
-  await ensureTable()
+  await ensureMemoryTable()
   const db = await getDatabase()
   const stmt = db.prepare(
     `SELECT * FROM memories
@@ -289,7 +289,7 @@ export async function listFeedbackForRole(
 export async function getMemory(id: string): Promise<MemoryEntry | null> {
   const key = (id || '').trim()
   if (!key) return null
-  await ensureTable()
+  await ensureMemoryTable()
   const db = await getDatabase()
   return readMemoryFromDatabase(db, key)
 }
@@ -306,7 +306,7 @@ function readMemoryFromDatabase(db: Database, key: string): MemoryEntry | null {
 }
 
 export async function deleteMemory(id: string): Promise<void> {
-  await ensureTable()
+  await ensureMemoryTable()
   const db = await getDatabase()
   const before = readMemoryFromDatabase(db, id)
   db.run('DELETE FROM memories WHERE id = ?', [id])
@@ -322,7 +322,7 @@ export async function deleteMemory(id: string): Promise<void> {
 
 export async function updateMemory(id: string, content: string, provenance?: ContentProvenance): Promise<void> {
   assertMemoryContentAllowed(content)
-  await ensureTable()
+  await ensureMemoryTable()
   const db = await getDatabase()
   const before = readMemoryFromDatabase(db, id)
   if (!before) return

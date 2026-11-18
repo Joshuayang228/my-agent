@@ -29,6 +29,7 @@ import { dispatchCompanionSessionOutbox } from '../companion/adapters/session-ou
 import { captureCompanionLifecycle } from '../utils/companion-lifecycle'
 import { runWithExecutionSignal } from '../utils/execution-cancellation'
 import { runWithTraceContext } from '../utils/trace-context'
+import { recoverCompanionFollowups } from '../companion/application/companion-followups'
 
 const log = createLogger('LifeTicker')
 
@@ -147,6 +148,8 @@ export function startLifeTicker(defaultIntervalMs = DEFAULT_INTERVAL_MS): void {
     } catch (err) {
       if (!signal.aborted) log.warn('tickActiveRole failed', { error: String(err) })
     }
+
+    if (ticker === owner) await recoverCompanionFollowups()
 
     let nextDelay = defaultIntervalMs
     if (!signal.aborted && activeRoleId) {
