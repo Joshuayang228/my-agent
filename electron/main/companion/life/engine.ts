@@ -30,18 +30,22 @@ import { createCompanionLifeEvent } from '../application/life-event'
 import { createCompanionDayScript } from '../application/day-script'
 import { getCompanionRuntimeReadModel } from '../core/read-models/runtime-read-model'
 import { getDayScript, hasEventsForScript } from '../core/persistence/life-repository'
+import { getExecutionSignal } from '../../utils/execution-cancellation'
+import { invalidateCompanionLifecycle } from '../../utils/companion-lifecycle'
+import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 
 /** 解析当前活跃主角（不经过 orchestrator，避免 life ↔ orchestrator 循环依赖） */
-async function resolveActiveRoleId(): Promise<string> {
-  const universeId = await settings.getSetting('universeId')
+export async function resolveActiveLifeScope(): Promise<{ roleId: string; universeId: string }> {
+  const universeId = (await settings.getSetting('universeId')) || 'default'
   const active = await settings.getSetting('activeRoleId')
-  if (active && identity.isKnownProtagonist(active, universeId)) return active
-  return identity.getDefaultProtagonistId(universeId)
+  const roleId = active && identity.isKnownProtagonist(active, universeId) ? active : identity.getDefaultProtagonistId(universeId)
+  return { roleId, universeId }
 }
 
 const log = createLogger('LifeEngine')
 
 export async function pauseRole(roleId: string, at: number): Promise<void> {
+  invalidateCompanionLifecycle()
   await updateCompanionRuntimeLifecycle({ roleId, pausedAt: at, updatedAt: at })
   log.info('Role paused', { roleId, at })
 }
@@ -88,7 +92,9 @@ export async function ensureDayScripts(
     if (existing) {
       // 剧本已在但事件缺失时补事件（幂等）
       if (!(await hasEventsForScript(existing.id))) {
-        await materializePlannedEvents(roleId, existing.id, existing.payload)
+        await withCompanionUnitOfWork(async () => {
+          if (!(await hasEventsForScript(existing.id))) await materializePlannedEvents(roleId, existing.id, existing.payload)
+        })
       }
       continue
     }
@@ -98,8 +104,13 @@ export async function ensureDayScripts(
       universeId: opts?.universeId,
     })
     if (source === 'llm') llmDays += 1
-    const row = await createCompanionDayScript({ roleId, universeId: opts?.universeId, date, payload })
-    await materializePlannedEvents(roleId, row.id, payload)
+    const inserted = await withCompanionUnitOfWork(async () => {
+      if (await getDayScript(roleId, date)) return false
+      const row = await createCompanionDayScript({ roleId, universeId: opts?.universeId, date, payload })
+      await materializePlannedEvents(roleId, row.id, payload)
+      return true
+    })
+    if (!inserted) continue
     created += 1
   }
   if (created) {
@@ -153,13 +164,17 @@ async function materializePlannedEvents(
  * 仅对当前 active 角色：确保今日剧本，发布到期事件，更新 last_tick_at。
  * 若 active 仍带 paused_at（异常态），跳过生成（等 resume/catchup）。
  */
-export async function tickActiveRole(now: number): Promise<{
+export async function tickActiveRole(now: number, binding?: { roleId: string; universeId: string; signal?: AbortSignal }): Promise<{
   roleId: string | null
   published: number
   scriptsCreated: number
   paused: boolean
 }> {
-  const roleId = await resolveActiveRoleId()
+  const active = await resolveActiveLifeScope()
+  const { roleId, universeId } = binding ?? active
+  const signal = getExecutionSignal(binding?.signal)
+  signal?.throwIfAborted()
+  if (roleId !== active.roleId || universeId !== active.universeId) throw new Error('人物世界运行范围已变更。')
   const runtimeState = await getCompanionRuntimeReadModel(roleId)
   if (runtimeState?.pausedAt != null) {
     log.debug('Skip tick: active role still paused', { roleId, pausedAt: runtimeState.pausedAt })
@@ -172,14 +187,16 @@ export async function tickActiveRole(now: number): Promise<{
   return runWithTraceContext({ roleId, interactionSpanId: span.id }, async () => {
     try {
       const today = toLocalDateString(now)
-      const universeId = (await settings.getSetting('universeId')) || 'default'
       const { created } = await ensureDayScripts(roleId, today, today, {
         preferLlm: true,
         universeId,
       })
+      signal?.throwIfAborted()
       const published = await publishAndProjectDue(roleId, now, span.id)
+      signal?.throwIfAborted()
       // M23-G2：用最近 published 事件刷新短期情境（居所/时区保持稳定）
       await refreshSituationFromLife(roleId, now)
+      signal?.throwIfAborted()
       await updateCompanionRuntimeLifecycle({ roleId, lastTickAt: now, updatedAt: now })
       // M31-G1：有新投影时可选应用内轻提示（失败不阻断 tick）
       if (published > 0) {

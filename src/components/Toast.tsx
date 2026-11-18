@@ -90,14 +90,23 @@ export function ToastBubble({ item, onDismiss, staticPreview = false }: { item: 
     const report = () => {
       frame = requestAnimationFrame(() => {
         const node = element.current
-        if (cancelled || presented.current || !node?.isConnected || document.visibilityState !== 'visible' || !node.getBoundingClientRect().width || Number(getComputedStyle(node).opacity) <= 0) return
+        if (cancelled || presented.current || !node?.isConnected || document.visibilityState !== 'visible') return
+        // 动画起始帧仍可能是透明的，继续检查直到真正呈现或该 Toast 关闭。
+        if (!node.getBoundingClientRect().width || Number(getComputedStyle(node).opacity) <= 0) {
+          report()
+          return
+        }
         presented.current = true
         item.onPresented?.()
       })
     }
     frame = requestAnimationFrame(report)
-    document.addEventListener('visibilitychange', report)
-    return () => { cancelled = true; cancelAnimationFrame(frame); document.removeEventListener('visibilitychange', report) }
+    const onVisibilityChanged = () => {
+      cancelAnimationFrame(frame)
+      if (document.visibilityState === 'visible') report()
+    }
+    document.addEventListener('visibilitychange', onVisibilityChanged)
+    return () => { cancelled = true; cancelAnimationFrame(frame); document.removeEventListener('visibilitychange', onVisibilityChanged) }
   }, [visible, staticPreview, item])
 
   return (

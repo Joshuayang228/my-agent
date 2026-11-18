@@ -3,6 +3,7 @@ import { getDatabase, withDatabaseTransaction } from '../../../storage/database'
 import { commandExecutionScope } from '../commands/execution-scope'
 import { ensureCompanionCoreSchema } from '../schema'
 import { withCompanionUnitOfWork } from '../transaction/unit-of-work'
+import { getExecutionSignal } from '../../../utils/execution-cancellation'
 import type { CompanionOutboxMessage } from '../types'
 
 const OUTBOX_COLUMNS = 'id, role_id, event_id, kind, dedupe_key, payload_json, status, attempt, last_error, claimed_at, lease_until, next_attempt_at, max_attempts, created_at, delivered_at, execution_id, command_id, correlation_id'
@@ -54,10 +55,13 @@ export async function enqueueCompanionOutbox(input: {
 
 export async function dispatchCompanionOutbox(input: {
   limit?: number
+  roleId?: string
   kinds?: readonly string[]
   excludeKinds?: readonly string[]
   deliver: (message: CompanionOutboxMessage) => Promise<void>
 }): Promise<number> {
+  const signal = getExecutionSignal()
+  signal?.throwIfAborted()
   await ensureCompanionCoreSchema()
   const db = await getDatabase()
   const limit = Math.max(1, Math.min(input.limit ?? 20, 100))
@@ -67,6 +71,7 @@ export async function dispatchCompanionOutbox(input: {
   const excludeFilter = input.excludeKinds && input.excludeKinds.length > 0
     ? ` AND kind NOT IN (${input.excludeKinds.map(() => '?').join(', ')})`
     : ''
+  const roleFilter = input.roleId ? ' AND role_id = ?' : ''
   const now = Date.now()
   /**
    * 回收达到重试上限的过期租约。
@@ -83,7 +88,7 @@ export async function dispatchCompanionOutbox(input: {
     })
   }
   const rows = (await getDatabase()).exec(`SELECT ${OUTBOX_COLUMNS}
-    FROM companion_outbox WHERE ((status = 'pending' AND attempt < max_attempts) OR (status = 'failed' AND attempt < max_attempts AND (next_attempt_at IS NULL OR next_attempt_at <= ?)) OR (status = 'processing' AND attempt < max_attempts AND lease_until IS NOT NULL AND lease_until <= ?))${kindFilter}${excludeFilter} ORDER BY created_at ASC LIMIT ?`, [now, now, ...(input.kinds ?? []), ...(input.excludeKinds ?? []), limit])[0]?.values ?? []
+    FROM companion_outbox WHERE ((status = 'pending' AND attempt < max_attempts) OR (status = 'failed' AND attempt < max_attempts AND (next_attempt_at IS NULL OR next_attempt_at <= ?)) OR (status = 'processing' AND attempt < max_attempts AND lease_until IS NOT NULL AND lease_until <= ?))${kindFilter}${excludeFilter}${roleFilter} ORDER BY created_at ASC LIMIT ?`, [now, now, ...(input.kinds ?? []), ...(input.excludeKinds ?? []), ...(input.roleId ? [input.roleId] : []), limit])[0]?.values ?? []
   let delivered = 0
   for (const row of rows) {
     const message = rowToOutbox(row)
@@ -91,6 +96,7 @@ export async function dispatchCompanionOutbox(input: {
     const leaseUntil = claimedAt + 30_000
     const attempt = message.attempt + 1
     const claimed = await withDatabaseTransaction(async transaction => {
+      signal?.throwIfAborted()
       transaction.run(`UPDATE companion_outbox SET status = 'processing', attempt = ?, claimed_at = ?, lease_until = ?, last_error = NULL
         WHERE id = ? AND attempt = ? AND attempt < max_attempts AND ((status = 'pending') OR (status = 'failed' AND (next_attempt_at IS NULL OR next_attempt_at <= ?)) OR (status = 'processing' AND lease_until <= ?))`,
       [attempt, claimedAt, leaseUntil, message.id, message.attempt, claimedAt, claimedAt])
@@ -98,6 +104,7 @@ export async function dispatchCompanionOutbox(input: {
     })
     if (!claimed) continue
     try {
+      signal?.throwIfAborted()
       await input.deliver({ ...message, status: 'processing', attempt, claimedAt, leaseUntil, lastError: null })
     } catch (error) {
       const nextAttemptAt = Date.now() + Math.min(15 * 60_000, 1_000 * (2 ** Math.min(message.attempt, 8)))

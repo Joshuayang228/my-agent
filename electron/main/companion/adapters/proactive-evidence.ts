@@ -7,6 +7,7 @@ import type { ProactiveEvidenceQuery, ProactiveEvidenceReason, ProactiveEvidence
 import { ProactiveEvidenceStore, validateProactiveEvidenceQuery } from '../../storage/proactive-evidence-store'
 import { DIAGNOSTIC_PROCESS_RUN_ID } from '../../utils/diagnostic-history'
 import { createLogger } from '../../utils/logger'
+import { getExecutionSignal } from '../../utils/execution-cancellation'
 
 const log = createLogger('ProactiveEvidence')
 const RECEIPT_TIMEOUT_MS = PROACTIVE_DELIVERY_POLICY.receiptTimeoutMs
@@ -71,6 +72,8 @@ export async function dispatchProactiveGreeting(input: {
   now: number
   prepareSession?: (attemptId: string) => Promise<string | undefined>
 }): Promise<{ greeted: boolean; reason: 'ok' | 'already-today' | 'no-window' | 'send-failed' | 'evidence-unavailable' }> {
+  const signal = getExecutionSignal()
+  signal?.throwIfAborted()
   if (!store || pending.size >= PROACTIVE_DELIVERY_POLICY.maxPending) return { greeted: false, reason: 'evidence-unavailable' }
   const recipients = [...windows.values()].filter(canReceiveGreeting).slice(0, PROACTIVE_DELIVERY_POLICY.maxRecipients)
   if (!recipients.length) { recordProactiveSkip(input.roleId, input.localDay, 'no-window', input.now, input.momentId); return { greeted: false, reason: 'no-window' } }
@@ -89,8 +92,10 @@ export async function dispatchProactiveGreeting(input: {
   try {
     sessionId = await input.prepareSession?.(attemptId)
   } catch (error) {
+    if (signal?.aborted) signal.throwIfAborted()
     log.warn('Proactive greeting session message could not be queued', { roleId: input.roleId, errorType: error instanceof Error ? error.name : 'unknown' })
   }
+  signal?.throwIfAborted()
   if (!store || !pending.has(attemptId)) return { greeted: false, reason: 'evidence-unavailable' }
   let sent = 0
   let failed = 0

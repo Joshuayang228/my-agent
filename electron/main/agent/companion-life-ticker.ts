@@ -10,7 +10,7 @@ import { didDeliverUserFacingAction, runAutomaticProactiveAction } from '../comp
 import { BrowserWindow } from 'electron'
 import { createLogger } from '../utils/logger'
 import { runCompanionLifeTickWorkflow } from '../agent-host/host'
-import type { tickActiveRole } from '../companion/life/engine'
+import { resolveActiveLifeScope, type tickActiveRole } from '../companion/life/engine'
 import { maybeProactiveGreeting } from '../companion/life/proactive-greeting'
 import { checkAndProgressAbsorbedResonances } from '../companion/life/chat-resonance'
 import { triggerSpontaneousImpulse } from '../companion/life/spontaneous-impulse'
@@ -26,22 +26,28 @@ import { isActiveRole } from '../storage/settings-store'
 import { dispatchCompanionWindowOutbox } from '../companion/adapters/window-outbox-dispatcher'
 import { executeCompanionCommand } from '../companion/core/commands/gateway'
 import { dispatchCompanionSessionOutbox } from '../companion/adapters/session-outbox-dispatcher'
+import { captureCompanionLifecycle } from '../utils/companion-lifecycle'
+import { runWithExecutionSignal } from '../utils/execution-cancellation'
+import { runWithTraceContext } from '../utils/trace-context'
 
 const log = createLogger('LifeTicker')
 
 const DEFAULT_INTERVAL_MS = 5 * 60 * 1000
 
-async function runForActiveRole(roleId: string, label: string, tickId: number, action: () => Promise<unknown>): Promise<{ ok: boolean; result?: unknown }> {
+async function runForActiveRole(roleId: string, label: string, tickId: number, signal: AbortSignal, action: () => Promise<unknown>): Promise<{ ok: boolean; result?: unknown }> {
+  if (signal.aborted) return { ok: false }
   if (!(await isActiveRole(roleId))) return { ok: false }
   try {
     const result = await executeCompanionCommand({
       roleId,
       actionType: `life-ticker:${label}`,
       idempotencyKey: `life-tick:${roleId}:${label}:${tickId}`,
+      signal,
       handler: action,
     })
     return { ok: true, result }
   } catch (err) {
+    if (signal.aborted) return { ok: false }
     log.warn(`${label} failed`, { roleId, error: String(err) })
     return { ok: true }
   }
@@ -49,7 +55,13 @@ async function runForActiveRole(roleId: string, label: string, tickId: number, a
 
 export { didDeliverUserFacingAction } from '../companion/application/proactive-budget'
 
-let timer: ReturnType<typeof setTimeout> | null = null
+interface LifeTicker {
+  controller: AbortController
+  timer?: ReturnType<typeof setTimeout>
+  busy: boolean
+}
+
+let ticker: LifeTicker | undefined
 
 export function broadcastTimelineUpdated(roleId: string, now = Date.now()): void {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -80,51 +92,70 @@ export async function getNextPlannedEventDelay(
 }
 
 export function startLifeTicker(defaultIntervalMs = DEFAULT_INTERVAL_MS): void {
-  if (timer !== null) return
+  if (ticker) return
+  const owner: LifeTicker = { controller: new AbortController(), busy: false }
+  ticker = owner
 
   const executeTick = async () => {
+    if (ticker !== owner || owner.busy) return
+    owner.busy = true
+    const signal = AbortSignal.any([owner.controller.signal, captureCompanionLifecycle()])
     const now = Date.now()
+    const traceId = `companion-life-tick:${now}`
     let activeRoleId: string | null = null
     try {
-      const r = await runCompanionLifeTickWorkflow(now) as Awaited<ReturnType<typeof tickActiveRole>>
-      activeRoleId = r.roleId
-      const tickRoleId = r.roleId
-      if (tickRoleId && !r.paused) {
-        broadcastTimelineUpdated(tickRoleId, now)
-        // M31-G3：默认可关；失败不阻断 ticker
-        const actions: Array<{ label: string; userFacing: boolean; action: () => Promise<unknown> }> = [
-          { label: 'proactive greeting', userFacing: true, action: () => maybeProactiveGreeting(tickRoleId, now) },
-          { label: 'chat resonance progression', userFacing: false, action: () => checkAndProgressAbsorbedResonances(tickRoleId, now) },
-          { label: 'spontaneous impulse', userFacing: true, action: () => triggerSpontaneousImpulse(tickRoleId, now) },
-          { label: 'inner thought', userFacing: false, action: () => checkAndGenerateInnerThought(tickRoleId, now) },
-          { label: 'contextual dressing', userFacing: false, action: () => checkAndPerformContextualDressing(tickRoleId, now) },
-          { label: 'travel progression', userFacing: false, action: () => checkAndProgressTravelJourney(tickRoleId, now) },
-          { label: 'vulnerability', userFacing: true, action: () => checkAndTriggerVulnerability(tickRoleId, now) },
-          { label: 'nightly reflection', userFacing: false, action: () => checkAndTriggerNightlyReflection(tickRoleId, now) },
-          { label: 'replan', userFacing: false, action: () => checkAndReplanIfExhausted(tickRoleId, now) },
-          { label: 'host care', userFacing: true, action: () => checkAndTriggerHostCare(tickRoleId, now) },
-        ]
-        let userFacingDelivered = false
-        for (const item of actions) {
-          if (item.userFacing && userFacingDelivered) continue
-          const outcome = await runForActiveRole(tickRoleId, item.label, now, () => item.userFacing ? runAutomaticProactiveAction(tickRoleId, now, item.action) : item.action())
-          if (!outcome.ok) break
-          if (item.userFacing && didDeliverUserFacingAction(outcome.result)) userFacingDelivered = true
+      const binding = await resolveActiveLifeScope()
+      signal.throwIfAborted()
+      await runWithExecutionSignal(signal, () => runWithTraceContext({ roleId: binding.roleId, traceId }, async () => {
+        const r = await executeCompanionCommand({
+          roleId: binding.roleId,
+          actionType: 'life-clock-tick',
+          idempotencyKey: `life-clock:${binding.universeId}:${now}`,
+          correlationId: traceId,
+          signal,
+          handler: () => runCompanionLifeTickWorkflow(now, { ...binding, traceId, signal }) as ReturnType<typeof tickActiveRole>,
+        })
+        signal.throwIfAborted()
+        activeRoleId = r.roleId
+        const tickRoleId = r.roleId
+        if (tickRoleId && !r.paused) {
+          broadcastTimelineUpdated(tickRoleId, now)
+          // M31-G3：默认可关；失败不阻断 ticker
+          const actions: Array<{ label: string; userFacing: boolean; action: () => Promise<unknown> }> = [
+            { label: 'proactive greeting', userFacing: true, action: () => maybeProactiveGreeting(tickRoleId, now) },
+            { label: 'chat resonance progression', userFacing: false, action: () => checkAndProgressAbsorbedResonances(tickRoleId, now) },
+            { label: 'spontaneous impulse', userFacing: true, action: () => triggerSpontaneousImpulse(tickRoleId, now) },
+            { label: 'inner thought', userFacing: false, action: () => checkAndGenerateInnerThought(tickRoleId, now) },
+            { label: 'contextual dressing', userFacing: false, action: () => checkAndPerformContextualDressing(tickRoleId, now) },
+            { label: 'travel progression', userFacing: false, action: () => checkAndProgressTravelJourney(tickRoleId, now) },
+            { label: 'vulnerability', userFacing: true, action: () => checkAndTriggerVulnerability(tickRoleId, now) },
+            { label: 'nightly reflection', userFacing: false, action: () => checkAndTriggerNightlyReflection(tickRoleId, now) },
+            { label: 'replan', userFacing: false, action: () => checkAndReplanIfExhausted(tickRoleId, now) },
+            { label: 'host care', userFacing: true, action: () => checkAndTriggerHostCare(tickRoleId, now) },
+          ]
+          let userFacingDelivered = false
+          for (const item of actions) {
+            if (item.userFacing && userFacingDelivered) continue
+            const outcome = await runForActiveRole(tickRoleId, item.label, now, signal, () => item.userFacing ? runAutomaticProactiveAction(tickRoleId, now, item.action) : item.action())
+            if (!outcome.ok) break
+            if (item.userFacing && didDeliverUserFacingAction(outcome.result)) userFacingDelivered = true
+          }
+          await runForActiveRole(tickRoleId, 'companion outbox delivery', now, signal, () => dispatchCompanionWindowOutbox())
+          await runForActiveRole(tickRoleId, 'companion session outbox delivery', now, signal, () => dispatchCompanionSessionOutbox())
         }
-        await runForActiveRole(tickRoleId, 'companion outbox delivery', now, () => dispatchCompanionWindowOutbox())
-        await runForActiveRole(tickRoleId, 'companion session outbox delivery', now, () => dispatchCompanionSessionOutbox())
-      }
+      }))
     } catch (err) {
-      log.warn('tickActiveRole failed', { error: String(err) })
+      if (!signal.aborted) log.warn('tickActiveRole failed', { error: String(err) })
     }
 
     let nextDelay = defaultIntervalMs
-    if (activeRoleId) {
+    if (!signal.aborted && activeRoleId) {
       nextDelay = await getNextPlannedEventDelay(activeRoleId, Date.now(), defaultIntervalMs)
     }
 
-    if (timer !== null) {
-      timer = setTimeout(executeTick, nextDelay)
+    owner.busy = false
+    if (ticker === owner) {
+      owner.timer = setTimeout(executeTick, nextDelay)
       log.debug('Next life tick scheduled', { nextDelay, roleId: activeRoleId })
     }
   }
@@ -133,14 +164,16 @@ export function startLifeTicker(defaultIntervalMs = DEFAULT_INTERVAL_MS): void {
   // 产生用户尚未打开应用就被生活动作改写的状态。
   // 设计意图：首轮沿默认周期进入统一调度，后续仍按下一条计划动态缩短等待；显式生命周期入口可随时触发即时推进。
   // 关键约束：timer 必须先写入再等待，stopLifeTicker 才能取消首轮；不能用 Promise 直接启动后台 tick。
-  timer = setTimeout(executeTick, defaultIntervalMs)
+  owner.timer = setTimeout(executeTick, defaultIntervalMs)
   log.info('Life ticker started with dynamic clock triggers', { defaultIntervalMs })
 }
 
 export function stopLifeTicker(): void {
-  if (timer !== null) {
-    clearTimeout(timer)
-    timer = null
+  if (ticker) {
+    const owner = ticker
+    ticker = undefined
+    clearTimeout(owner.timer)
+    owner.controller.abort(new DOMException('生活时钟已停止。', 'AbortError'))
     log.info('Life ticker stopped')
   }
 }

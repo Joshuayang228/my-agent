@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
 import { getDatabase, persist } from '../../storage/database'
+import { getExecutionSignal } from '../../utils/execution-cancellation'
 
 export type MomentMediaAttemptStatus = 'started' | 'stored' | 'failed' | 'skipped'
 export interface MomentMediaAttempt { id: string; roleId: string; eventId: string; momentId: string | null; status: MomentMediaAttemptStatus; reason: string; imageId: string | null; attemptedAt: number; completedAt: number | null }
@@ -39,6 +40,8 @@ export async function recordMomentMediaAttempt(input: Omit<MomentMediaAttempt, '
 
 export async function storeMomentMedia(input: Omit<StoredMomentMedia, 'id' | 'path' | 'createdAt'> & { bytes: Buffer }): Promise<StoredMomentMedia> {
   await ensureTables()
+  const db = await getDatabase()
+  getExecutionSignal()?.throwIfAborted()
   const id = createHash('sha256').update(input.bytes).digest('hex')
   const root = mediaRoot()
   fs.mkdirSync(root, { recursive: true, mode: 0o700 })
@@ -50,7 +53,6 @@ export async function storeMomentMedia(input: Omit<StoredMomentMedia, 'id' | 'pa
     try { fs.renameSync(temporary, target) } finally { try { fs.unlinkSync(temporary) } catch { /* 已完成 rename */ } }
   }
   const createdAt = Date.now()
-  const db = await getDatabase()
   db.run('INSERT OR IGNORE INTO companion_moment_media (id, role_id, event_id, moment_id, path, mime_type, width, height, byte_length, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [id, input.roleId, input.eventId, input.momentId, target, input.mimeType, input.width, input.height, input.bytes.length, createdAt])
   persist()
   return { id, roleId: input.roleId, eventId: input.eventId, momentId: input.momentId, path: target, mimeType: 'image/png', width: input.width, height: input.height, byteLength: input.bytes.length, createdAt }

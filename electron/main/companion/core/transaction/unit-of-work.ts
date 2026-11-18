@@ -3,6 +3,7 @@ import { ensureCompanionCoreSchema } from '../schema'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { commandExecutionScope } from '../commands/execution-scope'
 import { assertCompanionExecutionOwner } from '../execution/ledger'
+import { getExecutionSignal } from '../../../utils/execution-cancellation'
 
 const scope = new AsyncLocalStorage<{ active: boolean }>()
 
@@ -18,11 +19,12 @@ export function isCompanionCommitActive(): boolean { return scope.getStore()?.ac
 export async function withCompanionUnitOfWork<T>(work: () => Promise<T>): Promise<T> {
   const execute = async () => {
     const command = commandExecutionScope.getStore()
+    const signal = getExecutionSignal(command?.signal)
     // 领取事务后再查租约，排队期间已被其他执行接替的处理器不能写入。
     if (command) await assertCompanionExecutionOwner(command.executionId, command.commandId)
-    command?.signal?.throwIfAborted()
+    signal?.throwIfAborted()
     const result = await work()
-    command?.signal?.throwIfAborted()
+    signal?.throwIfAborted()
     return result
   }
   if (isCompanionCommitActive()) return execute()

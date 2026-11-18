@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import initSqlJs from 'sql.js'
+import { runWithExecutionSignal } from '../../electron/main/utils/execution-cancellation'
 
 const SQL = await initSqlJs()
 let memDb: InstanceType<typeof SQL.Database>
@@ -62,6 +63,15 @@ describe('人物世界核心层', () => {
     memDb.run('DROP TRIGGER reject_claim')
     expect(await dispatchCompanionOutbox({ deliver })).toBe(1)
     expect(deliver).toHaveBeenCalledTimes(1)
+  })
+
+  it('取消发生在本地事务提交前时，消息不会落库', async () => {
+    const lifecycle = new AbortController()
+    await expect(runWithExecutionSignal(lifecycle.signal, () => withCompanionUnitOfWork(async () => {
+      await enqueueCompanionOutbox({ roleId: 'luffy', kind: 'probe', dedupeKey: 'stale-run', payload: {} })
+      lifecycle.abort(new Error('fixture-lifecycle-changed'))
+    }))).rejects.toThrow('fixture-lifecycle-changed')
+    expect(memDb.exec('SELECT COUNT(*) FROM companion_outbox')[0]?.values[0][0]).toBe(0)
   })
 
   it('根命令重试保留关联号，领域事件及消息可定位到各自执行', async () => {

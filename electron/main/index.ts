@@ -24,6 +24,7 @@ import { syncMcpToolsToRegistry } from './mcp/bridge'
 import { parseStoredMcpConfigs } from './mcp/config-security'
 import { getLoadedSkills, initSkillSystem } from './skills/registry'
 import { runtime } from './agent/runtime'
+import { startLifeTicker, stopLifeTicker } from './agent/companion-life-ticker'
 import * as settings from './storage/settings-store'
 import { initScheduler, shutdownScheduler } from './scheduler/index'
 import { registerHostPresenceIdleReader } from './companion/life/host-presence'
@@ -330,7 +331,6 @@ app.whenReady().then(async () => {
   taskQueue.recoverPendingTasks().catch(err => log.warn('Task recovery failed', { error: String(err) }))
 
   // W2：活跃主角生活世界 tick（非活跃不推进）
-  const { startLifeTicker } = await import('./agent/companion-life-ticker')
   startLifeTicker()
 
   if (!VITE_DEV_SERVER_URL) {
@@ -350,7 +350,6 @@ app.on('will-quit', async () => {
   memoryIndexSync?.stop()
   globalShortcut.unregisterAll()
   shutdownScheduler()
-  const { stopLifeTicker } = await import('./agent/companion-life-ticker')
   stopLifeTicker()
   await runtime.shutdown()
   await mcpManager.disconnectAll().catch(() => {})

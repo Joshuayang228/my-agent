@@ -65,13 +65,15 @@ export function createCompanionCoreDomain(): AgentHostDomainDefinition {
       kind: 'workflow',
       exposeToTool: false,
       description: '推进当前人物的生活时钟和到期事件',
-      parameters: { type: 'object', properties: { now: { type: 'integer', description: '本次生活推进的 Unix 毫秒时间' } }, required: ['now'] },
+      parameters: { type: 'object', properties: { now: { type: 'integer', description: '本次生活推进的 Unix 毫秒时间' }, universeId: { type: 'string', description: '本次生活推进绑定的世界观' } }, required: ['now', 'universeId'] },
       requiredPermissions: ['companion.lifecycle'],
       invoke: async (input, context) => {
         if (!context.roleId) throw new Error('Life tick workflow requires roleId')
-        const now = input && typeof input === 'object' ? (input as Record<string, unknown>).now : undefined
+        const scoped = input && typeof input === 'object' ? input as Record<string, unknown> : {}
+        const { now, universeId } = scoped
         if (typeof now !== 'number' || !Number.isSafeInteger(now) || now < 0) throw new Error('生活推进时间无效。')
-        return tickActiveRole(now)
+        if (typeof universeId !== 'string' || !universeId.trim()) throw new Error('生活推进世界观无效。')
+        return tickActiveRole(now, { roleId: context.roleId, universeId, signal: context.signal })
       },
     }],
     contextProviders: [{

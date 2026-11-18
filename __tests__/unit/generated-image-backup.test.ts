@@ -17,7 +17,7 @@ vi.mock('electron', () => ({
 }))
 vi.mock('../../electron/main/llm/index', () => ({ chatComplete: vi.fn() }))
 vi.mock('../../electron/main/storage/llm-debug-store', () => ({ llmDebugStore: { clear: vi.fn() } }))
-vi.mock('../../electron/main/storage/settings-store', () => ({ getSetting: async () => 'role', getAllSettings: async () => ({}), setSetting: vi.fn(), publishModelConfigurationCommitted: vi.fn() }))
+vi.mock('../../electron/main/storage/settings-store', () => ({ getSetting: async () => 'role', getAllSettings: async () => ({}), setSetting: vi.fn(), publishModelConfigurationCommitted: vi.fn(), publishCompanionSelectionCommitted: vi.fn() }))
 vi.mock('../../electron/main/storage/memory-store', () => ({ listMemories: async () => [], addMemory: vi.fn(), assertMemoryContentAllowed: vi.fn() }))
 vi.mock('../../electron/main/storage/database', () => ({ withDatabaseTransaction: async (work: (db: typeof db) => Promise<unknown>) => runLocalTransaction(db, work), getDatabase: async () => db, persist: state.persist }))
 

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { getDatabase, persist } from '../../storage/database'
+import { getDatabase, persist, withDatabaseTransaction } from '../../storage/database'
 import { getSetting } from '../../storage/settings-store'
 import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 import { toLocalDateString } from '../life/dates'
@@ -72,11 +72,10 @@ export async function runAutomaticProactiveAction<T>(roleId: string, now: number
     delivered = didDeliverUserFacingAction(result)
     return result
   } finally {
-    await withCompanionUnitOfWork(async () => {
-      const db = await getDatabase()
+    // 已取消的动作仍需结算已有预留，且该事务只允许修改本次预留行。
+    await withDatabaseTransaction(async db => {
       if (delivered) db.run("UPDATE companion_proactive_budget SET status = 'delivered' WHERE id = ?", [id])
       else db.run('DELETE FROM companion_proactive_budget WHERE id = ?', [id])
-      persist()
     })
   }
 }

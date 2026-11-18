@@ -2,6 +2,7 @@ import { safeStorage } from 'electron'
 import { getDatabase, getInitializedDatabase, persist } from './database'
 import { assertEncryptionPersisted, ensureEncryptionPersisted } from './encryption-persistence'
 import { createLogger } from '../utils/logger'
+import { invalidateCompanionLifecycle } from '../utils/companion-lifecycle'
 import type { ModelConfigurationInput } from '../../../src/shared/types'
 import type { Database } from 'sql.js'
 
@@ -25,6 +26,10 @@ export function publishModelConfigurationCommitted(keys: readonly string[]): voi
       void Promise.resolve(listener()).catch(() => log.warn('Model configuration observer failed'))
     } catch { log.warn('Model configuration observer failed') }
   }
+}
+
+export function publishCompanionSelectionCommitted(keys: readonly string[]): void {
+  if (keys.some(key => key === 'activeRoleId' || key === 'universeId')) invalidateCompanionLifecycle()
 }
 
 const ENCRYPTED_KEYS = new Set<keyof AppSettings>(['llmApiKey', 'mcpServers', 'modelConnections'])
@@ -307,6 +312,7 @@ export async function setSetting<K extends keyof AppSettings>(
     throw new Error('模型配置保存失败，原配置已保留，请重试')
   }
   publishModelConfigurationCommitted([key])
+  publishCompanionSelectionCommitted([key])
   log.info(`Setting updated: ${key}`)
 }
 

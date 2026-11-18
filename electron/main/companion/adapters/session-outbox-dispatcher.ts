@@ -1,5 +1,6 @@
 import { dispatchCompanionOutbox } from '../core/outbox/outbox'
 import { saveMessageIfAbsent } from '../../storage/session-store'
+import { commandExecutionScope } from '../core/commands/execution-scope'
 import type { ChatMessage } from '../../../../src/shared/types'
 
 /**
@@ -12,6 +13,7 @@ import type { ChatMessage } from '../../../../src/shared/types'
 export async function dispatchCompanionSessionOutbox(limit = 20): Promise<number> {
   return dispatchCompanionOutbox({
     limit,
+    roleId: commandExecutionScope.getStore()?.roleId,
     kinds: ['main-session-message'],
     deliver: async (message) => {
       const payload = message.payload as { sessionId?: unknown; message?: unknown }

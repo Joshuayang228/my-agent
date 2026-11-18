@@ -34,6 +34,7 @@ import {
   type SpanHandle,
 } from '../utils/tracer'
 import { getTraceContext } from '../utils/trace-context'
+import { getExecutionSignal } from '../utils/execution-cancellation'
 import { resolvePromptAssetTraces } from '../prompts/registry'
 import { readRegisteredModelRequest } from '../prompts/registered-request'
 import { recordAssetUsage, recordAssetUsages, type AgentAssetUsageInput } from '../utils/asset-usage'
@@ -806,10 +807,10 @@ export async function chatComplete(options: ChatCompleteOptions): Promise<string
     sessionId,
     parentSpanId,
     timeoutMs = 120_000,
-    signal,
   } = options
 
   // 合并「外部中断」和「超时」两个信号
+  const signal = getExecutionSignal(options.signal)
   const timeoutSignal = AbortSignal.timeout(timeoutMs)
   const combinedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
 
