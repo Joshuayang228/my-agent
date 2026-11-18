@@ -5,7 +5,7 @@ import initSqlJs from 'sql.js'
 import type { Database } from 'sql.js'
 import { createProactiveEvidenceSchema } from '../../electron/main/storage/proactive-evidence-schema'
 import { ProactiveEvidenceStore } from '../../electron/main/storage/proactive-evidence-store'
-import { startProactiveEvidence, stopProactiveEvidence, registerProactiveGreetingWindow, dispatchProactiveGreeting, acknowledgeProactiveGreeting, queryProactiveEvidence } from '../../electron/main/companion/life/proactive-evidence'
+import { startProactiveEvidence, stopProactiveEvidence, registerProactiveGreetingWindow, dispatchProactiveGreeting, acknowledgeProactiveGreeting, queryProactiveEvidence } from '../../electron/main/companion/adapters/proactive-evidence'
 import type { ProactiveGreetingPayload } from '../../src/shared/proactive-evidence'
 
 const NOW = 1_800_000_000_000

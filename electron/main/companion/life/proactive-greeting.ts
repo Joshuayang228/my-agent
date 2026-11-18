@@ -16,7 +16,7 @@ import * as settings from '../../storage/settings-store'
 import * as identity from '../identity/loader'
 import { toLocalDateString } from './dates'
 import { listMomentsForRole } from './moments'
-import { dispatchProactiveGreeting, hasProactiveReservation, recordProactiveSkip } from './proactive-evidence'
+import { dispatchProactiveGreeting, hasProactiveReservation, recordProactiveSkip } from '../adapters/proactive-evidence'
 import { enqueueCompanionSessionMessage } from '../application/session-outbox'
 import {
   DEFAULT_QUIET_END_HOUR,

@@ -43,3 +43,18 @@ it('Companion Core 独立拥有运行态和生活存储，过渡文件保持移�
   const state = fs.readFileSync(path.join(root, 'companion/core/state/runtime-state.ts'), 'utf8')
   expect(state).not.toMatch(/getRoleState|setWorldState|projectLegacyWorldState|world_json/)
 })
+
+it('人物世界规则和应用用例通过适配边界使用宿主能力', () => {
+  const sources = ['companion/core', 'companion/life', 'companion/application']
+    .flatMap(directory => files(path.join(root, directory)))
+  sources.push(path.join(root, 'agent-host/builtin-domains.ts'))
+  const violations = sources.flatMap(file => {
+    const imports = ts.preProcessFile(fs.readFileSync(file, 'utf8'), true, true).importedFiles
+    return imports.flatMap(({ fileName }) => {
+      const target = path.relative(root, path.resolve(path.dirname(file), fileName)).replaceAll(path.sep, '/')
+      const forbidden = fileName === 'electron' || target.startsWith('tools/') || target.startsWith('agent-host/')
+      return forbidden ? [`${path.relative(root, file)} -> ${fileName}`] : []
+    })
+  })
+  expect(violations).toEqual([])
+})

@@ -24,3 +24,14 @@ export async function dispatchCompanionWindowOutbox(limit = 20): Promise<number>
     },
   })
 }
+
+export function broadcastRoleChanged(payload: {
+  roleId: string
+  catchupQueued: boolean
+  previousRoleId: string
+  reacquaint: { title: string; body: string; toast: string }
+}): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    win.webContents.send('companion:role-changed', payload)
+  }
+}

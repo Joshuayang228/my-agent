@@ -96,6 +96,7 @@ vi.mock('../../electron/main/storage/settings-store', async original => ({
 
 import {
   recordUserActivity,
+  registerHostPresenceIdleReader,
   getHostPresenceStatus,
   checkAndTriggerHostCare,
   getRecentHostCareContext,
@@ -111,6 +112,7 @@ describe('宿主作息与现实关怀触达（Host Presence & Care Anchor）', (
     vi.clearAllMocks()
     appendedMessages.length = 0
     mockIdleTime = 10
+    registerHostPresenceIdleReader(() => mockIdleTime)
     mockActiveRole = roleId
     resetHostPresenceStateForTesting(baseTime)
   })

@@ -2,7 +2,7 @@ import { getCompanionRuntimeReadModel } from '../companion/core/read-models/runt
 import * as identity from '../companion/identity/loader'
 import * as memory from '../storage/memory-store'
 import { getWorkspaceRoot } from '../workspace/workspace-root'
-import { companionPostMomentTool } from '../tools/builtins/companion-life'
+import { POST_MOMENT_DEFINITION, publishCompanionMoment } from '../companion/application/publish-moment'
 import { triggerInnerThought } from '../companion/life/inner-thoughts'
 import { tickActiveRole } from '../companion/life/engine'
 import { buildWorkspaceContextPrompt } from '../prompts/runtime-context'
@@ -30,13 +30,12 @@ export function createCompanionCoreDomain(): AgentHostDomainDefinition {
       toolName: 'companion_post_moment',
       domainKey: 'companion',
       kind: 'workflow',
-      description: companionPostMomentTool.description,
-      parameters: companionPostMomentTool.parameters,
+      description: POST_MOMENT_DEFINITION.description,
+      parameters: POST_MOMENT_DEFINITION.parameters,
       requiredPermissions: ['companion.write'],
       invoke: async (input, context) => {
         if (!context.roleId) throw new Error('Moment workflow requires roleId')
-        return companionPostMomentTool.execute(input as Record<string, unknown>, {
-          workdir: process.cwd(),
+        return publishCompanionMoment(input as Record<string, unknown>, {
           sessionId: context.sessionId ?? `agent-host-${context.roleId}`,
           roleId: context.roleId,
         })

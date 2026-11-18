@@ -10,7 +10,7 @@ vi.mock('../../electron/main/companion/life/moments', () => ({ listMomentsForRol
 vi.mock('../../electron/main/companion/identity/loader', () => ({ loadRolePack: () => ({ name: '测试伙伴' }) }))
 
 import { maybeProactiveGreeting } from '../../electron/main/companion/life/proactive-greeting'
-import { startProactiveEvidence, stopProactiveEvidence, registerProactiveGreetingWindow, queryProactiveEvidence } from '../../electron/main/companion/life/proactive-evidence'
+import { startProactiveEvidence, stopProactiveEvidence, registerProactiveGreetingWindow, queryProactiveEvidence } from '../../electron/main/companion/adapters/proactive-evidence'
 import { createProactiveEvidenceSchema } from '../../electron/main/storage/proactive-evidence-schema'
 import { MOMENT_TIPS_QUIET_START_KEY, MOMENT_TIPS_QUIET_END_KEY } from '../../electron/main/companion/life/moment-tips'
 

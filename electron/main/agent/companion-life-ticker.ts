@@ -1,4 +1,4 @@
-import { didDeliverUserFacingAction, runAutomaticProactiveAction } from '../application/proactive-budget'
+import { didDeliverUserFacingAction, runAutomaticProactiveAction } from '../companion/application/proactive-budget'
 /**
  * LifeEngine 动态生活时钟事件驱动（仅 active）
  *
@@ -8,24 +8,24 @@ import { didDeliverUserFacingAction, runAutomaticProactiveAction } from '../appl
  */
 
 import { BrowserWindow } from 'electron'
-import { createLogger } from '../../utils/logger'
-import { runCompanionLifeTickWorkflow } from '../../agent-host/host'
-import type { tickActiveRole } from './engine'
-import { maybeProactiveGreeting } from './proactive-greeting'
-import { checkAndProgressAbsorbedResonances } from './chat-resonance'
-import { triggerSpontaneousImpulse } from './spontaneous-impulse'
-import { checkAndGenerateInnerThought } from './inner-thoughts'
-import { checkAndPerformContextualDressing } from './autonomous-dressing'
-import { checkAndProgressTravelJourney } from './travel-progression'
-import { checkAndTriggerVulnerability } from './vulnerability'
-import { checkAndTriggerNightlyReflection } from './nightly-reflection'
-import { checkAndReplanIfExhausted } from './replan'
-import { checkAndTriggerHostCare } from './host-presence'
-import { listEvents } from '../core/persistence/life-repository'
-import { isActiveRole } from '../../storage/settings-store'
-import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
-import { executeCompanionCommand } from '../core/commands/gateway'
-import { dispatchCompanionSessionOutbox } from '../adapters/session-outbox-dispatcher'
+import { createLogger } from '../utils/logger'
+import { runCompanionLifeTickWorkflow } from '../agent-host/host'
+import type { tickActiveRole } from '../companion/life/engine'
+import { maybeProactiveGreeting } from '../companion/life/proactive-greeting'
+import { checkAndProgressAbsorbedResonances } from '../companion/life/chat-resonance'
+import { triggerSpontaneousImpulse } from '../companion/life/spontaneous-impulse'
+import { checkAndGenerateInnerThought } from '../companion/life/inner-thoughts'
+import { checkAndPerformContextualDressing } from '../companion/life/autonomous-dressing'
+import { checkAndProgressTravelJourney } from '../companion/life/travel-progression'
+import { checkAndTriggerVulnerability } from '../companion/life/vulnerability'
+import { checkAndTriggerNightlyReflection } from '../companion/life/nightly-reflection'
+import { checkAndReplanIfExhausted } from '../companion/life/replan'
+import { checkAndTriggerHostCare } from '../companion/life/host-presence'
+import { listEvents } from '../companion/core/persistence/life-repository'
+import { isActiveRole } from '../storage/settings-store'
+import { dispatchCompanionWindowOutbox } from '../companion/adapters/window-outbox-dispatcher'
+import { executeCompanionCommand } from '../companion/core/commands/gateway'
+import { dispatchCompanionSessionOutbox } from '../companion/adapters/session-outbox-dispatcher'
 
 const log = createLogger('LifeTicker')
 
@@ -47,7 +47,7 @@ async function runForActiveRole(roleId: string, label: string, tickId: number, a
   }
 }
 
-export { didDeliverUserFacingAction } from '../application/proactive-budget'
+export { didDeliverUserFacingAction } from '../companion/application/proactive-budget'
 
 let timer: ReturnType<typeof setTimeout> | null = null
 

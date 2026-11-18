@@ -15,7 +15,7 @@ import {
   getNextPlannedEventDelay,
   broadcastTimelineUpdated,
   didDeliverUserFacingAction,
-} from '../../electron/main/companion/life/ticker'
+} from '../../electron/main/agent/companion-life-ticker'
 import { WorldTodayTimeline } from '../../src/components/world/WorldTodayTimeline'
 import * as store from '../../electron/main/companion/core/persistence/life-repository'
 import { localDateTimeMs } from '../../electron/main/companion/life/dates'

@@ -4,7 +4,7 @@ import { readGeneratedImageReference } from '../../storage/generated-images'
 import { getEventById, getMomentById, listEventLinks } from '../core/persistence/life-repository'
 import { replaceEventLinks } from '../core/persistence/life-repository'
 import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
-import { readStoredMomentMedia } from './moment-media-store'
+import { readStoredMomentMedia } from '../adapters/moment-media-store'
 
 export type MomentImageTarget =
   | { ok: true; eventId: string; position: number }

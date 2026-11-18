@@ -213,7 +213,7 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     key: 'companion:policy:moment-media-storage', name: '朋友圈自主配图媒体存储',
     purpose: '应用管理目录中的动态图片元数据、人物归属和失败尝试记录',
     role: 'platform', description: '自动配图接入前的受控存储基础设施，不代表已启用自动生图。',
-    source: 'electron/main/companion/life/moment-media-store.ts#storeMomentMedia', version: 'media-storage-v1',
+    source: 'electron/main/companion/adapters/moment-media-store.ts#storeMomentMedia', version: 'media-storage-v1',
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent({ owner: 'role_id', links: ['event_id', 'moment_id'], contentAddressed: true, automaticGeneration: 'not-enabled' }),
   }), makeCompanionAsset({
@@ -249,7 +249,7 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     key: 'companion:policy:timeline-dynamic-clock', name: '生活时钟事件实时驱动策略',
     purpose: '生活世界定时推进从静态盲等升级为事件时钟感知，有临近计划事件时动态对齐事件时刻触发',
     role: 'platform', description: '默认 5 分钟轮询保底；当 active 角色接下来有 planned 事件时优先在该事件时刻（+500ms slack）唤醒，并在事件落地时广播 companion:timeline-updated。',
-    source: 'electron/main/companion/life/ticker.ts#startLifeTicker', version: 'clock-v1',
+    source: 'electron/main/agent/companion-life-ticker.ts#startLifeTicker', version: 'clock-v2',
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent({ defaultIntervalMs: 300_000, minDelayMs: 3000, eventAlignmentSlackMs: 500, broadcastChannel: 'companion:timeline-updated' }),
   }), makeCompanionAsset({

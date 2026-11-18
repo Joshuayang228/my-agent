@@ -7,7 +7,7 @@ let db: InstanceType<typeof import('sql.js').Database>
 vi.mock('../../electron/main/storage/database', () => ({ withDatabaseTransaction: async (work: (db: typeof db) => Promise<unknown>) => runLocalTransaction(db, work), getDatabase: async () => db, persist: vi.fn() }))
 
 const SQL = await initSqlJs()
-const { recordMomentMediaAttempt, storeMomentMedia, listMomentMediaAttempts, getLatestMomentMediaAttempt } = await import('../../electron/main/companion/life/moment-media-store')
+const { recordMomentMediaAttempt, storeMomentMedia, listMomentMediaAttempts, getLatestMomentMediaAttempt } = await import('../../electron/main/companion/adapters/moment-media-store')
 const { shouldSkipAutomaticMomentImage, buildAutomaticMomentImageDescription } = await import('../../electron/main/companion/life/automatic-moment-media')
 
 describe('moment media store', () => {

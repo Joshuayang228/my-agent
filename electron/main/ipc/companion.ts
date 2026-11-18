@@ -6,7 +6,7 @@ import { getCompanionRuntimeReadModel } from '../companion/core/read-models/runt
  */
 
 import { ipcMain, shell } from 'electron'
-import { acknowledgeProactiveGreeting, queryProactiveEvidence } from '../companion/life/proactive-evidence'
+import { acknowledgeProactiveGreeting, queryProactiveEvidence } from '../companion/adapters/proactive-evidence'
 import type { CompanionAssetCreateInput, CompanionWardrobeChangeInput } from '../../../src/shared/types'
 import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 import {

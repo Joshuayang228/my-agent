@@ -19,7 +19,6 @@ import { randomUUID } from 'node:crypto'
  * - 无论网络状况，均具备高质量人设规则兜底。
  */
 
-import { powerMonitor } from 'electron'
 import type { HostCareEvent, HostCareKind, HostPresenceStatus } from '../../../../src/shared/types'
 import { createLogger } from '../../utils/logger'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
@@ -39,12 +38,17 @@ const log = createLogger('HostPresence')
 let sessionStartAt = Date.now()
 let lastActiveAt = Date.now()
 
-/** 获取系统空闲秒数（带安全防护） */
+let readIdleSeconds: () => number = () => 0
+
+/** 宿主在 ready 后注入空闲采样，领域判定只接收秒数，测试不需要 Electron 电源管理。 */
+export function registerHostPresenceIdleReader(reader: () => number): void {
+  readIdleSeconds = reader
+}
+
+/** 获取宿主提供的空闲秒数，采样不可用时沿用原有活动时间判定。 */
 function getSystemIdleSeconds(): number {
   try {
-    if (powerMonitor && typeof powerMonitor.getSystemIdleTime === 'function') {
-      return powerMonitor.getSystemIdleTime()
-    }
+    return readIdleSeconds()
   } catch {
     // 测试环境或无电源管理
   }

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, Tray, Menu, globalShortcut, nativeImage, ipcMain } from 'electron'
+import { app, BrowserWindow, shell, Tray, Menu, globalShortcut, nativeImage, ipcMain, powerMonitor } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
@@ -10,7 +10,7 @@ import { mark, setLLMTraceSink } from './utils/tracer'
 import { setAssetUsageResolver, setAssetUsageSink } from './utils/asset-usage'
 import { closeDatabase, getDatabase, persist } from './storage/database'
 import { startDiagnosticHistory, stopDiagnosticHistory } from './debug/diagnostic-history-service'
-import { startProactiveEvidence, stopProactiveEvidence, registerProactiveGreetingWindow } from './companion/life/proactive-evidence'
+import { startProactiveEvidence, stopProactiveEvidence, registerProactiveGreetingWindow } from './companion/adapters/proactive-evidence'
 import { recoverPendingBackupMedia } from './storage/backup-recovery'
 import { startMemoryIndexSync } from './memory/index-sync'
 import { llmDebugStore } from './storage/llm-debug-store'
@@ -25,6 +25,7 @@ import { getLoadedSkills, initSkillSystem } from './skills/registry'
 import { runtime } from './agent/runtime'
 import * as settings from './storage/settings-store'
 import { initScheduler, shutdownScheduler } from './scheduler/index'
+import { registerHostPresenceIdleReader } from './companion/life/host-presence'
 import { normalizeDevServerUrl } from './utils/dev-server-url'
 
 const log = createLogger('Main')
@@ -282,6 +283,7 @@ function setupAutoUpdater() {
 // ── App 生命周期 ──
 
 app.whenReady().then(async () => {
+  registerHostPresenceIdleReader(() => powerMonitor.getSystemIdleTime())
   const database = await getDatabase()
   startDiagnosticHistory(database, persist)
   startProactiveEvidence(database, persist)
@@ -326,7 +328,7 @@ app.whenReady().then(async () => {
   taskQueue.recoverPendingTasks().catch(err => log.warn('Task recovery failed', { error: String(err) }))
 
   // W2：活跃主角生活世界 tick（非活跃不推进）
-  const { startLifeTicker } = await import('./companion/life/ticker')
+  const { startLifeTicker } = await import('./agent/companion-life-ticker')
   startLifeTicker()
 
   if (!VITE_DEV_SERVER_URL) {
@@ -346,7 +348,7 @@ app.on('will-quit', async () => {
   memoryIndexSync?.stop()
   globalShortcut.unregisterAll()
   shutdownScheduler()
-  const { stopLifeTicker } = await import('./companion/life/ticker')
+  const { stopLifeTicker } = await import('./agent/companion-life-ticker')
   stopLifeTicker()
   await runtime.shutdown()
   await mcpManager.disconnectAll().catch(() => {})

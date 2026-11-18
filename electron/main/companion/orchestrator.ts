@@ -7,7 +7,7 @@
  *       新角色曾暂停则同步 runCatchup（W3）；本模块不 import agent/。
  */
 
-import { BrowserWindow } from 'electron'
+import { broadcastRoleChanged } from './adapters/window-outbox-dispatcher'
 import * as settings from '../storage/settings-store'
 import * as store from '../storage/session-store'
 import * as identity from './identity/loader'
@@ -490,17 +490,6 @@ export async function assertSessionRole(sessionRoleId: string | undefined | null
     assembleRoleId: bound,
     activeRoleId,
     mismatch: bound !== activeRoleId,
-  }
-}
-
-function broadcastRoleChanged(payload: {
-  roleId: string
-  catchupQueued: boolean
-  previousRoleId: string
-  reacquaint: { title: string; body: string; toast: string }
-}): void {
-  for (const win of BrowserWindow.getAllWindows()) {
-    win.webContents.send('companion:role-changed', payload)
   }
 }
 
