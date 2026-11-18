@@ -29,11 +29,12 @@ import {
   compileChatResonanceRequest,
   compileCultureReviewRequest,
 } from '../../prompts/registered-request'
-import { createAsset, deleteAsset, getAsset, updateAsset, ASSET_KIND_CULTURE } from './assets'
+import { createAsset, getAsset, updateAsset, ASSET_KIND_CULTURE } from './assets'
 import { getMomentByEventId } from '../core/persistence/life-repository'
 import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { executeCompanionCommand } from '../core/commands/gateway'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
+import { COMPANION_FOLLOWUP } from '../core/outbox/followup-kinds'
 import { dispatchCompanionWindowOutbox } from '../adapters/window-outbox-dispatcher'
 import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 import { enqueueAutomaticProactiveNotification } from '../application/proactive-budget'
@@ -194,6 +195,7 @@ export async function settleChatResonance(
   roleId: string,
   sessionId: string,
   llmConfig?: LLMConfig,
+  recovery?: { assistantMessageId: string; sourceEventId: string; assertClaim: () => Promise<void> },
 ): Promise<{ triggered: boolean; resonance?: CompanionLifeResonance }> {
   if (!llmConfig || !hasLLMAuthentication(llmConfig)) {
     return { triggered: false }
@@ -205,7 +207,9 @@ export async function settleChatResonance(
       return { triggered: false }
     }
 
-    const meaningfulMsgs = session.messages.filter(
+    const lastIndex = recovery ? session.messages.findIndex(message => message.id === recovery.assistantMessageId && message.role === 'assistant') : session.messages.length - 1
+    if (lastIndex < 0) return { triggered: false }
+    const meaningfulMsgs = session.messages.slice(0, lastIndex + 1).filter(
       (m) => (m.role === 'user' || m.role === 'assistant') && m.content.trim(),
     )
     if (meaningfulMsgs.length < 2) return { triggered: false }
@@ -237,121 +241,124 @@ export async function settleChatResonance(
     if (!parsed || !parsed.hasResonance || !parsed.kind || !parsed.targetName) {
       return { triggered: false }
     }
+    const { kind, targetName } = parsed
 
     await ensureResonanceTable()
-    const db = await getDatabase()
-
-    // 查重：避免 7 天内重复记录同一实体心愿
-    const sevenDaysAgo = Date.now() - 7 * 86400 * 1000
-    const dupStmt = db.prepare(
-      'SELECT id FROM companion_life_resonances WHERE role_id = ? AND target_name = ? AND created_at > ?',
-    )
-    dupStmt.bind([roleId, parsed.targetName, sevenDaysAgo])
-    const isDup = dupStmt.step()
-    dupStmt.free()
-    if (isDup) {
-      log.info('Chat resonance deduplicated', { roleId, targetName: parsed.targetName })
-      return { triggered: false }
-    }
-
-    let assetId: string | null = null
-
-    // 若属于文化心愿（书/影/音），为主角自动在文化角创建 planned / queued 资产
-    if (parsed.kind === 'culture_wish') {
-      const cultureType = parsed.cultureType || 'reading'
-      const statusPayload = cultureType === 'music'
-        ? { listeningStatus: 'queued' }
-        : cultureType === 'film'
-        ? { watchStatus: 'planned' }
-        : { readingStatus: 'planned' }
-
-      const createRes = await createAsset({
-        roleId,
-        kind: ASSET_KIND_CULTURE,
-        name: parsed.targetName,
-        payload: {
-          type: cultureType,
-          ...statusPayload,
-          summary: `源自与用户的交流对话：“${parsed.userQuote || parsed.targetName}”`,
-          note: `心愿《${parsed.targetName}》：${parsed.reason || '用户在聊天中推荐，记下准备体验。'}`,
-        },
-      })
-      if (createRes.ok) {
-        assetId = createRes.asset.id
+    const result = await withCompanionUnitOfWork(async () => {
+      if (recovery) {
+        await recovery.assertClaim()
+        const first = await recordCompanionProjection({ projectionName: COMPANION_FOLLOWUP.chatResonance, eventId: recovery.sourceEventId })
+        if (!first) return { triggered: false }
       }
-    }
+      const db = await getDatabase()
 
-    const resonance: CompanionLifeResonance = {
-      id: randomUUID(),
-      roleId,
-      sessionId,
-      kind: parsed.kind,
-      title: parsed.title || `心愿：${parsed.targetName}`,
-      targetName: parsed.targetName,
-      userQuote: parsed.userQuote || '',
-      reason: parsed.reason || '',
-      cultureType: parsed.cultureType || null,
-      status: 'active',
-      createdAt: Date.now(),
-      absorbedAt: null,
-      assetId,
-    }
-
-    try {
-      db.run(
-        `INSERT INTO companion_life_resonances
-         (id, role_id, session_id, kind, title, target_name, user_quote, reason, culture_type, status, created_at, absorbed_at, asset_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          resonance.id,
-          resonance.roleId,
-          resonance.sessionId,
-          resonance.kind,
-          resonance.title,
-          resonance.targetName,
-          resonance.userQuote,
-          resonance.reason,
-          resonance.cultureType ?? null,
-          resonance.status,
-          resonance.createdAt,
-          resonance.absorbedAt,
-          resonance.assetId,
-        ],
+      // 查重：避免 7 天内重复记录同一实体心愿
+      const sevenDaysAgo = Date.now() - 7 * 86400 * 1000
+      const dupStmt = db.prepare(
+        'SELECT id FROM companion_life_resonances WHERE role_id = ? AND target_name = ? AND created_at > ?',
       )
-    } catch (error) {
-      if (assetId) {
-        await deleteAsset(assetId, { expectedRoleId: roleId }).catch((cleanupError) => {
-          log.warn('Failed to clean up orphaned resonance asset', { roleId, assetId, error: String(cleanupError) })
-        })
+      dupStmt.bind([roleId, targetName, sevenDaysAgo])
+      const isDup = dupStmt.step()
+      dupStmt.free()
+      if (isDup) {
+        log.info('Chat resonance deduplicated', { roleId, targetName })
+        return { triggered: false }
       }
-      throw error
-    }
-    persist()
 
-    const message = parsed.kind === 'culture_wish'
-      ? `${pack.name} 把「${parsed.targetName}」加入了待体验文化清单！`
-      : `${pack.name} 记下了关于「${parsed.targetName}」的生活心愿！`
+      let assetId: string | null = null
 
-    const resonancePayload = { roleId, resonance, message }
-    await recordCompanionEventAndNotify({
-      roleId,
-      type: 'culture_resonance_created',
-      sourceType: 'chat_resonance',
-      sourceId: resonance.id,
-      idempotencyKey: `culture-resonance-created:${resonance.id}`,
-      occurredAt: resonance.createdAt,
-      payload: resonancePayload as unknown as Record<string, unknown>,
-      notification: {
-        kind: 'life-resonance-created',
-        dedupeKey: `culture-resonance-created:${resonance.id}`,
+      // 若属于文化心愿（书/影/音），为主角自动在文化角创建 planned / queued 资产
+      if (kind === 'culture_wish') {
+        const cultureType = parsed.cultureType || 'reading'
+        const statusPayload = cultureType === 'music'
+          ? { listeningStatus: 'queued' }
+          : cultureType === 'film'
+          ? { watchStatus: 'planned' }
+          : { readingStatus: 'planned' }
+
+        const createRes = await createAsset({
+          roleId,
+          kind: ASSET_KIND_CULTURE,
+          name: targetName,
+          payload: {
+            type: cultureType,
+            ...statusPayload,
+            summary: `源自与用户的交流对话：“${parsed.userQuote || targetName}”`,
+            note: `心愿《${targetName}》：${parsed.reason || '用户在聊天中推荐，记下准备体验。'}`,
+          },
+        })
+        if (createRes.ok) {
+          assetId = createRes.asset.id
+        }
+      }
+
+      const resonance: CompanionLifeResonance = {
+        id: randomUUID(),
+        roleId,
+        sessionId,
+        kind,
+        title: parsed.title || `心愿：${targetName}`,
+        targetName,
+        userQuote: parsed.userQuote || '',
+        reason: parsed.reason || '',
+        cultureType: parsed.cultureType || null,
+        status: 'active',
+        createdAt: Date.now(),
+        absorbedAt: null,
+        assetId,
+      }
+
+      db.run(
+          `INSERT INTO companion_life_resonances
+           (id, role_id, session_id, kind, title, target_name, user_quote, reason, culture_type, status, created_at, absorbed_at, asset_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            resonance.id,
+            resonance.roleId,
+            resonance.sessionId,
+            resonance.kind,
+            resonance.title,
+            resonance.targetName,
+            resonance.userQuote,
+            resonance.reason,
+            resonance.cultureType ?? null,
+            resonance.status,
+            resonance.createdAt,
+            resonance.absorbedAt,
+            resonance.assetId,
+          ],
+      )
+      persist()
+
+      const message = kind === 'culture_wish'
+        ? `${pack.name} 把「${targetName}」加入了待体验文化清单！`
+        : `${pack.name} 记下了关于「${targetName}」的生活心愿！`
+
+      const resonancePayload = { roleId, resonance, message }
+      await recordCompanionEventAndNotify({
+        roleId,
+        type: 'culture_resonance_created',
+        sourceType: 'chat_resonance',
+        sourceId: resonance.id,
+        idempotencyKey: `culture-resonance-created:${resonance.id}`,
+        occurredAt: resonance.createdAt,
         payload: resonancePayload as unknown as Record<string, unknown>,
-      },
-    })
+        notification: {
+          kind: 'life-resonance-created',
+          dedupeKey: `culture-resonance-created:${resonance.id}`,
+          payload: resonancePayload as unknown as Record<string, unknown>,
+        },
+        dispatch: false,
+      })
 
-    log.info('Chat resonance settled', { roleId, kind: parsed.kind, targetName: parsed.targetName, assetId })
-    return { triggered: true, resonance }
+      log.info('Chat resonance settled', { roleId, kind, targetName, assetId })
+      return { triggered: true, resonance }
+    })
+    if (result.triggered) await dispatchCompanionWindowOutbox()
+    return result
   } catch (err) {
     log.warn('Failed to settle chat resonance', { roleId, error: String(err) })
+    if (recovery) throw err
     return { triggered: false }
   }
 }
@@ -642,12 +649,12 @@ export async function getPendingResonanceFeedback(roleId: string): Promise<Compa
 /**
  * 标记心愿反馈已在对话中向用户自然带出
  */
-export async function markResonanceFeedbackDelivered(resonanceId: string): Promise<void> {
+export async function markResonanceFeedbackDelivered(resonanceId: string, source?: { roleId: string; deliveredAt: number }): Promise<void> {
   await ensureResonanceTable()
   const db = await getDatabase()
   db.run(
-    'UPDATE companion_life_resonances SET feedback_delivered_at = ? WHERE id = ?',
-    [Date.now(), resonanceId],
+    `UPDATE companion_life_resonances SET feedback_delivered_at = ? WHERE id = ? AND feedback_delivered_at IS NULL${source ? ' AND role_id = ?' : ''}`,
+    [source?.deliveredAt ?? Date.now(), resonanceId, ...(source ? [source.roleId] : [])],
   )
   persist()
 }

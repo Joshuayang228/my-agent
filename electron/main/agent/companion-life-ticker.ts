@@ -149,7 +149,7 @@ export function startLifeTicker(defaultIntervalMs = DEFAULT_INTERVAL_MS): void {
       if (!signal.aborted) log.warn('tickActiveRole failed', { error: String(err) })
     }
 
-    if (ticker === owner) await recoverCompanionFollowups()
+    if (ticker === owner) void recoverCompanionFollowups()
 
     let nextDelay = defaultIntervalMs
     if (!signal.aborted && activeRoleId) {

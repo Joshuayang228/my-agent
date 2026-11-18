@@ -56,6 +56,7 @@ export async function enqueueCompanionOutbox(input: {
 export async function dispatchCompanionOutbox(input: {
   limit?: number
   roleId?: string
+  leaseMs?: number
   kinds?: readonly string[]
   excludeKinds?: readonly string[]
   deliver: (message: CompanionOutboxMessage) => Promise<void>
@@ -93,7 +94,7 @@ export async function dispatchCompanionOutbox(input: {
   for (const row of rows) {
     const message = rowToOutbox(row)
     const claimedAt = Date.now()
-    const leaseUntil = claimedAt + 30_000
+    const leaseUntil = claimedAt + (input.leaseMs ?? 30_000)
     const attempt = message.attempt + 1
     const claimed = await withDatabaseTransaction(async transaction => {
       signal?.throwIfAborted()
@@ -120,6 +121,13 @@ export async function dispatchCompanionOutbox(input: {
     })
   }
   return delivered
+}
+
+export async function assertCompanionOutboxClaim(message: Pick<CompanionOutboxMessage, 'id' | 'attempt'>): Promise<void> {
+  const db = await getDatabase()
+  if (!db.exec("SELECT 1 FROM companion_outbox WHERE id = ? AND attempt = ? AND status = 'processing' AND lease_until > ?", [message.id, message.attempt, Date.now()]).length) {
+    throw new Error('人物出站任务已失去执行权。')
+  }
 }
 
 function rowToOutbox(row: unknown[]): CompanionOutboxMessage {

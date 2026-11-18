@@ -18,7 +18,7 @@ import { agentLoop } from './loop'
 import { characterDefinitionFromRolePack } from '../prompts/compiler'
 import { buildSummonContextPrompt, buildActiveSkillPrompt } from '../prompts/runtime-context'
 import { compileMainSystem } from '../prompts/registered-request'
-import { loadConversationAssemblyInput, createConversationApplicationContext, attachConversationPromptContext, buildConversationContextEvidence, resolveConversationRelationshipHints, settleConversationCompletion, assertConversationSessionRole, resolveConversationCastPresence, formatConversationSummonScene, getConversationDelegationHint, registerConversationStreamingProbe } from './conversation-application-service'
+import { loadConversationAssemblyInput, createConversationApplicationContext, attachConversationPromptContext, buildConversationContextEvidence, resolveConversationRelationshipHints, commitConversationCompletion, settleConversationCompletion, assertConversationSessionRole, resolveConversationCastPresence, formatConversationSummonScene, getConversationDelegationHint, registerConversationStreamingProbe } from './conversation-application-service'
 import { getAgentHostContext, getHostConversationPolicy, loadHostConversationManifest, registerAgentHostTools, resolveAgentHostModel } from '../agent-host/host'
 import { AgentHostScopedToolCatalog } from '../agent-host/scoped-catalog'
 import type { AgentHostModelPolicy } from '../../../src/shared/agent-host'
@@ -510,6 +510,28 @@ class AgentRuntime {
         }
         if (ev.type === 'done') {
           terminalReason = ev.reason
+          if (ev.reason === 'completed' && assistantContent && !assistantSaved) {
+            const reply: ChatMessage = {
+              id: `assistant-${randomUUID()}`,
+              role: 'assistant',
+              content: assistantContent,
+              timestamp: Date.now(),
+            }
+            const saveReply = () => store.saveMessage(sessionId, reply)
+            if (!isWorkspace && !isSummon && !headless) {
+              await commitConversationCompletion({
+                roleId: assembleRoleId,
+                sessionId,
+                assistantMessageId: reply.id,
+                occurredAt: reply.timestamp,
+                pendingFeedbackId,
+                saveReply,
+              })
+            } else await saveReply()
+            assistantSaved = true
+            chatSpan.setAttribute('assistantContentLength', assistantContent.length)
+            chatSpan.end('ok')
+          }
           doneEmitted = true
         }
         // 生图预览收到 tool_end 就会按会话读取图片引用；先发布会读到尚未保存的记录。
@@ -542,20 +564,11 @@ class AgentRuntime {
             toolCalls: ev.calls,
           })
         }
-        if (ev.type === 'done' && ev.reason === 'completed' && assistantContent && !assistantSaved) {
-          assistantSaved = true
-          await store.saveMessage(sessionId, {
-            id: `assistant-${Date.now()}`,
-            role: 'assistant',
-            content: assistantContent,
-            timestamp: Date.now(),
-          })
-
-          chatSpan.setAttribute('assistantContentLength', assistantContent.length)
-          chatSpan.end('ok')
-
+        if (ev.type === 'done' && ev.reason === 'completed' && assistantSaved && !isWorkspace && !headless) {
+          const sessionKind = sessionMeta?.sessionKind ?? 'main'
           const auxConfig = await this.getAuxLLMConfig()
-          if (!isWorkspace && !headless) await this.enqueuePostTasks(
+          settleConversationCompletion({ roleId: assembleRoleId, sessionId, sessionKind, llmConfig: auxConfig })
+          await this.enqueuePostTasks(
             sessionId,
             messages,
             assistantContent,
@@ -563,9 +576,7 @@ class AgentRuntime {
             auxConfig,
             {
               roleId: assembleRoleId,
-              sessionKind: sessionMeta?.sessionKind,
             },
-            pendingFeedbackId,
           )
         }
       }
@@ -652,8 +663,7 @@ class AgentRuntime {
     assistantContent: string,
     lastUserMsg: ChatMessage | undefined,
     llmConfig: LLMConfig,
-    companion?: { roleId: string; sessionKind?: string },
-    pendingFeedbackId?: string,
+    companion?: { roleId: string },
   ): Promise<void> {
     await taskQueue.enqueue(sessionId, 'profile-extract', async () => {
       setQuerySource('memory')
@@ -690,9 +700,6 @@ class AgentRuntime {
     // G1 自我强化循环修复：不再把 assistant 原始回复写入向量库。
     // 只索引用户消息作为语义召回源（Alice Ch.5 陷阱）。
 
-    if (companion?.roleId) {
-      settleConversationCompletion({ roleId: companion.roleId, sessionId, sessionKind: companion.sessionKind, llmConfig, pendingFeedbackId })
-    }
   }
 
   /** 窗口失焦时发送桌面通知 */

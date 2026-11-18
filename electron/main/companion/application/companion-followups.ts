@@ -4,10 +4,13 @@ import { ensureMemoryTable, writeMemoryToDatabase } from '../../storage/memory-s
 import { createLogger } from '../../utils/logger'
 import { getCompanionDomainEventById } from '../core/events/domain-events'
 import { COMPANION_FOLLOWUP, COMPANION_FOLLOWUP_KINDS } from '../core/outbox/followup-kinds'
-import { dispatchCompanionOutbox } from '../core/outbox/outbox'
+import { assertCompanionOutboxClaim, dispatchCompanionOutbox } from '../core/outbox/outbox'
 import { recordCompanionProjection } from '../core/projections/receipts'
 import { isCompanionCommitActive, withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 import { tryRecordMilestone } from '../growth/milestones'
+import { markResonanceFeedbackDelivered, settleChatResonance } from '../life/chat-resonance'
+import { settleVitalsAfterChat } from '../life/world-state'
+import { loadAuxLLMConfig } from '../../llm/aux-config'
 
 const log = createLogger('CompanionFollowups')
 
@@ -20,7 +23,7 @@ export async function recoverCompanionFollowups(): Promise<void> {
   if (isCompanionCommitActive()) return
   try {
     await dispatchCompanionOutbox({
-      kinds: COMPANION_FOLLOWUP_KINDS,
+      kinds: COMPANION_FOLLOWUP_KINDS.filter(kind => kind !== COMPANION_FOLLOWUP.chatResonance),
       deliver: async message => {
         const { eventId, kind, roleId, payload } = message
         if (!eventId) throw new Error('人物后续任务缺少来源事件。')
@@ -44,9 +47,36 @@ export async function recoverCompanionFollowups(): Promise<void> {
             await tryRecordMilestone(roleId, 'keepsake_gifted', { roleDisplayName, now: occurredAt })
             return undefined
           }
+          if (kind === COMPANION_FOLLOWUP.chatVitals || kind === COMPANION_FOLLOWUP.chatFeedback) {
+            const event = await getCompanionDomainEventById(eventId)
+            if (event?.type !== 'conversation_turn_completed' || event.roleId !== roleId) throw new Error('对话结算任务无效。')
+            if (kind === COMPANION_FOLLOWUP.chatVitals) await settleVitalsAfterChat(roleId)
+            else if (typeof event.payload.pendingFeedbackId === 'string') {
+              await markResonanceFeedbackDelivered(event.payload.pendingFeedbackId, { roleId, deliveredAt: event.occurredAt })
+            } else throw new Error('对话反馈任务缺少反馈标识。')
+            return undefined
+          }
           throw new Error('未知人物后续任务。')
         })
         afterCommit?.()
+      },
+    })
+    await dispatchCompanionOutbox({
+      kinds: [COMPANION_FOLLOWUP.chatResonance],
+      leaseMs: 150_000,
+      deliver: async message => {
+        const event = message.eventId ? await getCompanionDomainEventById(message.eventId) : null
+        const sessionId = event?.payload.sessionId
+        if (event?.type !== 'conversation_turn_completed' || event.roleId !== message.roleId || !event.sourceId || typeof sessionId !== 'string') {
+          throw new Error('对话共鸣任务缺少原始消息。')
+        }
+        const projection = (await getDatabase()).exec('SELECT 1 FROM companion_projection_receipts WHERE projection_name = ? AND event_id = ?', [COMPANION_FOLLOWUP.chatResonance, event.id])
+        if (projection.length) return
+        await settleChatResonance(message.roleId, sessionId, await loadAuxLLMConfig(), {
+          sourceEventId: event.id,
+          assistantMessageId: event.sourceId,
+          assertClaim: () => assertCompanionOutboxClaim(message),
+        })
       },
     })
   } catch (error) {

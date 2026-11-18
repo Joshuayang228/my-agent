@@ -65,6 +65,7 @@ const { listInnerThoughts, ensureInnerThoughtTable } = await import(
 
 const { ensureMemoryTable, listFeedbackForRole } = await import('../../electron/main/storage/memory-store')
 const { recoverCompanionFollowups } = await import('../../electron/main/companion/application/companion-followups')
+const { commitConversationCompletion } = await import('../../electron/main/agent/conversation-application-service')
 
 describe('角色深夜反思与心灵领悟（Nightly Reflection & Epiphany）', () => {
   beforeEach(async () => {
@@ -155,5 +156,34 @@ describe('角色深夜反思与心灵领悟（Nightly Reflection & Epiphany）',
     await recoverCompanionFollowups()
     expect(await listFeedbackForRole('luffy')).toHaveLength(0)
     expect(memDb.exec("SELECT status FROM companion_outbox WHERE kind = 'followup:nightly-memory'")[0]?.values).toEqual([['delivered']])
+  })
+
+  it('对话回复与结算登记共同提交，重开后的体征结算只执行一次', async () => {
+    memDb.run('CREATE TABLE reply_probe (id TEXT PRIMARY KEY)')
+    const input = {
+      roleId: 'luffy',
+      sessionId: 'session-probe',
+      assistantMessageId: 'reply-probe',
+      occurredAt: Date.now(),
+      saveReply: async () => { memDb.run('INSERT INTO reply_probe VALUES (?)', ['reply-probe']) },
+    }
+    const { getCompanionRuntimeState } = await import('../../electron/main/companion/core/state/runtime-state')
+    const before = (await getCompanionRuntimeState('luffy')).socialNeed
+    memDb.run("CREATE TRIGGER reject_turn_outbox BEFORE INSERT ON companion_outbox BEGIN SELECT RAISE(ABORT, 'fixture-turn-outbox'); END")
+    await expect(commitConversationCompletion(input)).rejects.toThrow('fixture-turn-outbox')
+    expect(memDb.exec('SELECT COUNT(*) FROM reply_probe')[0]?.values[0][0]).toBe(0)
+    memDb.run('DROP TRIGGER reject_turn_outbox')
+    await commitConversationCompletion(input)
+    expect(memDb.exec('SELECT id FROM reply_probe')[0]?.values).toEqual([['reply-probe']])
+    expect((await getCompanionRuntimeState('luffy')).socialNeed).toBe(before)
+    const snapshot = memDb.export()
+    memDb.close()
+    memDb = new SQL.Database(snapshot)
+    await recoverCompanionFollowups()
+    const settled = (await getCompanionRuntimeState('luffy')).socialNeed
+    expect(settled).toBeLessThan(before)
+    memDb.run("UPDATE companion_outbox SET status = 'processing', lease_until = 0 WHERE kind = 'followup:chat-vitals'")
+    await recoverCompanionFollowups()
+    expect((await getCompanionRuntimeState('luffy')).socialNeed).toBe(settled)
   })
 })

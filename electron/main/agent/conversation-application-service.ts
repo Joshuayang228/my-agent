@@ -1,6 +1,7 @@
 import { scheduleReflectionAfterChat } from '../companion/growth/reflection-service'
-import { settleVitalsAfterChat } from '../companion/life/world-state'
-import { markResonanceFeedbackDelivered, settleChatResonance } from '../companion/life/chat-resonance'
+import { recoverCompanionFollowups } from '../companion/application/companion-followups'
+import { recordCompanionEventAndNotify } from '../companion/application/record-event-notify'
+import { COMPANION_FOLLOWUP } from '../companion/core/outbox/followup-kinds'
 import type { LLMConfig, PromptContextEvidence } from '../../../src/shared/types'
 import { createLogger } from '../utils/logger'
 import { formatRelationshipStageForPrompt, resolveRelationshipStageForRole } from '../companion/growth/relationship-stage'
@@ -116,6 +117,34 @@ export function registerConversationStreamingProbe(probe: () => boolean): void {
 const log = createLogger('ConversationApplicationService')
 
 /**
+ * 背景：主对话正文已保存但进程立即退出时，生命体征和已展示反馈仍需完成结算。
+ * 设计意图：以真正保存的回复 ID 为来源，把最小结算任务和回复共同提交。
+ * 关键约束：当前回调只允许写本地回复；消费使用原人物与反馈 ID，可以发生在后续进程。
+ */
+export async function commitConversationCompletion(input: {
+  roleId: string
+  sessionId: string
+  assistantMessageId: string
+  occurredAt: number
+  pendingFeedbackId?: string
+  saveReply: () => Promise<void>
+}): Promise<void> {
+  await recordCompanionEventAndNotify({
+    roleId: input.roleId,
+    type: 'conversation_turn_completed',
+    sourceType: 'chat_message',
+    sourceId: input.assistantMessageId,
+    idempotencyKey: `conversation-completed:${input.sessionId}:${input.assistantMessageId}`,
+    occurredAt: input.occurredAt,
+    payload: { sessionId: input.sessionId, pendingFeedbackId: input.pendingFeedbackId },
+    commit: input.saveReply,
+    notification: [],
+    followups: [COMPANION_FOLLOWUP.chatVitals, COMPANION_FOLLOWUP.chatResonance, ...(input.pendingFeedbackId ? [COMPANION_FOLLOWUP.chatFeedback] : [])],
+    dispatch: false,
+  })
+}
+
+/**
  * 组织一次对话完成后的产品领域副作用。
  *
  * 背景：Runtime 同时承担 Agent Loop 生命周期和伙伴生活结算，新增领域行为会持续扩大通用执行器的依赖面。
@@ -127,23 +156,11 @@ export function settleConversationCompletion(input: {
   sessionId: string
   sessionKind?: string
   llmConfig: LLMConfig
-  pendingFeedbackId?: string
 }): void {
   void scheduleReflectionAfterChat(input.roleId, input.sessionId, input.llmConfig, { sessionKind: input.sessionKind }).catch(error => {
     log.warn('反思任务入队失败', { roleId: input.roleId, errorType: error instanceof Error ? error.name : 'unknown' })
   })
-  if (input.sessionKind !== 'main') return
-  settleVitalsAfterChat(input.roleId).catch(error => {
-    log.warn('对话后结算角色生命体征失败', { roleId: input.roleId, error: error instanceof Error ? error.message : String(error) })
-  })
-  settleChatResonance(input.roleId, input.sessionId, input.llmConfig).catch(error => {
-    log.warn('对话后提取生活因果反哺失败', { roleId: input.roleId, error: error instanceof Error ? error.message : String(error) })
-  })
-  if (input.pendingFeedbackId) {
-    markResonanceFeedbackDelivered(input.pendingFeedbackId).catch(error => {
-      log.warn('标记心愿反馈已送达失败', { feedbackId: input.pendingFeedbackId, error: error instanceof Error ? error.message : String(error) })
-    })
-  }
+  if (input.sessionKind === 'main') void recoverCompanionFollowups()
 }
 
 export async function resolveConversationRelationshipHints(input: {
