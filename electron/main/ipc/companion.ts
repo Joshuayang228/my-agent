@@ -214,7 +214,7 @@ export function registerCompanionIPC(): void {
       return { ok: false as const, error: '动态不存在', code: 'INVALID' }
     }
     const roleId = await getActiveRoleId()
-    return executeCompanionCommand({ roleId, actionType: 'toggle-moment-like', handler: () => toggleMomentLikeForRole(roleId, momentId.trim()) })
+    return executeCompanionCommand({ roleId, actionType: 'toggle-moment-like', local: true, handler: () => toggleMomentLikeForRole(roleId, momentId.trim()) })
   })
 
   handle(
@@ -264,7 +264,7 @@ export function registerCompanionIPC(): void {
   handle('companion:delete-inner-thought', async (_e, id: string) => {
     const { deleteInnerThought } = await import('../companion/life/inner-thoughts')
     const roleId = await getActiveRoleId()
-    return executeCompanionCommand({ roleId, actionType: 'delete-inner-thought', handler: () => deleteInnerThought(id) })
+    return executeCompanionCommand({ roleId, actionType: 'delete-inner-thought', local: true, handler: () => deleteInnerThought(id) })
   })
 
   handle('companion:trigger-nightly-reflection', async (_e, roleId?: string, force?: boolean) => {

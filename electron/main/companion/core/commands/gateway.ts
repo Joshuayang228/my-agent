@@ -4,6 +4,7 @@ import { startCompanionExecution, finishCompanionExecution } from '../execution/
 import { commandExecutionScope, type CompanionCommandContext } from './execution-scope'
 import { withCompanionUnitOfWork } from '../transaction/unit-of-work'
 import { getTraceContext } from '../../../utils/trace-context'
+import { getExecutionSignal } from '../../../utils/execution-cancellation'
 
 export type { CompanionCommandContext } from './execution-scope'
 
@@ -24,7 +25,8 @@ export async function executeCompanionCommand<T>(input: {
   local?: boolean
   handler: (context: CompanionCommandContext) => Promise<T>
 }): Promise<T> {
-  input.signal?.throwIfAborted()
+  const signal = getExecutionSignal(input.signal)
+  signal?.throwIfAborted()
   if (!(await isActiveRole(input.roleId))) throw new Error('伙伴已切换，请刷新人物页面后重试。')
   const commandId = randomUUID()
   const parent = commandExecutionScope.getStore()
@@ -38,12 +40,12 @@ export async function executeCompanionCommand<T>(input: {
   if (input.idempotencyKey && execution.status === 'completed') return execution.result as T
   if (input.idempotencyKey && execution.status === 'running' && execution.commandId !== commandId) throw new Error('同一命令正在执行，请勿重复提交。')
   try {
-    const context = { commandId, executionId: execution.id, correlationId: execution.correlationId ?? correlationId, roleId: input.roleId, occurredAt: Date.now(), signal: input.signal }
+    const context = { commandId, executionId: execution.id, correlationId: execution.correlationId ?? correlationId, roleId: input.roleId, occurredAt: Date.now(), signal }
     return await commandExecutionScope.run(context, async () => {
       const execute = async () => {
-        input.signal?.throwIfAborted()
+        signal?.throwIfAborted()
         const result = await input.handler(context)
-        input.signal?.throwIfAborted()
+        signal?.throwIfAborted()
         const completed = await finishCompanionExecution({ executionId: execution.id, commandId, status: 'completed', result })
         if (!completed) throw new Error('人物世界命令已失去执行权。')
         return result

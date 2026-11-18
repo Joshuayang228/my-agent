@@ -278,12 +278,8 @@ export async function getSetting<K extends keyof AppSettings>(key: K): Promise<A
 }
 
 export async function isActiveRole(roleId: string): Promise<boolean> {
-  try {
-    const activeRoleId = (await getSetting('activeRoleId')).trim()
-    return !activeRoleId || activeRoleId === roleId
-  } catch {
-    return true
-  }
+  const activeRoleId = (await getSetting('activeRoleId')).trim()
+  return !activeRoleId || activeRoleId === roleId
 }
 
 export async function setSetting<K extends keyof AppSettings>(

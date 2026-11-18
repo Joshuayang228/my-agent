@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import initSqlJs from 'sql.js'
 import { runWithExecutionSignal } from '../../electron/main/utils/execution-cancellation'
+import { runLocalTransaction } from '../helpers/local-transaction'
 
 const SQL = await initSqlJs()
 let memDb: InstanceType<typeof SQL.Database>
@@ -9,17 +10,7 @@ vi.mock('../../electron/main/storage/database', () => ({
   getDatabase: vi.fn(async () => memDb),
   getInitializedDatabase: () => memDb,
   persist: vi.fn(),
-  withDatabaseTransaction: vi.fn(async (work: (db: unknown) => Promise<unknown>) => {
-    memDb.run('BEGIN')
-    try {
-      const result = await work(memDb)
-      memDb.run('COMMIT')
-      return result
-    } catch (error) {
-      memDb.run('ROLLBACK')
-      throw error
-    }
-  }),
+  withDatabaseTransaction: vi.fn(async (work: (db: typeof memDb) => Promise<unknown>) => runLocalTransaction(memDb, work)),
 }))
 
 const {
@@ -63,6 +54,19 @@ describe('人物世界核心层', () => {
     memDb.run('DROP TRIGGER reject_claim')
     expect(await dispatchCompanionOutbox({ deliver })).toBe(1)
     expect(deliver).toHaveBeenCalledTimes(1)
+  })
+
+  it('命令领取写入失败不会调用处理器，具体操作恢复后可执行', async () => {
+    const handler = vi.fn(async () => 'ok')
+    await enqueueCompanionOutbox({ roleId: 'luffy', kind: 'probe', dedupeKey: 'schema-ready', payload: {} })
+    memDb.run("CREATE TRIGGER reject_run BEFORE INSERT ON companion_execution_runs BEGIN SELECT RAISE(ABORT, 'fixture-command-claim'); END")
+    const input = { roleId: 'luffy', actionType: 'command-probe', idempotencyKey: 'caller-probe', local: true, handler }
+    await expect(executeCompanionCommand(input)).rejects.toThrow('fixture-command-claim')
+    expect(handler).not.toHaveBeenCalled()
+    expect(memDb.exec('SELECT COUNT(*) FROM companion_execution_runs')[0]?.values[0][0]).toBe(0)
+    memDb.run('DROP TRIGGER reject_run')
+    await expect(executeCompanionCommand(input)).resolves.toBe('ok')
+    expect(handler).toHaveBeenCalledTimes(1)
   })
 
   it('取消发生在本地事务提交前时，消息不会落库', async () => {

@@ -4,6 +4,7 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 import { commandExecutionScope } from '../commands/execution-scope'
 import { assertCompanionExecutionOwner } from '../execution/ledger'
 import { getExecutionSignal } from '../../../utils/execution-cancellation'
+import { isActiveRole } from '../../../storage/settings-store'
 
 const scope = new AsyncLocalStorage<{ active: boolean }>()
 
@@ -21,7 +22,10 @@ export async function withCompanionUnitOfWork<T>(work: () => Promise<T>): Promis
     const command = commandExecutionScope.getStore()
     const signal = getExecutionSignal(command?.signal)
     // 领取事务后再查租约，排队期间已被其他执行接替的处理器不能写入。
-    if (command) await assertCompanionExecutionOwner(command.executionId, command.commandId)
+    if (command) {
+      await assertCompanionExecutionOwner(command.executionId, command.commandId)
+      if (!(await isActiveRole(command.roleId))) throw new Error('伙伴已切换，请刷新人物页面后重试。')
+    }
     signal?.throwIfAborted()
     const result = await work()
     signal?.throwIfAborted()
