@@ -28,6 +28,9 @@ import {
   type ReflectGateResult,
 } from './reflection-gate'
 import { getReflectionState, recordReflectionRun } from './reflection-log'
+import { executeCompanionCommand } from '../core/commands/gateway'
+import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
+import { getSetting } from '../../storage/settings-store'
 
 const log = createLogger('PersonaReflection')
 
@@ -68,6 +71,8 @@ async function runReflectionCore(
 ): Promise<ReflectionResult> {
   const now = opts?.now ?? Date.now()
   const universeId = opts?.universeId ?? 'default'
+  const recordRun = (changed: boolean, summary: string) =>
+    withCompanionUnitOfWork(() => recordReflectionRun(roleId, { at: now, changed, summary }))
   const gate = await shouldReflectNow(roleId, { now, force: opts?.force })
   if (!gate.allowed) {
     log.info('Reflection skipped by gate', { roleId, reason: gate.reason, detail: gate.detail })
@@ -112,11 +117,7 @@ async function runReflectionCore(
     parsed = parseReflectionJson(raw)
   } catch (err) {
     log.warn('Reflection LLM failed', { roleId, error: String(err) })
-    await recordReflectionRun(roleId, {
-      at: now,
-      changed: false,
-      summary: 'llm-failed',
-    })
+    await recordRun(false, 'llm-failed')
     return {
       skipped: false,
       changed: false,
@@ -126,11 +127,7 @@ async function runReflectionCore(
   }
 
   if (!parsed.newMutable) {
-    await recordReflectionRun(roleId, {
-      at: now,
-      changed: false,
-      summary: parsed.summary || 'no-change',
-    })
+    await recordRun(false, parsed.summary || 'no-change')
     log.info('Reflection no change', { roleId, summaryLength: parsed.summary.length })
     return {
       skipped: false,
@@ -142,11 +139,7 @@ async function runReflectionCore(
 
   // 与当前完全相同则不写版本
   if (parsed.newMutable.trim() === currentMutable.trim()) {
-    await recordReflectionRun(roleId, {
-      at: now,
-      changed: false,
-      summary: parsed.summary || 'same-as-current',
-    })
+    await recordRun(false, parsed.summary || 'same-as-current')
     return {
       skipped: false,
       changed: false,
@@ -155,18 +148,14 @@ async function runReflectionCore(
     }
   }
 
-  const write = await setMutable(
-    roleId,
-    parsed.newMutable,
-    `reflection: ${parsed.summary}`,
-    { universeId },
-  )
+  const candidate = parsed.newMutable
+  // 模型等待发生在事务外。版本与冷却在同一人物命令事务内提交，失效执行不能写入任何一边。
+  const write = await withCompanionUnitOfWork(async () => {
+    const result = await setMutable(roleId, candidate, `reflection: ${parsed.summary}`, { universeId })
+    await recordReflectionRun(roleId, { at: now, changed: result.ok, summary: result.ok ? parsed.summary : `rejected:${result.code}` })
+    return result
+  })
   if (!write.ok) {
-    await recordReflectionRun(roleId, {
-      at: now,
-      changed: false,
-      summary: `rejected:${write.code}`,
-    })
     log.warn('Reflection mutable rejected', {
       roleId,
       code: write.code,
@@ -179,11 +168,6 @@ async function runReflectionCore(
       gate,
     }
   }
-  await recordReflectionRun(roleId, {
-    at: now,
-    changed: true,
-    summary: parsed.summary,
-  })
   log.info('Reflection applied', { roleId, version: write.version, summaryLength: parsed.summary.length })
 
   // M30-G1：第一次反思真正写入 MUTABLE
@@ -232,7 +216,7 @@ export async function scheduleReflectionAfterChat(
         updatedAt: source.occurredAt,
       },
       fn: async () => {
-        try { await runReflectionCore(roleId, llmConfig, { universeId: source.universeId }) }
+        try { await runReflectionNow(roleId, llmConfig, { universeId: source.universeId }) }
         finally { pendingRoles.delete(roleId) }
       },
     })
@@ -250,8 +234,16 @@ export async function runReflectionNow(
   llmConfig: LLMConfig,
   opts?: { force?: boolean; universeId?: string },
 ): Promise<ReflectionResult> {
-  await ensureGrowthStartedAt(roleId)
-  return runReflectionCore(roleId, llmConfig, opts)
+  return executeCompanionCommand({
+    roleId,
+    actionType: 'persona-reflection',
+    handler: async () => {
+      const universeId = await getSetting('universeId')
+      if (opts?.universeId && opts.universeId !== universeId) throw new Error('人格反思的原世界观已切换。')
+      await withCompanionUnitOfWork(() => ensureGrowthStartedAt(roleId))
+      return runReflectionCore(roleId, llmConfig, { ...opts, universeId })
+    },
+  })
 }
 
 export async function getReflectionStatus(roleId: string): Promise<{

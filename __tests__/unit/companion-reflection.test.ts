@@ -5,6 +5,7 @@ import { runLocalTransaction } from '../helpers/local-transaction'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import initSqlJs from 'sql.js'
+import { invalidateCompanionLifecycle } from '../../electron/main/utils/companion-lifecycle'
 
 vi.mock('electron', () => ({
   app: { getPath: () => '/tmp' },
@@ -59,6 +60,7 @@ vi.mock('../../electron/main/storage/database', () => ({
 }))
 
 vi.mock('../../electron/main/storage/settings-store', () => ({
+  isActiveRole: vi.fn(async (roleId: string) => settingsMap.activeRoleId === roleId),
   getSetting: vi.fn(async (key: string) => {
     if (key === 'companionGrowthStartedAtByRole') return growthByRole
     if (key === 'companionGrowthStartedAt') return growthLegacy
@@ -95,7 +97,7 @@ const {
   ensureGrowthStartedAt,
   getGrowthStartedAt,
 } = await import('../../electron/main/companion/growth/reflection-gate')
-const { recordReflectionRun } = await import('../../electron/main/companion/growth/reflection-log')
+const { getReflectionState, recordReflectionRun } = await import('../../electron/main/companion/growth/reflection-log')
 const { __test, runReflectionNow } = await import(
   '../../electron/main/companion/growth/reflection-service'
 )
@@ -272,6 +274,38 @@ describe('companion reflection runner', () => {
     expect(r.changed).toBe(true)
     expect(r.version).toBe(1)
     expect(await getMutable('lin')).toContain('先给结论')
+  })
+
+  it('模型等待期间切走再切回时，不提交旧人格版本与反思冷却', async () => {
+    const before = await getMutable('lin')
+    let modelStarted!: () => void
+    let finish!: (raw: string) => void
+    const requested = new Promise<void>(resolve => { modelStarted = resolve })
+    vi.mocked(chatComplete).mockImplementationOnce(() => {
+      modelStarted()
+      return new Promise(resolve => { finish = resolve })
+    })
+    const reflection = runReflectionNow('lin', { apiKey: 'x', baseUrl: 'http://x', model: 'm' }, { force: true })
+    const rejected = expect(reflection).rejects.toThrow('人物世界运行范围已变更')
+    await requested
+    invalidateCompanionLifecycle()
+    invalidateCompanionLifecycle()
+    finish('{"newMutable":"回复再短一点，先给结论。","summary":"已失效建议"}')
+    await rejected
+    expect(await getMutable('lin')).toBe(before)
+    expect((await getReflectionState('lin')).lastRunAt).toBe(0)
+  })
+
+  it('反思冷却保存失败时回滚已写入的人格版本', async () => {
+    const before = await getMutable('lin')
+    await getReflectionState('lin')
+    memDb.run(`CREATE TRIGGER reject_reflection_log BEFORE INSERT ON companion_reflection_state
+      BEGIN SELECT RAISE(ABORT, 'fixture-reflection-log-write'); END`)
+    vi.mocked(chatComplete).mockResolvedValueOnce('{"newMutable":"回复再短一点，先给结论。","summary":"更短"}')
+    await expect(runReflectionNow('lin', { apiKey: 'x', baseUrl: 'http://x', model: 'm' }, { force: true }))
+      .rejects.toThrow('fixture-reflection-log-write')
+    expect(await getMutable('lin')).toBe(before)
+    expect((await getReflectionState('lin')).lastRunAt).toBe(0)
   })
 
   it('路飞反思使用 Role Pack 身份边界，不把生活信号写成 MUTABLE 事实', async () => {
