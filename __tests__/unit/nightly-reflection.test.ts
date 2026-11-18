@@ -179,6 +179,14 @@ describe('角色深夜反思与心灵领悟（Nightly Reflection & Epiphany）',
     const snapshot = memDb.export()
     memDb.close()
     memDb = new SQL.Database(snapshot)
+    memDb.run(`CREATE TRIGGER expire_vitals_claim AFTER UPDATE OF lease_until ON companion_outbox
+      WHEN NEW.kind = 'followup:chat-vitals' AND NEW.status = 'processing' AND NEW.lease_until > 0
+      BEGIN UPDATE companion_outbox SET lease_until = 0 WHERE id = NEW.id; END`)
+    await recoverCompanionFollowups()
+    expect((await getCompanionRuntimeState('luffy')).socialNeed).toBe(before)
+    expect(memDb.exec("SELECT status FROM companion_outbox WHERE kind = 'followup:chat-vitals'")[0]?.values).toEqual([['failed']])
+    memDb.run('DROP TRIGGER expire_vitals_claim')
+    memDb.run("UPDATE companion_outbox SET next_attempt_at = 0 WHERE kind = 'followup:chat-vitals'")
     await recoverCompanionFollowups()
     const settled = (await getCompanionRuntimeState('luffy')).socialNeed
     expect(settled).toBeLessThan(before)

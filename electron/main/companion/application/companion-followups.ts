@@ -28,6 +28,8 @@ export async function recoverCompanionFollowups(): Promise<void> {
         const { eventId, kind, roleId, payload } = message
         if (!eventId) throw new Error('人物后续任务缺少来源事件。')
         const afterCommit = await withCompanionUnitOfWork(async () => {
+          // 等待数据库时租约可能过期。事务内复核后才写回执，避免旧领取先于恢复执行者提交。
+          await assertCompanionOutboxClaim(message)
           const first = await recordCompanionProjection({ projectionName: kind, eventId })
           if (!first) return undefined
           if (kind === COMPANION_FOLLOWUP.nightlyMemory) {
