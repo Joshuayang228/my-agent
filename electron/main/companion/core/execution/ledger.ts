@@ -5,6 +5,49 @@ import { ensureCompanionCoreSchema } from '../schema'
 import type { CompanionExecutionRun, CompanionExecutionStatus } from '../types'
 
 const STALE_EXECUTION_AFTER_MS = 10 * 60 * 1000
+const TERMINAL_RETENTION_MS = 14 * 24 * 60 * 60 * 1000
+const MAX_EXECUTION_RUNS_HISTORY = 5_000
+const MAX_DELIVERED_OUTBOX_HISTORY = 5_000
+
+/**
+ * 裁剪已终结且超过保留窗口或行数上限的高频核心账本，防止 sql.js 内存数据库无限膨胀。
+ *
+ * 背景：companion_execution_runs（每 60s tick 追加）与 companion_outbox（已投递通知）只增不删，长期运行会拖慢全库序列化。
+ * 设计意图：仅清理无幂等键或已超过 14 天保留窗口的终态记录，并兜底保留最近 N 条历史供 Debug 观测。
+ * 关键约束：running / retryable / pending / processing 及近期有 idempotency_key 的记录严禁清理。
+ */
+export function pruneTerminalCompanionCoreLedgers(db: Database, now = Date.now()): { prunedRuns: number; prunedOutbox: number } {
+  const cutoff = now - TERMINAL_RETENTION_MS
+  db.run(
+    `DELETE FROM companion_execution_runs
+     WHERE status IN ('completed', 'failed', 'cancelled')
+       AND ((idempotency_key IS NULL AND started_at < ?)
+         OR (completed_at IS NOT NULL AND completed_at < ?)
+         OR id IN (
+           SELECT id FROM companion_execution_runs
+           WHERE status IN ('completed', 'failed', 'cancelled') AND idempotency_key IS NULL
+           ORDER BY started_at DESC
+           LIMIT -1 OFFSET ?
+         ))`,
+    [cutoff, cutoff, MAX_EXECUTION_RUNS_HISTORY],
+  )
+  const prunedRuns = db.getRowsModified()
+
+  db.run(
+    `DELETE FROM companion_outbox
+     WHERE status = 'delivered'
+       AND ((delivered_at IS NOT NULL AND delivered_at < ?)
+         OR id IN (
+           SELECT id FROM companion_outbox
+           WHERE status = 'delivered'
+           ORDER BY COALESCE(delivered_at, created_at) DESC
+           LIMIT -1 OFFSET ?
+         ))`,
+    [cutoff, MAX_DELIVERED_OUTBOX_HISTORY],
+  )
+  const prunedOutbox = db.getRowsModified()
+  return { prunedRuns, prunedOutbox }
+}
 
 export async function assertCompanionExecutionOwner(executionId: string, commandId: string): Promise<void> {
   const db = await getDatabase()
@@ -22,7 +65,11 @@ export async function assertCompanionExecutionOwner(executionId: string, command
 export async function recoverStaleCompanionExecutions(input?: { now?: number; staleAfterMs?: number }): Promise<number> {
   await ensureCompanionCoreSchema()
   const now = input?.now ?? Date.now()
-  return withDatabaseTransaction(async db => recoverStaleExecutions(db, now, input?.staleAfterMs ?? STALE_EXECUTION_AFTER_MS))
+  return withDatabaseTransaction(async db => {
+    const recovered = recoverStaleExecutions(db, now, input?.staleAfterMs ?? STALE_EXECUTION_AFTER_MS)
+    pruneTerminalCompanionCoreLedgers(db, now)
+    return recovered
+  })
 }
 
 function recoverStaleExecutions(db: Database, now: number, staleAfterMs: number): number {

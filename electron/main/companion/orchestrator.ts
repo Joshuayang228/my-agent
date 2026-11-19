@@ -476,15 +476,22 @@ async function switchUniverse(universeId: string): Promise<UniverseSwitchResult>
   if (isStreamingActive()) return { ok: false, code: 'SESSION_ACTIVE' }
   const pack = identity.loadRolePack(manifest.defaultProtagonistId, id)
   const now = Date.now()
-  await withCompanionUnitOfWork(async () => {
+  const catchupQueued = await withCompanionUnitOfWork(async () => {
     const db = await getDatabase()
+    const target = await getCompanionRuntimeReadModel(manifest.defaultProtagonistId)
     await updateCompanionRuntimeLifecycle({ roleId: currentRole, pausedAt: now, updatedAt: now })
     settings.writePreparedSetting(db, settings.prepareSettingWrite('universeId', id))
     settings.writePreparedSetting(db, settings.prepareSettingWrite('activeRoleId', manifest.defaultProtagonistId))
-    await resumeRole(manifest.defaultProtagonistId)
+    if (target?.pausedAt == null) await resumeRole(manifest.defaultProtagonistId)
+    return target?.pausedAt != null
   })
   settings.publishCompanionSelectionCommitted(['universeId', 'activeRoleId'])
-  broadcastRoleChanged({ roleId: manifest.defaultProtagonistId, catchupQueued: false, previousRoleId: currentRole, reacquaint: buildReacquaintCopy({ fromName: currentRole, toName: pack.name, catchupQueued: false }) })
+  if (catchupQueued) {
+    await recoverActiveCatchup().catch(error => {
+      log.warn('Universe switch catch-up deferred', { roleId: manifest.defaultProtagonistId, errorType: error instanceof Error ? error.name : 'unknown' })
+    })
+  }
+  broadcastRoleChanged({ roleId: manifest.defaultProtagonistId, catchupQueued, previousRoleId: currentRole, reacquaint: buildReacquaintCopy({ fromName: currentRole, toName: pack.name, catchupQueued }) })
   return { ok: true, universeId: id, roleId: manifest.defaultProtagonistId, name: pack.name }
 }
 

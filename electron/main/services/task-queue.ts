@@ -141,6 +141,20 @@ export class TaskQueueManager {
   async recoverPendingTasks(): Promise<BackgroundTaskInfo[]> {
     const db = await getDatabase()
     // 先释放读取游标再等待模型或写盘。sql.js 导出会关闭旧游标，恢复不能跨 export 保留 statement。
+    await withDatabaseTransaction(async transaction => {
+      const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000
+      transaction.run(
+        `DELETE FROM background_tasks
+         WHERE status IN ('completed', 'failed') AND notified = 1
+           AND (updated_at < ? OR id IN (
+             SELECT id FROM background_tasks
+             WHERE status IN ('completed', 'failed') AND notified = 1
+             ORDER BY updated_at DESC
+             LIMIT -1 OFFSET 2000
+           ))`,
+        [cutoff],
+      )
+    })
     const result = db.exec(`SELECT id, session_id, type, status, notified, created_at, updated_at,
       error, checkpoint, retry_count, next_retry_at FROM background_tasks
       WHERE status IN ('pending', 'running') OR (status IN ('completed', 'failed') AND notified = 0)

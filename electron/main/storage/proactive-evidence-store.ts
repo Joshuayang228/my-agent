@@ -54,18 +54,27 @@ export class ProactiveEvidenceStore {
     const attemptId = `greeting-${randomUUID()}`
     let began = false
     try {
-      this.db.run('BEGIN TRANSACTION'); began = true
-      if (this.hasReservation(roleId, localDay)) { this.db.run('ROLLBACK'); return null }
+      this.db.run('SAVEPOINT proactive_greeting_reserve'); began = true
+      if (this.hasReservation(roleId, localDay)) {
+        this.db.run('ROLLBACK TO SAVEPOINT proactive_greeting_reserve')
+        this.db.run('RELEASE SAVEPOINT proactive_greeting_reserve')
+        return null
+      }
       this.db.run(`INSERT INTO companion_greeting_days(role_id,local_day,attempt_id,reserved_at) VALUES (?,?,?,?)
         ON CONFLICT(role_id) DO UPDATE SET local_day=excluded.local_day,attempt_id=excluded.attempt_id,reserved_at=excluded.reserved_at`, [roleId, localDay, attemptId, now])
       this.db.run(`INSERT INTO companion_greeting_evidence(id,role_id,local_day,process_run_id,status,reason,occurred_at,updated_at,moment_id,recipient_count)
         VALUES (?,?,?,?,?,?,?,?,?,?)`, [attemptId, roleId, localDay, this.processRunId, 'reserved', 'ok', now, now, momentId, recipientCount])
       this.prune(now)
-      this.db.run('COMMIT'); began = false
+      this.db.run('RELEASE SAVEPOINT proactive_greeting_reserve'); began = false
       this.persist()
       return attemptId
     } catch (error) {
-      if (began) this.db.run('ROLLBACK')
+      if (began) {
+        try {
+          this.db.run('ROLLBACK TO SAVEPOINT proactive_greeting_reserve')
+          this.db.run('RELEASE SAVEPOINT proactive_greeting_reserve')
+        } catch { /* ignore */ }
+      }
       else this.db.run("UPDATE companion_greeting_evidence SET status='failed',reason='reservation-save-failed' WHERE id=? AND status='reserved'", [attemptId])
       throw error
     }

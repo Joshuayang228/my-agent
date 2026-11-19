@@ -35,6 +35,8 @@ export function broadcastRoleChanged(payload: {
   reacquaint: { title: string; body: string; toast: string }
 }): void {
   for (const win of BrowserWindow.getAllWindows()) {
-    win.webContents.send('companion:role-changed', payload)
+    if (!win.isDestroyed()) {
+      win.webContents.send('companion:role-changed', payload)
+    }
   }
 }

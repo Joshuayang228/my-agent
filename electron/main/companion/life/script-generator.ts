@@ -251,7 +251,10 @@ export function parseDayScriptPayload(
  * 设计意图：读取昨日已发布事件、近期对话意向、进行中旅程和生命体征，压制为 200 字以内的薄切片；
  * 关键约束：纯数据读取、任何异常安全降级为空串；不改变日剧本输出 schema，回退到哈希剧本时无副作用。
  */
-export async function collectDayScriptLifeContext(roleId: string): Promise<string> {
+export async function collectDayScriptLifeContext(
+  roleId: string,
+  opts?: { deferAbsorb?: boolean; pendingResonanceIds?: string[] },
+): Promise<string> {
   const parts: string[] = []
   try {
     const { listEvents: listEvents } = await import('../core/persistence/life-repository')
@@ -281,7 +284,12 @@ export async function collectDayScriptLifeContext(roleId: string): Promise<strin
     const activeResonances = await listLifeResonances(roleId, { status: 'active', limit: 3 })
     if (activeResonances.length) {
       parts.push(`与用户近期交流激发的愿望与行动意向：${activeResonances.map(r => `想尝试「${r.targetName}」（${r.reason}）`).join('；')}`)
-      await markResonancesAbsorbed(activeResonances.map(r => r.id))
+      const ids = activeResonances.map(r => r.id)
+      if (opts?.deferAbsorb) {
+        opts.pendingResonanceIds?.push(...ids)
+      } else {
+        await markResonancesAbsorbed(ids)
+      }
     }
 
     const { getRecentResolvedCoDecision, markCoDecisionAbsorbed } = await import('./co-decision')
@@ -314,7 +322,7 @@ export async function generateDayScriptViaLlm(
   roleId: string,
   date: string,
   llmConfig: LLMConfig,
-  opts?: { universeId?: string },
+  opts?: { universeId?: string; deferAbsorb?: boolean; pendingResonanceIds?: string[] },
 ): Promise<DayScriptPayload | null> {
   if (!hasLLMAuthentication(llmConfig)) return null
   try {
@@ -325,7 +333,11 @@ export async function generateDayScriptViaLlm(
       ? formatRoleWorldDefaultsForPrompt(pack.worldDefaults).slice(0, 750)
       : ''
     const characterHint = [profileHint, worldHint].filter(Boolean).join('\n')
-    const lifeContext = await collectDayScriptLifeContext(roleId)
+    const pendingResonanceIds: string[] = []
+    const lifeContext = await collectDayScriptLifeContext(roleId, {
+      deferAbsorb: true,
+      pendingResonanceIds,
+    })
     const raw = await chatComplete({
       config: {
         ...llmConfig,
@@ -347,6 +359,14 @@ export async function generateDayScriptViaLlm(
       log.warn('Day script LLM parse failed', { roleId, date })
       return null
     }
+    if (pendingResonanceIds.length) {
+      if (opts?.deferAbsorb && opts.pendingResonanceIds) {
+        opts.pendingResonanceIds.push(...pendingResonanceIds)
+      } else {
+        const { markResonancesAbsorbed } = await import('./chat-resonance')
+        await markResonancesAbsorbed(pendingResonanceIds)
+      }
+    }
     return parsed
   } catch (err) {
     log.warn('Day script LLM failed', { roleId, date, error: String(err) })
@@ -358,6 +378,7 @@ export interface ResolveDayScriptOpts {
   preferLlm?: boolean
   llmConfig?: LLMConfig
   universeId?: string
+  deferAbsorb?: boolean
 }
 
 /**
@@ -367,14 +388,17 @@ export async function resolveDayScript(
   roleId: string,
   date: string,
   opts?: ResolveDayScriptOpts,
-): Promise<{ payload: DayScriptPayload; source: 'llm' | 'hash' }> {
+): Promise<{ payload: DayScriptPayload; source: 'llm' | 'hash'; absorbedResonanceIds?: string[] }> {
   if (opts?.preferLlm && opts.llmConfig && hasLLMAuthentication(opts.llmConfig)) {
+    const pendingResonanceIds: string[] = []
     const llm = await generateDayScriptViaLlm(roleId, date, opts.llmConfig, {
       universeId: opts.universeId,
+      deferAbsorb: opts.deferAbsorb,
+      pendingResonanceIds,
     })
-    if (llm) return { payload: llm, source: 'llm' }
+    if (llm) return { payload: llm, source: 'llm', absorbedResonanceIds: pendingResonanceIds }
   }
-  return { payload: generateDayScript(roleId, date), source: 'hash' }
+  return { payload: generateDayScript(roleId, date), source: 'hash', absorbedResonanceIds: [] }
 }
 
 export const __test = {

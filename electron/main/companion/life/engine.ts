@@ -98,16 +98,21 @@ export async function ensureDayScripts(
       }
       continue
     }
-    const { payload, source } = await resolveDayScript(roleId, date, {
+    const { payload, source, absorbedResonanceIds } = await resolveDayScript(roleId, date, {
       preferLlm: opts?.preferLlm,
       llmConfig,
       universeId: opts?.universeId,
+      deferAbsorb: true,
     })
     if (source === 'llm') llmDays += 1
     const inserted = await withCompanionUnitOfWork(async () => {
       if (await getDayScript(roleId, date)) return false
       const row = await createCompanionDayScript({ roleId, universeId: opts?.universeId, date, payload })
       await materializePlannedEvents(roleId, row.id, payload)
+      if (absorbedResonanceIds?.length) {
+        const { markResonancesAbsorbed } = await import('./chat-resonance')
+        await markResonancesAbsorbed(absorbedResonanceIds)
+      }
       return true
     })
     if (!inserted) continue

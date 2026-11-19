@@ -32,6 +32,13 @@ import {
 import type { Database } from 'sql.js'
 import { BACKUP_IMAGE_ERRORS } from '../../../src/shared/backup-errors'
 import { collectMomentBackup, importMomentBackup, isValidMomentBackup, type MomentBackup } from '../storage/moment-backup'
+import {
+  collectCompanionBackupSnapshot,
+  companionMomentMediaImageCollections,
+  importCompanionBackupSnapshot,
+  isValidCompanionBackupSnapshot,
+  type CompanionBackupSnapshot,
+} from '../storage/companion-backup'
 import { isStarterVisualImage, restoreStarterVisualPayload } from '../companion/life/assets'
 
 const log = createLogger('DataExport')
@@ -141,6 +148,7 @@ export function isValidExportData(value: unknown): value is ExportData {
   if (!Array.isArray(value.memories) || value.memories.length > MAX_IMPORTED_MEMORIES) return false
   if (!isRecord(value.settings)) return false
   if (value.momentHistory !== undefined && !isValidMomentBackup(value.momentHistory)) return false
+  if (value.companionSnapshot !== undefined && !isValidCompanionBackupSnapshot(value.companionSnapshot)) return false
   const livingAssets = value.livingAssets === undefined ? [] : value.livingAssets
   const livingAssetSeeds = value.livingAssetSeeds === undefined ? [] : value.livingAssetSeeds
   if (!Array.isArray(livingAssets) || livingAssets.length > MAX_IMPORTED_LIVING_ASSETS) return false
@@ -208,7 +216,10 @@ export function isValidExportData(value: unknown): value is ExportData {
     if (seenSeeds.has(key)) return false
     seenSeeds.add(key)
   }
-  return isValidBackupImageBundle(value.sessions, value.generatedImageMedia, livingAssetImageCollections(livingAssets))
+  return isValidBackupImageBundle(value.sessions, value.generatedImageMedia, [
+    ...livingAssetImageCollections(livingAssets),
+    ...companionMomentMediaImageCollections(value.companionSnapshot as CompanionBackupSnapshot | undefined),
+  ])
 }
 
 function assetImageReference(payload: Record<string, unknown>): GeneratedImageReference | null {
@@ -320,6 +331,7 @@ export interface ExportData {
   livingAssetSeeds?: BackupLivingAssetSeed[]
   generatedImageMedia?: BackupImageMedia[]
   momentHistory?: MomentBackup
+  companionSnapshot?: CompanionBackupSnapshot
 }
 
 /**
@@ -522,7 +534,7 @@ export function importSessionsIntoDatabase(
 ): number {
   const transact = opts?.transact !== false
   let imported = 0
-  if (transact) db.run('BEGIN')
+  if (transact) db.run('SAVEPOINT import_sessions_into_database')
   try {
     for (const session of sessions) {
       const existsStmt = db.prepare('SELECT id FROM sessions WHERE id = ?')
@@ -550,11 +562,14 @@ export function importSessionsIntoDatabase(
       })
       imported++
     }
-    if (transact) db.run('COMMIT')
+    if (transact) db.run('RELEASE SAVEPOINT import_sessions_into_database')
     return imported
   } catch (error) {
     if (transact) {
-      try { db.run('ROLLBACK') } catch { /* 原错误优先 */ }
+      try {
+        db.run('ROLLBACK TO SAVEPOINT import_sessions_into_database')
+        db.run('RELEASE SAVEPOINT import_sessions_into_database')
+      } catch { /* 原错误优先 */ }
     }
     throw error
   }
@@ -578,6 +593,7 @@ export function importBackupPayload(
     settings?: ReturnType<typeof settingsStore.prepareSettingWrite>[]
     persist?: () => void
     momentHistory?: MomentBackup
+    companionSnapshot?: CompanionBackupSnapshot
     normalizedImageIds?: ReadonlyMap<string, string>
   },
 ): DataImportStats {
@@ -591,7 +607,7 @@ export function importBackupPayload(
     const statement = db.prepare(sql)
     try { statement.bind(values); return statement.step() } finally { statement.free() }
   }
-  db.run('BEGIN')
+  db.run('SAVEPOINT import_backup_payload')
   try {
     for (const session of payload.sessions) {
       if (!exists('SELECT id FROM sessions WHERE id = ?', [session.id])) {
@@ -616,6 +632,7 @@ export function importBackupPayload(
       restored: new Map([...(payload.imageReferences ?? [])].map(([sourceId, image]) => [sourceId, image.id])),
       normalized: payload.normalizedImageIds ?? new Map(),
     })
+    if (payload.companionSnapshot) importCompanionBackupSnapshot(db, payload.companionSnapshot, undo, payload.imageReferences)
     for (const memory of payload.memories ?? []) {
       const result = memoryStore.writeMemoryToDatabase(db, memory.category as MemoryCategory, memory.content, { roleId: memory.roleId })
       if (result.inserted) {
@@ -634,21 +651,24 @@ export function importBackupPayload(
       })
       settingsStore.writePreparedSetting(db, setting)
     }
-    db.run('COMMIT')
+    db.run('RELEASE SAVEPOINT import_backup_payload')
     committed = true
     payload.persist?.()
   } catch (error) {
     if (committed) {
-      db.run('BEGIN')
+      db.run('SAVEPOINT revert_backup_payload')
       try {
         for (const revert of undo.reverse()) revert()
-        db.run('COMMIT')
+        db.run('RELEASE SAVEPOINT revert_backup_payload')
       } catch {
         log.error('Backup in-memory compensation failed')
         throw new Error('导入恢复失败，请重启应用后重试')
       }
     } else {
-      try { db.run('ROLLBACK') } catch { log.error('Backup transaction rollback failed') }
+      try {
+        db.run('ROLLBACK TO SAVEPOINT import_backup_payload')
+        db.run('RELEASE SAVEPOINT import_backup_payload')
+      } catch { log.error('Backup transaction rollback failed') }
     }
     throw error
   }
@@ -688,7 +708,8 @@ export function registerDataExportIPC(): void {
       const sourceLivingAssets = collectExportLivingAssets(db)
       const livingAssets = toBackupLivingAssets(sourceLivingAssets)
       const livingAssetSeeds = collectExportLivingAssetSeeds(db)
-      const generatedImageMedia = await collectBackupImageMedia(sessions, livingAssetImageSources(sourceLivingAssets))
+      const { snapshot: companionSnapshot, momentMediaSources } = collectCompanionBackupSnapshot(db)
+      const generatedImageMedia = await collectBackupImageMedia(sessions, [...livingAssetImageSources(sourceLivingAssets), ...momentMediaSources])
       const momentHistory = collectMomentBackup(db)
 
       const safeSettings: Record<string, string> = {}
@@ -712,6 +733,7 @@ export function registerDataExportIPC(): void {
         livingAssets,
         livingAssetSeeds,
         momentHistory,
+        ...(Object.keys(companionSnapshot).length ? { companionSnapshot } : {}),
         ...(generatedImageMedia.length ? { generatedImageMedia } : {}),
       }
 
@@ -801,7 +823,17 @@ export function registerDataExportIPC(): void {
         try { statement.bind([session.id]); return !statement.step() } finally { statement.free() }
       })
       const pendingLivingAssets = newLivingAssets(db, data.livingAssets ?? [])
-      const restored = restoreBackupImages(preparedImages, newSessions, preparedImages.length ? app.getPath('userData') : '', livingAssetImageCollections(pendingLivingAssets))
+      const pendingMomentMedia = (data.companionSnapshot?.momentMedia ?? []).filter(item => {
+        if (!tableExists(db, 'companion_moment_media')) return true
+        const stmt = db.prepare('SELECT 1 FROM companion_moment_media WHERE id = ?')
+        try { stmt.bind([item.id]); return !stmt.step() } finally { stmt.free() }
+      })
+      const restored = restoreBackupImages(
+        preparedImages,
+        newSessions,
+        preparedImages.length ? app.getPath('userData') : '',
+        [...livingAssetImageCollections(pendingLivingAssets), ...companionMomentMediaImageCollections({ momentMedia: pendingMomentMedia })],
+      )
       let importedCore: ReturnType<typeof importBackupPayload>
       try {
         importedCore = importBackupPayload(db, {
@@ -814,6 +846,7 @@ export function registerDataExportIPC(): void {
           settings: pendingSettings,
           persist,
           momentHistory: data.momentHistory,
+          companionSnapshot: data.companionSnapshot,
         })
       } catch (error) { restored.rollback(); throw error }
       restored.finish()

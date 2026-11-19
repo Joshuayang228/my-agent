@@ -483,125 +483,122 @@ export async function completeCultureResonance(
   }
   const notificationMessage = `${pack.name} 已经体验完了「${currentResonance.targetName}」！`
 
-  // 文化资产、心愿、体验事件与可选动态同库提交，任何本地失败都保留可重试状态。
+  // 文化资产、心愿、体验事件与可选动态通过外层命令网关 + 本地 Unit of Work 单事务提交，消除事务内反向嵌套命令。
   try {
-    await withCompanionUnitOfWork(async () => {
-  // 1. 若有关联文化资产，更新资产状态为 completed 并将 reviewText 追加至 readingNotes
-  if (currentResonance.assetId) {
-    try {
-      const existingAsset = await getAsset(currentResonance.assetId)
-      if (!existingAsset) throw new Error('文化资料不存在，体验结果会在下次生活推进时重试。')
-      const type = (existingAsset.payload.type as string) || currentResonance.cultureType || 'reading'
-      const statusField = type === 'music' ? 'listeningStatus' : type === 'film' ? 'watchStatus' : 'readingStatus'
-      const completedStatusVal = 'finished'
-      const existingNotes = Array.isArray(existingAsset.payload.readingNotes)
-        ? [...existingAsset.payload.readingNotes]
-        : []
-      existingNotes.push({
-        id: `review:${randomUUID().slice(0, 8)}`,
-        text: parsedReview.reviewText,
-        author: 'companion',
-        createdAt: now,
-      })
-
-      const updateResult = await updateAsset(currentResonance.assetId, {
-        payload: {
-          [statusField]: completedStatusVal,
-          readingNotes: existingNotes,
-          note: parsedReview.reviewText,
-        },
-      }, { expectedRoleId: roleId })
-      if (!updateResult.ok) throw new Error('文化资料更新失败，体验结果会在下次生活推进时重试。')
-    } catch (err) {
-      log.warn('Failed to update asset on resonance complete', { assetId: currentResonance.assetId, error: String(err) })
-      throw new Error('文化资料更新失败，体验结果会在下次生活推进时重试。')
-    }
-  }
-
-
-      db.run(
-        `UPDATE companion_life_resonances
-         SET status = 'completed', completed_at = ?, feedback_text = ?
-         WHERE id = ?`,
-        [now, parsedReview.chatOpener, currentResonance.id],
-      )
-      await executeCompanionCommand({
-        roleId,
-        actionType: 'culture-experience-completed',
-        correlationId: currentResonance.id,
-        handler: async (context) => {
-          const domainEvent = await appendCompanionDomainEvent({
-            roleId,
-            universeId: resolveRoleUniverseId(roleId),
-            type: 'culture_experience_completed',
-            sourceType: 'chat_resonance',
-            sourceId: currentResonance.id,
-            causationId: currentResonance.id,
-            correlationId: context.correlationId,
-            idempotencyKey: `culture-experience-completed:${currentResonance.id}`,
-            occurredAt: now,
-            payload: {
-              resonanceId: currentResonance.id,
-              assetId: currentResonance.assetId,
-              targetName: currentResonance.targetName,
-              reviewText: parsedReview.reviewText,
-              chatOpener: parsedReview.chatOpener,
-            },
-            schemaVersion: 1,
-          })
-          await linkCompanionExecutionEvent({ executionId: context.executionId, eventId: domainEvent.id })
-          await recordCompanionProjection({ projectionName: 'legacy-culture-resonance', eventId: domainEvent.id })
-          if (roleId === 'luffy') {
-            // 体验完成后即使进程退出，原人物和世界观的奖励也能和体验事实一起恢复。
-            await enqueueCompanionOutbox({
-              roleId,
-              eventId: domainEvent.id,
-              kind: COMPANION_FOLLOWUP.cultureKeepsake,
-              dedupeKey: `${COMPANION_FOLLOWUP.cultureKeepsake}:${domainEvent.id}`,
-              payload: { keepsakeKey: 'luffy-merry-bell' },
+    await executeCompanionCommand({
+      roleId,
+      actionType: 'culture-experience-completed',
+      correlationId: currentResonance.id,
+      local: true,
+      handler: async (context) => {
+        if (currentResonance.assetId) {
+          try {
+            const existingAsset = await getAsset(currentResonance.assetId)
+            if (!existingAsset) throw new Error('文化资料不存在，体验结果会在下次生活推进时重试。')
+            const type = (existingAsset.payload.type as string) || currentResonance.cultureType || 'reading'
+            const statusField = type === 'music' ? 'listeningStatus' : type === 'film' ? 'watchStatus' : 'readingStatus'
+            const completedStatusVal = 'finished'
+            const existingNotes = Array.isArray(existingAsset.payload.readingNotes)
+              ? [...existingAsset.payload.readingNotes]
+              : []
+            existingNotes.push({
+              id: `review:${randomUUID().slice(0, 8)}`,
+              text: parsedReview.reviewText,
+              author: 'companion',
+              createdAt: now,
             })
+
+            const updateResult = await updateAsset(currentResonance.assetId, {
+              payload: {
+                [statusField]: completedStatusVal,
+                readingNotes: existingNotes,
+                note: parsedReview.reviewText,
+              },
+            }, { expectedRoleId: roleId })
+            if (!updateResult.ok) throw new Error('文化资料更新失败，体验结果会在下次生活推进时重试。')
+          } catch (err) {
+            log.warn('Failed to update asset on resonance complete', { assetId: currentResonance.assetId, error: String(err) })
+            throw new Error('文化资料更新失败，体验结果会在下次生活推进时重试。')
           }
-          const enqueueNotification = async () => {
-            await enqueueCompanionOutbox({
-              roleId,
-              eventId: domainEvent.id,
-              kind: 'resonance-completed',
-              dedupeKey: `resonance-completed:${currentResonance.id}`,
-              payload: { roleId, resonance: updatedResonance, message: notificationMessage },
-            })
-          }
-          if (opts?.automatic) await enqueueAutomaticProactiveNotification(roleId, now, enqueueNotification)
-          else await enqueueNotification()
-        },
-      })
-      if (parsedReview.shouldPostMoment && parsedReview.momentText) {
-        const momentText = parsedReview.momentText
-        const eventId = `resonance-${currentResonance.id}`
-        const event = await createCompanionLifeEvent({
-          id: eventId,
+        }
+
+        db.run(
+          `UPDATE companion_life_resonances
+           SET status = 'completed', completed_at = ?, feedback_text = ?
+           WHERE id = ?`,
+          [now, parsedReview.chatOpener, currentResonance.id],
+        )
+        const domainEvent = await appendCompanionDomainEvent({
           roleId,
           universeId: resolveRoleUniverseId(roleId),
-          scheduledAt: now,
-          status: 'published',
-          type: 'moment',
-          dayScriptId: null,
+          type: 'culture_experience_completed',
+          sourceType: 'chat_resonance',
+          sourceId: currentResonance.id,
+          causationId: currentResonance.id,
+          correlationId: context.correlationId,
+          idempotencyKey: `culture-experience-completed:${currentResonance.id}`,
+          occurredAt: now,
           payload: {
-            activity: '文化体验回响',
-            story: momentText,
             resonanceId: currentResonance.id,
+            assetId: currentResonance.assetId,
             targetName: currentResonance.targetName,
-            kind: currentResonance.kind,
+            reviewText: parsedReview.reviewText,
+            chatOpener: parsedReview.chatOpener,
           },
+          schemaVersion: 1,
         })
-        const moment = await insertMoment({
-          roleId,
-          eventId: event.id,
-          publishedAt: now,
-          text: momentText,
-          meta: { resonanceId: currentResonance.id, targetName: currentResonance.targetName, kind: currentResonance.kind },
-        }) ?? await getMomentByEventId(roleId, event.id)
-        await recordEventExecution({ roleId, eventId: event.id, attemptedAt: now, action: 'published', reason: 'culture-resonance-completed', momentId: moment?.id ?? null })
-      }
+        await linkCompanionExecutionEvent({ executionId: context.executionId, eventId: domainEvent.id })
+        await recordCompanionProjection({ projectionName: 'legacy-culture-resonance', eventId: domainEvent.id })
+        if (roleId === 'luffy') {
+          await enqueueCompanionOutbox({
+            roleId,
+            eventId: domainEvent.id,
+            kind: COMPANION_FOLLOWUP.cultureKeepsake,
+            dedupeKey: `${COMPANION_FOLLOWUP.cultureKeepsake}:${domainEvent.id}`,
+            payload: { keepsakeKey: 'luffy-merry-bell' },
+          })
+        }
+        const enqueueNotification = async () => {
+          await enqueueCompanionOutbox({
+            roleId,
+            eventId: domainEvent.id,
+            kind: 'resonance-completed',
+            dedupeKey: `resonance-completed:${currentResonance.id}`,
+            payload: { roleId, resonance: updatedResonance, message: notificationMessage },
+          })
+        }
+        if (opts?.automatic) await enqueueAutomaticProactiveNotification(roleId, now, enqueueNotification)
+        else await enqueueNotification()
+
+        if (parsedReview.shouldPostMoment && parsedReview.momentText) {
+          const momentText = parsedReview.momentText
+          const eventId = `resonance-${currentResonance.id}`
+          const event = await createCompanionLifeEvent({
+            id: eventId,
+            roleId,
+            universeId: resolveRoleUniverseId(roleId),
+            scheduledAt: now,
+            status: 'published',
+            type: 'moment',
+            dayScriptId: null,
+            payload: {
+              activity: '文化体验回响',
+              story: momentText,
+              resonanceId: currentResonance.id,
+              targetName: currentResonance.targetName,
+              kind: currentResonance.kind,
+            },
+          })
+          const moment = await insertMoment({
+            roleId,
+            eventId: event.id,
+            publishedAt: now,
+            text: momentText,
+            meta: { resonanceId: currentResonance.id, targetName: currentResonance.targetName, kind: currentResonance.kind },
+          }) ?? await getMomentByEventId(roleId, event.id)
+          await recordEventExecution({ roleId, eventId: event.id, attemptedAt: now, action: 'published', reason: 'culture-resonance-completed', momentId: moment?.id ?? null })
+        }
+      },
     })
     await dispatchCompanionWindowOutbox()
   } catch (err) {

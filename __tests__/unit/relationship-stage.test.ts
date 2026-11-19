@@ -91,4 +91,27 @@ describe('resolveRelationshipStage', () => {
     expect(prompt).toContain('## 关系阶段')
     expect(prompt).toContain('familiar')
   })
+
+  it('持久化关系事实（companion_relationship_state）可将阶段提升并与启发式指标对齐（B09）', () => {
+    const byPersistedPhase = resolveRelationshipStage({
+      growthStartedAt: now - 10 * HOUR,
+      lastRunAt: 0,
+      recentUserMessages: 1,
+      now,
+      persistedPhase: 'rapport',
+      persistedSignal: 12,
+    })
+    expect(byPersistedPhase.stage).toBe('rapport')
+    expect(byPersistedPhase.signals).toContain('persisted:rapport')
+
+    const byPersistedSignal = resolveRelationshipStage({
+      growthStartedAt: now - COLD_START_MS - HOUR,
+      lastRunAt: 0,
+      recentUserMessages: MIN_USER_MESSAGES,
+      now,
+      persistedPhase: 'familiar',
+      persistedSignal: 25,
+    })
+    expect(byPersistedSignal.stage).toBe('rapport')
+  })
 })

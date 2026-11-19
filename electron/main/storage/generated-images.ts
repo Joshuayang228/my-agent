@@ -23,8 +23,9 @@ export async function loadGeneratedImageReference(reference: unknown, imageId: u
   if (!reference || typeof reference !== 'object' || Array.isArray(reference) || typeof imageId !== 'string' || !/^[a-f0-9]{64}$/.test(imageId)) return { ok: false, error: '图片引用无效。' }
   try {
     const image = reference as Partial<StoredImageReference>
+    const parentFolder = typeof image.path === 'string' ? path.basename(path.dirname(image.path)) : ''
     if (image.id !== imageId || image.mimeType !== 'image/png' || typeof image.path !== 'string' || !path.isAbsolute(image.path)
-      || path.basename(path.dirname(image.path)) !== 'images' || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}\.png$/.test(path.basename(image.path))) return { ok: false, error: '此会话没有可读取的生成图片。' }
+      || (parentFolder !== 'images' && parentFolder !== 'moments') || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}\.png$/.test(path.basename(image.path))) return { ok: false, error: '此会话没有可读取的生成图片。' }
     const resolved = path.resolve(image.path)
     if (allowedRoot) {
       const relative = path.relative(path.resolve(allowedRoot), resolved)

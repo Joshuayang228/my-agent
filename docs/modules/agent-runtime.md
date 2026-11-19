@@ -34,7 +34,7 @@
 
 ## 架构源码审计与深度二审状态（2026-11-19）
 
-首轮 A01—A18 缺口已于 2026-11-18 闭环。2026-11-19 深度二审识别出运行时与宿主层残余断点（`B02` 其余 10 个伙伴与记忆工具未纳入 Agent Host Manifest 细粒度权限门禁、`B03` 主对话 `worldSlice` 与 `companion.runtime-context` 重复注入同一运行态、`B04` `diagnostic-history-store` 等 5 处裸 `BEGIN` 绕过 `withDatabaseTransaction`、`B12` 高频执行账本与任务表有界裁剪），由 `WISH-051` 与 [架构深度二审施工合同 v2](../requirements/architecture-deep-audit-remediation-v2.md) 跟踪推进。
+首轮 A01—A18 缺口与 2026-11-19 深度二审列出的运行时与宿主层残余断点（`B02`、`B03`、`B04`、`B12`）均已闭环并冻结 [架构深度二审施工合同 v2](../requirements/architecture-deep-audit-remediation-v2.md)：`agent-host/host.ts` 的 `evaluateDomainToolManifestAccess` 将全部内置领域工具（`companion_*`、`remember`/`recall`/`forget`、`rag_search`）纳入 Manifest `domainKeys`、`capabilityPolicy` 与 `grantedPermissions` 双端门禁（`AgentHostScopedToolCatalog.filter` 与 `ToolRegistry.executeSingle`）；主会话在 `worldSlice` 已注入完整运行态时跳过重复的 `companion.runtime-context` 注入；存储与导出层多语句写入统一采用 `SAVEPOINT` 嵌套安全事务；`companion_execution_runs`、`companion_outbox`、`companion_proactive_budget` 与 `background_tasks` 终态历史记录支持按保留期和容量上限自动裁剪。
 
 ## 已落地能力补充（2026-11-17）
 

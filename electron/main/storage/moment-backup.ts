@@ -56,10 +56,18 @@ export function isValidMomentBackup(value: unknown): value is MomentBackup {
   const likes = new Set<string>()
   for (const row of value.interactions as unknown[]) {
     if (!object(row) || !text(row.id) || ids.has(row.id) || !text(row.momentId) || !text(row.roleId)
-      || moments.get(row.momentId) !== row.roleId || row.actorId !== MOMENT_USER_ACTOR_ID || !timestamp(row.createdAt)) return false
+      || moments.get(row.momentId) !== row.roleId || !text(row.actorId, 120) || !timestamp(row.createdAt)) return false
+    const actorType = row.actorType === undefined ? 'user' : row.actorType
+    if (actorType !== 'user' && actorType !== 'protagonist' && actorType !== 'cast') return false
+    if (actorType === 'user' && row.actorId !== MOMENT_USER_ACTOR_ID) return false
+    if (actorType === 'protagonist' && row.actorId !== row.roleId) return false
+    if (actorType === 'cast' && row.actorId === MOMENT_USER_ACTOR_ID) return false
+    if (row.actorName !== undefined && row.actorName !== null && !text(row.actorName, 120)) return false
+    if (row.parentInteractionId !== undefined && row.parentInteractionId !== null && !text(row.parentInteractionId, 200)) return false
+    if (row.replyToActorName !== undefined && row.replyToActorName !== null && !text(row.replyToActorName, 120)) return false
     ids.add(row.id)
     if (row.kind === 'like') {
-      if (row.text !== null || likes.has(row.momentId)) return false
+      if (actorType !== 'user' || row.actorId !== MOMENT_USER_ACTOR_ID || row.text !== null || likes.has(row.momentId)) return false
       likes.add(row.momentId)
     } else if (row.kind === 'comment') {
       const normalized = normalizeMomentCommentText(row.text)
@@ -78,6 +86,18 @@ export function isValidMomentBackup(value: unknown): value is MomentBackup {
     linkKeys.add(key)
   }
   return true
+}
+
+function ensureMomentInteractionColumns(db: Database): void {
+  if (!rows(db, "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'companion_moment_user_interactions'").length) return
+  for (const sql of [
+    "ALTER TABLE companion_moment_user_interactions ADD COLUMN actor_type TEXT NOT NULL DEFAULT 'user'",
+    'ALTER TABLE companion_moment_user_interactions ADD COLUMN actor_name TEXT',
+    'ALTER TABLE companion_moment_user_interactions ADD COLUMN parent_interaction_id TEXT',
+    'ALTER TABLE companion_moment_user_interactions ADD COLUMN reply_to_actor_name TEXT',
+  ]) {
+    try { db.run(sql) } catch { /* 已存在 */ }
+  }
 }
 
 function ensureEventLinkTable(db: Database): void {
@@ -123,10 +143,22 @@ export function collectMomentBackup(db: Database): MomentBackup {
     id: row.id as string, roleId: row.role_id as string, scheduledAt: row.scheduled_at as number,
     status: row.status as 'published', type: row.type as string, payload: JSON.parse(String(row.payload_json)),
   })) : []
-  const interactions = names.has('companion_moment_user_interactions') ? rows(db, 'SELECT * FROM companion_moment_user_interactions ORDER BY created_at, id').map(row => ({
-    id: row.id as string, momentId: row.moment_id as string, roleId: row.role_id as string, kind: row.kind as MomentUserInteraction['kind'],
-    actorId: row.actor_id as string, text: row.text as string | null, createdAt: row.created_at as number,
-  })) : []
+  const interactions = names.has('companion_moment_user_interactions') ? rows(db, 'SELECT * FROM companion_moment_user_interactions ORDER BY created_at, id').map(row => {
+    const actorType = row.actor_type === 'protagonist' ? 'protagonist' as const : row.actor_type === 'cast' ? 'cast' as const : 'user' as const
+    return {
+      id: row.id as string,
+      momentId: row.moment_id as string,
+      roleId: row.role_id as string,
+      kind: row.kind as MomentUserInteraction['kind'],
+      actorId: row.actor_id as string,
+      text: row.text as string | null,
+      ...(actorType !== 'user' ? { actorType } : {}),
+      ...(typeof row.actor_name === 'string' && row.actor_name ? { actorName: row.actor_name } : {}),
+      ...(typeof row.parent_interaction_id === 'string' && row.parent_interaction_id ? { parentInteractionId: row.parent_interaction_id } : {}),
+      ...(typeof row.reply_to_actor_name === 'string' && row.reply_to_actor_name ? { replyToActorName: row.reply_to_actor_name } : {}),
+      createdAt: row.created_at as number,
+    }
+  }) : []
   const eventIds = new Set(events.map((event) => event.id))
   const links = names.has('companion_event_links') ? rows(db, 'SELECT * FROM companion_event_links ORDER BY created_at, id').map(row => ({
     id: row.id as string,
@@ -154,6 +186,7 @@ export function importMomentBackup(db: Database, bundle: MomentBackup, undo: Arr
 }): void {
   if (!isValidMomentBackup(bundle)) throw new Error('朋友圈历史格式无效')
   ensureEventLinkTable(db)
+  ensureMomentInteractionColumns(db)
   const remapPayload = (payload: Record<string, unknown>) => {
     const result = { ...payload }
     if (typeof result.imageId === 'string') result.imageId = imageRemap?.restored.get(result.imageId) ?? result.imageId
@@ -237,8 +270,10 @@ export function importMomentBackup(db: Database, bundle: MomentBackup, undo: Arr
       continue
     }
     if (item.kind === 'like' && rows(db, "SELECT id FROM companion_moment_user_interactions WHERE moment_id = ? AND actor_id = ? AND kind = 'like'", [item.momentId, item.actorId]).length) continue
-    db.run('INSERT INTO companion_moment_user_interactions (id, moment_id, role_id, kind, actor_id, text, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [item.id, item.momentId, item.roleId, item.kind, item.actorId, item.text, item.createdAt])
+    db.run(
+      'INSERT INTO companion_moment_user_interactions (id, moment_id, role_id, kind, actor_id, actor_type, actor_name, parent_interaction_id, reply_to_actor_name, text, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [item.id, item.momentId, item.roleId, item.kind, item.actorId, item.actorType ?? 'user', item.actorName ?? null, item.parentInteractionId ?? null, item.replyToActorName ?? null, item.text, item.createdAt],
+    )
     undo.push(() => { db.run('DELETE FROM companion_moment_user_interactions WHERE id = ?', [item.id]) })
   }
 }

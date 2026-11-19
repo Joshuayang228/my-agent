@@ -57,6 +57,45 @@ export function getAgentHostTools(): ToolDefinition[] {
   }))
 }
 
+const DOMAIN_TOOL_POLICIES: Readonly<Record<string, { domainKey: string; capabilityKey: string; requiredPermissions: readonly string[] }>> = {
+  companion_read_world: { domainKey: 'companion', capabilityKey: 'companion.runtime.read', requiredPermissions: ['companion.read'] },
+  companion_observe_material: { domainKey: 'companion', capabilityKey: 'companion.material.observe', requiredPermissions: ['companion.read'] },
+  companion_create_asset: { domainKey: 'companion', capabilityKey: 'companion.asset.create', requiredPermissions: ['companion.write'] },
+  companion_add_reading_note: { domainKey: 'companion', capabilityKey: 'companion.reading_note.add', requiredPermissions: ['companion.write'] },
+  companion_comment_moment: { domainKey: 'companion', capabilityKey: 'companion.moment.comment', requiredPermissions: ['companion.write'] },
+  companion_character_draft: { domainKey: 'companion', capabilityKey: 'companion.character.draft', requiredPermissions: ['companion.write'] },
+  companion_switch_universe: { domainKey: 'companion', capabilityKey: 'companion.universe.switch', requiredPermissions: ['companion.write'] },
+  recall: { domainKey: 'memory', capabilityKey: 'memory.recall', requiredPermissions: ['memory.read'] },
+  remember: { domainKey: 'memory', capabilityKey: 'memory.remember', requiredPermissions: ['memory.write'] },
+  forget: { domainKey: 'memory', capabilityKey: 'memory.forget', requiredPermissions: ['memory.write'] },
+  rag_search: { domainKey: 'workspace', capabilityKey: 'workspace.rag.search', requiredPermissions: ['workspace.read'] },
+}
+
+/**
+ * 背景：内置领域工具（`companion_*`、`remember`/`recall`/`forget`、`rag_search`）尚未全部改名为 `capability_*`，若只校验 `capability_*` 会导致 Manifest 的 domainKeys/deny/grantedPermissions 对真实领域工具失效。
+ * 设计意图：在 Agent Host 统一维护内置领域工具到 Domain、Capability 与权限的映射，供目录过滤与 ToolRegistry 执行期双端复用。
+ * 关键约束：非领域通用工具不在此映射中（返回 null）；命中映射的领域工具必须同时满足 domainKeys、allow/deny 和 grantedPermissions。
+ */
+export function evaluateDomainToolManifestAccess(
+  toolName: string,
+  manifest: AgentHostManifest,
+): { managed: false } | { managed: true; allowed: boolean; reason?: string } {
+  const policy = DOMAIN_TOOL_POLICIES[toolName]
+  if (!policy) return { managed: false }
+  const { allow, deny } = manifest.capabilityPolicy
+  const inDomain = manifest.domainKeys.includes(policy.domainKey)
+  const denied = deny.includes(policy.domainKey) || deny.includes(policy.capabilityKey) || deny.includes(toolName)
+  const allowedByPolicy = allow.includes('*') || allow.includes(policy.domainKey) || allow.includes(policy.capabilityKey) || allow.includes(toolName)
+  if (!inDomain || denied || !allowedByPolicy) {
+    return { managed: true, allowed: false, reason: `Domain tool "${toolName}" is unavailable for agent "${manifest.id}"` }
+  }
+  const missing = policy.requiredPermissions.filter(permission => !manifest.grantedPermissions.includes(permission))
+  if (missing.length > 0) {
+    return { managed: true, allowed: false, reason: `Domain tool "${toolName}" lacks required permissions: ${missing.join(', ')}` }
+  }
+  return { managed: true, allowed: true }
+}
+
 /**
  * 背景：相同人物可具有不同权限组合，仅使用 roleId 会重建宽权限默认值。
  * 设计意图：目录消费调用方的完整 Manifest，统一名称由协议适配器生成。

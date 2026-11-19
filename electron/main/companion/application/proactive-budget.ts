@@ -31,6 +31,7 @@ async function reserveProactiveBudget(input: { id: string; roleId: string; now: 
   const db = await getDatabase()
   db.run('CREATE TABLE IF NOT EXISTS companion_proactive_budget (id TEXT PRIMARY KEY, role_id TEXT NOT NULL, local_day TEXT NOT NULL, attempted_at INTEGER NOT NULL, status TEXT NOT NULL)')
   db.run('CREATE INDEX IF NOT EXISTS idx_companion_proactive_budget_role_day ON companion_proactive_budget(role_id, local_day, attempted_at)')
+  db.run('DELETE FROM companion_proactive_budget WHERE attempted_at < ?', [now - 30 * 24 * 60 * 60 * 1000])
   const count = Number(db.exec('SELECT COUNT(*) FROM companion_proactive_budget WHERE role_id = ? AND local_day = ?', [roleId, day])[0]?.values[0][0] ?? 0)
   const latest = Number(db.exec('SELECT MAX(attempted_at) FROM companion_proactive_budget WHERE role_id = ?', [roleId])[0]?.values[0][0] ?? 0)
   if ((maxPerDay > 0 && count >= maxPerDay) || (latest > 0 && now - latest < MOMENT_TIP_MIN_INTERVAL_MS)) return false

@@ -1,14 +1,20 @@
 import { getDatabase } from '../../storage/database'
 
+let initializedCoreDbs = new WeakSet<object>()
+
 /**
  * 初始化人物世界核心层的事实、执行和出站表。
  *
- * 背景：生活模块此前各自维护事实表、执行状态和窗口广播，失败后无法统一追踪。
- * 设计意图：Core 统一拥有运行态、事件、执行和出站账本，生活内容由领域持久化表承载。
+ * 背景：生活模块此前各自维护事实表、执行状态和窗口广播，且每次查询都重复跑完整 DDL + ALTER TABLE，产生高频无意义开销。
+ * 设计意图：Core 统一拥有运行态、事件、执行和出站账本，并按数据库实例用 WeakSet 记忆已初始化状态；若测试显式 DROP 表则通过哨兵查询自动重跑。
  * 关键约束：所有列都使用参数化写入，唯一键用于幂等恢复，初始化只创建结构不改变既有生活数据。
  */
 export async function ensureCompanionCoreSchema(): Promise<void> {
   const db = await getDatabase()
+  if (initializedCoreDbs.has(db)) {
+    const sentinel = db.exec("SELECT 1 FROM sqlite_master WHERE type='table' AND name='companion_projection_receipts' LIMIT 1")
+    if (sentinel.length > 0 && sentinel[0].values.length > 0) return
+  }
   db.run(`
     CREATE TABLE IF NOT EXISTS companion_runtime_state (
       role_id TEXT PRIMARY KEY,
@@ -127,8 +133,9 @@ export async function ensureCompanionCoreSchema(): Promise<void> {
     )
   `)
   db.run('CREATE INDEX IF NOT EXISTS idx_companion_projection_receipts_event ON companion_projection_receipts(event_id)')
+  initializedCoreDbs.add(db)
 }
 
 export function resetCompanionCoreSchemaForTesting(): void {
-  // 核心表使用 IF NOT EXISTS，每次调用都会针对当前数据库确认结构。
+  initializedCoreDbs = new WeakSet<object>()
 }

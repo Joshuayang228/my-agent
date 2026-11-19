@@ -1,13 +1,13 @@
 # 目标架构审计现状
 
-## 2026-11-19 零信任深度二审（WISH-051 / B01—B12）
+## 2026-11-19 零信任深度二审（WISH-051 / B01—B12）收口与终审结论
 
-在首轮 `WISH-050`（`A01`—`A18`）收口后，2026-11-19 对 `electron/main` 全量源码对照 5 份目标架构合同进行了零信任穿透二审，新发现 **12 项未迁移完的架构断点与真实缺陷（`B01`—`B12`：1 项 P0、7 项 P1、4 项 P2）**，包括：
-- **B01（P0）**：朋友圈一旦存在角色 / NPC 回复即导致 `data:export` 校验抛错崩溃，且 `companion_mutable`、运行态、日记、信物、礼物、脆弱心境、心愿共鸣、关系状态与自动配图媒体尚未纳入备份恢复；
-- **B02—B08（P1）**：Agent Host 其余 10 个领域工具未接入 Manifest 权限门禁、主对话运行态上下文双重注入、5 处手写裸 `db.run('BEGIN')` 绕过 `withDatabaseTransaction`、`setMutable` 缺命令边界与 `universeId`、读路径无条件 `persist()` 与日剧本提前消费心愿、`switchUniverse` 抹除 `pausedAt` 丢失跨世界 Catch-up 补叙、`broadcastRoleChanged` 漏检窗口销毁及 `deleteInnerThought` 缺角色校验；
-- **B09—B12（P2）**：双套关系阶段系统互不通信、Schema 初始化每次读写重复执行 DDL、`co-decision` 死播种与废弃配置键残留、10 张高频追加表缺少有界裁剪。
+**目标架构深度二审识别的 B01—B12 已按四批次全部修复、反例转正并通过终审。** 在首轮 `WISH-050`（`A01`—`A18`）收口后，2026-11-19 对 `electron/main` 全量源码对照 5 份目标架构合同进行了零信任穿透二审，识别并闭环了 **12 项未迁移完的架构断点与真实缺陷（`B01`—`B12`：1 项 P0、7 项 P1、4 项 P2）**：
+- **B01（P0 已闭环）**：修复 `moment-backup.ts` 对主角 / NPC 回复（`actorType: 'protagonist' | 'cast'` 及 4 个回复元数据列）的导出校验与导入恢复；新增 `companion-backup.ts` 将 `companion_mutable`、历史版本、反思状态、首次冷启、运行态、关系状态与事件、情绪事件、日记、信物、礼物、脆弱心境、心愿共鸣、航程、穿搭及 `companion_moment_media` 自动配图文件完整纳入单事务备份恢复；
+- **B02—B08（P1 已闭环）**：在 `agent-host/host.ts` 建立 `evaluateDomainToolManifestAccess` 并在 `AgentHostScopedToolCatalog` 与 `ToolRegistry.executeSingle` 双端强制校验全部内置领域工具（`companion_*`、`remember`/`recall`/`forget`、`rag_search`）的 Manifest `domainKeys`、`capabilityPolicy` 与 `grantedPermissions`；消除主对话 `worldSlice` 与 `companion.runtime-context` 的重复运行态注入；将 `proactive-evidence-store`、`assets.ts` 两处播种、`data-export`、`session-store` 及 `mutable-store` 的多语句写入统一收敛为 `SAVEPOINT` 嵌套安全事务；`companion:set-mutable` 与 `companion:rollback-mutable` 接入 `requireActiveWriteRole`、`executeCompanionCommand({ local: true })` 与 `universeId`；移除 `vulnerability.ts` 读路径的无条件 `persist()`，将 `getTodayTimelineForRole` 设为 `preferLlm: false` 只读初始化，将日剧本心愿 `markResonancesAbsorbed` 延迟至 LLM 解析成功并随日剧本同事务落库；`switchUniverse` 保留已暂停主角的 `pausedAt` 并在切换后触发 `recoverActiveCatchup()`；`broadcastRoleChanged` 补齐 `!win.isDestroyed()` 检查；`deleteInnerThought` 强制校验 `role_id`；`completeCultureResonance` 修正为外层 `executeCompanionCommand`、内层 `withCompanionUnitOfWork`；
+- **B09—B12（P2 已闭环）**：打通 `growth/relationship-stage.ts` 与 `companion_relationship_state`（赠礼、信物、脆弱抚慰、人格反思统一记录 `recordRelationshipEvent`，阶段解析双向对齐持久化关系状态）；`ensureCompanionCoreSchema` 与 `ensureLifeSchema` 接入基于 `WeakSet<Database>` + `sqlite_master` 哨兵的实例级初始化守卫；消除 `co-decision` 在日剧本生成时的死建表与跨角色 `'luffy'` 信物/日记污染；在 `recoverStaleCompanionExecutions`、`proactive-budget` 与 `taskQueue.recoverPendingTasks` 中落地高频终态记录的有界裁剪（Pruning）。
 
-完整文件行号证据见 [2026-11-19 深度源码二审报告](../_archive/audits/2026-11-19-architecture-deep-source-audit.md)，活跃清单由 [WISH-051](./wishlist.md) 跟踪，施工方案与四批次验收见 [架构深度二审残余断点与全链路收口施工合同 v2](./requirements/architecture-deep-audit-remediation-v2.md)。
+完整文件行号证据保留在 [2026-11-19 深度源码二审报告](../_archive/audits/2026-11-19-architecture-deep-source-audit.md)，施工合同 [architecture-deep-audit-remediation-v2.md](./requirements/architecture-deep-audit-remediation-v2.md) 已冻结为历史施工快照，`WISH-051` 已从心愿池关闭。
 
 ## 2026-11-18 首轮 A01—A18 独立终审与收口结论
 

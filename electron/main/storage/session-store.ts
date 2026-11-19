@@ -32,6 +32,30 @@ function readSessionKind(raw: unknown): SessionKind {
  */
 async function ensureSessionColumns(): Promise<void> {
   const db = await getDatabase()
+  db.run(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id                       TEXT PRIMARY KEY,
+      title                    TEXT NOT NULL DEFAULT '新对话',
+      created_at               INTEGER NOT NULL,
+      updated_at               INTEGER NOT NULL,
+      total_prompt_tokens      INTEGER NOT NULL DEFAULT 0,
+      total_completion_tokens  INTEGER NOT NULL DEFAULT 0,
+      role_id                  TEXT NOT NULL DEFAULT '',
+      session_kind             TEXT NOT NULL DEFAULT 'main',
+      parent_session_id        TEXT
+    );
+    CREATE TABLE IF NOT EXISTS messages (
+      id               TEXT PRIMARY KEY,
+      session_id       TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+      role             TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system', 'tool')),
+      content          TEXT NOT NULL,
+      tool_calls       TEXT,
+      tool_call_id     TEXT,
+      generated_images TEXT,
+      created_at       INTEGER NOT NULL,
+      sort_order       INTEGER NOT NULL
+    );
+  `)
   const stmt = db.prepare('PRAGMA table_info(sessions)')
   const columns = new Set<string>()
   try {
@@ -216,8 +240,16 @@ export async function getSession(sessionId: string): Promise<ChatSession | null>
 
 export async function deleteSession(sessionId: string): Promise<void> {
   const db = await getDatabase()
-  db.run('DELETE FROM messages WHERE session_id = ?', [sessionId])
-  db.run('DELETE FROM sessions WHERE id = ?', [sessionId])
+  db.run('SAVEPOINT delete_session')
+  try {
+    db.run('DELETE FROM messages WHERE session_id = ?', [sessionId])
+    db.run('DELETE FROM sessions WHERE id = ?', [sessionId])
+    db.run('RELEASE SAVEPOINT delete_session')
+  } catch (error) {
+    db.run('ROLLBACK TO SAVEPOINT delete_session')
+    db.run('RELEASE SAVEPOINT delete_session')
+    throw error
+  }
   persist()
   await llmDebugStore.clear(sessionId)
   log.info('Session deleted', { id: sessionId })
@@ -249,22 +281,29 @@ export async function saveMessage(sessionId: string, message: ChatMessage): Prom
   const maxOrder = (stmt.getAsObject() as Record<string, unknown>).max_order as number
   stmt.free()
 
-  db.run(`
-    INSERT INTO messages (id, session_id, role, content, tool_calls, tool_call_id, created_at, sort_order, generated_images)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `, [
-    message.id,
-    sessionId,
-    message.role,
-    message.content,
-    message.toolCalls ? JSON.stringify(message.toolCalls) : null,
-    message.toolCallId || null,
-    message.timestamp,
-    maxOrder + 1,
-    message.role === 'tool' && message.generatedImages?.length ? JSON.stringify(message.generatedImages) : null,
-  ])
-
-  db.run('UPDATE sessions SET updated_at = ? WHERE id = ?', [Date.now(), sessionId])
+  db.run('SAVEPOINT save_message')
+  try {
+    db.run(`
+      INSERT INTO messages (id, session_id, role, content, tool_calls, tool_call_id, created_at, sort_order, generated_images)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      message.id,
+      sessionId,
+      message.role,
+      message.content,
+      message.toolCalls ? JSON.stringify(message.toolCalls) : null,
+      message.toolCallId || null,
+      message.timestamp,
+      maxOrder + 1,
+      message.role === 'tool' && message.generatedImages?.length ? JSON.stringify(message.generatedImages) : null,
+    ])
+    db.run('UPDATE sessions SET updated_at = ? WHERE id = ?', [Date.now(), sessionId])
+    db.run('RELEASE SAVEPOINT save_message')
+  } catch (error) {
+    db.run('ROLLBACK TO SAVEPOINT save_message')
+    db.run('RELEASE SAVEPOINT save_message')
+    throw error
+  }
   persist()
 }
 
@@ -405,6 +444,7 @@ export async function listRecentUserMessagesForRole(
  * 获取角色最近一个主会话（非 summon / 非 workspace）。
  */
 export async function getLatestMainSessionForRole(roleId: string): Promise<ChatSession | null> {
+  await ensureSessionColumns()
   const db = await getDatabase()
   const stmt = db.prepare(`
     SELECT id FROM sessions

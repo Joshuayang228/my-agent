@@ -36,7 +36,7 @@
 
 ## 架构源码审计与深度二审状态（2026-11-19）
 
-首轮 2026-11-17 审计列出的 A01—A18 缺口已于 2026-11-18 闭环。2026-11-19 深度二审识别出伙伴领域待收口的残余断点（`B01` 朋友圈角色回复导致备份导出失败及新生活表漏备、`B05` 可变人格 `setMutable` 缺命令边界与 `universeId`、`B06` 读路径无条件 `persist()` 与日剧本提前消费心愿、`B07` 换世界抹除 `pausedAt` 丢失 Catch-up 补叙、`B08` 日记删除缺角色校验与文化完成事务嵌套反转、`B09` 双关系阶段系统分裂、`B10`—`B12` Schema 重复 DDL 与高频表裁剪），由 `WISH-051` 与 [架构深度二审施工合同 v2](../requirements/architecture-deep-audit-remediation-v2.md) 跟踪推进。
+首轮 2026-11-17 审计列出的 A01—A18 缺口与 2026-11-19 零信任深度二审列出的 B01—B12 断点均已完成全链路收口并冻结 [架构深度二审施工合同 v2](../requirements/architecture-deep-audit-remediation-v2.md)：朋友圈主角/卡司评论回复与 `companion_mutable`、运行态、关系、情绪、日记、信物、礼物、脆弱心境、心愿共鸣、航程、穿搭及朋友圈自动配图媒体均已纳入 `data:export` / `data:import` 单事务备份恢复（`B01`）；可变人格 `setMutable` / `rollbackMutable` 接入 `requireActiveWriteRole`、`executeCompanionCommand({ local: true })`、`SAVEPOINT` 事务与 `universeId`（`B05`）；移除 `vulnerability.ts` 读路径无条件 `persist()`，将 `getTodayTimelineForRole` 保持为确定性只读回退，将日剧本 `markResonancesAbsorbed` 移入 LLM 成功后与日剧本同事务落库，并仅在访问 `'luffy'` 时播种路飞专属信物与日记（`B06`、`B11`）；`switchUniverse` 保留目标主角 `pausedAt` 并触发 `recoverActiveCatchup()`，`broadcastRoleChanged` 补齐 `!win.isDestroyed()` 检查（`B07`）；`deleteInnerThought` 强制校验 `role_id`，`completeCultureResonance` 修正为外层 `executeCompanionCommand`、内层 `withCompanionUnitOfWork`（`B08`）；赠礼、信物、脆弱抚慰与人格反思统一通过 `recordRelationshipEvent` 更新 `companion_relationship_state` 并与 `resolveRelationshipStageForRole` 双向对齐（`B09`）；Core 与 Life Schema 初始化采用 `WeakSet<Database>` 实例级缓存守卫，执行账本、Outbox 与主动提醒预算具备有界裁剪（`B10`、`B12`）。
 
 ## Agent Host 能力接入（2026-11-13）
 

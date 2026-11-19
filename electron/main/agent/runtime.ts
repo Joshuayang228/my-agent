@@ -348,7 +348,12 @@ class AgentRuntime {
       } else if (!isSummon) {
         try {
           const hostContext = await getAgentHostContext(agentManifest, {
-            roleId: assembleRoleId, sessionId, traceId: chatSpan.id, runId: chatSpan.id, signal: abortController.signal,
+            roleId: assembleRoleId,
+            sessionId,
+            traceId: chatSpan.id,
+            runId: chatSpan.id,
+            signal: abortController.signal,
+            domainKeys: worldSlice ? agentManifest.domainKeys.filter(key => key !== 'companion') : agentManifest.domainKeys,
           })
           if (hostContext.length > 0) sessionInfoParts.push(`Agent Host 动态上下文：\n${hostContext.join('\n')}`)
         } catch (error) {

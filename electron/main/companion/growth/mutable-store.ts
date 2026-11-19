@@ -139,21 +139,29 @@ export async function setMutable(
   }
   existing.free()
 
-  db.run(
-    `INSERT INTO companion_mutable (role_id, body, version, updated_at)
-     VALUES (?, ?, ?, ?)
-     ON CONFLICT(role_id) DO UPDATE SET
-       body = excluded.body,
-       version = excluded.version,
-       updated_at = excluded.updated_at`,
-    [roleId, trimmed, nextVersion, now],
-  )
+  db.run('SAVEPOINT set_companion_mutable')
+  try {
+    db.run(
+      `INSERT INTO companion_mutable (role_id, body, version, updated_at)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(role_id) DO UPDATE SET
+         body = excluded.body,
+         version = excluded.version,
+         updated_at = excluded.updated_at`,
+      [roleId, trimmed, nextVersion, now],
+    )
 
-  db.run(
-    `INSERT INTO companion_mutable_versions (id, role_id, version, body, created_at, summary)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [randomUUID(), roleId, nextVersion, trimmed, now, summary || `v${nextVersion}`],
-  )
+    db.run(
+      `INSERT INTO companion_mutable_versions (id, role_id, version, body, created_at, summary)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [randomUUID(), roleId, nextVersion, trimmed, now, summary || `v${nextVersion}`],
+    )
+    db.run('RELEASE SAVEPOINT set_companion_mutable')
+  } catch (error) {
+    db.run('ROLLBACK TO SAVEPOINT set_companion_mutable')
+    db.run('RELEASE SAVEPOINT set_companion_mutable')
+    throw error
+  }
 
   persist()
   log.info('Mutable updated', { roleId, version: nextVersion })
@@ -192,6 +200,7 @@ export async function listMutableVersions(roleId: string): Promise<MutableVersio
 export async function rollbackMutable(
   roleId: string,
   toVersion: number,
+  opts?: { universeId?: string },
 ): Promise<{ version: number }> {
   await ensureTables()
   const db = await getDatabase()
@@ -206,6 +215,7 @@ export async function rollbackMutable(
   const body = (stmt.getAsObject() as { body: string }).body
   stmt.free()
   const result = await setMutable(roleId, body, `rollback to v${toVersion}`, {
+    universeId: opts?.universeId,
     skipValidation: true,
   })
   if (!result.ok) {

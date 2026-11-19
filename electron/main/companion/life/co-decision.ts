@@ -543,8 +543,9 @@ export async function createCoDecision(
 
 /** 获取最近已解决、且尚未被日剧本吸收的关键决策（供日剧本规划吸收） */
 export async function getRecentResolvedCoDecision(roleId: string = 'luffy'): Promise<CompanionCoDecisionRecord | null> {
-  await ensureCoDecisionTable()
   const db = await getDatabase()
+  const exists = db.exec("SELECT 1 FROM sqlite_master WHERE type='table' AND name='companion_co_decisions' LIMIT 1")
+  if (!exists.length || !exists[0].values.length) return null
   const stmt = db.prepare(`
     SELECT * FROM companion_co_decisions
     WHERE role_id = ? AND status = 'resolved' AND absorbed_in_script = 0

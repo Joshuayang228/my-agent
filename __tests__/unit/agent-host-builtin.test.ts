@@ -176,4 +176,52 @@ describe('Agent Host 内置 Domain', () => {
     expect(record?.status).toBe('available')
     expect(record?.details).toMatchObject({ version: '1.0.0', source: 'builtin', capabilityKeys: ['capability_persona_read'] })
   })
+
+  it('内置领域工具（companion_* / remember / recall / forget / rag_search）同样受 Manifest domainKeys、deny 与 grantedPermissions 双重约束（B02）', async () => {
+    const base = createCompanionAgentManifest({ id: 'lin', personaKey: 'role:lin' })
+    const registry = new ToolRegistry()
+    const createProbe = (name: string, isReadOnly = true) => ({
+      name,
+      description: name,
+      parameters: { type: 'object' as const, properties: {} },
+      metadata: { isReadOnly, isDestructive: false, isConcurrencySafe: isReadOnly },
+      execute: vi.fn(async () => 'executed'),
+    })
+    const readWorld = createProbe('companion_read_world', true)
+    const createAsset = createProbe('companion_create_asset', false)
+    const remember = createProbe('remember', false)
+    const ragSearch = createProbe('rag_search', true)
+    registry.register(readWorld)
+    registry.register(createAsset)
+    registry.register(remember)
+    registry.register(ragSearch)
+
+    const noCompanionManifest = { ...base, domainKeys: ['persona', 'memory'] }
+    const visibleNoCompanion = new AgentHostScopedToolCatalog(noCompanionManifest).filter(registry.getAll())
+    expect(visibleNoCompanion.map(t => t.name)).toEqual(['remember'])
+
+    const readOnlyMemoryManifest = {
+      ...base,
+      grantedPermissions: ['persona.read', 'memory.read', 'companion.read', 'workspace.read'],
+    }
+    const visibleReadOnly = new AgentHostScopedToolCatalog(readOnlyMemoryManifest).filter(registry.getAll())
+    expect(visibleReadOnly.map(t => t.name)).toEqual(['companion_read_world', 'rag_search'])
+
+    const [blockedCreate, blockedRemember, allowedRead] = await registry.executeAll(
+      [
+        { id: 'c1', name: 'companion_create_asset', arguments: '{}' },
+        { id: 'c2', name: 'remember', arguments: '{}' },
+        { id: 'c3', name: 'companion_read_world', arguments: '{}' },
+      ],
+      { workdir: '.', sessionId: 's1', agentManifest: readOnlyMemoryManifest },
+    )
+    expect(blockedCreate.isError).toBe(true)
+    expect(blockedCreate.content).toContain('companion.write')
+    expect(blockedRemember.isError).toBe(true)
+    expect(blockedRemember.content).toContain('memory.write')
+    expect(allowedRead.isError).toBeUndefined()
+    expect(createAsset.execute).not.toHaveBeenCalled()
+    expect(remember.execute).not.toHaveBeenCalled()
+    expect(readWorld.execute).toHaveBeenCalledTimes(1)
+  })
 })

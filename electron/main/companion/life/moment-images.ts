@@ -87,6 +87,7 @@ export async function readMomentImageForRole(roleId: string, momentId: string, i
   if (managed.ok) return managed
   const db = await getDatabase()
   const queries = [
+    { table: 'companion_moment_media', sql: 'SELECT id, path, mime_type, width, height, byte_length FROM companion_moment_media WHERE role_id = ? AND moment_id = ? AND id = ? LIMIT 1', direct: true },
     { table: 'companion_assets', sql: 'SELECT payload_json FROM companion_assets WHERE role_id = ? AND instr(payload_json, ?) > 0 LIMIT 20', array: false },
     { table: 'messages', sql: `SELECT m.generated_images FROM messages m JOIN sessions s ON s.id = m.session_id
       WHERE s.role_id = ? AND m.role = 'tool' AND instr(m.generated_images, ?) > 0 ORDER BY m.created_at DESC LIMIT 20`, array: true },
@@ -99,10 +100,18 @@ export async function readMomentImageForRole(roleId: string, momentId: string, i
     const statement = db.prepare(query.sql)
     const references: unknown[] = []
     try {
-      statement.bind([roleId, imageId])
-      while (statement.step()) {
-        const reference = referenceInJSON(statement.get()[0], imageId, query.array)
-        if (reference) references.push(reference)
+      if ('direct' in query && query.direct) {
+        statement.bind([roleId, momentId, imageId])
+        if (statement.step()) {
+          const row = statement.getAsObject()
+          references.push({ id: row.id, path: row.path, mimeType: row.mime_type, width: row.width, height: row.height, byteLength: row.byte_length })
+        }
+      } else {
+        statement.bind([roleId, imageId])
+        while (statement.step()) {
+          const reference = referenceInJSON(statement.get()[0], imageId, Boolean(query.array))
+          if (reference) references.push(reference)
+        }
       }
     } finally { statement.free() }
     for (const reference of references) {

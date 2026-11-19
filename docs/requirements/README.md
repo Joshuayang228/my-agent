@@ -20,8 +20,6 @@
 
 ## 进行中
 
-[架构深度二审残余断点与全链路收口 v2](./architecture-deep-audit-remediation-v2.md) 覆盖 WISH-051 的 B01—B12（备份恢复断层、Agent Host 领域工具全量门禁、裸事务收敛、读写分离、切世补叙、双关系系统统一与高频表有界裁剪），按 4 个独立批次推进。
-
 | 文档 | 说明 |
 |------|------|
 | [prompt-coverage-and-review-v2.md](./prompt-coverage-and-review-v2.md) | 全量方案已确认：推进用途 / 消费者门禁、集中展示、缺失生成闭环和人物扩展；新增 UI 待候选验收后统一回流 |
@@ -46,6 +44,8 @@
 ---
 
 ## 已完成施工快照（冻结）
+
+架构深度二审残余断点与全链路收口：[architecture-deep-audit-remediation-v2.md](./architecture-deep-audit-remediation-v2.md)，已完成 WISH-051 的 B01—B12 四批次全部收口（朋友圈角色回复备份恢复与 Companion 核心/生活全表备份、Agent Host 内置领域工具 Manifest 双端权限门禁、主对话运行态去重、SAVEPOINT 事务收敛、可变人格命令边界与世界观透传、读写分离与日剧本心愿延迟吸收、跨世界观切换 Catch-up 恢复、双关系阶段系统对齐、Schema WeakSet 初始化守卫与高频账本有界裁剪）；当前事实见 [架构审计现状](../architecture-boundary-audit.md)、[系统架构](../architecture.md) 与 [质量总控](../quality.md)。
 
 架构源码审计修复：[architecture-audit-remediation-v1.md](./architecture-audit-remediation-v1.md)，已完成 WISH-050 的 A01—A18 全部反例转正、真实入口回归与独立源码终审；当前架构事实与外部边界见 [架构审计现状](../architecture-boundary-audit.md)、[系统架构](../architecture.md) 与 [质量总控](../quality.md)。
 

@@ -28,6 +28,7 @@ import {
   type ReflectGateResult,
 } from './reflection-gate'
 import { getReflectionState, recordReflectionRun } from './reflection-log'
+import { recordRelationshipEvent } from '../core/persistence/life-repository'
 import { executeCompanionCommand } from '../core/commands/gateway'
 import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 import { getSetting } from '../../storage/settings-store'
@@ -153,6 +154,16 @@ async function runReflectionCore(
   const write = await withCompanionUnitOfWork(async () => {
     const result = await setMutable(roleId, candidate, `reflection: ${parsed.summary}`, { universeId })
     await recordReflectionRun(roleId, { at: now, changed: result.ok, summary: result.ok ? parsed.summary : `rejected:${result.code}` })
+    if (result.ok) {
+      await recordRelationshipEvent({
+        roleId,
+        subjectId: 'user',
+        phase: 'rapport',
+        delta: 5,
+        note: `人格反思与默契沉淀：${parsed.summary.slice(0, 80)}`,
+        sourceEventId: `reflection:${roleId}:v${result.version}`,
+      })
+    }
     return result
   })
   if (!write.ok) {

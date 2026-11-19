@@ -886,7 +886,7 @@ async function ensureWorldDetailStarter(roleId: string, kind: typeof ASSET_KIND_
   )`)
   let created = 0
   let updated = false
-  db.run('BEGIN TRANSACTION')
+  db.run('SAVEPOINT ensure_world_detail_starter')
   try {
     const seeded = db.exec('SELECT 1 FROM companion_asset_seeds WHERE role_id = ? AND kind = ?', [roleId, kind])
     if (!seeded.length) {
@@ -935,13 +935,13 @@ async function ensureWorldDetailStarter(roleId: string, kind: typeof ASSET_KIND_
         }
       }
     }
-    db.run('COMMIT')
+    db.run('RELEASE SAVEPOINT ensure_world_detail_starter')
   } catch (error) {
-    db.run('ROLLBACK')
+    db.run('ROLLBACK TO SAVEPOINT ensure_world_detail_starter')
+    db.run('RELEASE SAVEPOINT ensure_world_detail_starter')
     throw error
   }
-  if (created > 0 || updated) persist()
-  else persist()
+  persist()
   return { created }
 }
 
@@ -1164,7 +1164,7 @@ export async function ensureStarterMoments(roleId: string): Promise<{ created: n
   ]
 
   let created = 0
-  db.run('BEGIN TRANSACTION')
+  db.run('SAVEPOINT ensure_starter_moments')
   try {
     for (const item of starters) {
       db.run(
@@ -1188,9 +1188,10 @@ export async function ensureStarterMoments(roleId: string): Promise<{ created: n
       created += 1
     }
     db.run('INSERT OR IGNORE INTO companion_asset_seeds (role_id, kind) VALUES (?, ?)', [roleId, seedKind])
-    db.run('COMMIT')
+    db.run('RELEASE SAVEPOINT ensure_starter_moments')
   } catch (error) {
-    db.run('ROLLBACK')
+    db.run('ROLLBACK TO SAVEPOINT ensure_starter_moments')
+    db.run('RELEASE SAVEPOINT ensure_starter_moments')
     throw error
   }
   persist()

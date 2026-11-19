@@ -28,6 +28,7 @@ import { compileGiftReactionRequest } from '../../prompts/registered-request'
 import { loadRolePack } from '../identity/loader'
 import { ensureMainSessionForRole } from '../../storage/session-store'
 import { tryRecordMilestone } from '../growth/milestones'
+import { recordRelationshipEvent } from '../core/persistence/life-repository'
 import { applyCompanionRuntimeDelta, getCompanionRuntimeState } from '../core/state/runtime-state'
 import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
@@ -341,6 +342,14 @@ export async function sendGiftToCompanion(
         updatedAt: now,
       })
     }
+    await recordRelationshipEvent({
+      roleId,
+      subjectId: 'user',
+      phase: 'familiar',
+      delta: affinity === 'favorite' ? 5 : affinity === 'liked' ? 3 : 2,
+      note: `收到礼物「${giftDef.name}」`,
+      sourceEventId: domainEvent.id,
+    })
     await enqueueCompanionOutbox({
       roleId,
       eventId: domainEvent.id,

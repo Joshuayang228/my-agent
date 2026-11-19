@@ -4,6 +4,7 @@ import { createLogger } from '../utils/logger'
 import { checkFileToolPermission, consumeFilePermissionApproval, hasFilePermissionRules } from '../sandbox/file-tool-permission'
 import { loadEffectiveSandbox } from '../sandbox/effective-sandbox'
 import { shouldAutoApproveHeadlessTool } from './headless-policy'
+import { evaluateDomainToolManifestAccess } from '../agent-host/host'
 import { getExecutionSignal, runWithExecutionSignal } from '../utils/execution-cancellation'
 
 const TOOL_TIMEOUT_MS = 30_000
@@ -165,6 +166,12 @@ export class ToolRegistry {
     if (toolContext?.agentManifest?.permissionPolicyKey === 'unattended-readonly'
       && (tool.resolveMetadata || !shouldAutoApproveHeadlessTool(canonical, tool.metadata))) {
       return { callId: call.id, name: canonical, isError: true, content: '当前后台执行只允许明确声明为只读的工具。' }
+    }
+    if (toolContext?.agentManifest) {
+      const domainAccess = evaluateDomainToolManifestAccess(canonical, toolContext.agentManifest)
+      if (domainAccess.managed && !domainAccess.allowed) {
+        return { callId: call.id, name: canonical, isError: true, content: domainAccess.reason ?? '当前执行环境未授权该领域工具。' }
+      }
     }
     // 权限、并发和执行阶段共用同一个 fail-closed metadata 解析入口。
     const effectiveMetadata = this.resolveEffectiveMetadata(canonical, args) ?? tool.metadata

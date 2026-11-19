@@ -140,11 +140,20 @@ export function registerCompanionIPC(): void {
       if (typeof body !== 'string') {
         return { ok: false as const, error: 'INVALID_BODY' }
       }
-      const result = await setMutable(roleId.trim(), body, summary || '')
-      if (!result.ok) {
-        return { ok: false as const, error: result.error, code: result.code }
-      }
-      return { ok: true as const, version: result.version }
+      const targetRoleId = await requireActiveWriteRole(roleId)
+      const universeId = await settings.getSetting('universeId')
+      return executeCompanionCommand({
+        roleId: targetRoleId,
+        actionType: 'set-mutable',
+        local: true,
+        handler: async () => {
+          const result = await setMutable(targetRoleId, body, summary || '', { universeId })
+          if (!result.ok) {
+            return { ok: false as const, error: result.error, code: result.code }
+          }
+          return { ok: true as const, version: result.version }
+        },
+      })
     },
   )
 
@@ -158,7 +167,14 @@ export function registerCompanionIPC(): void {
       return { ok: false as const, error: 'INVALID_ARGS' }
     }
     try {
-      const { version } = await rollbackMutable(roleId.trim(), toVersion)
+      const targetRoleId = await requireActiveWriteRole(roleId)
+      const universeId = await settings.getSetting('universeId')
+      const { version } = await executeCompanionCommand({
+        roleId: targetRoleId,
+        actionType: 'rollback-mutable',
+        local: true,
+        handler: () => rollbackMutable(targetRoleId, toVersion, { universeId }),
+      })
       return { ok: true as const, version }
     } catch (err) {
       log.warn('Mutable rollback failed', { errorType: err instanceof Error ? err.name : 'unknown' })
@@ -265,7 +281,7 @@ export function registerCompanionIPC(): void {
   handle('companion:delete-inner-thought', async (_e, id: string) => {
     const { deleteInnerThought } = await import('../companion/life/inner-thoughts')
     const roleId = await getActiveRoleId()
-    return executeCompanionCommand({ roleId, actionType: 'delete-inner-thought', local: true, handler: () => deleteInnerThought(id) })
+    return executeCompanionCommand({ roleId, actionType: 'delete-inner-thought', local: true, handler: () => deleteInnerThought(id, roleId) })
   })
 
   handle('companion:trigger-nightly-reflection', async (_e, roleId?: string, force?: boolean) => {

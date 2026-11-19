@@ -28,6 +28,8 @@ import { readGeneratedImage } from '../../electron/main/storage/generated-images
 import { insertEvent, insertMoment, replaceEventLinks } from '../../electron/main/companion/core/persistence/life-repository'
 import { momentImageIdsForRole, readMomentImageForRole } from '../../electron/main/companion/life/moment-images'
 import { ensureStarterAssets, listAssets } from '../../electron/main/companion/life/assets'
+import { storeMomentMedia } from '../../electron/main/companion/adapters/moment-media-store'
+import { attachMomentImageForRole } from '../../electron/main/companion/life/moment-images'
 
 const SQL = await initSqlJs()
 let db: InstanceType<typeof SQL.Database>
@@ -363,4 +365,75 @@ it('路飞出厂静态视觉参考不计入 16MB 备份媒体上限，导入后�
   expect(outfit?.payload.image).toMatchObject({ mimeType: 'image/png' })
   expect(outfit?.payload.imageOutfitVersion).toBe(1)
   expect(restored.filter((asset) => asset.payload.image).length).toBeGreaterThanOrEqual(8)
+})
+
+it('Companion 核心与生活状态（可变人格、运行态、关系、日记、信物、礼物、脆弱心境、心愿、航程、穿搭与自动朋友圈配图）完整往返备份并支持事务回滚', async () => {
+  const pngBytes = await sharp({ create: { width: 4, height: 4, channels: 3, background: '#e65100' } }).png({ compressionLevel: 6 }).toBuffer()
+  const event = await insertEvent({ roleId: 'luffy', status: 'published', scheduledAt: 100, type: 'moment', dayScriptId: null, payload: { activity: '看海' } })
+  const post = (await insertMoment({ roleId: 'luffy', eventId: event.id, publishedAt: 100, text: '自动配图动态' }))!
+  const storedMedia = await storeMomentMedia({ roleId: 'luffy', eventId: event.id, momentId: post.id, mimeType: 'image/png', width: 4, height: 4, byteLength: pngBytes.length, bytes: pngBytes })
+  await attachMomentImageForRole('luffy', post.id, storedMedia.id)
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS companion_mutable (role_id TEXT PRIMARY KEY, body TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1, updated_at INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS companion_mutable_versions (id TEXT PRIMARY KEY, role_id TEXT NOT NULL, version INTEGER NOT NULL, body TEXT NOT NULL, created_at INTEGER NOT NULL, summary TEXT NOT NULL DEFAULT '', UNIQUE(role_id, version));
+    CREATE TABLE IF NOT EXISTS companion_reflection_state (role_id TEXT PRIMARY KEY, last_run_at INTEGER NOT NULL DEFAULT 0, runs_json TEXT NOT NULL DEFAULT '[]', updated_at INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS companion_runtime_state (role_id TEXT PRIMARY KEY, universe_id TEXT NOT NULL, mood INTEGER NOT NULL, energy INTEGER NOT NULL, social_need INTEGER NOT NULL, hunger INTEGER NOT NULL, sleepiness INTEGER NOT NULL, home TEXT NOT NULL, timezone TEXT NOT NULL, current_activity TEXT NOT NULL, current_location TEXT NOT NULL, location_detail TEXT NOT NULL, status_tags_json TEXT NOT NULL, situation TEXT NOT NULL, paused_at INTEGER, catchup_summary TEXT NOT NULL, last_tick_at INTEGER NOT NULL, version INTEGER NOT NULL, updated_at INTEGER NOT NULL, last_event_id TEXT);
+    CREATE TABLE IF NOT EXISTS companion_inner_thoughts (id TEXT PRIMARY KEY, role_id TEXT NOT NULL, title TEXT NOT NULL, content TEXT NOT NULL, mood TEXT, weather TEXT, location TEXT, activity TEXT, is_favorite INTEGER DEFAULT 0, created_at INTEGER NOT NULL, thought_type TEXT NOT NULL DEFAULT 'general', epiphany TEXT, source_type TEXT NOT NULL DEFAULT 'agent', source_id TEXT, trace_id TEXT);
+    CREATE TABLE IF NOT EXISTS companion_keepsakes (id TEXT PRIMARY KEY, role_id TEXT NOT NULL, name TEXT NOT NULL, description TEXT NOT NULL, lore TEXT NOT NULL, gift_message TEXT NOT NULL, gift_reason TEXT NOT NULL, icon_name TEXT NOT NULL, image_url TEXT, acquired_at INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS companion_received_gifts (id TEXT PRIMARY KEY, role_id TEXT NOT NULL, gift_key TEXT NOT NULL, gift_name TEXT NOT NULL, category TEXT NOT NULL, user_note TEXT, companion_reaction TEXT NOT NULL, vitals_buff_json TEXT, created_at INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS companion_vulnerability_moments (id TEXT PRIMARY KEY, role_id TEXT NOT NULL, title TEXT NOT NULL, mood_state TEXT NOT NULL, trigger_context TEXT NOT NULL, vulnerability_text TEXT NOT NULL, comfort_prompt_hint TEXT, status TEXT NOT NULL DEFAULT 'active', comfort_text TEXT, companion_reaction TEXT, created_at INTEGER NOT NULL, comforted_at INTEGER);
+    CREATE TABLE IF NOT EXISTS companion_life_resonances (id TEXT PRIMARY KEY, role_id TEXT NOT NULL, session_id TEXT NOT NULL, kind TEXT NOT NULL, title TEXT NOT NULL, target_name TEXT NOT NULL, user_quote TEXT NOT NULL, reason TEXT NOT NULL, culture_type TEXT, status TEXT NOT NULL DEFAULT 'active', created_at INTEGER NOT NULL, absorbed_at INTEGER, completed_at INTEGER, feedback_text TEXT, feedback_delivered_at INTEGER, asset_id TEXT);
+    CREATE TABLE IF NOT EXISTS companion_travel_progressions (id TEXT PRIMARY KEY, role_id TEXT NOT NULL, trip_id TEXT NOT NULL, stop_id TEXT NOT NULL, stop_name TEXT NOT NULL, stop_date TEXT NOT NULL, story TEXT NOT NULL, trigger_reason TEXT NOT NULL, created_at INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS companion_autonomous_dressings (id TEXT PRIMARY KEY, role_id TEXT NOT NULL, asset_id TEXT NOT NULL, outfit_name TEXT NOT NULL, trigger_reason TEXT NOT NULL, outfit_version INTEGER NOT NULL, created_at INTEGER NOT NULL);
+  `)
+
+  db.run("INSERT INTO companion_mutable VALUES ('luffy', '成长后的路飞默契', 3, 1000)")
+  db.run("INSERT INTO companion_mutable_versions VALUES ('mv-3', 'luffy', 3, '成长后的路飞默契', 1000, '第三次反思')")
+  db.run("INSERT INTO companion_reflection_state VALUES ('luffy', 1000, '[{\"at\":1000,\"changed\":true,\"summary\":\"ok\"}]', 1000)")
+  db.run("INSERT INTO companion_first_contact VALUES ('luffy', 500)")
+  db.run("INSERT INTO companion_runtime_state VALUES ('luffy', 'default', 92, 88, 40, 10, 5, '万里阳光号', 'Asia/Shanghai', '甲板烤肉', '甲板', '船头', '[\"开心\"]', '正在吃烤肉', NULL, '刚吃完大餐', 1000, 4, 1000, 'ev-1')")
+  db.run("INSERT INTO companion_relationship_state VALUES ('luffy', 'user', 'rapport', 65, '生死同伴', 1000)")
+  db.run("INSERT INTO companion_relationship_events VALUES ('rel-ev-1', 'luffy', 'user', 'rapport', 15, '共同冒险', 'ev-1', 1000)")
+  db.run("INSERT INTO companion_emotion_events VALUES ('emo-1', 'luffy', 'ev-1', '兴奋', 90, '吃到大肉', 1000)")
+  db.run("INSERT INTO companion_inner_thoughts VALUES ('thought-1', 'luffy', '深夜看海', '今天和伙伴聊得很开心', '平静', '星空', '特等席', '发呆', 1, 1000, 'nightly_reflection', '同伴最珍贵', 'agent', 'thought-1', NULL)")
+  db.run("INSERT INTO companion_keepsakes VALUES ('luffy-merry-bell', 'luffy', '梅利号铃铛', '金色铃铛', '梅利号的回忆', '送给你！', '心愿达成', 'Gift', NULL, 1000)")
+  db.run("INSERT INTO companion_received_gifts VALUES ('gift-1', 'luffy', 'bone-meat', '带骨烤肉', 'food', '多吃点', '太好吃了！', '{\"mood\":25}', 1000)")
+  db.run("INSERT INTO companion_vulnerability_moments VALUES ('vuln-1', 'luffy', '想念艾斯', 'nostalgic', '深夜', '看着草帽想起了艾斯', '我陪着你', 'comforted', '一直都在', '谢谢你！', 1000, 1100)")
+  db.run("INSERT INTO companion_life_resonances VALUES ('res-1', 'luffy', 'sess-1', 'culture_wish', '心愿：海流图鉴', '海流图鉴', '推荐你看', '想了解大海', 'reading', 'completed', 1000, 1100, 1200, '我看完啦！', NULL, NULL)")
+  db.run("INSERT INTO companion_travel_progressions VALUES ('tp-1', 'luffy', 'trip-1', 'stop-1', '极光海', '2026-11-19', '看到浮游巨鲸', 'scheduled_voyage', 1000)")
+  db.run("INSERT INTO companion_autonomous_dressings VALUES ('ad-1', 'luffy', 'outfit-1', '草帽冒险日常装', 'morning_routine', 2, 1000)")
+
+  expect(await invoke('export')).toMatchObject({ success: true })
+  const exported = JSON.parse(fs.readFileSync(backup, 'utf8')) as ExportData
+  expect(isValidExportData(exported)).toBe(true)
+  expect(exported.companionSnapshot?.mutables?.[0].body).toBe('成长后的路飞默契')
+  expect(exported.companionSnapshot?.momentMedia).toHaveLength(1)
+
+  for (const table of [
+    'companion_mutable', 'companion_mutable_versions', 'companion_reflection_state', 'companion_first_contact',
+    'companion_runtime_state', 'companion_relationship_state', 'companion_relationship_events', 'companion_emotion_events',
+    'companion_inner_thoughts', 'companion_keepsakes', 'companion_received_gifts', 'companion_vulnerability_moments',
+    'companion_life_resonances', 'companion_travel_progressions', 'companion_autonomous_dressings',
+    'companion_moment_media', 'companion_event_links', 'companion_moments', 'companion_events',
+  ]) {
+    db.run(`DELETE FROM ${table}`)
+  }
+  fs.unlinkSync(storedMedia.path)
+
+  expect(await invoke('import')).toMatchObject({ success: true })
+  expect(db.exec("SELECT body, version FROM companion_mutable WHERE role_id = 'luffy'")[0].values[0]).toEqual(['成长后的路飞默契', 3])
+  expect(db.exec("SELECT mood, current_activity FROM companion_runtime_state WHERE role_id = 'luffy'")[0].values[0]).toEqual([92, '甲板烤肉'])
+  expect(db.exec("SELECT phase, signal FROM companion_relationship_state WHERE role_id = 'luffy'")[0].values[0]).toEqual(['rapport', 65])
+  expect(db.exec("SELECT title, epiphany FROM companion_inner_thoughts WHERE id = 'thought-1'")[0].values[0]).toEqual(['深夜看海', '同伴最珍贵'])
+  expect(db.exec("SELECT name FROM companion_keepsakes WHERE id = 'luffy-merry-bell'")[0].values[0]).toEqual(['梅利号铃铛'])
+  expect(db.exec("SELECT gift_name FROM companion_received_gifts WHERE id = 'gift-1'")[0].values[0]).toEqual(['带骨烤肉'])
+  expect(db.exec("SELECT status, companion_reaction FROM companion_vulnerability_moments WHERE id = 'vuln-1'")[0].values[0]).toEqual(['comforted', '谢谢你！'])
+  expect(db.exec("SELECT status, feedback_text FROM companion_life_resonances WHERE id = 'res-1'")[0].values[0]).toEqual(['completed', '我看完啦！'])
+  expect(db.exec("SELECT stop_name FROM companion_travel_progressions WHERE id = 'tp-1'")[0].values[0]).toEqual(['极光海'])
+  expect(db.exec("SELECT outfit_name FROM companion_autonomous_dressings WHERE id = 'ad-1'")[0].values[0]).toEqual(['草帽冒险日常装'])
+
+  const imageIds = await momentImageIdsForRole('luffy', post.id)
+  expect(imageIds).toHaveLength(1)
+  expect(await readMomentImageForRole('luffy', post.id, imageIds[0])).toMatchObject({ ok: true })
 })

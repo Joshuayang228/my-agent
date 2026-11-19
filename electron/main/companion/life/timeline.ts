@@ -23,7 +23,7 @@ export async function getTodayTimelineForRole(
 
   if (!dayScriptRow) {
     try {
-      await ensureDayScripts(roleId, date, date, { preferLlm: true })
+      await ensureDayScripts(roleId, date, date, { preferLlm: false })
       dayScriptRow = await legacyReadModel.getDayScript(roleId, date)
     } catch {
       // 降级为确定性哈希剧本

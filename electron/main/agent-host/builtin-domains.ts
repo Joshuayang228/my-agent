@@ -187,7 +187,7 @@ export function createCompanionAgentManifest(input: {
     permissionPolicyKey: input.permissionPolicyKey ?? 'companion-default',
     grantedPermissions: [
       'persona.read', 'memory.read', 'workspace.read', 'companion.read',
-      ...(input.permissionPolicyKey === 'unattended-readonly' ? [] : ['companion.write', 'companion.lifecycle']),
+      ...(input.permissionPolicyKey === 'unattended-readonly' ? [] : ['memory.write', 'companion.write', 'companion.lifecycle']),
     ],
   }
 }

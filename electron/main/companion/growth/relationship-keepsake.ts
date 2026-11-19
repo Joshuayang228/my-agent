@@ -23,6 +23,7 @@ import { compileKeepsakeGiftRequest } from '../../prompts/registered-request'
 import { loadRolePack } from '../identity/loader'
 import { ensureMainSessionForRole } from '../../storage/session-store'
 import { tryRecordMilestone } from './milestones'
+import { recordRelationshipEvent } from '../core/persistence/life-repository'
 import { isActiveRole } from '../../storage/settings-store'
 import { appendCompanionDomainEvent } from '../core/events/domain-events'
 import { enqueueCompanionOutbox } from '../core/outbox/outbox'
@@ -105,7 +106,7 @@ export const PRESET_KEEPSAKES_LUFFY: PresetKeepsakeDefinition[] = [
   },
 ]
 
-export async function ensureKeepsakeTable(): Promise<void> {
+export async function ensureKeepsakeTable(targetRoleId: string = 'luffy'): Promise<void> {
   const db = await getDatabase()
   db.run(`
     CREATE TABLE IF NOT EXISTS companion_keepsakes (
@@ -125,6 +126,8 @@ export async function ensureKeepsakeTable(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_companion_keepsakes_role_time
       ON companion_keepsakes(role_id, acquired_at DESC)
   `)
+
+  if (targetRoleId !== 'luffy') return
 
   // 检查是否已有路飞信物，若无则播种首个信物（生命卡的一角）
   const stmt = db.prepare('SELECT COUNT(*) AS count FROM companion_keepsakes WHERE role_id = ?')
@@ -162,7 +165,7 @@ export async function ensureKeepsakeTable(): Promise<void> {
 }
 
 export async function listKeepsakes(roleId: string): Promise<CompanionKeepsakeRecord[]> {
-  await ensureKeepsakeTable()
+  await ensureKeepsakeTable(roleId)
   const db = await getDatabase()
   const stmt = db.prepare(`
     SELECT * FROM companion_keepsakes
@@ -327,6 +330,14 @@ export async function triggerGiftKeepsake(
         occurredAt: now,
         payload: event as unknown as Record<string, unknown>,
         schemaVersion: 1,
+      })
+      await recordRelationshipEvent({
+        roleId,
+        subjectId: 'user',
+        phase: 'rapport',
+        delta: 10,
+        note: `赠予专属信物「${keepsakeRecord.name}」`,
+        sourceEventId: domainEvent.id,
       })
       await enqueueCompanionOutbox({
         roleId, eventId: domainEvent.id,

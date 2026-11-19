@@ -90,3 +90,57 @@ it('数据库中互动丢失来源时导出失败而非静默丢弃', () => {
   db.run('DELETE FROM companion_events')
   expect(() => collectMomentBackup(db)).toThrow('关联不完整')
 })
+
+it('主角与卡司在朋友圈回复评论后，备份导出不崩溃且完整保留回复作者、父评论与被回复者字段', async () => {
+  const moments = await store.listMoments('lin')
+  const momentId = moments[0].id
+  const userComment = (await store.listMomentUserInteractions('lin')).find(row => row.kind === 'comment')!
+  const protagonistReply = await store.insertMomentUserInteraction({
+    momentId,
+    roleId: 'lin',
+    kind: 'comment',
+    actorId: 'lin',
+    actorType: 'protagonist',
+    actorName: '林',
+    parentInteractionId: userComment.id,
+    replyToActorName: '我',
+    text: '我也觉得那本书很值得重读！',
+  })
+  const castReply = await store.insertMomentUserInteraction({
+    momentId,
+    roleId: 'lin',
+    kind: 'comment',
+    actorId: 'yao',
+    actorType: 'cast',
+    actorName: '阿遥',
+    parentInteractionId: protagonistReply.id,
+    replyToActorName: '林',
+    text: '下次带上我一起讨论！',
+  })
+  expect(castReply.actorType).toBe('cast')
+
+  const data = payload()
+  expect(isValidExportData({ version: 1, exportedAt: 1, memories: [], settings: {}, ...data })).toBe(true)
+  expect(data.momentHistory.interactions).toHaveLength(4)
+
+  clear()
+  importBackupPayload(db, data)
+  const restored = await store.listMomentUserInteractions('lin')
+  expect(restored).toHaveLength(4)
+  expect(restored.find(r => r.id === protagonistReply.id)).toMatchObject({
+    actorId: 'lin',
+    actorType: 'protagonist',
+    actorName: '林',
+    parentInteractionId: userComment.id,
+    replyToActorName: '我',
+    text: '我也觉得那本书很值得重读！',
+  })
+  expect(restored.find(r => r.id === castReply.id)).toMatchObject({
+    actorId: 'yao',
+    actorType: 'cast',
+    actorName: '阿遥',
+    parentInteractionId: protagonistReply.id,
+    replyToActorName: '林',
+    text: '下次带上我一起讨论！',
+  })
+})

@@ -1,7 +1,13 @@
 import { getDatabase } from '../../../storage/database'
 
+let initializedLifeDbs = new WeakSet<object>()
+
 export async function ensureLifeSchema(): Promise<void> {
   const db = await getDatabase()
+  if (initializedLifeDbs.has(db)) {
+    const sentinel = db.exec("SELECT 1 FROM sqlite_master WHERE type='table' AND name='companion_moment_media_attempts' LIMIT 1")
+    if (sentinel.length > 0 && sentinel[0].values.length > 0) return
+  }
   db.run('CREATE TABLE IF NOT EXISTS companion_first_contact (role_id TEXT PRIMARY KEY, shown_at INTEGER NOT NULL)')
   db.run(`
     CREATE TABLE IF NOT EXISTS companion_day_scripts (
@@ -159,4 +165,5 @@ export async function ensureLifeSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_companion_event_links_target
       ON companion_event_links(role_id, target_type, target_id)
   `)
+  initializedLifeDbs.add(db)
 }

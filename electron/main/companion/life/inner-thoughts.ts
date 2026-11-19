@@ -123,7 +123,7 @@ const STARTER_THOUGHTS_LUFFY: Array<Omit<CompanionInnerThoughtRecord, 'id' | 'cr
   },
 ]
 
-export async function ensureInnerThoughtTable(): Promise<void> {
+export async function ensureInnerThoughtTable(targetRoleId: string = 'luffy'): Promise<void> {
   const db = await getDatabase()
   db.run(`
     CREATE TABLE IF NOT EXISTS companion_inner_thoughts (
@@ -162,6 +162,8 @@ export async function ensureInnerThoughtTable(): Promise<void> {
       ON companion_inner_thoughts(role_id, created_at DESC)
   `)
 
+  if (targetRoleId !== 'luffy') return
+
   // 播种路飞初始日记
   const countStmt = db.prepare('SELECT COUNT(*) AS count FROM companion_inner_thoughts WHERE role_id = ?')
   countStmt.bind(['luffy'])
@@ -173,8 +175,8 @@ export async function ensureInnerThoughtTable(): Promise<void> {
 
   if (count === 0) {
     const now = Date.now()
-    for (const item of STARTER_THOUGHTS_LUFFY) {
-      const id = `thought-starter-${randomUUID().slice(0, 8)}`
+    for (const [index, item] of STARTER_THOUGHTS_LUFFY.entries()) {
+      const id = `thought-starter-luffy-${index + 1}`
       db.run(
         `INSERT INTO companion_inner_thoughts
          (id, role_id, title, content, mood, weather, location, activity, is_favorite, created_at, thought_type, epiphany, source_type, source_id, trace_id)
@@ -204,7 +206,7 @@ export async function ensureInnerThoughtTable(): Promise<void> {
 }
 
 export async function listInnerThoughts(roleId: string, limit = 50): Promise<CompanionInnerThoughtRecord[]> {
-  await ensureInnerThoughtTable()
+  await ensureInnerThoughtTable(roleId)
   const db = await getDatabase()
   const stmt = db.prepare(`
     SELECT * FROM companion_inner_thoughts
@@ -244,12 +246,17 @@ export async function toggleInnerThoughtFavorite(id: string): Promise<boolean> {
   return isFavorite
 }
 
-export async function deleteInnerThought(id: string): Promise<boolean> {
+export async function deleteInnerThought(id: string, expectedRoleId?: string): Promise<boolean> {
   await ensureInnerThoughtTable()
   const db = await getDatabase()
-  db.run('DELETE FROM companion_inner_thoughts WHERE id = ?', [id])
-  persist()
-  return true
+  if (expectedRoleId) {
+    db.run('DELETE FROM companion_inner_thoughts WHERE id = ? AND role_id = ?', [id, expectedRoleId])
+  } else {
+    db.run('DELETE FROM companion_inner_thoughts WHERE id = ?', [id])
+  }
+  const deleted = db.getRowsModified() > 0
+  if (deleted) persist()
+  return deleted
 }
 
 export function decideInnerThought(input: {
