@@ -133,3 +133,25 @@ it('所有内置伙伴/记忆/知识库领域工具必须全部纳入 Agent Host
   expect(domainTools.size).toBeGreaterThanOrEqual(10)
   expect(unmanaged).toEqual([])
 })
+
+it('life-schema.ts 中所有用户持久表必须纳入备份清单或显式登记为瞬态表（备份防遗漏门禁）', () => {
+  const schemaSource = fs.readFileSync(path.join(root, 'companion/core/persistence/life-schema.ts'), 'utf8')
+  const tableNames = [...schemaSource.matchAll(/CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+([a-z0-9_]+)/gi)].map(m => m[1])
+  const backupSources = [
+    fs.readFileSync(path.join(root, 'storage/companion-backup.ts'), 'utf8'),
+    fs.readFileSync(path.join(root, 'storage/moment-backup.ts'), 'utf8'),
+    fs.readFileSync(path.join(root, 'ipc/data-export.ts'), 'utf8'),
+  ].join('\n')
+  /** 仅保存运行期派生、尝试日志或非备份内部状态的瞬态表白名单；新增用户持久表严禁加入此处，必须接入备份 */
+  const transientOrDerivedTables = new Set([
+    'companion_day_scripts',
+    'companion_event_executions',
+    'companion_moment_media_attempts',
+    'companion_material_observation_attempts',
+    'companion_spontaneous_impulses',
+    'companion_co_decisions',
+  ])
+  const unbacked = tableNames.filter(name => !transientOrDerivedTables.has(name) && !backupSources.includes(name))
+  expect(tableNames.length).toBeGreaterThanOrEqual(20)
+  expect(unbacked).toEqual([])
+})

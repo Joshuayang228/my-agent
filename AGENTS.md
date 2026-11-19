@@ -109,6 +109,13 @@ ipc/（入口）→ agent/（核心）→ llm/（外部服务）
 
 **允许方向**：`ipc/` → `agent/`/`storage/`/`tools/`/`llm/`/`memory/`；`agent/` → `llm/`/`tools/`/`storage/`；`tools/` → `llm/`（仅需要时）；所有模块 → `utils/` 和 `src/shared/types.ts`。
 
+**主进程架构纯洁度铁律（由 `npm run arch:check` 与 Git Hook 强制拦截）**：
+- **Companion IPC 门面收敛**：`electron/main/ipc/companion.ts` 只能通过 `companion/application/*` 与 `companion/adapters/*` 调用伙伴领域，禁止直接跨层导入 `companion/{life,growth,cast,core,identity,orchestrator}`。
+- **Schema 统一归口**：`companion/life/*` 与 `companion/growth/*` 禁止散落 `CREATE TABLE` / `ALTER TABLE`；所有伙伴生活与成长表统一维护在 `companion/core/persistence/life-schema.ts`。
+- **事务统一边界**：除 `storage/database.ts` 与同步日志缓冲 `storage/diagnostic-history-store.ts` 外，禁止手写裸 `BEGIN` / `COMMIT` / `ROLLBACK`；一律使用 `withDatabaseTransaction`、`withCompanionUnitOfWork` 或嵌套安全的 `SAVEPOINT`。
+- **领域工具权限全纳管**：`tools/builtins/` 中任何 `companion_*`、记忆或知识库领域工具，必须全部在 `agent-host/host.ts`（`DOMAIN_TOOL_POLICIES`）或 `agent-host/builtin-domains.ts` 显式声明 Domain 与权限，严禁游离于 Manifest 双端门禁之外。
+- **持久表备份同步**：在 `life-schema.ts` 新增任何用户持久表时，必须同步纳入 `storage/companion-backup.ts` / `moment-backup.ts` 备份恢复链（非用户数据的瞬态表须在 `architecture-boundaries.test.ts` 显式登记白名单）。
+
 新增模块前先明确它属于哪一层。
 
 ### IPC 四处同步
