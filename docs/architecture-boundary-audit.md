@@ -1,6 +1,15 @@
 # 目标架构审计现状
 
-## 2026-11-18 独立终审与收口结论
+## 2026-11-19 零信任深度二审（WISH-051 / B01—B12）
+
+在首轮 `WISH-050`（`A01`—`A18`）收口后，2026-11-19 对 `electron/main` 全量源码对照 5 份目标架构合同进行了零信任穿透二审，新发现 **12 项未迁移完的架构断点与真实缺陷（`B01`—`B12`：1 项 P0、7 项 P1、4 项 P2）**，包括：
+- **B01（P0）**：朋友圈一旦存在角色 / NPC 回复即导致 `data:export` 校验抛错崩溃，且 `companion_mutable`、运行态、日记、信物、礼物、脆弱心境、心愿共鸣、关系状态与自动配图媒体尚未纳入备份恢复；
+- **B02—B08（P1）**：Agent Host 其余 10 个领域工具未接入 Manifest 权限门禁、主对话运行态上下文双重注入、5 处手写裸 `db.run('BEGIN')` 绕过 `withDatabaseTransaction`、`setMutable` 缺命令边界与 `universeId`、读路径无条件 `persist()` 与日剧本提前消费心愿、`switchUniverse` 抹除 `pausedAt` 丢失跨世界 Catch-up 补叙、`broadcastRoleChanged` 漏检窗口销毁及 `deleteInnerThought` 缺角色校验；
+- **B09—B12（P2）**：双套关系阶段系统互不通信、Schema 初始化每次读写重复执行 DDL、`co-decision` 死播种与废弃配置键残留、10 张高频追加表缺少有界裁剪。
+
+完整文件行号证据见 [2026-11-19 深度源码二审报告](../_archive/audits/2026-11-19-architecture-deep-source-audit.md)，活跃清单由 [WISH-051](./wishlist.md) 跟踪，施工方案与四批次验收见 [架构深度二审残余断点与全链路收口施工合同 v2](./requirements/architecture-deep-audit-remediation-v2.md)。
+
+## 2026-11-18 首轮 A01—A18 独立终审与收口结论
 
 **目标架构 A01—A18 已完成全部修复、反例转正并通过独立源码终审。** 2026-11-17 源码复审列出的 18 项缺口（9 项 P1、9 项 P2）与 7 个隔离反例均已在真实存储、工具运行时、宿主权限、持久任务和 Electron / 浏览器 E2E 入口闭环验证，施工合同 [architecture-audit-remediation-v1.md](./requirements/architecture-audit-remediation-v1.md) 已冻结为历史施工快照，`WISH-050` 已从心愿池关闭。
 

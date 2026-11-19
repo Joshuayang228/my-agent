@@ -32,9 +32,9 @@
 
 事务存储故障隔离（2026-11-17）：SQL 提交后的快照导出 / 保存失败会关闭数据库并拒绝后续访问，调用方收到重启恢复提示；已提交失败事实不能进入后一次保存。故障与重启回归见 A01。
 
-## 架构源码审计收口（2026-11-18）
+## 架构源码审计与深度二审状态（2026-11-19）
 
-2026-11-17 审计列出的 A01—A18 缺口（含单次工具超时取消传递、Host 模型策略与只读约束、Outbox 持久恢复、跨阶段因果追踪、夹具隔离与静态分层门禁）已全部闭环并通过独立终审。详见 [架构审计现状](../architecture-boundary-audit.md) 与已冻结的 [架构源码审计修复施工合同](../requirements/architecture-audit-remediation-v1.md)。
+首轮 A01—A18 缺口已于 2026-11-18 闭环。2026-11-19 深度二审识别出运行时与宿主层残余断点（`B02` 其余 10 个伙伴与记忆工具未纳入 Agent Host Manifest 细粒度权限门禁、`B03` 主对话 `worldSlice` 与 `companion.runtime-context` 重复注入同一运行态、`B04` `diagnostic-history-store` 等 5 处裸 `BEGIN` 绕过 `withDatabaseTransaction`、`B12` 高频执行账本与任务表有界裁剪），由 `WISH-051` 与 [架构深度二审施工合同 v2](../requirements/architecture-deep-audit-remediation-v2.md) 跟踪推进。
 
 ## 已落地能力补充（2026-11-17）
 

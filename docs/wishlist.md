@@ -1,5 +1,24 @@
 # 心愿池
 
+## WISH-051 目标架构深度二审残余断点（B01—B12）
+
+2026-11-19 基线 `48fadcc1`（在 WISH-050 的 A01—A18 收口后执行零信任全量二审）。完整证据、文件行号与根因分析见 [深度源码二审报告](../_archive/audits/2026-11-19-architecture-deep-source-audit.md)。本组按 [架构深度二审残余断点与全链路收口施工合同 v2](./requirements/architecture-deep-audit-remediation-v2.md) 分 4 个批次施工并验收。
+
+| 项 | 优先级 | 待处理范围 |
+|---|---|---|
+| B01 | P0 | 朋友圈一旦有主角 / NPC 回复即导致 `data:export` 抛错崩溃，且 `moment-backup.ts` 丢失 4 个回复元数据列；新迁移的 Companion Core / 生活表（`companion_mutable`、运行态、日记、信物、礼物、脆弱心境、心愿共鸣、关系状态、自动配图媒体等）尚未纳入备份恢复 |
+| B02 | P1 | Agent Host 仅注册 7 个样板 Capability，其余 7 个 `companion_*` 工具与 3 个 `remember / recall / forget` 工具未纳入 Manifest `grantedPermissions` 与 `capabilityPolicy` 门禁 |
+| B03 | P1 | 主对话 System Prompt 同时通过 `worldSlice` 和 `companion.runtime-context` 重复注入同一份人物运行态 |
+| B04 | P1 | 5 处手写裸 `db.run('BEGIN')`（`diagnostic-history-store`、`proactive-evidence-store`、`assets.ts` 两处播种、`data-export`）绕过 `withDatabaseTransaction`，定时器或嵌套触发会撞车甚至误回滚外层事务 |
+| B05 | P1 | 可变人格 `setMutable` / `rollbackMutable` 绕过 `requireActiveWriteRole`、`executeCompanionCommand` 与本地事务，且 IPC 未传 `universeId` 导致自定义世界观写人设必败 |
+| B06 | P1 | 读操作与 Prompt 组装夹带写副作用：`ensureVulnerabilityTable` 每次读取无条件 `persist()` 全量写盘；`get-today-timeline` 读接口调 LLM 写库；`script-generator.ts` 在 LLM 成功前提前落盘 `markResonancesAbsorbed`；建表硬编码跨角色播种 `'luffy'` |
+| B07 | P1 | 跨世界观切换（`switchUniverse`）无条件 `resumeRole` 抹除 `pausedAt`，切回原世界观永久丢失 Catch-up 补叙；`broadcastRoleChanged` 漏检 `!win.isDestroyed()` |
+| B08 | P1 | `deleteInnerThought` 未校验 `role_id` 可跨角色删日记；`completeCultureResonance` 在 `withCompanionUnitOfWork` 内反向嵌套 `executeCompanionCommand`；赠礼与脆弱抚慰里程碑未走统一事件 / Outbox 闭环 |
+| B09 | P2 | `growth/relationship-stage.ts`（驱动 `behavior.relationshipStage`）与 `companion_relationship_state`（驱动 `situation.relationshipSummary` 与朋友圈可见窗口）两套关系阶段系统互不通信 |
+| B10 | P2 | `ensureCompanionCoreSchema`、`ensureLifeSchema` 与 10 余个 `ensure*Table()` 未按 DB 实例缓存，每次读写重复执行数十条 `CREATE TABLE` 与 `try { ALTER TABLE } catch {}` |
+| B11 | P2 | 僵尸代码与废弃配置残留：`co-decision.ts` 无生产写入口却在日剧本生成时建表并播种死数据；`companionProactiveGreetingLastDay` 死键与 `moment-tips` 重复冷却计数残留 |
+| B12 | P2 | 10 张高频追加表（`companion_execution_runs`、`companion_outbox`、`companion_domain_events`、`companion_projection_receipts`、`companion_proactive_budget`、`background_tasks` 等）缺少 TTL / 容量上限裁剪 |
+
 ## 待办缺口：Debug 展示候选正式回流
 
 2026-10-13 更新：首版已被七组 24 入口的整体 P0 替换，提示词、日程与生活领域分别可交互浏览。待用户实际查看并明确授权后，补只读资产查询、记忆范围及真实数据接线再回流；不能直接调用有初始化副作用的 get-assets。现有请求日志不保存历史正文，Span 缺失时不猜测关联；跨请求任务聚合、完整生活执行账本及新增诊断动作不因候选存在而视为完成。见 [Debug 施工合同](./requirements/debug-ui-information-architecture-v1.md)。

@@ -1,5 +1,7 @@
 # 项目进度
 
+WISH-051 目标架构零信任深度二审与施工合同 v2 立项（2026-11-19）：在首轮 A01—A18 收口基础上，对照 5 份目标架构合同对 `electron/main` 全量源码执行零信任穿透二审，定位 12 项深水区残余断点（`B01`—`B12`，含 1 项 P0 备份导出崩溃与新核心表漏备、7 项 P1 Agent Host 领域工具权限旁路 / 重复上下文注入 / 5 处裸 SQL 事务 / `setMutable` 跨世界观缺陷 / 读路径写副作用 / 换世界丢失 Catch-up / 命令嵌套反转、4 项 P2 双关系系统分裂 / Schema 重复 DDL / 僵尸代码 / 高频表无界膨胀）。已落成 [深度源码二审报告](../_archive/audits/2026-11-19-architecture-deep-source-audit.md) 与 [架构深度二审残余断点与全链路收口施工合同 v2](./requirements/architecture-deep-audit-remediation-v2.md)，并登记 `WISH-051`，准备按 4 个独立批次施工。
+
 WISH-050 目标架构源码审计 A01—A18 全面收口与合同冻结（2026-11-18）：完成独立源码终审，补齐人物资产创建 / 更新 / 删除 / 换装 IPC 的单事务回执、聊天工具 `companion_create_asset` 与 `companion_add_reading_note` 的会话工具调用幂等键、资产与朋友圈配图挂载事务边界及 SQL 失败时的孤立图片文件清理、人物草稿写入 / 发布与世界观切换的 `AbortSignal` 检查，以及 `companion/growth` 与 `companion/cast` 的分层静态门禁。全量单测 289 文件 1853 项通过（1 项原有跳过），双进程类型检查、生产构建、离线 Eval（23 项）、Skill Eval（1 项）、资产审计（113 项）、浏览器 E2E（665 项）与正式 Electron 回归全部通过；`WISH-050` 已从心愿池移出，施工合同 `architecture-audit-remediation-v1.md` 已冻结为历史施工快照。
 
 后台画像、标题与向量任务绑定真实对话来源。重启使用该轮回复及原始用户消息，向量任务的重投使用相同索引键。

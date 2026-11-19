@@ -20,6 +20,8 @@
 
 ## 进行中
 
+[架构深度二审残余断点与全链路收口 v2](./architecture-deep-audit-remediation-v2.md) 覆盖 WISH-051 的 B01—B12（备份恢复断层、Agent Host 领域工具全量门禁、裸事务收敛、读写分离、切世补叙、双关系系统统一与高频表有界裁剪），按 4 个独立批次推进。
+
 | 文档 | 说明 |
 |------|------|
 | [prompt-coverage-and-review-v2.md](./prompt-coverage-and-review-v2.md) | 全量方案已确认：推进用途 / 消费者门禁、集中展示、缺失生成闭环和人物扩展；新增 UI 待候选验收后统一回流 |
