@@ -80,13 +80,16 @@ interface PermissionRule {
 }
 ```
 
-## 工具权限
+## 工具权限与宿主授权
 
 | 元数据 | 行为 |
 |--------|------|
 | `isReadOnly: true` | 自动执行 |
 | `isDestructive: true` | 必须用户确认 |
 | `executionMode: 'confirm-all'` | 所有工具都需确认 |
+
+- [ ] 所有主进程 IPC 入口统一通过 `registerSecureIpcHandler` 注册并校验调用窗口与主框架来源。
+- [ ] 所有内置伙伴（`companion_*`）、记忆（`remember`/`recall`/`forget`）与知识库（`rag_search`）领域工具均纳入 Agent Host Manifest 双端门禁（`AgentHostScopedToolCatalog.filter` 目录筛选 + `ToolRegistry.executeSingle` 执行拦截），由 `npm run arch:check` 强制校验 100% 覆盖。
 
 ## 数据保护
 

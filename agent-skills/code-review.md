@@ -269,6 +269,7 @@
 ### L0/L1
 
 - [ ] `git diff --check`
+- [ ] `npm run arch:check` 通过
 - [ ] 相关 Unit / Eval / E2E 通过
 - [ ] `npx tsc --noEmit` 通过
 - [ ] 如果改了 `package.json` / lockfile / 构建配置：依赖锁定、安装脚本和产物入口经过审查
@@ -280,6 +281,9 @@
 
 ```text
 git diff --check
+npm run arch:check
+npm run assets:check
+npm run docs:validate
 npm run test
 npm run eval:run
 npm run eval:skill
@@ -349,7 +353,11 @@ npm audit --omit=dev --registry=https://registry.npmjs.org
 - `img-src https:`、远程 `loadURL`、外部页面继承 preload；
 - Markdown、网页、文件、MCP 描述/结果被拼成系统指令；
 - `safeStorage` 解密失败回退原字符串；
-- 备份 SQL/字段名与真实 schema 不一致；
+- 备份 SQL/字段名与真实 schema 不一致，或在 `life-schema.ts` 新增用户持久表却未同步 `companion-backup.ts` / `moment-backup.ts`；
+- 在 `storage/database.ts`（及 `diagnostic-history-store.ts`）之外手写裸 `db.run('BEGIN/COMMIT/ROLLBACK')`；
+- 在 `companion/life/*` 或 `companion/growth/*` 业务文件内散落 `CREATE TABLE` / `ALTER TABLE`；
+- `ipc/companion.ts` 绕过 `companion/application/companion-facade.ts` 直接导入底层 `life` / `growth` / `core` 模块；
+- 新增 `companion_*` / 记忆 / 知识库领域工具未在 `agent-host/host.ts`（`DOMAIN_TOOL_POLICIES`）或 `builtin-domains.ts` 声明 Manifest 权限；
 - LCS/正则/JSON/报告/Terminal 输出没有资源上限；
 - 把历史测试数字或历史实现当作当前事实；
 - 只改代码不改模块卡、质量文档、审计报告或 wishlist。

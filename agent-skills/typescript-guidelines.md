@@ -93,6 +93,14 @@ if (!isSafe) { ... }
 - 禁止空 catch 块。
 - 禁止静默吞错。
 
+## 主进程持久化与架构边界红线（`npm run arch:check` 强制校验）
+
+- **统一 Schema**：伙伴生活与成长领域表结构全部维护在 `electron/main/companion/core/persistence/life-schema.ts`，禁止在 `companion/life/*` 或 `companion/growth/*` 业务文件中散落 `CREATE TABLE` / `ALTER TABLE`。
+- **统一事务**：禁止在 `storage/database.ts` 与 `storage/diagnostic-history-store.ts` 之外手写裸 `BEGIN/COMMIT/ROLLBACK`；一律走 `withDatabaseTransaction`、`withCompanionUnitOfWork` 或嵌套安全的 `SAVEPOINT`。
+- **IPC 门面收敛**：`ipc/companion.ts` 只能通过 `companion/application/companion-facade.ts` 或 `companion/adapters/*` 调用伙伴领域。
+- **领域工具纳管**：新增任何 `companion_*`、记忆或知识库领域工具必须在 `agent-host/host.ts`（`DOMAIN_TOOL_POLICIES`）或 `builtin-domains.ts` 显式声明 Domain 与权限。
+- **备份同步**：在 `life-schema.ts` 新增用户持久表时必须同步更新 `storage/companion-backup.ts` / `moment-backup.ts`。
+
 ## 测试
 
 - 新功能尽量附带测试。

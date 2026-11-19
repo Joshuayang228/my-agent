@@ -585,3 +585,14 @@ SQL COMMIT 成功后若 export 或原子快照替换失败，原事务已经无�
 ## DEC-2026-11-18-02 定时任务中断恢复
 
 定时任务以任务 ID 和预定时刻作为唯一执行键，在模型调用前保存领取记录。重启执行未领取的到期时刻。已领取且无终态的运行记录为中断，调度推进到下一时刻，避免重复发起可能已执行的操作。人物和世界观在创建时绑定，后台执行只提供明确只读的工具目录。
+
+## DEC-2026-11-20-01 主进程架构纯洁度与静态防回流门禁
+
+经过 A01—A18、B01—B12 与 C01—C04 三轮收口后，决定将五条主进程架构纯洁度边界固化为机器可执行的静态测试（`__tests__/unit/architecture-boundaries.test.ts`）并通过 `npm run arch:check` 接入 `.githooks/pre-commit` 与 `.githooks/pre-push` 强制拦截：
+1. `ipc/companion.ts` 统一经 `companion/application/*`（如 `companion-facade.ts`）与 `companion/adapters/*` 调用伙伴领域，禁止直接跨层导入底层 `life` / `growth` / `core` / `cast` / `identity` / `orchestrator`；
+2. 伙伴生活与成长领域的所有建表与升级 DDL 统一收口到 `companion/core/persistence/life-schema.ts`（配 `WeakSet<Database>` 守卫），禁止在业务模块散落 `CREATE TABLE` / `ALTER TABLE`；
+3. 除 `storage/database.ts` 与同步诊断缓冲 `storage/diagnostic-history-store.ts` 外，禁止手写裸 `BEGIN` / `COMMIT` / `ROLLBACK`，统一使用 `withDatabaseTransaction`、`withCompanionUnitOfWork` 或嵌套安全的 `SAVEPOINT`；
+4. 所有内置伙伴、记忆与知识库领域工具 100% 纳入 Agent Host Manifest 双端权限管控（`DOMAIN_TOOL_POLICIES` 或 `builtin-domains.ts`）；
+5. `life-schema.ts` 中所有非瞬态用户持久表必须同步纳入 `companion-backup.ts` / `moment-backup.ts` 备份恢复链。
+
+后续任何需求或重构不得以临时绕过为由弱化上述门禁；如确需新增瞬态表，须在门禁白名单中显式登记并说明理由。
