@@ -3,7 +3,7 @@
 > 状态：已完成施工快照（冻结）
 > 生命周期：已完成施工快照（冻结）
 > 授权来源：2026-11-19 用户要求重新零信任审计当前架构断点与未迁移完路径，先落成文档再分批施工并启用目标模式全面收口。
-> 冻结说明：2026-11-19 已完成 Batch 1 ～ Batch 4（`B01`—`B12`）全部修复、单测反例转正、双进程类型检查与构建、离线 Eval / Skill Eval / 资产审计与正式 Electron E2E 验证；稳定事实已吸入 `docs/architecture.md`、`docs/architecture-boundary-audit.md`、`docs/modules/companion.md`、`docs/modules/agent-runtime.md` 与 `docs/quality.md`，`WISH-051` 已从心愿池关闭。
+> 冻结说明：2026-11-19 已完成 Batch 1 ～ Batch 4（`B01`—`B12`）全部修复、单测反例转正、双进程类型检查与构建、离线 Eval / Skill Eval / 资产审计与正式 Electron E2E 验证；稳定事实已吸入 `docs/architecture.md`、`docs/decisions.md`、`docs/modules/companion.md`、`docs/modules/agent-runtime.md` 与 `docs/quality.md`（历史审计汇总归档于 `_archive/audits/2026-11-20-architecture-boundary-audit.md`），`WISH-051` 已从心愿池关闭。
 
 ## Why
 

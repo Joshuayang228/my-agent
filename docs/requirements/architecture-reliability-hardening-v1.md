@@ -166,4 +166,4 @@ Agent Runtime 保留 Agent Loop、Context、Tool、Permission、取消和流式�
 - `npm run assets:check`
 - 事务、Outbox 恢复、IPC sender、Runtime 边界和存储基准对应 Unit / Electron 测试。
 
-边界审计证据：[`docs/architecture-boundary-audit.md`](../architecture-boundary-audit.md)。IPC 入口按两类收口：通用 handler 使用 `registerSecureIpcHandler`，MCP、Settings、Terminal、图片读取等已有窗口生命周期门禁的 handler 保留专用校验，并复用同一 `assertTrustedIpcSender` 规则或更严格的业务归属复核。执行账本按 DEC-2026-11-13-01 分为跨外部等待的生命周期元数据和本地事实关联，二者边界已固定。
+边界审计证据：[`2026-11-20-architecture-boundary-audit.md`](../../_archive/audits/2026-11-20-architecture-boundary-audit.md)。IPC 入口按两类收口：通用 handler 使用 `registerSecureIpcHandler`，MCP、Settings、Terminal、图片读取等已有窗口生命周期门禁的 handler 保留专用校验，并复用同一 `assertTrustedIpcSender` 规则或更严格的业务归属复核。执行账本按 DEC-2026-11-13-01 分为跨外部等待的生命周期元数据和本地事实关联，二者边界已固定。

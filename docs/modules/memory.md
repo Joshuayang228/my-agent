@@ -16,7 +16,7 @@
 
 ## 架构源码审计与深度二审状态（2026-11-19）
 
-SQLite 源、向量恢复与跨领域深夜反思记忆补偿（A01、A13）已于 2026-11-18 闭环。2026-11-19 深度二审进一步收口了记忆与会话相关的宿主权限、事务边界与备份恢复（`B01`、`B02`、`B04`）：`remember`、`recall` 与 `forget` 工具在 `AgentHostScopedToolCatalog` 目录过滤和 `ToolRegistry` 实际执行两处均纳入 Manifest `memory` 领域及 `memory.read` / `memory.write` 权限门禁；`session-store.ts` 的消息保存、会话删除与分支复制统一包入 `SAVEPOINT` 嵌套安全事务；`data:export` / `data:import` 在单一 `SAVEPOINT` 事务与内存补偿内同时恢复记忆、会话、朋友圈回复与全部 Companion 核心及生活状态。详见 [架构审计现状](../architecture-boundary-audit.md)。
+SQLite 源、向量恢复与跨领域深夜反思记忆补偿（A01、A13）已于 2026-11-18 闭环。2026-11-19 深度二审进一步收口了记忆与会话相关的宿主权限、事务边界与备份恢复（`B01`、`B02`、`B04`）：`remember`、`recall` 与 `forget` 工具在 `AgentHostScopedToolCatalog` 目录过滤和 `ToolRegistry` 实际执行两处均纳入 Manifest `memory` 领域及 `memory.read` / `memory.write` 权限门禁；`session-store.ts` 的消息保存、会话删除与分支复制统一包入 `SAVEPOINT` 嵌套安全事务；`data:export` / `data:import` 在单一 `SAVEPOINT` 事务与内存补偿内同时恢复记忆、会话、朋友圈回复与全部 Companion 核心及生活状态。历史审计归档见 [2026-11-20 架构边界审计汇总](../../_archive/audits/2026-11-20-architecture-boundary-audit.md)。
 
 ## 已落地能力：持久化与模型编排边界
 
