@@ -7,7 +7,9 @@ import { listMoments } from '../../companion/core/persistence/life-repository'
 import { getSession } from '../../storage/session-store'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { chatComplete } from '../../llm/index'
-import { compileMaterialObservationRequest } from '../../prompts/registered-request'
+import { compileCultureReviewRequest, compileMaterialObservationRequest } from '../../prompts/registered-request'
+import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
+import { loadRolePack } from '../../companion/identity/loader'
 import { recordMaterialObservationAttempt } from '../../companion/life/material-observation-store'
 import { executeCompanionCommand } from '../../companion/core/commands/gateway'
 
@@ -197,7 +199,8 @@ export const companionAddReadingNoteTool = buildTool({
     type: 'object',
     properties: {
       assetId: { type: 'string', description: '书架条目的真实资产 ID。' },
-      note: { type: 'string', description: '阅读笔记，最多 4000 字。' },
+      note: { type: 'string', description: '阅读笔记，最多 4000 字；当 author=companion 且 autoGenerateNote=true 时可省略由已核对材料自动生成。' },
+      autoGenerateNote: { type: 'boolean', description: '可选：仅当 author=companion 且已提供明确 observation 时，按人物口吻自动生成感想；失败不写库。' },
       source: { type: 'string', description: '笔记依据，例如“用户提供的摘录”或“人物读取的第 3 章材料”，最多 300 字。' },
       author: { type: 'string', enum: ['user', 'companion'], description: '记录者：user = 用户记录，companion = 人物根据明确材料记录。' },
       observation: { type: 'string', description: '材料中可以直接核对的内容，人物记录者必填，最多 4000 字。' },
@@ -205,18 +208,21 @@ export const companionAddReadingNoteTool = buildTool({
       page: { type: 'integer', description: '可选：页码，必须是 1–100000 的整数。' },
       chapter: { type: 'string', description: '可选：章节或段落范围，最多 120 字。' },
     },
-    required: ['assetId', 'note', 'source', 'author'],
+    required: ['assetId', 'source', 'author'],
   },
   metadata: { isReadOnly: false, isDestructive: false, isConcurrencySafe: false },
   execute: async (args, context) => {
     const roleId = context?.roleId?.trim()
     if (!roleId) return '当前会话没有绑定人物，暂时不能保存阅读笔记。'
     const assetId = textArg(args, 'assetId', 200)
-    const note = textArg(args, 'note', 4000)
-    if (!assetId || !note) return '资产 ID 和阅读笔记不能为空。'
+    const autoGenerateNote = args.autoGenerateNote === true
+    let note = args.note === undefined ? '' : textArg(args, 'note', 4000)
+    if (!assetId) return '资产 ID 不能为空。'
+    if (!autoGenerateNote && !note) return '资产 ID 和阅读笔记不能为空。'
     const source = textArg(args, 'source', 300)
     const author = args.author === 'user' || args.author === 'companion' ? args.author : ''
     if (!source || !author) return '阅读笔记必须提供来源范围和记录者（user 或 companion）。'
+    if (autoGenerateNote && author !== 'companion') return '只有人物记录者（author=companion）才支持基于材料观察自动生成感想。'
     const observation = textArg(args, 'observation', 4000)
     const inference = args.inference === undefined ? '' : textArg(args, 'inference', 4000)
     if (args.observation !== undefined && !observation) return '材料观察不能为空，且不能超过 4000 字。'
@@ -228,6 +234,42 @@ export const companionAddReadingNoteTool = buildTool({
     if (args.chapter !== undefined && !chapter) return '章节或段落范围不能为空，且不能超过 120 字。'
     const asset = await getAsset(assetId)
     if (!asset || asset.roleId !== roleId || asset.kind !== 'bookshelf') return '只能为当前人物已存在的书架条目保存笔记。'
+
+    if (autoGenerateNote && !note) {
+      const auxConfig = await loadAuxLLMConfig()
+      if (!hasLLMAuthentication(auxConfig)) {
+        return '阅读感想自动生成未执行：尚未配置可用的辅助模型，未写入阅读笔记。'
+      }
+      try {
+        const pack = loadRolePack(roleId)
+        const raw = await chatComplete({
+          config: auxConfig,
+          request: compileCultureReviewRequest({
+            protagonistName: pack.name,
+            protagonistBrief: (pack.voice || pack.summary || pack.description).slice(0, 600),
+            targetName: asset.name,
+            cultureType: 'reading',
+            userQuote: observation.slice(0, 1200),
+            userReason: [source, inference].filter(Boolean).join('；').slice(0, 600),
+          }),
+          temperature: 0.5,
+          maxTokens: 600,
+          caller: 'culture-review',
+          sessionId: context?.sessionId,
+          parentSpanId: context?.parentSpanId,
+          signal: context?.signal,
+        })
+        const match = raw.match(/\{[\s\S]*\}/)
+        const parsed = match ? JSON.parse(match[0]) as { reviewText?: unknown } : null
+        const reviewText = typeof parsed?.reviewText === 'string' ? parsed.reviewText.trim().slice(0, 4000) : ''
+        if (!reviewText) {
+          return '阅读感想自动生成未返回有效文本，未写入阅读笔记。'
+        }
+        note = reviewText
+      } catch (error) {
+        return `阅读感想自动生成失败，未写入阅读笔记：${error instanceof Error ? error.message.slice(0, 160) : '模型调用失败'}`
+      }
+    }
     return executeCompanionCommand({
       roleId,
       actionType: 'add-reading-note',

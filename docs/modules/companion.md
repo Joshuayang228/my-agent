@@ -34,6 +34,8 @@
 
 事务存储故障隔离（2026-11-17）：SQL 提交后的快照导出 / 保存失败会关闭数据库并拒绝后续访问，调用方收到重启恢复提示；已提交失败事实不能进入后一次保存。故障与重启回归见 A01。
 
+图片观察与阅读感想闭环（2026-11-20，`WISH-049`）：`companion_observe_material`（观察/推测分离与失败审计）与 `companion_add_reading_note`（支持 `autoGenerateNote` 复用 `compileCultureReviewRequest` 生成人物口吻感想、失败零落库）已打通闭环，`prompt-coverage-and-review-v2.md` 已冻结。
+
 ## 架构源码审计与深度二审状态（2026-11-20）
 
 首轮 2026-11-17 审计列出的 A01—A18 缺口、2026-11-19 零信任深度二审列出的 B01—B12 断点以及 2026-11-20 架构纯洁度收口（C01—C04）均已全部闭环：朋友圈主角/卡司评论回复与全部 Companion 核心与生活状态表均已纳入单事务备份恢复（`B01`）；可变人格 `setMutable` / `rollbackMutable` 接入命令边界、事务与 `universeId`（`B05`）；读路径剥离无条件 `persist()` 与读接口 LLM 写副作用，日剧本心愿延迟至落库事务吸收（`B06`、`B11`）；`switchUniverse` 保留暂停状态并触发补叙（`B07`）；`deleteInnerThought` 校验 `role_id` 与 `completeCultureResonance` 命令层级修正（`B08`）；双关系阶段系统统一事实源（`B09`）；全部生活与成长领域表 DDL 统一收拢到 `core/persistence/life-schema.ts`（`WeakSet<Database>` 守卫，`B10` / `C02`）；`ipc/companion.ts` 统一经 `application/companion-facade.ts` 调用伙伴领域（`C03`）；高频终态账本与任务表启用有界裁剪（`B12`），并由 `architecture-boundaries.test.ts` 的 9 项静态架构门禁锁死防回流（`C04`）。

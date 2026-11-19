@@ -32,6 +32,8 @@
 
 事务存储故障隔离（2026-11-17）：SQL 提交后的快照导出 / 保存失败会关闭数据库并拒绝后续访问，调用方收到重启恢复提示；已提交失败事实不能进入后一次保存。故障与重启回归见 A01。
 
+`companion_add_reading_note` 现支持在 `author='companion'` 且具备明确 `observation` / `source` 时通过 `autoGenerateNote: true` 复用已注册配方 `compileCultureReviewRequest` 生成人物口吻阅读感想，模型不可用或失败时零写库。
+
 ## 架构源码审计与深度二审状态（2026-11-20）
 
 首轮 A01—A18、深度二审 B01—B12 与架构纯洁度收口 C01—C04 均已闭环：`agent-host/host.ts` 的 `DOMAIN_TOOL_POLICIES` 与 `evaluateDomainToolManifestAccess` 将全部内置领域工具（`companion_*`、`remember`/`recall`/`forget`、`rag_search`）纳入 Manifest 双端权限门禁并由静态架构测试强制校验 100% 覆盖；主会话在 `worldSlice` 已注入完整运行态时去重 `companion.runtime-context`；主进程裸 SQL 事务与 `companion/life|growth` 散落 DDL 均已清零并由 `architecture-boundaries.test.ts` 静态门禁锁定；`debug/companion-evidence.ts` 修复了 `growth` 视图在 `companion_mutable_versions` 表存在时漏展示独立材料观察尝试记录的边界。

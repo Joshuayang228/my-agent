@@ -132,6 +132,57 @@ it('图片观察候选经明确记录者写回后保留确认与 Debug 证据', 
   expect((await listAssets('luffy', { kind: 'bookshelf' }))[0].payload.readingNotes).toEqual([expect.objectContaining({ confirmation: { by: 'companion', at: expect.any(Number) }, grounding: expect.objectContaining({ observation: expect.stringContaining('重新核对航线') }) })])
 })
 
+it('图片观察后支持基于已核对材料自动生成第一人称阅读感想，模型失败时零落库（WISH-049）', async () => {
+  const tools = registry()
+  const context = { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' }
+  await tools.executeAll([{ id: 'create', name: 'companion_create_asset', arguments: JSON.stringify({ kind: 'bookshelf', name: '伟大航路观察笔记' }) }], context)
+  const book = (await listAssets('luffy', { kind: 'bookshelf' }))[0]
+
+  vi.mocked(chatComplete).mockRejectedValueOnce(new Error('aux model timeout'))
+  const [failed] = await tools.executeAll([{
+    id: 'auto-fail',
+    name: 'companion_add_reading_note',
+    arguments: JSON.stringify({
+      assetId: book.id,
+      autoGenerateNote: true,
+      source: '用户提供的书页照片，第 12 页',
+      author: 'companion',
+      observation: '书页写着“在风向突变的夜里必须重新核对航线”。',
+    }),
+  }], context)
+  expect(failed.content).toContain('未写入阅读笔记')
+  expect((await listAssets('luffy', { kind: 'bookshelf' }))[0].payload.readingNotes).toBeUndefined()
+
+  vi.mocked(chatComplete).mockResolvedValueOnce(JSON.stringify({
+    reviewText: '看到这页我就想起娜美在暴雨里盯着记录指针的样子，风向一变确实不能光靠蛮冲！',
+    chatOpener: '刚才看那页航线记录，超有意思！',
+    shouldPostMoment: false,
+  }))
+  const [saved] = await tools.executeAll([{
+    id: 'auto-ok',
+    name: 'companion_add_reading_note',
+    arguments: JSON.stringify({
+      assetId: book.id,
+      autoGenerateNote: true,
+      source: '用户提供的书页照片，第 12 页',
+      author: 'companion',
+      observation: '书页写着“在风向突变的夜里必须重新核对航线”。',
+      inference: '提醒自己不能忽略环境变化。',
+      page: 12,
+    }),
+  }], context)
+  expect(saved.content).toContain('已保存《伟大航路观察笔记》的阅读笔记')
+  expect((await listAssets('luffy', { kind: 'bookshelf' }))[0].payload.readingNotes).toEqual([
+    expect.objectContaining({
+      text: expect.stringContaining('娜美在暴雨里盯着记录指针'),
+      author: 'companion',
+      source: '用户提供的书页照片，第 12 页',
+      page: 12,
+      grounding: expect.objectContaining({ observation: expect.stringContaining('重新核对航线') }),
+    }),
+  ])
+})
+
 it('朋友圈与生活资产工具进入 Chat 的统一内置注册链', () => {
   expect(builtinTools.map(tool => tool.name)).toEqual(expect.arrayContaining(['companion_post_moment', 'companion_create_asset', 'companion_comment_moment', 'companion_add_reading_note']))
   expect(getBuiltinToolSource('companion_post_moment')).toBe('electron/main/tools/builtins/companion-life.ts')

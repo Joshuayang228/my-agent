@@ -22,28 +22,27 @@
 
 | 文档 | 说明 |
 |------|------|
-| [prompt-coverage-and-review-v2.md](./prompt-coverage-and-review-v2.md) | 全量方案已确认：推进用途 / 消费者门禁、集中展示、缺失生成闭环和人物扩展；新增 UI 待候选验收后统一回流 |
-| [foundation-reuse-enforcement-v1.md](./foundation-reuse-enforcement-v1.md) | P1 基础控件复用链路获批回流：四大体验候选收口与 TS AST 符号自动门禁全面生效 |
-| [playground-state-switchers-v1.md](./playground-state-switchers-v1.md) | P0：统一 Playground 场景、状态与宽度控制器，采用 MCP 独立选项样式 |
-| [playground-page-baseline-polish-v1.md](./playground-page-baseline-polish-v1.md) | P0 施工：Sidebar 底栏、Toast、Right Dock、人物世界与记忆页面样张统一精修 |
-| [playground-navigation-world-polish-v1.md](./playground-navigation-world-polish-v1.md) | P0 施工：一级导航、Right Dock 四 Tab、朋友圈社交流与记忆四色语义 |
-| [playground-bilingual-ui-vocabulary.md](./playground-bilingual-ui-vocabulary.md) | Playground 中文分类与常用 UI 控件中英分层文案 |
-| [foundation-design-language-v2.md](./foundation-design-language-v2.md) | P0 施工：颜色、主题、圆角、动效与 Foundation 组件研究升级 |
-| [product-experience-map-v1.md](./product-experience-map-v1.md) | E0 / E1 总合同：产品体验总图、正式 IA 与六条主旅程 |
-| [product-experience-journeys-v1.md](./product-experience-journeys-v1.md) | E0 / E1 子合同：Chat 主旅程 Playground 候选 |
-| [playground-world-living-dimensions-v1.md](./playground-world-living-dimensions-v1.md) | P0 施工：人物世界六个生活维度与隔离样张 |
-| [settings-information-architecture-v1.md](./settings-information-architecture-v1.md) | P0 施工：设置体系信息架构、风险分层与隔离体验候选 |
-| [playground-skills-detail-v1.md](./playground-skills-detail-v1.md) | P0 施工：Skills 极简列表、详情元信息、文件树与内容预览 |
-| [playground-workspace-five-tools-v1.md](./playground-workspace-five-tools-v1.md) | P1 回流进行中：先统一五功能正式工作区，再补真实后端；P0 夹具继续隔离 |
-
-| [playground-mcp-scenarios-v1.md](./playground-mcp-scenarios-v1.md) | P0 施工：MCP 多服务、连接状态与工具数量场景直接审阅 |
-| [playground-model-and-workspace-v2.md](./playground-model-and-workspace-v2.md) | P0 施工：从用户故事重构模型设置与任务工作区候选 |
-
-
+| [foundation-reuse-enforcement-v1.md](./foundation-reuse-enforcement-v1.md) | P1 基础控件复用链路获批回流：四大体验候选收口与 TS AST 符号自动门禁全面生效，待最终桌面总验收 |
+| [playground-workspace-five-tools-v1.md](./playground-workspace-five-tools-v1.md) | P1 回流进行中：正式五功能工作区主链路已接通，待最终跨端与稳定性总验收 |
 
 ---
 
 ## 已完成施工快照（冻结）
+
+提示词全链路覆盖与内容审阅：[prompt-coverage-and-review-v2.md](./prompt-coverage-and-review-v2.md)，已完成全量提示词注册覆盖门禁、主角回复评论、视觉锚点、自主朋友圈配图、图片观察/推测分离及自动阅读感想闭环（`WISH-049`）；当前事实见 `docs/modules/companion.md` 与 `docs/modules/agent-runtime.md`。
+
+Playground 状态切换器：[playground-state-switchers-v1.md](./playground-state-switchers-v1.md)，已完成 P0 场景、状态与宽度控制器统一。
+Playground 页面基线精修：[playground-page-baseline-polish-v1.md](./playground-page-baseline-polish-v1.md)，已完成 P0 Sidebar 底栏、Toast、Right Dock、人物世界与记忆页面样张精修。
+Playground 导航与人物世界精修：[playground-navigation-world-polish-v1.md](./playground-navigation-world-polish-v1.md)，已完成 P0 一级导航、Right Dock 四 Tab、朋友圈社交流与记忆四色语义。
+Playground 双语 UI 词汇：[playground-bilingual-ui-vocabulary.md](./playground-bilingual-ui-vocabulary.md)，已完成中文分类与常用 UI 控件中英分层文案。
+Foundation 设计语言 v2：[foundation-design-language-v2.md](./foundation-design-language-v2.md)，已完成 P0 颜色、主题、圆角、动效与 Foundation 组件升级。
+产品体验总图：[product-experience-map-v1.md](./product-experience-map-v1.md)，已完成 E0/E1 体验总图、正式 IA 与六条主旅程。
+产品体验主旅程：[product-experience-journeys-v1.md](./product-experience-journeys-v1.md)，已完成 E0/E1 Chat 主旅程 Playground 候选。
+人物世界六维生活：[playground-world-living-dimensions-v1.md](./playground-world-living-dimensions-v1.md)，已完成 P0 六个生活维度与隔离样张。
+设置信息架构：[settings-information-architecture-v1.md](./settings-information-architecture-v1.md)，已完成 P0 设置体系信息架构与隔离体验候选。
+Skills 详情页：[playground-skills-detail-v1.md](./playground-skills-detail-v1.md)，已完成 P0 Skills 极简列表与详情预览。
+MCP 多服务场景：[playground-mcp-scenarios-v1.md](./playground-mcp-scenarios-v1.md)，已完成 P0 MCP 多服务连接状态与工具数场景。
+模型与工作区候选 v2：[playground-model-and-workspace-v2.md](./playground-model-and-workspace-v2.md)，已完成 P0 模型设置与任务工作区候选。
 
 架构深度二审残余断点与全链路收口：[architecture-deep-audit-remediation-v2.md](./architecture-deep-audit-remediation-v2.md)，已完成 WISH-051 的 B01—B12 四批次全部收口（朋友圈角色回复备份恢复与 Companion 核心/生活全表备份、Agent Host 内置领域工具 Manifest 双端权限门禁、主对话运行态去重、SAVEPOINT 事务收敛、可变人格命令边界与世界观透传、读写分离与日剧本心愿延迟吸收、跨世界观切换 Catch-up 恢复、双关系阶段系统对齐、Schema WeakSet 初始化守卫与高频账本有界裁剪）；当前事实见 [系统架构](../architecture.md)、[质量总控](../quality.md) 与 [历史架构边界审计汇总](../../_archive/audits/2026-11-20-architecture-boundary-audit.md)。
 

@@ -1,5 +1,7 @@
 # 质量总控
 
+WISH-049 自动阅读感想与合同清账门禁（2026-11-20）：`companion-life-tools.test.ts` 新增基于已核对材料观察自动生成阅读感想及模型失败零落库回归（17 passed），`npm run assets:check`（113 passed）、`npm run arch:check`（10 passed）与 `npm run docs:validate` 全部通过。
+
 架构纯洁度与静态防回流门禁收口（2026-11-20）：`architecture-boundaries.test.ts` 扩增至 10 项静态门禁（含禁止裸 `BEGIN/COMMIT/ROLLBACK`、禁止 `companion/life|growth` 散落 DDL、强制 `ipc/companion.ts` 统一经 Application 门面调用、强制全部内置领域工具 100% 纳入 Agent Host Manifest 权限管控、强制 `life-schema.ts` 用户持久表 100% 纳入备份清单），并已通过 `npm run arch:check` 接入 `.githooks/pre-commit` 与 `.githooks/pre-push` 强制拦截；全量单测 289 文件（1863 tests passed, 1 skipped）与 `npm run build` 双进程类型检查及构建全部通过。
 
 架构深度二审 B01—B12 全链路收口门禁（2026-11-19）：新增朋友圈主角/卡司评论回复备份恢复回归、Companion 核心与生活全表（含自动朋友圈配图媒体）往返备份与冲突零写入回滚回归、内置领域工具（`companion_*` / `remember` / `recall` / `forget` / `rag_search`）Manifest 目录与执行期双重权限拦截回归、持久化关系状态与启发式关系阶段对齐回归，以及核心执行账本与 Outbox 过期终态有界裁剪回归。全量 Unit 289 文件 passed、1 skipped（1858 tests passed、1 skipped），双进程类型检查、生产构建、23 项离线 Eval、1 项 Skill Eval、12 文件 113 项 `assets:check` 与正式 Electron 朋友圈聊天工具 E2E（`luffy-chat-tools.test.ts`）全部通过。

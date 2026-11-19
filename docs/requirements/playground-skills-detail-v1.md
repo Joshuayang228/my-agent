@@ -1,6 +1,7 @@
 # 施工合同：Skills Playground 详情与文件预览 v1
 
-> 状态：进行中
+> 状态：已完成施工快照（冻结，2026-11-20 核验归档）
+> 生命周期：已完成施工快照（冻结）
 > 生命周期：进行中
 > 范围：P0 Playground 候选；不修改正式 Settings、Skill IPC、生产存储或真实 Skill 内容。
 > 关联：`docs/requirements/settings-information-architecture-v1.md`、`docs/requirements/skill-management-2.md`
