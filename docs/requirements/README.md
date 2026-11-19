@@ -20,14 +20,14 @@
 
 ## 进行中
 
-| 文档 | 说明 |
-|------|------|
-| [foundation-reuse-enforcement-v1.md](./foundation-reuse-enforcement-v1.md) | P1 基础控件复用链路获批回流：四大体验候选收口与 TS AST 符号自动门禁全面生效，待最终桌面总验收 |
-| [playground-workspace-five-tools-v1.md](./playground-workspace-five-tools-v1.md) | P1 回流进行中：正式五功能工作区主链路已接通，待最终跨端与稳定性总验收 |
+当前无进行中施工合同。新功能立项请按需新增合同。
 
 ---
 
 ## 已完成施工快照（冻结）
+
+Foundation 复用链路与自动门禁：[foundation-reuse-enforcement-v1.md](./foundation-reuse-enforcement-v1.md)，已完成五大产品体验（Chat、人物世界、设置、工作区、Debug）`adopted` 全量回流、共享基础控件收口与 TS AST 符号级源码门禁（`foundation-enforcement-gate.test.ts`）。
+工作区五功能样张与正式回流：[playground-workspace-five-tools-v1.md](./playground-workspace-five-tools-v1.md)，已完成正式五功能工作区（文件 / 审阅 / 浏览器 / 终端 / 侧边聊天）UI 统一、Foundation 审计门禁、后端真实 IPC 契约锁与正式 Electron 桌面回归（22/22 通过）；完整 PTY 与 RAG/OAuth 按用户决策维持暂缓。
 
 提示词全链路覆盖与内容审阅：[prompt-coverage-and-review-v2.md](./prompt-coverage-and-review-v2.md)，已完成全量提示词注册覆盖门禁、主角回复评论、视觉锚点、自主朋友圈配图、图片观察/推测分离及自动阅读感想闭环（`WISH-049`）；当前事实见 `docs/modules/companion.md` 与 `docs/modules/agent-runtime.md`。
 

@@ -1,5 +1,7 @@
 # 质量总控
 
+前端全产品回流与工作区桌面总验收门禁（2026-11-20）：`workspace-backend-contract.test.ts`、`workspace-foundation-control-audit.test.ts` 与 `foundation-enforcement-gate.test.ts` 3 文件 16 项全部通过；真实 Electron 桌面全量 `__tests__/e2e/onboarding.test.ts` 22/22 全部通过（0 失败、0 重试）；五大产品体验（Chat、人物世界、设置、工作区、Debug）全部为 `adopted`，最后 2 份施工合同冻结，全仓进行中施工合同归零。
+
 WISH-049 自动阅读感想与合同清账门禁（2026-11-20）：`companion-life-tools.test.ts` 新增基于已核对材料观察自动生成阅读感想及模型失败零落库回归（17 passed），`npm run assets:check`（113 passed）、`npm run arch:check`（10 passed）与 `npm run docs:validate` 全部通过。
 
 架构纯洁度与静态防回流门禁收口（2026-11-20）：`architecture-boundaries.test.ts` 扩增至 10 项静态门禁（含禁止裸 `BEGIN/COMMIT/ROLLBACK`、禁止 `companion/life|growth` 散落 DDL、强制 `ipc/companion.ts` 统一经 Application 门面调用、强制全部内置领域工具 100% 纳入 Agent Host Manifest 权限管控、强制 `life-schema.ts` 用户持久表 100% 纳入备份清单），并已通过 `npm run arch:check` 接入 `.githooks/pre-commit` 与 `.githooks/pre-push` 强制拦截；全量单测 289 文件（1863 tests passed, 1 skipped）与 `npm run build` 双进程类型检查及构建全部通过。

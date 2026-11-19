@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-20 完成前端全产品回流与工作区桌面稳定性总验收收口（`WISH-041` / `WISH-042` / `WISH-045`）：五大产品体验全部确认 `adopted`，Foundation 复用与工作区契约单测（16 项）及正式 Electron `onboarding.test.ts`（22/22）全绿通过，冻结最后 2 份进行中施工合同并清理心愿池历史批次流水。
+
 2026-11-20 补齐图片观察到自动阅读感想的完整闭环（`WISH-049`）：`companion_add_reading_note` 支持基于已核对的材料观察（`observation`）与来源范围按当前人物口吻自动生成第一人称阅读感想并持久化，模型不可用或失败时拒绝写入、绝不凭书名编造。同步冻结 `prompt-coverage-and-review-v2.md` 及 12 份已完成 Playground P0 施工合同。
 
 2026-11-20 完成主进程架构纯洁度收口（C01—C04）：统一将伙伴生活与成长领域的所有数据表 DDL 收拢至 Core `life-schema.ts`，新增 `companion-facade.ts` 收敛 `ipc/companion.ts` 的跨层依赖，修复 Debug 成长证据在 `companion_mutable_versions` 存在时漏展示材料观察尝试记录的边界，并落地 4 条静态架构防回流门禁测试。
