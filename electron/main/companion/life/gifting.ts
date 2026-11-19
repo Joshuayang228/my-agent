@@ -20,6 +20,7 @@
 
 import { randomUUID } from 'crypto'
 import { getDatabase } from '../../storage/database'
+import { ensureLifeSchema } from '../core/persistence/life-schema'
 import { createLogger } from '../../utils/logger'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
@@ -146,24 +147,7 @@ export const PRESET_GIFTS: CompanionGiftItem[] = [
 ]
 
 export async function ensureGiftTable(): Promise<void> {
-  const db = await getDatabase()
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_received_gifts (
-      id                  TEXT PRIMARY KEY,
-      role_id             TEXT NOT NULL,
-      gift_key            TEXT NOT NULL,
-      gift_name           TEXT NOT NULL,
-      category            TEXT NOT NULL,
-      user_note           TEXT,
-      companion_reaction  TEXT NOT NULL,
-      vitals_buff_json    TEXT,
-      created_at          INTEGER NOT NULL
-    );
-  `)
-  db.run(`
-    CREATE INDEX IF NOT EXISTS idx_companion_received_gifts_role_time
-      ON companion_received_gifts(role_id, created_at DESC);
-  `)
+  await ensureLifeSchema()
 }
 
 export async function listAvailableGifts(roleId = 'luffy'): Promise<CompanionGiftItem[]> {

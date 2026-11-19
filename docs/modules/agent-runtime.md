@@ -32,9 +32,9 @@
 
 事务存储故障隔离（2026-11-17）：SQL 提交后的快照导出 / 保存失败会关闭数据库并拒绝后续访问，调用方收到重启恢复提示；已提交失败事实不能进入后一次保存。故障与重启回归见 A01。
 
-## 架构源码审计与深度二审状态（2026-11-19）
+## 架构源码审计与深度二审状态（2026-11-20）
 
-首轮 A01—A18 缺口与 2026-11-19 深度二审列出的运行时与宿主层残余断点（`B02`、`B03`、`B04`、`B12`）均已闭环并冻结 [架构深度二审施工合同 v2](../requirements/architecture-deep-audit-remediation-v2.md)：`agent-host/host.ts` 的 `evaluateDomainToolManifestAccess` 将全部内置领域工具（`companion_*`、`remember`/`recall`/`forget`、`rag_search`）纳入 Manifest `domainKeys`、`capabilityPolicy` 与 `grantedPermissions` 双端门禁（`AgentHostScopedToolCatalog.filter` 与 `ToolRegistry.executeSingle`）；主会话在 `worldSlice` 已注入完整运行态时跳过重复的 `companion.runtime-context` 注入；存储与导出层多语句写入统一采用 `SAVEPOINT` 嵌套安全事务；`companion_execution_runs`、`companion_outbox`、`companion_proactive_budget` 与 `background_tasks` 终态历史记录支持按保留期和容量上限自动裁剪。
+首轮 A01—A18、深度二审 B01—B12 与架构纯洁度收口 C01—C04 均已闭环：`agent-host/host.ts` 的 `DOMAIN_TOOL_POLICIES` 与 `evaluateDomainToolManifestAccess` 将全部内置领域工具（`companion_*`、`remember`/`recall`/`forget`、`rag_search`）纳入 Manifest 双端权限门禁并由静态架构测试强制校验 100% 覆盖；主会话在 `worldSlice` 已注入完整运行态时去重 `companion.runtime-context`；主进程裸 SQL 事务与 `companion/life|growth` 散落 DDL 均已清零并由 `architecture-boundaries.test.ts` 静态门禁锁定；`debug/companion-evidence.ts` 修复了 `growth` 视图在 `companion_mutable_versions` 表存在时漏展示独立材料观察尝试记录的边界。
 
 ## 已落地能力补充（2026-11-17）
 

@@ -44,7 +44,7 @@ Agent Host 为对话和诊断装配完整 Manifest，承载模型用途、权限
 
 ## 当前验收状态
 
-2026-11-18 已完成首轮 WISH-050（A01—A18）修复与终审。2026-11-19 进一步完成零信任深度二审 WISH-051（B01—B12）全部四个批次的源码收口与验证：朋友圈主角/卡司评论回复及 Companion Core / 生活全量状态表与自动配图媒体已纳入单事务备份导出与恢复；Agent Host 对全部内置领域工具（`companion_*`、`remember`/`recall`/`forget`、`rag_search`）在目录筛选与 `ToolRegistry` 执行两处强制实施 Manifest 领域与权限校验，并在主会话存在 `worldSlice` 时自动去重 `companion.runtime-context`；存储与生活层多语句写入统一采用 `SAVEPOINT` 嵌套安全事务，可变人格修改接入命令边界与 `universeId`；读路径剥离隐式 `persist()` 与 LLM 日剧本生成，心愿共鸣延迟至日剧本落库事务内吸收；跨世界观切换保留已暂停主角的 `pausedAt` 并触发 `recoverActiveCatchup()`；`relationship-stage` 与 `companion_relationship_state` 统一关系事实源；Core / Life Schema 初始化启用 `WeakSet<Database>` 实例级守卫，高频终态账本（`companion_execution_runs`、`companion_outbox`、`companion_proactive_budget`、`background_tasks`）启用有界保留裁剪。施工合同 [architecture-deep-audit-remediation-v2.md](./requirements/architecture-deep-audit-remediation-v2.md) 已冻结。详见 [架构审计现状](./architecture-boundary-audit.md)。
+2026-11-18 已完成首轮 WISH-050（A01—A18）修复与终审。2026-11-19 完成零信任深度二审 WISH-051（B01—B12）全部四个批次的源码收口与验证并冻结施工合同 [architecture-deep-audit-remediation-v2.md](./requirements/architecture-deep-audit-remediation-v2.md)。2026-11-20 进一步完成架构纯洁度终极收口（C01—C04）：将散落在 `companion/life/*` 与 `companion/growth/*` 10 个业务文件中的所有 `CREATE TABLE` / `ALTER TABLE` 统一上收到 `companion/core/persistence/life-schema.ts`；新增 `companion/application/companion-facade.ts` 使 `ipc/companion.ts` 彻底通过 Application 门面调用伙伴领域；在 `architecture-boundaries.test.ts` 新增 4 条静态防回流门禁（禁止裸 SQL 事务、禁止业务层散落 DDL、禁止 `ipc/companion.ts` 跨层直连底层模块、强制所有内置领域工具 100% 纳入 Agent Host Manifest 权限管控）。详见 [架构审计现状](./architecture-boundary-audit.md)。
 
 ## 目标架构迁移复核（2026-11-17）
 

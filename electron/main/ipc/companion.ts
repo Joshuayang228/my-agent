@@ -1,5 +1,4 @@
 import { registerSecureIpcHandler } from './ipc-security'
-import { getCompanionRuntimeReadModel } from '../companion/core/read-models/runtime-read-model'
 /**
  * Companion IPC — 取代旧 persona:* 通道
  *
@@ -11,6 +10,7 @@ import { acknowledgeProactiveGreeting, queryProactiveEvidence } from '../compani
 import type { CompanionAssetCreateInput, CompanionWardrobeChangeInput } from '../../../src/shared/types'
 import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
 import {
+  getCompanionRuntimeReadModel,
   getActiveRole,
   getActiveRoleId,
   getActiveRoster,
@@ -22,21 +22,18 @@ import {
   requestSwitch,
   startSummonSession,
   summonCastBrief,
-} from '../companion/orchestrator'
-import * as identity from '../companion/identity/loader'
-import {
+  identity,
   getMutable,
   listMutableVersions,
   rollbackMutable,
   setMutable,
-} from '../companion/growth/mutable-store'
-import {
   getReflectionStatus,
   runReflectionNow,
-} from '../companion/growth/reflection-service'
-import { describeCastPresence } from '../companion/cast/availability'
-import { getContactsForRole } from '../companion/cast/contacts'
-import {
+  listKeepsakes,
+  triggerGiftKeepsake,
+  listMilestoneKinds,
+  describeCastPresence,
+  getContactsForRole,
   createAsset,
   changeWardrobe,
   deleteAsset,
@@ -44,28 +41,42 @@ import {
   getAsset,
   listAssets,
   updateAsset,
-} from '../companion/life/assets'
-import {
   addMomentCommentForRole,
   listMomentUserInteractionsForRole,
   listMomentsForRole,
   toggleMomentLikeForRole,
-} from '../companion/life/moments'
+  claimFirstContact,
+  listRelationshipStates,
+  resolveMomentVisibilityDays,
+  getLifeSliceForRole,
+  getTodayTimelineForRole,
+  listLifeResonances,
+  momentImageIdsForRole,
+  readMomentImageForRole,
+  getHostPresenceStatus,
+  checkAndTriggerHostCare,
+  replanRemainingSlots,
+  executeCompanionCommand,
+  listInnerThoughts,
+  deleteInnerThought,
+  triggerNightlyReflection,
+  pickNostalgicReminiscence,
+  getActiveVulnerability,
+  listVulnerabilities,
+  comfortVulnerability,
+  triggerVulnerability,
+  listAvailableGifts,
+  listReceivedGifts,
+  sendGiftToCompanion,
+  listAutonomousDressings,
+  listTravelProgressions,
+  triggerTravelProgression,
+} from '../companion/application/companion-facade'
 import { describeMomentSocial } from '../../../src/shared/moment-user-interactions'
-import { claimFirstContact } from '../companion/core/persistence/life-repository'
-import { listRelationshipStates } from '../companion/core/persistence/life-repository'
-import { resolveMomentVisibilityDays } from '../companion/life/moment-visibility'
-import { getLifeSliceForRole } from '../companion/life/slices'
-import { getTodayTimelineForRole } from '../companion/life/timeline'
-import { listLifeResonances } from '../companion/life/chat-resonance'
-import { momentImageIdsForRole, readMomentImageForRole } from '../companion/life/moment-images'
 import * as settings from '../storage/settings-store'
 import { loadAuxLLMConfig } from '../llm/aux-config'
 import { createLogger } from '../utils/logger'
 import { readGeneratedImageReference, loadGeneratedImageReference } from '../storage/generated-images'
-import { getHostPresenceStatus, checkAndTriggerHostCare } from '../companion/life/host-presence'
-import { replanRemainingSlots } from '../companion/life/replan'
-import { executeCompanionCommand } from '../companion/core/commands/gateway'
 
 const log = createLogger('CompanionIPC')
 const boundedLimit = (value: unknown, fallback = 50, maximum = 200): number => Number.isSafeInteger(value) ? Math.max(1, Math.min(maximum, value as number)) : fallback
@@ -274,56 +285,47 @@ export function registerCompanionIPC(): void {
 
   handle('companion:list-inner-thoughts', async (_e, roleId?: string) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
-    const { listInnerThoughts } = await import('../companion/life/inner-thoughts')
     return listInnerThoughts(targetRoleId)
   })
 
   handle('companion:delete-inner-thought', async (_e, id: string) => {
-    const { deleteInnerThought } = await import('../companion/life/inner-thoughts')
     const roleId = await getActiveRoleId()
     return executeCompanionCommand({ roleId, actionType: 'delete-inner-thought', local: true, handler: () => deleteInnerThought(id, roleId) })
   })
 
   handle('companion:trigger-nightly-reflection', async (_e, roleId?: string, force?: boolean) => {
     const targetRoleId = await requireActiveWriteRole(roleId)
-    const { triggerNightlyReflection } = await import('../companion/life/nightly-reflection')
     return executeCompanionCommand({ roleId: targetRoleId, actionType: 'nightly-reflection', handler: () => triggerNightlyReflection(targetRoleId, Date.now(), { force: force === true }) })
   })
 
   handle('companion:get-nostalgic-reminiscence', async (_e, roleId?: string) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
-    const { pickNostalgicReminiscence } = await import('../companion/life/nostalgia')
     return pickNostalgicReminiscence(targetRoleId, Date.now())
   })
 
   handle('companion:list-keepsakes', async (_e, roleId?: string) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
-    const { listKeepsakes } = await import('../companion/growth/relationship-keepsake')
     return listKeepsakes(targetRoleId)
   })
 
   handle('companion:gift-keepsake', async (_e, roleId?: string, keepsakeKey?: string, customReason?: string) => {
     if (typeof keepsakeKey !== 'undefined' && (typeof keepsakeKey !== 'string' || keepsakeKey.length > 100) || typeof customReason !== 'undefined' && (typeof customReason !== 'string' || customReason.length > 500)) throw new Error('信物信息无效。')
     const targetRoleId = await requireActiveWriteRole(roleId)
-    const { triggerGiftKeepsake } = await import('../companion/growth/relationship-keepsake')
     return executeCompanionCommand({ roleId: targetRoleId, actionType: 'gift-keepsake', handler: () => triggerGiftKeepsake(targetRoleId, keepsakeKey, customReason) })
   })
 
   handle('companion:get-active-vulnerability', async (_e, roleId?: string) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
-    const { getActiveVulnerability } = await import('../companion/life/vulnerability')
     return getActiveVulnerability(targetRoleId)
   })
 
   handle('companion:list-vulnerabilities', async (_e, roleId?: string, limit?: number) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
-    const { listVulnerabilities } = await import('../companion/life/vulnerability')
     return listVulnerabilities(targetRoleId, boundedLimit(limit, 20))
   })
 
   handle('companion:comfort-vulnerability', async (_e, vulnerabilityId: string, comfortText?: string) => {
     if (typeof vulnerabilityId !== 'string' || vulnerabilityId.length === 0 || vulnerabilityId.length > 160 || typeof comfortText !== 'undefined' && (typeof comfortText !== 'string' || comfortText.length > 500)) return { ok: false as const, error: '安慰内容无效。' }
-    const { comfortVulnerability } = await import('../companion/life/vulnerability')
     const roleId = await getActiveRoleId()
     return executeCompanionCommand({ roleId, actionType: 'comfort-vulnerability', handler: () => comfortVulnerability(vulnerabilityId, comfortText) })
   })
@@ -331,45 +333,38 @@ export function registerCompanionIPC(): void {
   handle('companion:trigger-vulnerability', async (_e, roleId?: string, forceContext?: string) => {
     if (typeof forceContext !== 'undefined' && (typeof forceContext !== 'string' || forceContext.length > 500)) throw new Error('心境上下文无效。')
     const targetRoleId = await requireActiveWriteRole(roleId)
-    const { triggerVulnerability } = await import('../companion/life/vulnerability')
     return executeCompanionCommand({ roleId: targetRoleId, actionType: 'trigger-vulnerability', handler: () => triggerVulnerability(targetRoleId, forceContext) })
   })
 
   handle('companion:list-available-gifts', async (_e, roleId?: string) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
-    const { listAvailableGifts } = await import('../companion/life/gifting')
     return listAvailableGifts(targetRoleId)
   })
 
   handle('companion:list-received-gifts', async (_e, roleId?: string, limit?: number) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
-    const { listReceivedGifts } = await import('../companion/life/gifting')
     return listReceivedGifts(targetRoleId, boundedLimit(limit))
   })
 
   handle('companion:send-gift', async (_e, roleId: string, giftKey: string, userNote?: string) => {
     if (typeof giftKey !== 'string' || giftKey.length > 100 || typeof userNote === 'string' && userNote.length > 500) throw new Error('赠礼信息无效。')
     const targetRoleId = await requireActiveWriteRole(roleId)
-    const { sendGiftToCompanion } = await import('../companion/life/gifting')
     return executeCompanionCommand({ roleId: targetRoleId, actionType: 'send-gift', handler: () => sendGiftToCompanion(targetRoleId, giftKey, userNote) })
   })
 
   handle('companion:list-autonomous-dressings', async (_e, roleId?: string, limit?: number) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
-    const { listAutonomousDressings } = await import('../companion/life/autonomous-dressing')
     return listAutonomousDressings(targetRoleId, boundedLimit(limit))
   })
 
   handle('companion:list-travel-progressions', async (_e, roleId?: string, limit?: number) => {
     const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
-    const { listTravelProgressions } = await import('../companion/life/travel-progression')
     return listTravelProgressions(targetRoleId, boundedLimit(limit))
   })
 
   handle('companion:trigger-travel-progression', async (_e, roleId?: string, customStop?: { name: string; story: string }) => {
     if (typeof customStop !== 'undefined' && (!customStop || typeof customStop !== 'object' || typeof customStop.name !== 'string' || typeof customStop.story !== 'string' || customStop.name.length > 100 || customStop.story.length > 5000)) throw new Error('旅行站点内容无效。')
     const targetRoleId = await requireActiveWriteRole(roleId)
-    const { triggerTravelProgression } = await import('../companion/life/travel-progression')
     return executeCompanionCommand({ roleId: targetRoleId, actionType: 'travel-progression', handler: () => triggerTravelProgression(targetRoleId, customStop) })
   })
 
@@ -601,7 +596,6 @@ export function registerCompanionIPC(): void {
   /** M30-G1：已记录的关系里程碑种类（无成就点数） */
   handle('companion:list-milestones', async (_e, roleId?: string) => {
     const id = (typeof roleId === 'string' && roleId.trim()) || (await getActiveRoleId())
-    const { listMilestoneKinds } = await import('../companion/growth/milestones')
     return { roleId: id, kinds: await listMilestoneKinds(id) }
   })
 }

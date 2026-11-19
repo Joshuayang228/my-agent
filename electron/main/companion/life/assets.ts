@@ -19,28 +19,14 @@ import { normalizeGrantAsset } from './grant-asset'
 import { normalizeWorldRecordField, wardrobeCategorySchema, wardrobeSlotsSchema, worldRecordConsistencyError } from '../../../../src/shared/world-records'
 import type { CompanionWardrobeChangeInput } from '../../../../src/shared/types'
 import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
+import { ensureLifeSchema } from '../core/persistence/life-schema'
 
 export { normalizeGrantAsset } from './grant-asset'
 
 const log = createLogger('CompanionAssets')
 
 async function ensureTables(): Promise<void> {
-  const db = await getDatabase()
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_assets (
-      id               TEXT PRIMARY KEY,
-      role_id          TEXT NOT NULL,
-      kind             TEXT NOT NULL,
-      name             TEXT NOT NULL,
-      payload_json     TEXT NOT NULL DEFAULT '{}',
-      acquired_at      INTEGER NOT NULL,
-      source_event_id  TEXT
-    )
-  `)
-  db.run(`
-    CREATE INDEX IF NOT EXISTS idx_companion_assets_role_kind
-      ON companion_assets(role_id, kind)
-  `)
+  await ensureLifeSchema()
 }
 
 function rowToAsset(r: Record<string, unknown>): CompanionAsset {
@@ -688,9 +674,6 @@ export async function ensureStarterWardrobe(roleId: string): Promise<{ created: 
   if (roleId !== 'luffy') return result
 
   const db = await getDatabase()
-  db.run(`CREATE TABLE IF NOT EXISTS companion_asset_seeds (
-    role_id TEXT NOT NULL, kind TEXT NOT NULL, PRIMARY KEY (role_id, kind)
-  )`)
   let backfilled = false
   for (const item of luffyWardrobeStarters()) {
     const id = `${ASSET_KIND_WARDROBE}:${roleId}:${item.key}`
@@ -829,9 +812,6 @@ export async function ensureStarterCulture(roleId: string): Promise<{ created: n
   if (!starter.length) return { created: 0 }
   await ensureTables()
   const db = await getDatabase()
-  db.run(`CREATE TABLE IF NOT EXISTS companion_asset_seeds (
-    role_id TEXT NOT NULL, kind TEXT NOT NULL, PRIMARY KEY (role_id, kind)
-  )`)
   const seedKind = `${ASSET_KIND_CULTURE}:starter`
   const seeded = db.exec('SELECT 1 FROM companion_asset_seeds WHERE role_id = ? AND kind = ?', [roleId, seedKind])
   let created = 0
@@ -881,9 +861,6 @@ async function ensureWorldDetailStarter(roleId: string, kind: typeof ASSET_KIND_
   const fullStarter = [...starter, ...extraStarters]
   await ensureTables()
   const db = await getDatabase()
-  db.run(`CREATE TABLE IF NOT EXISTS companion_asset_seeds (
-    role_id TEXT NOT NULL, kind TEXT NOT NULL, PRIMARY KEY (role_id, kind)
-  )`)
   let created = 0
   let updated = false
   db.run('SAVEPOINT ensure_world_detail_starter')
@@ -1014,9 +991,6 @@ export async function ensureStarterMoments(roleId: string): Promise<{ created: n
   if (roleId !== 'luffy') return { created: 0 }
   await ensureTables()
   const db = await getDatabase()
-  db.run(`CREATE TABLE IF NOT EXISTS companion_asset_seeds (
-    role_id TEXT NOT NULL, kind TEXT NOT NULL, PRIMARY KEY (role_id, kind)
-  )`)
   const seedKind = 'moments:starter'
   const seeded = db.exec('SELECT 1 FROM companion_asset_seeds WHERE role_id = ? AND kind = ?', [roleId, seedKind])
   if (seeded.length) return { created: 0 }
@@ -1025,45 +999,6 @@ export async function ensureStarterMoments(roleId: string): Promise<{ created: n
   await ensureStarterCulture(roleId)
   await ensureStarterHome(roleId)
   await ensureStarterFootprints(roleId)
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_events (
-      id            TEXT PRIMARY KEY,
-      role_id       TEXT NOT NULL,
-      scheduled_at  INTEGER NOT NULL,
-      status        TEXT NOT NULL,
-      type          TEXT NOT NULL,
-      payload_json  TEXT NOT NULL,
-      day_script_id TEXT
-    )
-  `)
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_moments (
-      id           TEXT PRIMARY KEY,
-      role_id      TEXT NOT NULL,
-      event_id     TEXT NOT NULL,
-      published_at INTEGER NOT NULL,
-      text         TEXT NOT NULL,
-      meta_json    TEXT NOT NULL DEFAULT '{}'
-    )
-  `)
-  db.run(`
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_companion_moments_event
-      ON companion_moments(event_id)
-  `)
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_event_links (
-      id            TEXT PRIMARY KEY,
-      event_id      TEXT NOT NULL,
-      role_id       TEXT NOT NULL,
-      target_type   TEXT NOT NULL,
-      target_id     TEXT NOT NULL,
-      relation      TEXT NOT NULL,
-      metadata_json TEXT NOT NULL DEFAULT '{}',
-      created_at    INTEGER NOT NULL,
-      UNIQUE(event_id, target_type, target_id, relation)
-    )
-  `)
 
   const existingMoments = db.exec('SELECT 1 FROM companion_moments WHERE role_id = ? LIMIT 1', [roleId])
   if (existingMoments.length) {

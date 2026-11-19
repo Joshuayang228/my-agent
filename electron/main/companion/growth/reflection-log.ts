@@ -5,6 +5,7 @@
  */
 
 import { getDatabase, persist } from '../../storage/database'
+import { ensureLifeSchema } from '../core/persistence/life-schema'
 
 export interface ReflectionRun {
   at: number
@@ -19,15 +20,7 @@ export interface ReflectionState {
 }
 
 async function ensureTables(): Promise<void> {
-  const db = await getDatabase()
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_reflection_state (
-      role_id     TEXT PRIMARY KEY,
-      last_run_at INTEGER NOT NULL DEFAULT 0,
-      runs_json   TEXT NOT NULL DEFAULT '[]',
-      updated_at  INTEGER NOT NULL
-    )
-  `)
+  await ensureLifeSchema()
 }
 
 export async function getReflectionState(roleId: string): Promise<ReflectionState> {

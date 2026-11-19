@@ -1,5 +1,7 @@
 # 质量总控
 
+架构纯洁度与静态防回流门禁收口（2026-11-20）：`architecture-boundaries.test.ts` 扩增至 9 项静态门禁（新增禁止裸 `BEGIN/COMMIT/ROLLBACK`、禁止 `companion/life|growth` 散落 DDL、强制 `ipc/companion.ts` 统一经 Application 门面调用、强制全部内置领域工具 100% 纳入 Agent Host Manifest 权限管控），全量单测 289 文件（1862 tests passed, 1 skipped）与 `npm run build` 双进程类型检查及构建全部通过。
+
 架构深度二审 B01—B12 全链路收口门禁（2026-11-19）：新增朋友圈主角/卡司评论回复备份恢复回归、Companion 核心与生活全表（含自动朋友圈配图媒体）往返备份与冲突零写入回滚回归、内置领域工具（`companion_*` / `remember` / `recall` / `forget` / `rag_search`）Manifest 目录与执行期双重权限拦截回归、持久化关系状态与启发式关系阶段对齐回归，以及核心执行账本与 Outbox 过期终态有界裁剪回归。全量 Unit 289 文件 passed、1 skipped（1858 tests passed、1 skipped），双进程类型检查、生产构建、23 项离线 Eval、1 项 Skill Eval、12 文件 113 项 `assets:check` 与正式 Electron 朋友圈聊天工具 E2E（`luffy-chat-tools.test.ts`）全部通过。
 
 架构审计 A01—A18 终审收口门禁（2026-11-18）：人物资产增改删与换装 IPC 原子回执、聊天资产与读书笔记工具调用幂等键、资产与朋友圈配图挂载 Unit of Work 及 SQL 中止时孤立图片清理、人物草稿与世界观切换取消信号检查，以及 `architecture-boundaries.test.ts` 对 `companion/growth`、`companion/cast` 与全局状态防回流的静态门禁全部通过。全量 Unit 289 文件 passed、1 skipped（1853 tests passed、1 skipped），双进程类型检查、生产构建、23 项离线 Eval、1 项 Skill Eval、12 文件 113 项 `assets:check`、浏览器 E2E 全量（665 passed、0 failed、3 skipped）与正式 Electron 回归全绿。

@@ -57,7 +57,7 @@ export function getAgentHostTools(): ToolDefinition[] {
   }))
 }
 
-const DOMAIN_TOOL_POLICIES: Readonly<Record<string, { domainKey: string; capabilityKey: string; requiredPermissions: readonly string[] }>> = {
+export const DOMAIN_TOOL_POLICIES: Readonly<Record<string, { domainKey: string; capabilityKey: string; requiredPermissions: readonly string[] }>> = {
   companion_read_world: { domainKey: 'companion', capabilityKey: 'companion.runtime.read', requiredPermissions: ['companion.read'] },
   companion_observe_material: { domainKey: 'companion', capabilityKey: 'companion.material.observe', requiredPermissions: ['companion.read'] },
   companion_create_asset: { domainKey: 'companion', capabilityKey: 'companion.asset.create', requiredPermissions: ['companion.write'] },

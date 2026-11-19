@@ -17,6 +17,7 @@
 
 import { randomUUID } from 'crypto'
 import { getDatabase, persist } from '../../storage/database'
+import { ensureLifeSchema } from '../core/persistence/life-schema'
 import { createLogger } from '../../utils/logger'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import * as settings from '../../storage/settings-store'
@@ -124,43 +125,8 @@ const STARTER_THOUGHTS_LUFFY: Array<Omit<CompanionInnerThoughtRecord, 'id' | 'cr
 ]
 
 export async function ensureInnerThoughtTable(targetRoleId: string = 'luffy'): Promise<void> {
+  await ensureLifeSchema()
   const db = await getDatabase()
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_inner_thoughts (
-      id          TEXT PRIMARY KEY,
-      role_id     TEXT NOT NULL,
-      title       TEXT NOT NULL,
-      content     TEXT NOT NULL,
-      mood        TEXT,
-      weather     TEXT,
-      location    TEXT,
-      activity    TEXT,
-      is_favorite INTEGER DEFAULT 0,
-      created_at  INTEGER NOT NULL,
-      thought_type TEXT NOT NULL DEFAULT 'general',
-      epiphany    TEXT,
-      source_type TEXT NOT NULL DEFAULT 'legacy-inner-thought',
-      source_id   TEXT,
-      trace_id    TEXT
-    )
-  `)
-  try {
-    db.run(`ALTER TABLE companion_inner_thoughts ADD COLUMN thought_type TEXT NOT NULL DEFAULT 'general'`)
-  } catch {
-    // 列已存在
-  }
-  try {
-    db.run(`ALTER TABLE companion_inner_thoughts ADD COLUMN epiphany TEXT`)
-  } catch {
-    // 列已存在
-  }
-  try { db.run(`ALTER TABLE companion_inner_thoughts ADD COLUMN source_type TEXT NOT NULL DEFAULT 'legacy-inner-thought'`) } catch { /* 列已存在 */ }
-  try { db.run(`ALTER TABLE companion_inner_thoughts ADD COLUMN source_id TEXT`) } catch { /* 列已存在 */ }
-  try { db.run(`ALTER TABLE companion_inner_thoughts ADD COLUMN trace_id TEXT`) } catch { /* 列已存在 */ }
-  db.run(`
-    CREATE INDEX IF NOT EXISTS idx_companion_inner_thoughts_role_time
-      ON companion_inner_thoughts(role_id, created_at DESC)
-  `)
 
   if (targetRoleId !== 'luffy') return
 

@@ -19,6 +19,7 @@ import { commitLifeAction } from '../application/commit-life-action'
 
 import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from '../../storage/database'
+import { ensureLifeSchema } from '../core/persistence/life-schema'
 import { createLogger } from '../../utils/logger'
 import { toLocalDateString } from './dates'
 import { getDayScript } from '../core/persistence/life-repository'
@@ -69,22 +70,7 @@ function rowToRecord(row: AutonomousDressingDbRow): CompanionAutonomousDressingR
 }
 
 export async function ensureAutonomousDressingTable(): Promise<void> {
-  const db = await getDatabase()
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_autonomous_dressings (
-      id             TEXT PRIMARY KEY,
-      role_id        TEXT NOT NULL,
-      asset_id       TEXT NOT NULL,
-      outfit_name    TEXT NOT NULL,
-      trigger_reason TEXT NOT NULL,
-      outfit_version INTEGER NOT NULL,
-      created_at     INTEGER NOT NULL
-    )
-  `)
-  db.run(`
-    CREATE INDEX IF NOT EXISTS idx_autonomous_dressings_role_created
-    ON companion_autonomous_dressings(role_id, created_at DESC)
-  `)
+  await ensureLifeSchema()
 }
 
 export async function listAutonomousDressings(

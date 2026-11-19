@@ -21,6 +21,7 @@ import type {
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm/index'
 import { getDatabase, persist } from '../../storage/database'
+import { ensureLifeSchema } from '../core/persistence/life-schema'
 import { getSession } from '../../storage/session-store'
 import { createLogger } from '../../utils/logger'
 import { loadRolePack } from '../identity/loader'
@@ -47,34 +48,7 @@ import { createCompanionLifeEvent } from '../application/life-event'
 const log = createLogger('ChatResonance')
 
 export async function ensureResonanceTable(): Promise<void> {
-  const db = await getDatabase()
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_life_resonances (
-      id                    TEXT PRIMARY KEY,
-      role_id               TEXT NOT NULL,
-      session_id            TEXT NOT NULL,
-      kind                  TEXT NOT NULL,
-      title                 TEXT NOT NULL,
-      target_name           TEXT NOT NULL,
-      user_quote            TEXT NOT NULL,
-      reason                TEXT NOT NULL,
-      culture_type          TEXT,
-      status                TEXT NOT NULL DEFAULT 'active',
-      created_at            INTEGER NOT NULL,
-      absorbed_at           INTEGER,
-      completed_at          INTEGER,
-      feedback_text         TEXT,
-      feedback_delivered_at INTEGER,
-      asset_id              TEXT
-    )
-  `)
-  try { db.run('ALTER TABLE companion_life_resonances ADD COLUMN completed_at INTEGER') } catch { /* existing */ }
-  try { db.run('ALTER TABLE companion_life_resonances ADD COLUMN feedback_text TEXT') } catch { /* existing */ }
-  try { db.run('ALTER TABLE companion_life_resonances ADD COLUMN feedback_delivered_at INTEGER') } catch { /* existing */ }
-  db.run(`
-    CREATE INDEX IF NOT EXISTS idx_companion_resonances_role_status
-      ON companion_life_resonances(role_id, status, created_at DESC)
-  `)
+  await ensureLifeSchema()
 }
 
 function rowToResonance(row: Record<string, unknown>): CompanionLifeResonance {

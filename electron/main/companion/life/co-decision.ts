@@ -19,6 +19,7 @@ import { commitLifeAction } from '../application/commit-life-action'
 
 import { randomUUID } from 'crypto'
 import { getDatabase, persist } from '../../storage/database'
+import { ensureLifeSchema } from '../core/persistence/life-schema'
 import { createLogger } from '../../utils/logger'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
@@ -175,26 +176,8 @@ export const PRESET_DECISION_TEMPLATES: Array<{
 ]
 
 export async function ensureCoDecisionTable(): Promise<void> {
+  await ensureLifeSchema()
   const db = await getDatabase()
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_co_decisions (
-      id TEXT PRIMARY KEY,
-      role_id TEXT NOT NULL,
-      title TEXT NOT NULL,
-      dilemma TEXT NOT NULL,
-      options_json TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'pending',
-      selected_option_id TEXT,
-      selected_option_label TEXT,
-      companion_reaction TEXT,
-      created_at INTEGER NOT NULL,
-      resolved_at INTEGER,
-      absorbed_in_script INTEGER NOT NULL DEFAULT 0
-    );
-  `)
-  db.run(`
-    CREATE INDEX IF NOT EXISTS idx_co_decisions_role_status ON companion_co_decisions (role_id, status, created_at);
-  `)
 
   // 出厂为路飞播种第一件经典决策
   const countStmt = db.prepare('SELECT COUNT(*) as count FROM companion_co_decisions WHERE role_id = ?')

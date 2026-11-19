@@ -15,6 +15,7 @@ import { resolveRoleUniverseId } from '../identity/loader'
 
 import { randomUUID } from 'crypto'
 import { getDatabase, persist } from '../../storage/database'
+import { ensureLifeSchema } from '../core/persistence/life-schema'
 import { createLogger } from '../../utils/logger'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
@@ -107,25 +108,8 @@ export const PRESET_KEEPSAKES_LUFFY: PresetKeepsakeDefinition[] = [
 ]
 
 export async function ensureKeepsakeTable(targetRoleId: string = 'luffy'): Promise<void> {
+  await ensureLifeSchema()
   const db = await getDatabase()
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_keepsakes (
-      id           TEXT PRIMARY KEY,
-      role_id      TEXT NOT NULL,
-      name         TEXT NOT NULL,
-      description  TEXT NOT NULL,
-      lore         TEXT NOT NULL,
-      gift_message TEXT NOT NULL,
-      gift_reason  TEXT NOT NULL,
-      icon_name    TEXT NOT NULL,
-      image_url    TEXT,
-      acquired_at  INTEGER NOT NULL
-    )
-  `)
-  db.run(`
-    CREATE INDEX IF NOT EXISTS idx_companion_keepsakes_role_time
-      ON companion_keepsakes(role_id, acquired_at DESC)
-  `)
 
   if (targetRoleId !== 'luffy') return
 

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from '../../storage/database'
+import { ensureLifeSchema } from '../core/persistence/life-schema'
 
 export type MaterialObservationAttemptStatus = 'started' | 'succeeded' | 'failed'
 export interface MaterialObservationAttempt {
@@ -16,13 +17,7 @@ export interface MaterialObservationAttempt {
 }
 
 async function ensureTable(): Promise<void> {
-  const db = await getDatabase()
-  db.run(`CREATE TABLE IF NOT EXISTS companion_material_observation_attempts (
-    id TEXT PRIMARY KEY, role_id TEXT NOT NULL, session_id TEXT NOT NULL,
-    message_id TEXT NOT NULL, image_index INTEGER NOT NULL, source TEXT NOT NULL,
-    status TEXT NOT NULL, reason TEXT NOT NULL, attempted_at INTEGER NOT NULL, completed_at INTEGER
-  )`)
-  db.run('CREATE INDEX IF NOT EXISTS idx_companion_material_observation_role_time ON companion_material_observation_attempts(role_id, attempted_at DESC)')
+  await ensureLifeSchema()
 }
 
 export async function recordMaterialObservationAttempt(input: Omit<MaterialObservationAttempt, 'id'>): Promise<MaterialObservationAttempt> {

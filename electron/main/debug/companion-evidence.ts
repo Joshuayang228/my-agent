@@ -212,7 +212,7 @@ export function queryCompanionEvidence(input: unknown, db: Database | null = get
     const attempts = rows(db, 'SELECT id, session_id, message_id, image_index, source, status, reason, attempted_at, completed_at FROM companion_material_observation_attempts WHERE role_id = ? ORDER BY attempted_at DESC, id DESC LIMIT 30', [query.roleId])
     if (attempts.length) {
       if (result.records[0]) result.records[0].data.materialObservationAttempts = safeValue(attempts, { truncated: false })
-      else append(attempts.map(row => ({ ...row, role_id: query.roleId })), 'companion_material_observation_attempts')
+      append(attempts.map(row => ({ ...row, role_id: query.roleId })), 'companion_material_observation_attempts')
     }
     result.boundary += ' 图片材料观察只保存脱敏尝试与失败证据，不保存图片二进制或未确认生活事实。'
   }

@@ -75,3 +75,61 @@ it('Skill 与任务计划不再使用模块级全局激活或默认会话状态'
   expect(taskPlanService).not.toMatch(/lets+currentSessionId/)
   expect(scopedCatalog).not.toMatch(/getAgentHostToolNamesForRole/)
 })
+
+it('禁止除数据库事务管理器与同步诊断缓冲之外的生产文件手写裸 BEGIN/COMMIT/ROLLBACK（C04）', () => {
+  const allowed = new Set([
+    path.join(root, 'storage', 'database.ts'),
+    path.join(root, 'storage', 'diagnostic-history-store.ts'),
+  ])
+  const violations = files(root).filter(file => {
+    if (allowed.has(file)) return false
+    const content = fs.readFileSync(file, 'utf8')
+    return /\.run\(\s*['"`]\s*(?:BEGIN(?:\s+TRANSACTION)?|COMMIT|ROLLBACK)\s*['"`]\s*\)/i.test(content)
+  }).map(file => path.relative(root, file))
+  expect(violations).toEqual([])
+})
+
+it('companion/life 与 companion/growth 业务层禁止散落 CREATE TABLE / ALTER TABLE DDL（C02/C04）', () => {
+  const businessFiles = ['companion/life', 'companion/growth'].flatMap(dir => files(path.join(root, dir)))
+  const violations = businessFiles.filter(file => {
+    const content = fs.readFileSync(file, 'utf8')
+    return /\b(?:CREATE\s+TABLE|ALTER\s+TABLE)\b/i.test(content)
+  }).map(file => path.relative(root, file))
+  expect(violations).toEqual([])
+})
+
+it('ipc/companion.ts 统一通过 Application 门面与适配器调用伙伴领域，不直接跨层导入底层实现（C03/C04）', () => {
+  const ipcFile = path.join(root, 'ipc', 'companion.ts')
+  const imports = ts.preProcessFile(fs.readFileSync(ipcFile, 'utf8'), true, true).importedFiles
+  const violations = imports.flatMap(({ fileName }) => {
+    if (!fileName.startsWith('.')) return []
+    const target = path.relative(root, path.resolve(path.dirname(ipcFile), fileName)).replaceAll(path.sep, '/')
+    if (!target.startsWith('companion/')) return []
+    const allowed = target.startsWith('companion/application/') || target.startsWith('companion/adapters/')
+    return allowed ? [] : [target]
+  })
+  expect(violations).toEqual([])
+})
+
+it('所有内置伙伴/记忆/知识库领域工具必须全部纳入 Agent Host Manifest 权限管控（C01/C04）', () => {
+  const builtinFiles = files(path.join(root, 'tools', 'builtins'))
+  const domainTools = new Set<string>()
+  for (const file of builtinFiles) {
+    const content = fs.readFileSync(file, 'utf8')
+    for (const match of content.matchAll(/\bname\s*:\s*['"]([a-z0-9_]+)['"]/g)) {
+      const name = match[1]
+      if (name.startsWith('companion_') || ['remember', 'recall', 'forget', 'rag_search'].includes(name)) {
+        domainTools.add(name)
+      }
+    }
+  }
+  const hostSource = fs.readFileSync(path.join(root, 'agent-host', 'host.ts'), 'utf8')
+  const domainsSource = fs.readFileSync(path.join(root, 'agent-host', 'builtin-domains.ts'), 'utf8')
+  const unmanaged = [...domainTools].filter(name => {
+    const inPolicy = new RegExp(`\\b${name}\\s*:`).test(hostSource)
+    const inCapability = new RegExp(`toolName\\s*:\\s*['"]${name}['"]`).test(domainsSource)
+    return !inPolicy && !inCapability
+  })
+  expect(domainTools.size).toBeGreaterThanOrEqual(10)
+  expect(unmanaged).toEqual([])
+})

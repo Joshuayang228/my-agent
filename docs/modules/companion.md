@@ -34,9 +34,9 @@
 
 事务存储故障隔离（2026-11-17）：SQL 提交后的快照导出 / 保存失败会关闭数据库并拒绝后续访问，调用方收到重启恢复提示；已提交失败事实不能进入后一次保存。故障与重启回归见 A01。
 
-## 架构源码审计与深度二审状态（2026-11-19）
+## 架构源码审计与深度二审状态（2026-11-20）
 
-首轮 2026-11-17 审计列出的 A01—A18 缺口与 2026-11-19 零信任深度二审列出的 B01—B12 断点均已完成全链路收口并冻结 [架构深度二审施工合同 v2](../requirements/architecture-deep-audit-remediation-v2.md)：朋友圈主角/卡司评论回复与 `companion_mutable`、运行态、关系、情绪、日记、信物、礼物、脆弱心境、心愿共鸣、航程、穿搭及朋友圈自动配图媒体均已纳入 `data:export` / `data:import` 单事务备份恢复（`B01`）；可变人格 `setMutable` / `rollbackMutable` 接入 `requireActiveWriteRole`、`executeCompanionCommand({ local: true })`、`SAVEPOINT` 事务与 `universeId`（`B05`）；移除 `vulnerability.ts` 读路径无条件 `persist()`，将 `getTodayTimelineForRole` 保持为确定性只读回退，将日剧本 `markResonancesAbsorbed` 移入 LLM 成功后与日剧本同事务落库，并仅在访问 `'luffy'` 时播种路飞专属信物与日记（`B06`、`B11`）；`switchUniverse` 保留目标主角 `pausedAt` 并触发 `recoverActiveCatchup()`，`broadcastRoleChanged` 补齐 `!win.isDestroyed()` 检查（`B07`）；`deleteInnerThought` 强制校验 `role_id`，`completeCultureResonance` 修正为外层 `executeCompanionCommand`、内层 `withCompanionUnitOfWork`（`B08`）；赠礼、信物、脆弱抚慰与人格反思统一通过 `recordRelationshipEvent` 更新 `companion_relationship_state` 并与 `resolveRelationshipStageForRole` 双向对齐（`B09`）；Core 与 Life Schema 初始化采用 `WeakSet<Database>` 实例级缓存守卫，执行账本、Outbox 与主动提醒预算具备有界裁剪（`B10`、`B12`）。
+首轮 2026-11-17 审计列出的 A01—A18 缺口、2026-11-19 零信任深度二审列出的 B01—B12 断点以及 2026-11-20 架构纯洁度收口（C01—C04）均已全部闭环：朋友圈主角/卡司评论回复与全部 Companion 核心与生活状态表均已纳入单事务备份恢复（`B01`）；可变人格 `setMutable` / `rollbackMutable` 接入命令边界、事务与 `universeId`（`B05`）；读路径剥离无条件 `persist()` 与读接口 LLM 写副作用，日剧本心愿延迟至落库事务吸收（`B06`、`B11`）；`switchUniverse` 保留暂停状态并触发补叙（`B07`）；`deleteInnerThought` 校验 `role_id` 与 `completeCultureResonance` 命令层级修正（`B08`）；双关系阶段系统统一事实源（`B09`）；全部生活与成长领域表 DDL 统一收拢到 `core/persistence/life-schema.ts`（`WeakSet<Database>` 守卫，`B10` / `C02`）；`ipc/companion.ts` 统一经 `application/companion-facade.ts` 调用伙伴领域（`C03`）；高频终态账本与任务表启用有界裁剪（`B12`），并由 `architecture-boundaries.test.ts` 的 9 项静态架构门禁锁死防回流（`C04`）。
 
 ## Agent Host 能力接入（2026-11-13）
 

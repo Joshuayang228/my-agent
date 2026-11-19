@@ -20,6 +20,7 @@ import { commitLifeAction } from '../application/commit-life-action'
 
 import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from '../../storage/database'
+import { ensureLifeSchema } from '../core/persistence/life-schema'
 import { createLogger } from '../../utils/logger'
 import { toLocalDateString } from './dates'
 import { getCompanionRuntimeReadModel } from '../core/read-models/runtime-read-model'
@@ -101,24 +102,7 @@ function rowToRecord(row: TravelProgressionDbRow): CompanionTravelProgressionRec
 }
 
 export async function ensureTravelProgressionTable(): Promise<void> {
-  const db = await getDatabase()
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_travel_progressions (
-      id             TEXT PRIMARY KEY,
-      role_id        TEXT NOT NULL,
-      trip_id        TEXT NOT NULL,
-      stop_id        TEXT NOT NULL,
-      stop_name      TEXT NOT NULL,
-      stop_date      TEXT NOT NULL,
-      story          TEXT NOT NULL,
-      trigger_reason TEXT NOT NULL,
-      created_at     INTEGER NOT NULL
-    )
-  `)
-  db.run(`
-    CREATE INDEX IF NOT EXISTS idx_travel_progressions_role_created
-    ON companion_travel_progressions(role_id, created_at DESC)
-  `)
+  await ensureLifeSchema()
 }
 
 export async function listTravelProgressions(

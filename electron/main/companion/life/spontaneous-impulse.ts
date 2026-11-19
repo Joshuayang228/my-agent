@@ -22,6 +22,7 @@ import { chatComplete } from '../../llm/index'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { compileSpontaneousImpulseRequest } from '../../prompts/registered-request'
 import { getDatabase, persist } from '../../storage/database'
+import { ensureLifeSchema } from '../core/persistence/life-schema'
 import * as settings from '../../storage/settings-store'
 import { deleteMessage, ensureMainSessionForRole } from '../../storage/session-store'
 import { createLogger } from '../../utils/logger'
@@ -46,23 +47,7 @@ export const SPONTANEOUS_IMPULSE_COOLDOWN_MS = 3 * 3600 * 1000 // 3 小时冷却
 export const SPONTANEOUS_IMPULSE_DAILY_LIMIT = 2
 
 export async function ensureImpulseTable(): Promise<void> {
-  const db = await getDatabase()
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_spontaneous_impulses (
-      id           TEXT PRIMARY KEY,
-      role_id      TEXT NOT NULL,
-      session_id   TEXT NOT NULL,
-      message_id   TEXT NOT NULL,
-      impulse_text TEXT NOT NULL,
-      topic_kind   TEXT NOT NULL,
-      context_hint TEXT NOT NULL,
-      created_at   INTEGER NOT NULL
-    )
-  `)
-  db.run(`
-    CREATE INDEX IF NOT EXISTS idx_companion_impulses_role_time
-      ON companion_spontaneous_impulses(role_id, created_at DESC)
-  `)
+  await ensureLifeSchema()
 }
 
 export function decideSpontaneousImpulse(input: {

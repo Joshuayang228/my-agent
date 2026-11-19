@@ -8,6 +8,7 @@
 
 import { randomUUID } from 'node:crypto'
 import { getDatabase, persist } from '../../storage/database'
+import { ensureLifeSchema } from '../core/persistence/life-schema'
 import { loadRolePack } from '../identity/loader'
 import { createLogger } from '../../utils/logger'
 import {
@@ -37,26 +38,7 @@ export interface MutableVersion {
 }
 
 async function ensureTables(): Promise<void> {
-  const db = await getDatabase()
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_mutable (
-      role_id    TEXT PRIMARY KEY,
-      body       TEXT NOT NULL,
-      version    INTEGER NOT NULL DEFAULT 1,
-      updated_at INTEGER NOT NULL
-    )
-  `)
-  db.run(`
-    CREATE TABLE IF NOT EXISTS companion_mutable_versions (
-      id         TEXT PRIMARY KEY,
-      role_id    TEXT NOT NULL,
-      version    INTEGER NOT NULL,
-      body       TEXT NOT NULL,
-      created_at INTEGER NOT NULL,
-      summary    TEXT NOT NULL DEFAULT '',
-      UNIQUE(role_id, version)
-    )
-  `)
+  await ensureLifeSchema()
 }
 
 /**
