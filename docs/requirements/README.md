@@ -20,7 +20,9 @@
 
 ## 进行中
 
-当前无进行中施工合同。新功能立项请按需新增合同。
+| 文档 | 说明 |
+|------|------|
+| [companion-life-mapping-consistency-v1.md](./companion-life-mapping-consistency-v1.md) | 统一 15 维活人感因子快照、9 大生活切面关系梯度与生命体征节流门控、冷启动 3 天可见修复及 Chat 换装工具补齐 |
 
 ---
 
