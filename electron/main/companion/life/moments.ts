@@ -30,6 +30,9 @@ import { formatMomentText } from './moment-format'
 import { buildRosterLines } from '../cast/roster'
 import { resolveCastInteractions } from './moment-comment-service'
 import { resolveMomentText } from './moment-polish'
+import { evaluateLifeActionGating } from './life-gating'
+import { collectLifeContextSnapshot, formatLifeContextForMomentPolish } from './life-context-snapshot'
+import { getCompanionRuntimeReadModel } from '../core/read-models/runtime-read-model'
 import { commandExecutionScope } from '../core/commands/execution-scope'
 import { executeCompanionCommand } from '../core/commands/gateway'
 import * as store from '../core/persistence/life-repository'
@@ -99,12 +102,22 @@ export async function projectMomentFromEvent(
     }
   }
 
+  let lifeContext: string | undefined
+  if (opts?.preferLlm) {
+    try {
+      const snapshot = await collectLifeContextSnapshot(event.roleId, opts?.publishedAt ?? Date.now())
+      lifeContext = formatLifeContextForMomentPolish(snapshot)
+    } catch {
+      lifeContext = undefined
+    }
+  }
   const { text, source } = await resolveMomentText(event, {
     preferLlm: opts?.preferLlm,
     llmConfig,
     outfitName,
     bookName,
     universeId: opts?.universeId,
+    lifeContext,
   })
 
   const interactionPolicy = opts?.automatic ? await getSetting('companionMomentInteractionPolicy') : 'regular'
@@ -114,7 +127,8 @@ export async function projectMomentFromEvent(
   const interactions = interactionPolicy === 'never' || (interactionPolicy === 'occasional' && !hasSocialSignal)
     ? []
     : await resolveCastInteractions(event, {
-      universeId: opts?.universeId, preferLlm: opts?.preferLlm, llmConfig, postText: text,
+      universeId: opts?.universeId,
+    preferLlm: opts?.preferLlm, llmConfig, postText: text,
     })
 
   const links: store.CompanionEventLinkInput[] = []
@@ -360,6 +374,13 @@ async function canAutomaticallyPost(roleId: string, now: number, candidate: Comp
   const distinct = Boolean(candidate.payload.relationship) || !lastEvent
     || candidate.payload.activity !== lastEvent.payload.activity
     || candidate.payload.location !== lastEvent.payload.location
+  const runtime = await getCompanionRuntimeReadModel(roleId)
+  const gating = evaluateLifeActionGating({
+    kind: 'auto_moment',
+    vitals: runtime,
+    hasRelationshipMilestone: Boolean(candidate.payload.relationship),
+  })
+  if (!gating.allow) return { allow: false, reason: gating.reason }
   return distinct ? { allow: true, reason: 'policy-selected' } : { allow: false, reason: 'duplicate-context' }
 }
 

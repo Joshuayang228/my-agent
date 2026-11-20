@@ -24,6 +24,7 @@ import { ensureLifeSchema } from '../core/persistence/life-schema'
 import { createLogger } from '../../utils/logger'
 import { toLocalDateString } from './dates'
 import { getCompanionRuntimeReadModel } from '../core/read-models/runtime-read-model'
+import { evaluateLifeActionGating } from './life-gating'
 import {
   listAssets,
   ensureStarterFootprints,
@@ -128,7 +129,7 @@ export async function listTravelProgressions(
 
 export interface TravelProgressionDecision {
   shouldProgress: boolean
-  reason?: 'in_cooldown' | 'role_paused' | 'no_active_trip' | 'trip_completed' | 'all_stops_reached' | 'ready_to_progress'
+  reason?: 'in_cooldown' | 'role_paused' | 'low_energy' | 'no_active_trip' | 'trip_completed' | 'all_stops_reached' | 'ready_to_progress'
   activeTrip?: CompanionAsset
   nextStop?: TripStopRecord
   triggerReason?: string
@@ -146,9 +147,10 @@ export async function shouldProgressTravelJourney(
   const db = await getDatabase()
 
   const state = await getCompanionRuntimeReadModel(roleId)
-  if (state?.pausedAt != null) {
-    return { shouldProgress: false, reason: 'role_paused' }
-  }
+  if (state?.pausedAt != null) return { shouldProgress: false, reason: 'role_paused' }
+  const gating = evaluateLifeActionGating({ kind: 'travel_progression', vitals: state })
+  if (!gating.allow) return { shouldProgress: false, reason: 'low_energy' }
+
 
   // 1. 冷却检查
   const lastStmt = db.prepare(

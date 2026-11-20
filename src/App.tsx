@@ -179,10 +179,18 @@ function App() {
   const [companionBanner, setCompanionBanner] = useState<string | null>(null)
   const [roleAvatars, setRoleAvatars] = useState<Record<string, string>>({})
   const [roleBanners, setRoleBanners] = useState<Record<string, string>>({})
+  const [chatBackdropEnabled, setChatBackdropEnabled] = useState(true)
 
   useEffect(() => {
     if ((activeView === 'world' && worldTab === 'moments') || activeView === 'moments') {
       setUnreadMomentsCount(0)
+    }
+    if (activeView === 'chat') {
+      void window.electronAPI?.settings?.get?.().then((s) => {
+        if (s && typeof s.companionChatBackdropEnabled === 'string') {
+          setChatBackdropEnabled(s.companionChatBackdropEnabled !== 'false')
+        }
+      }).catch(() => {})
     }
   }, [activeView, worldTab])
   const [protagonistNames, setProtagonistNames] = useState<Record<string, string>>({ luffy: '路飞' })
@@ -449,6 +457,16 @@ function App() {
         toast('主角已切换。当前会话仍绑定旧主角，请新建对话开始新关系。', 'info')
       }
     })
+    const unsubVisuals = window.electronAPI.companion.onVisualsUpdated?.((visuals) => {
+      if (visuals.avatarDataUrl) {
+        setRoleAvatars((prev) => ({ ...prev, [visuals.roleId]: visuals.avatarDataUrl! }))
+        if (visuals.roleId === activeRoleId) setCompanionAvatar(visuals.avatarDataUrl)
+      }
+      if (visuals.bannerDataUrl) {
+        setRoleBanners((prev) => ({ ...prev, [visuals.roleId]: visuals.bannerDataUrl! }))
+        if (visuals.roleId === activeRoleId) setCompanionBanner(visuals.bannerDataUrl)
+      }
+    })
     const unsubMilestone = window.electronAPI.companion.onMilestone?.((payload) => {
       if (payload.toast) toast(payload.toast, 'info')
     })
@@ -550,6 +568,7 @@ function App() {
     })
     return () => {
       unsub?.()
+      unsubVisuals?.()
       unsubMilestone?.()
       unsubMomentTip?.()
       unsubMomentUpdated?.()
@@ -1417,7 +1436,7 @@ function App() {
           onDragLeave={() => setDragOver(false)}
           onDrop={(e) => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) handleFileAttach(e.dataTransfer.files) }}
         >
-          <CompanionSceneBackdrop roleId={activeRoleId} bannerSrc={roleBanners[activeRoleId] ?? companionBanner} />
+          {chatBackdropEnabled ? <CompanionSceneBackdrop roleId={activeRoleId} bannerSrc={roleBanners[activeRoleId] ?? companionBanner} /> : null}
           <div className={`relative z-[1] flex min-h-full flex-col ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`}>
           <div className="mx-auto flex min-h-full w-full flex-1 flex-col" style={{ maxWidth: 'var(--layout-width)' }} data-testid="chat-content">
             {/* 欢迎屏 — 衬线问候 + 建议 pill（Phase 3） */}

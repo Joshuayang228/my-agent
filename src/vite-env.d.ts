@@ -156,6 +156,9 @@ declare global {
       companion: {
         listProtagonists: () => Promise<Array<import('./shared/types').RoleSummary>>
         getRoleVisuals: (roleId?: string) => Promise<import('./shared/types').CompanionRoleVisuals>
+        pickRoleVisual: (slot: 'avatar' | 'banner', roleId?: string) => Promise<{ ok: true; visuals: import('./shared/types').CompanionRoleVisuals } | { ok: false; canceled?: boolean; error?: string }>
+        resetRoleVisual: (slot: 'avatar' | 'banner', roleId?: string) => Promise<{ ok: true; visuals: import('./shared/types').CompanionRoleVisuals } | { ok: false; error?: string }>
+        onVisualsUpdated: (cb: (visuals: import('./shared/types').CompanionRoleVisuals) => void) => () => void
         listUniverses: () => Promise<Array<{ id: string; title: string; version: number; defaultProtagonistId: string; active: boolean }>>
         switchUniverse: (universeId: string) => Promise<
           | { ok: true; universeId: string; roleId: string; name: string }

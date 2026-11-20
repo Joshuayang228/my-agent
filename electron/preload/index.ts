@@ -146,6 +146,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('companion:list-protagonists'),
     getRoleVisuals: (roleId?: string): Promise<import('../../src/shared/types').CompanionRoleVisuals> =>
       ipcRenderer.invoke('companion:get-role-visuals', roleId),
+    pickRoleVisual: (slot: 'avatar' | 'banner', roleId?: string): Promise<{ ok: true; visuals: import('../../src/shared/types').CompanionRoleVisuals } | { ok: false; canceled?: boolean; error?: string }> =>
+      ipcRenderer.invoke('companion:pick-role-visual', slot, roleId),
+    resetRoleVisual: (slot: 'avatar' | 'banner', roleId?: string): Promise<{ ok: true; visuals: import('../../src/shared/types').CompanionRoleVisuals } | { ok: false; error?: string }> =>
+      ipcRenderer.invoke('companion:reset-role-visual', slot, roleId),
+    onVisualsUpdated: (cb: (visuals: import('../../src/shared/types').CompanionRoleVisuals) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, visuals: import('../../src/shared/types').CompanionRoleVisuals) => cb(visuals)
+      ipcRenderer.on('companion:visuals-updated', listener)
+      return () => { ipcRenderer.removeListener('companion:visuals-updated', listener) }
+    },
     listUniverses: (): Promise<Array<{ id: string; title: string; version: number; defaultProtagonistId: string; active: boolean }>> =>
       ipcRenderer.invoke('companion:list-universes'),
     switchUniverse: (universeId: string) => ipcRenderer.invoke('companion:switch-universe', universeId),

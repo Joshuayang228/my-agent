@@ -14,6 +14,7 @@ import type { SandboxMode } from '../../sandbox/policy'
 import { createLogger } from '../../utils/logger'
 import { attachWorldAssetImage, getAsset, listAssets } from '../../companion/life/assets'
 import { loadRolePack } from '../../companion/identity/loader'
+import { isValidVisualSlot, saveRoleVisualOverride } from '../../companion/identity/visual-overrides'
 import { formatRoleAppearanceForImagePrompt } from '../../companion/identity/profile'
 import { attachMomentImageForRole, prepareMomentImageTarget } from '../../companion/life/moment-images'
 
@@ -101,6 +102,7 @@ export const imageGenerateTool = buildTool({
       path: { type: 'string', description: '输出路径，例如 images/tea-room.png；名称只含字母、数字、短横线或下划线，不能覆盖已有文件。' },
       targetAssetId: { type: 'string', description: '可选：将生成图片绑定到当前会话角色的人物世界资产。' },
       targetMomentId: { type: 'string', description: '可选：将生成图片绑定到当前会话角色的一条已发布朋友圈动态，最多九张。' },
+      targetVisualSlot: { type: 'string', enum: ['avatar', 'banner'], description: '可选：将生成图片直接应用为当前会话角色的头像（avatar）或主页封面壁纸（banner）。' },
     },
     required: ['prompt', 'path'],
   },
@@ -116,7 +118,9 @@ export const imageGenerateTool = buildTool({
       if (typeof args.prompt !== 'string' || !args.prompt.trim() || args.prompt.length > 16_000) throw new ImageGenerationError('请提供不超过 16000 字的图片描述。')
       const targetAssetId = typeof args.targetAssetId === 'string' ? args.targetAssetId.trim() : ''
       const targetMomentId = typeof args.targetMomentId === 'string' ? args.targetMomentId.trim() : ''
-      if (targetAssetId && targetMomentId) throw new ImageGenerationError('一次生图只能绑定一个人物世界目标：资产或朋友圈动态。')
+      const targetVisualSlot = isValidVisualSlot(args.targetVisualSlot) ? args.targetVisualSlot : ''
+      if ([targetAssetId, targetMomentId, targetVisualSlot].filter(Boolean).length > 1) throw new ImageGenerationError('一次生图只能绑定一个目标：资产、朋友圈动态或角色头像/封面。')
+      if (targetVisualSlot && !context?.roleId) throw new ImageGenerationError('当前会话没有绑定人物，无法更换角色头像或封面。')
       let expectedOutfitVersion: number | undefined
       let targetAsset: Awaited<ReturnType<typeof getAsset>> = null
       if (targetAssetId) {
@@ -177,7 +181,11 @@ export const imageGenerateTool = buildTool({
           throw new ImageGenerationError(linked.error)
         }
       }
-      return { content: `图片已生成并保存到 ${args.path}（${image.width} × ${image.height}）。`, generatedImages }
+      if (targetVisualSlot && context?.roleId) {
+        const saved = await saveRoleVisualOverride(context.roleId, targetVisualSlot, image.bytes)
+        if (!saved.ok) throw new ImageGenerationError(saved.error)
+      }
+      return { content: `图片已生成并保存到 ${args.path}（${image.width} × ${image.height}）${targetVisualSlot ? `，并已应用为当前角色的${targetVisualSlot === 'avatar' ? '头像' : '主页封面'}` : ''}。`, generatedImages }
     } catch (error) {
       return { content: context?.signal?.aborted ? '已取消生图，服务端可能仍在处理；请勿重复提交。' : error instanceof ImageGenerationError ? error.message : '图片生成或保存失败，请检查模型、图片格式和项目权限；没有自动重试。', isError: true }
     }

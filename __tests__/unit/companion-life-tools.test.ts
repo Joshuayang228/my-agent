@@ -1,7 +1,7 @@
 import { runLocalTransaction } from '../helpers/local-transaction'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import initSqlJs from 'sql.js'
-import { companionAddReadingNoteTool, companionCommentMomentTool, companionCreateAssetTool, companionObserveMaterialTool, companionPostMomentTool, companionReadWorldTool } from '../../electron/main/tools/builtins/companion-life'
+import { companionAddReadingNoteTool, companionChangeWardrobeTool, companionCommentMomentTool, companionCreateAssetTool, companionObserveMaterialTool, companionPostMomentTool, companionReadWorldTool } from '../../electron/main/tools/builtins/companion-life'
 import { ToolRegistry } from '../../electron/main/tools/registry'
 import { listEventLinks, listMomentUserInteractions, listMoments } from '../../electron/main/companion/core/persistence/life-repository'
 import { listAssets } from '../../electron/main/companion/life/assets'
@@ -26,6 +26,7 @@ function registry() {
   value.register(companionReadWorldTool)
   value.register(companionAddReadingNoteTool)
   value.register(companionObserveMaterialTool)
+  value.register(companionChangeWardrobeTool)
   return value
 }
 
@@ -300,4 +301,35 @@ it('Chat 评论工具拒绝跨人物动态，且不写入互动记录', async ()
 it('没有人物绑定时拒绝写入生活世界', async () => {
   const result = await registry().executeAll([{ id: 'post', name: 'companion_post_moment', arguments: JSON.stringify({ text: '不应发布' }) }], { sessionId: 's', workdir: process.cwd() })
   expect(result[0].content).toContain('没有绑定人物')
+})
+
+
+it('Chat 换装工具可为当前人物换上衣柜衣物，拒绝不存在或跨角色衣物', async () => {
+  const { createAsset } = await import('../../electron/main/companion/life/assets')
+  const created = await createAsset({
+    roleId: 'luffy',
+    kind: 'wardrobe',
+    name: '海风防风外套',
+    payload: { recordType: 'garment', category: 'outerwear' },
+  })
+  expect(created.ok).toBe(true)
+  if (!created.ok) return
+
+  const okRes = await registry().executeAll(
+    [{ id: 'wear-1', name: 'companion_change_wardrobe', arguments: JSON.stringify({ name: '海风防风外套', reason: '甲板起风了' }) }],
+    { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' },
+  )
+  expect(okRes[0].content).toContain('已换上「海风防风外套」')
+
+  const missingRes = await registry().executeAll(
+    [{ id: 'wear-2', name: 'companion_change_wardrobe', arguments: JSON.stringify({ name: '不存在的礼服' }) }],
+    { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' },
+  )
+  expect(missingRes[0].content).toContain('没有找到这件衣物')
+
+  const crossRoleRes = await registry().executeAll(
+    [{ id: 'wear-3', name: 'companion_change_wardrobe', arguments: JSON.stringify({ assetId: created.asset.id }) }],
+    { sessionId: 's', workdir: process.cwd(), roleId: 'lin' },
+  )
+  expect(crossRoleRes[0].content).toContain('没有找到这件衣物')
 })

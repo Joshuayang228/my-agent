@@ -26,6 +26,18 @@ export function WorldProfileHeader({ profile, roleId, onTakeToChat, onViewMoment
 }) {
   const name = profile.name.trim() || '伙伴'
   const [statusMode, setStatusMode] = useState<'narrative' | 'numeric'>('narrative')
+  const [visualBusy, setVisualBusy] = useState(false)
+  const canEditVisuals = Boolean(roleId && window.electronAPI?.companion?.pickRoleVisual)
+  const handlePickVisual = async (slot: 'avatar' | 'banner') => {
+    if (!canEditVisuals || visualBusy) return
+    setVisualBusy(true)
+    try { await window.electronAPI?.companion?.pickRoleVisual?.(slot, roleId) } finally { setVisualBusy(false) }
+  }
+  const handleResetVisual = async (slot: 'avatar' | 'banner') => {
+    if (!canEditVisuals || visualBusy) return
+    setVisualBusy(true)
+    try { await window.electronAPI?.companion?.resetRoleVisual?.(slot, roleId) } finally { setVisualBusy(false) }
+  }
   const hasBanner = Boolean(profile.bannerSrc)
 
   return (
@@ -88,7 +100,40 @@ export function WorldProfileHeader({ profile, roleId, onTakeToChat, onViewMoment
         </div>}
         <WorldTodayTimeline roleId={roleId} onTakeToChat={onTakeToChat} onViewMoment={onViewMoment} />
       </div>
-      {onClose && <div className="absolute right-4 top-3 z-20"><IconButton label="返回聊天" onClick={onClose} style={{ color: 'var(--text-muted)' }}><X size={14} /></IconButton></div>}
+      <div className="absolute right-4 top-3 z-20 flex items-center gap-1.5">
+        {canEditVisuals ? (
+          <>
+            <ActionButton
+              type="button"
+              className="px-2 py-0.5 text-[10px]"
+              disabled={visualBusy}
+              onClick={() => void handlePickVisual('avatar')}
+              aria-label="更换头像"
+            >
+              换头像
+            </ActionButton>
+            <ActionButton
+              type="button"
+              className="px-2 py-0.5 text-[10px]"
+              disabled={visualBusy}
+              onClick={() => void handlePickVisual('banner')}
+              aria-label="更换封面"
+            >
+              换封面
+            </ActionButton>
+            <ActionButton
+              type="button"
+              className="px-2 py-0.5 text-[10px]"
+              disabled={visualBusy}
+              onClick={() => { void handleResetVisual('avatar'); void handleResetVisual('banner') }}
+              aria-label="恢复默认视觉"
+            >
+              恢复默认
+            </ActionButton>
+          </>
+        ) : null}
+        {onClose ? <IconButton label="返回聊天" onClick={onClose} style={{ color: 'var(--text-muted)' }}><X size={14} /></IconButton> : null}
+      </div>
     </section>
   )
 }

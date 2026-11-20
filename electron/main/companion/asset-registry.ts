@@ -1,4 +1,6 @@
 import { AUTOMATIC_PROACTIVE_POLICY } from './application/proactive-budget'
+import { LIFE_GATING_THRESHOLDS } from './life/life-gating'
+import { ROLE_VISUAL_MAX_BYTES } from './identity/visual-overrides'
 /**
  * 伙伴与人格生产资产注册表。
  *
@@ -358,6 +360,27 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent({ trigger: 'host-presence-care', promptKey: PROMPT_KEYS.companionHostCare }),
     dependencies: [PROMPT_KEYS.companionHostCare],
+  }), makeCompanionAsset({
+    key: 'companion:policy:life-gating', name: '生活引擎统一体征与关系门控',
+    purpose: '统一按生命体征（精力/心情/社交欲）与关系阶段对自动发圈、远行推进与深夜脆弱倾诉执行节流与防交浅言深',
+    role: 'platform', description: '精力耗竭或极度低落且低社交欲时暂缓普通自动发圈与远行推进（关系里程碑放行）；初识阶段抑制深夜脆弱倾诉。',
+    source: 'electron/main/companion/life/life-gating.ts#evaluateLifeActionGating', version: 'life-gating-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent(LIFE_GATING_THRESHOLDS),
+  }), makeCompanionAsset({
+    key: 'companion:policy:life-context-snapshot', name: '15 维活人感生活上下文快照',
+    purpose: '只读汇编关系阶段、体征、动态状态标签、节律天气、近期经历、用户眼色与近期动态避重，供朋友圈润色与日剧本共享',
+    role: 'platform', description: '单一事实源只读快照，不向前端暴露数值型好感进度条；缺失子源安全降级为空。',
+    source: 'electron/main/companion/life/life-context-snapshot.ts#collectLifeContextSnapshot', version: 'life-context-snapshot-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ consumers: ['moment-polish', 'day-script'], numericBarExposed: false }),
+  }), makeCompanionAsset({
+    key: 'companion:policy:role-visual-overrides', name: '角色头像与封面安全覆写策略',
+    purpose: '在 userData 下按 roleId 隔离保存用户上传或 AI 生图生成的头像/封面覆写，支持一键恢复 Role Pack 默认图',
+    role: 'platform', description: '不修改内置 Role Pack 文件；强校验 roleId 字符白名单、10MB 大小上限与图片格式解码，原子写入。',
+    source: 'electron/main/companion/identity/visual-overrides.ts#saveRoleVisualOverride', version: 'role-visual-overrides-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ slots: ['avatar', 'banner'], maxBytes: ROLE_VISUAL_MAX_BYTES }),
   })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {

@@ -150,6 +150,7 @@ export interface AppSettings {
   companionMomentCadence: string
   /** 朋友圈可见范围：always | three_days | private */
   companionMomentVisibility: string
+  companionChatBackdropEnabled: string
   /** 自动发布每日上限，字符串数字，默认 3 */
   companionMomentMaxPerDay: string
   /** 自动发布最短间隔分钟，字符串数字，默认 240 */
@@ -221,6 +222,7 @@ function getDefaults(): AppSettings {
     companionMomentTipsDayStats: '',
     companionMomentCadence: 'regular',
     companionMomentVisibility: 'ai',
+    companionChatBackdropEnabled: 'true',
     companionMomentMaxPerDay: '3',
     companionMomentCooldownMinutes: '240',
     companionMomentPostingQuietStart: '23',

@@ -14,7 +14,7 @@ describe('moment visibility', () => {
     expect(resolveMomentVisibilityDays('ai', 'rapport')).toBe(14)
     expect(resolveMomentVisibilityDays('ai', 'stranger')).toBe(3)
     expect(resolveMomentVisibilityDays('ai', 'familiar')).toBe(7)
-    expect(resolveMomentVisibilityDays('ai', undefined)).toBe(7)
+    expect(resolveMomentVisibilityDays('ai', undefined)).toBe(3)
   })
 
   it('legacy always setting follows the neutral fallback when passed directly', () => {

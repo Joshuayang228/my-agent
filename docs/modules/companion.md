@@ -36,6 +36,8 @@
 
 图片观察与阅读感想闭环（2026-11-20，`WISH-049`）：`companion_observe_material`（观察/推测分离与失败审计）与 `companion_add_reading_note`（支持 `autoGenerateNote` 复用 `compileCultureReviewRequest` 生成人物口吻感想、失败零落库）已打通闭环，`prompt-coverage-and-review-v2.md` 已冻结。
 
+生活引擎映射一致性与产品视觉一致性收口（2026-11-21）：新增 `life-gating.ts` 统一生命体征节流与关系梯度门控（精疲力竭/低落低社交欲暂缓普通发圈与远行、初识阶段抑制深夜脆弱倾诉、关系里程碑放行）；新增 `life-context-snapshot.ts` 汇聚 15 维活人感因子接入朋友圈润色与日剧本上下文（含天气/星期、关系阶段、用户近期眼色与最近动态避重）；修复冷启动默认 3 天可见并在 `MomentsPanel` 顶部轻量展示关系与可见范围；新增 `companion_change_wardrobe` 聊天换装工具并纳入 Agent Host Manifest 双端权限管控；新增 `visual-overrides.ts` 角色头像/封面安全覆写与重置、`companionChatBackdropEnabled` Chat 氛围壁纸开关、`WorldProfileHeader` 换图入口、`image_generate` 支持 `targetVisualSlot: 'avatar' | 'banner'` 及自主朋友圈配图当前穿着锚点注入。
+
 ## 架构源码审计与深度二审状态（2026-11-20）
 
 首轮 2026-11-17 审计列出的 A01—A18 缺口、2026-11-19 零信任深度二审列出的 B01—B12 断点以及 2026-11-20 架构纯洁度收口（C01—C04）均已全部闭环：朋友圈主角/卡司评论回复与全部 Companion 核心与生活状态表均已纳入单事务备份恢复（`B01`）；可变人格 `setMutable` / `rollbackMutable` 接入命令边界、事务与 `universeId`（`B05`）；读路径剥离无条件 `persist()` 与读接口 LLM 写副作用，日剧本心愿延迟至落库事务吸收（`B06`、`B11`）；`switchUniverse` 保留暂停状态并触发补叙（`B07`）；`deleteInnerThought` 校验 `role_id` 与 `completeCultureResonance` 命令层级修正（`B08`）；双关系阶段系统统一事实源（`B09`）；全部生活与成长领域表 DDL 统一收拢到 `core/persistence/life-schema.ts`（`WeakSet<Database>` 守卫，`B10` / `C02`）；`ipc/companion.ts` 统一经 `application/companion-facade.ts` 调用伙伴领域（`C03`）；高频终态账本与任务表启用有界裁剪（`B12`），并由 `architecture-boundaries.test.ts` 的 9 项静态架构门禁锁死防回流（`C04`）。

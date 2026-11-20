@@ -191,10 +191,13 @@ export async function resolveRelationshipStageForRole(
     })
   }
   const id = roleId.trim()
-  const growthStartedAt = id ? await getGrowthStartedAt(id) : 0
-  const state = id ? await getReflectionState(id) : { lastRunAt: 0 }
+  let growthStartedAt = 0
+  if (id) { try { growthStartedAt = await getGrowthStartedAt(id) } catch { growthStartedAt = 0 } }
+  let state = { lastRunAt: 0 }
+  if (id) { try { state = await getReflectionState(id) } catch { state = { lastRunAt: 0 } } }
   const since = now - LOOKBACK_MS
-  const recentUserMessages = id ? await countUserMessagesForRoleSince(id, since) : 0
+  let recentUserMessages = 0
+  if (id) { try { recentUserMessages = await countUserMessagesForRoleSince(id, since) } catch { recentUserMessages = 0 } }
   const persistedUserRel = id ? (await listRelationshipStates(id)).find(item => item.subjectId === 'user') : undefined
   let mix: FamiliarityMixResult | undefined
   if (id) {

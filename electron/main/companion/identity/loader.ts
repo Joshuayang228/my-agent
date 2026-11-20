@@ -12,6 +12,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { app } from 'electron'
+import { readRoleVisualOverrideDataUrl } from './visual-overrides'
 import type {
   RoleManifest,
   RolePack,
@@ -316,9 +317,11 @@ export function getRoleVisuals(roleId: string, universeId: string = DEFAULT_UNIV
   return {
     roleId: pack.id,
     roleName: pack.name,
-    avatarDataUrl: getRoleVisualDataUrl(roleId, avatarPath, universeId),
-    bannerDataUrl: getRoleVisualDataUrl(roleId, bannerPath, universeId),
+    avatarDataUrl: readRoleVisualOverrideDataUrl(roleId, 'avatar') ?? getRoleVisualDataUrl(roleId, avatarPath, universeId),
+    bannerDataUrl: readRoleVisualOverrideDataUrl(roleId, 'banner') ?? getRoleVisualDataUrl(roleId, bannerPath, universeId),
     themeColor: pack.themeColor ?? null,
+    hasCustomAvatar: Boolean(readRoleVisualOverrideDataUrl(roleId, 'avatar')),
+    hasCustomBanner: Boolean(readRoleVisualOverrideDataUrl(roleId, 'banner')),
   }
 }
 

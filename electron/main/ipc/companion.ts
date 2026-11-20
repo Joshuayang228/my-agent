@@ -5,7 +5,8 @@ import { registerSecureIpcHandler } from './ipc-security'
  * 四处同步：本文件 / preload / vite-env / 调用方（SettingsPanel 等）
  */
 
-import { shell } from 'electron'
+import fs from 'node:fs'
+import { BrowserWindow, dialog, shell } from 'electron'
 import { acknowledgeProactiveGreeting, queryProactiveEvidence } from '../companion/adapters/proactive-evidence'
 import type { CompanionAssetCreateInput, CompanionWardrobeChangeInput } from '../../../src/shared/types'
 import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
@@ -23,6 +24,9 @@ import {
   startSummonSession,
   summonCastBrief,
   identity,
+  isValidVisualSlot,
+  resetRoleVisualOverride,
+  saveRoleVisualOverride,
   getMutable,
   listMutableVersions,
   rollbackMutable,
@@ -47,7 +51,9 @@ import {
   toggleMomentLikeForRole,
   claimFirstContact,
   listRelationshipStates,
+  describeMomentVisibility,
   resolveMomentVisibilityDays,
+  resolveRelationshipStageForRole,
   getLifeSliceForRole,
   getTodayTimelineForRole,
   listLifeResonances,
@@ -123,6 +129,39 @@ export function registerCompanionIPC(): void {
   handle('companion:get-role-visuals', async (_e, roleId?: unknown) => {
     const target = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : undefined
     return getRoleVisuals(target)
+  })
+  handle('companion:pick-role-visual', async (_e, slot: unknown, roleId?: unknown) => {
+    if (!isValidVisualSlot(slot)) return { ok: false as const, error: '无效的视觉槽位。' }
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const picked = await dialog.showOpenDialog({
+      title: slot === 'avatar' ? '选择角色头像图片' : '选择主页封面壁纸',
+      properties: ['openFile'],
+      filters: [{ name: '图片文件', extensions: ['png', 'jpg', 'jpeg', 'webp'] }],
+    })
+    if (picked.canceled || !picked.filePaths[0]) return { ok: false as const, canceled: true as const }
+    try {
+      const bytes = fs.readFileSync(picked.filePaths[0])
+      const saved = await saveRoleVisualOverride(targetRoleId, slot, bytes)
+      if (!saved.ok) return { ok: false as const, error: saved.error }
+      const visuals = await getRoleVisuals(targetRoleId)
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (!win.isDestroyed()) win.webContents.send('companion:visuals-updated', visuals)
+      }
+      return { ok: true as const, visuals }
+    } catch {
+      return { ok: false as const, error: '无法读取所选图片文件。' }
+    }
+  })
+  handle('companion:reset-role-visual', async (_e, slot: unknown, roleId?: unknown) => {
+    if (!isValidVisualSlot(slot)) return { ok: false as const, error: '无效的视觉槽位。' }
+    const targetRoleId = typeof roleId === 'string' && roleId.trim() ? roleId.trim() : await getActiveRoleId()
+    const res = resetRoleVisualOverride(targetRoleId, slot)
+    if (!res.ok) return { ok: false as const, error: res.error }
+    const visuals = await getRoleVisuals(targetRoleId)
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) win.webContents.send('companion:visuals-updated', visuals)
+    }
+    return { ok: true as const, visuals }
   })
   handle('companion:claim-first-contact', async () => {
     try { return await claimFirstContact(await getActiveRoleId()) } catch { throw new Error('无法读取人物首次冷启状态') }
@@ -201,8 +240,9 @@ export function registerCompanionIPC(): void {
       const limit = Number.isSafeInteger(opts?.limit) ? Math.max(1, Math.min(200, opts!.limit!)) : 50
       const offset = Number.isSafeInteger(opts?.offset) ? Math.max(0, opts!.offset!) : 0
       const visibility = await settings.getSetting('companionMomentVisibility')
-      const relationship = (await listRelationshipStates(roleId)).find(item => item.subjectId === 'user')
-      const visibilityDays = resolveMomentVisibilityDays(visibility === 'always' ? 'ai' : visibility, relationship?.phase)
+      const relationshipStage = (await resolveRelationshipStageForRole(roleId)).stage
+      const visibilityInfo = describeMomentVisibility(visibility === 'always' ? 'ai' : visibility, relationshipStage)
+      const visibilityDays = visibilityInfo.visibilityDays
       let moments = await listMomentsForRole(roleId, { limit: visibilityDays === null ? 1 : Math.min(200, limit + offset + 200), offset: 0 })
       if (visibilityDays === null) moments = []
       if (visibilityDays !== null) {
@@ -214,7 +254,14 @@ export function registerCompanionIPC(): void {
       const socialByMomentId = Object.fromEntries(
         items.map((item) => [item.id, describeMomentSocial(item.id, interactions)]),
       )
-      return { roleId, items, socialByMomentId }
+      return {
+        roleId,
+        items,
+        socialByMomentId,
+        relationshipStage,
+        visibilityDays,
+        visibilityLabel: `${visibilityInfo.stageLabel} · ${visibilityInfo.visibilityLabel}`,
+      }
     },
   )
 

@@ -16,6 +16,8 @@ export interface CompanionSettingsContentProps {
   onMomentTipsMutedChange: (value: boolean) => void
   proactiveGreeting: boolean
   onProactiveGreetingChange: (value: boolean) => void
+  chatBackdropEnabled?: boolean
+  onChatBackdropEnabledChange?: (value: boolean) => void
   quietStart: string
   quietEnd: string
   maxPerDay: string
@@ -80,7 +82,7 @@ export function CompanionSettingsContent(props: CompanionSettingsContentProps) {
 <option value="existing">有现成图片时才带</option>
 <option value="generated">允许自动生成图片</option>
 </SelectField></label><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>每日自动图片上限<SelectField aria-label="每日自动图片上限" value={props.imageMaxPerDay} onChange={(e) => props.onImageMaxPerDayChange(e.target.value)} className="mt-1 text-[11px]"><option value="1">每天最多 1 张</option><option value="2">每天最多 2 张</option><option value="3">每天最多 3 张</option></SelectField></label><label className="text-[10px]" style={{ color: 'var(--text-muted)' }}>自动互动频率<SelectField aria-label="自动互动频率" value={props.interactionPolicy} onChange={(e) => props.onInteractionPolicyChange(e.target.value as CompanionSettingsContentProps['interactionPolicy'])} className="mt-1 text-[11px]"><option value="never">不自动互动</option><option value="occasional">偶尔互动</option><option value="regular">按动态互动</option></SelectField></label></div>
-)}<SettingSwitch checked={props.proactiveGreeting} scope="伙伴" label="主动问候" description="允许伙伴在合适的时机主动来打个招呼，默认保持关闭。" onChange={props.onProactiveGreetingChange} testId={`${testIdPrefix}settings-switch-proactive-greeting`} /></div></SettingCard>
+)}<SettingSwitch checked={props.proactiveGreeting} scope="伙伴" label="主动问候" description="允许伙伴在合适的时机主动来打个招呼，默认保持关闭。" onChange={props.onProactiveGreetingChange} testId={`${testIdPrefix}settings-switch-proactive-greeting`} />{props.onChatBackdropEnabledChange ? <SettingSwitch checked={props.chatBackdropEnabled !== false} scope="伙伴" label="对话氛围壁纸" description="在聊天页面背景中以低干扰度展示当前伙伴的场景封面。" onChange={props.onChatBackdropEnabledChange} testId={`${testIdPrefix}settings-switch-chat-backdrop`} /> : null}</div></SettingCard>
     <div className="flex h-9 min-w-0 items-center justify-between gap-2" data-testid="settings-save-status" aria-live="polite">
       <span className="truncate text-xs" style={{ color: 'var(--text-muted)' }}>{props.saveFailed ? '修改尚未保存，请重试' : ''}</span>
       <ActionButton onClick={props.onRetrySave} disabled={!props.saveFailed} tabIndex={props.saveFailed ? 0 : -1} aria-hidden={!props.saveFailed} className={props.saveFailed ? '' : 'invisible'}>重试保存</ActionButton>

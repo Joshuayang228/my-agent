@@ -23,6 +23,7 @@ export {
 } from '../orchestrator'
 
 export * as identity from '../identity/loader'
+export { isValidVisualSlot, resetRoleVisualOverride, saveRoleVisualOverride, type RoleVisualSlot } from '../identity/visual-overrides'
 
 export { getCompanionRuntimeReadModel } from '../core/read-models/runtime-read-model'
 export { executeCompanionCommand } from '../core/commands/gateway'
@@ -37,6 +38,7 @@ export {
 export { getReflectionStatus, runReflectionNow } from '../growth/reflection-service'
 export { listKeepsakes, triggerGiftKeepsake } from '../growth/relationship-keepsake'
 export { listMilestoneKinds } from '../growth/milestones'
+export { resolveRelationshipStageForRole } from '../growth/relationship-stage'
 
 export { describeCastPresence } from '../cast/availability'
 export { getContactsForRole } from '../cast/contacts'
@@ -56,7 +58,7 @@ export {
   listMomentsForRole,
   toggleMomentLikeForRole,
 } from '../life/moments'
-export { resolveMomentVisibilityDays } from '../life/moment-visibility'
+export { describeMomentVisibility, resolveMomentVisibilityDays } from '../life/moment-visibility'
 export { getLifeSliceForRole } from '../life/slices'
 export { getTodayTimelineForRole } from '../life/timeline'
 export { listLifeResonances } from '../life/chat-resonance'

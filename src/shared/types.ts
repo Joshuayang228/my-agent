@@ -1023,6 +1023,8 @@ export interface RoleSummary {
   avatarDataUrl?: string | null
   bannerDataUrl?: string | null
   themeColor?: string | null
+  hasCustomAvatar?: boolean
+  hasCustomBanner?: boolean
 }
 
 export interface CompanionRoleVisuals {
@@ -1031,6 +1033,8 @@ export interface CompanionRoleVisuals {
   avatarDataUrl?: string | null
   bannerDataUrl?: string | null
   themeColor?: string | null
+  hasCustomAvatar?: boolean
+  hasCustomBanner?: boolean
 }
 
 /** @deprecated 使用 RoleSummary */
@@ -1088,6 +1092,9 @@ export interface MomentListResult {
     imageIds?: string[]
   }>
   socialByMomentId: Record<string, MomentSocialView>
+  relationshipStage?: 'stranger' | 'familiar' | 'rapport'
+  visibilityDays?: number | null
+  visibilityLabel?: string
 }
 
 /** 人物世界生活切片：由事件聚合动态和其产生的长期资产，供详情页按主角读取。 */

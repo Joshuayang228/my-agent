@@ -62,6 +62,7 @@ export async function polishMomentTextViaLlm(
     outfitName?: string
     bookName?: string
     universeId?: string
+    lifeContext?: string
   },
 ): Promise<string | null> {
   if (!hasLLMAuthentication(opts.llmConfig)) return null
@@ -91,6 +92,7 @@ export async function polishMomentTextViaLlm(
           book: opts.bookName,
           ruleText,
           voiceHint,
+          lifeContext: opts.lifeContext,
         }),
       caller: 'moment-polish',
     })
@@ -117,6 +119,7 @@ export async function resolveMomentText(
     outfitName?: string
     bookName?: string
     universeId?: string
+    lifeContext?: string
   },
 ): Promise<{ text: string; source: 'llm' | 'rule' }> {
   const refs = { outfitName: opts?.outfitName, bookName: opts?.bookName }
@@ -127,6 +130,7 @@ export async function resolveMomentText(
       outfitName: opts.outfitName,
       bookName: opts.bookName,
       universeId: opts.universeId,
+      lifeContext: opts.lifeContext,
     })
     if (polished) return { text: polished, source: 'llm' }
   }

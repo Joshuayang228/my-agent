@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { buildTool } from '../builder'
 import { POST_MOMENT_DEFINITION, publishCompanionMoment, textArg } from '../../companion/application/publish-moment'
-import { createAsset, getAsset, listAssets, updateAsset } from '../../companion/life/assets'
+import { changeWardrobe, createAsset, getAsset, listAssets, updateAsset } from '../../companion/life/assets'
 import { addMomentCommentForRole } from '../../companion/life/moments'
 import { listMoments } from '../../companion/core/persistence/life-repository'
 import { getSession } from '../../storage/session-store'
@@ -329,5 +329,63 @@ export const companionCommentMomentTool = buildTool({
     if (!result.ok) return `朋友圈评论未保存：${result.error}`
     const reply = result.social.comments.find(item => item.source === 'protagonist' && item.parentInteractionId === result.interactionId)
     return reply?.text ? `已评论朋友圈，${roleId} 回复：${reply.text}` : '已评论朋友圈；人物回复暂未生成。'
+  },
+})
+
+
+/**
+ * 背景：用户聊天中常自然提到换装或天气穿搭，此前衣柜只能通过后台生活时钟或界面手动换上。
+ * 设计意图：暴露 `companion_change_wardrobe` 给当前会话角色，支持按 assetId 或衣物名查找当前角色衣柜并经统一命令网关换上。
+ * 关键约束：严格校验 roleId 归属与资产类型（排除 wear-state），携带当前 outfitVersion 做乐观锁，禁止跨角色换装；由 Agent Host Manifest 双端权限纳管。
+ */
+export const companionChangeWardrobeTool = buildTool({
+  name: 'companion_change_wardrobe',
+  description: '为当前会话人物换上衣柜里已有的一件衣物或套装。可传 assetId 或衣物名称；如果不确定衣柜里有什么，先调用 companion_read_world(target="assets", kind="wardrobe")。',
+  parameters: {
+    type: 'object',
+    properties: {
+      assetId: { type: 'string', description: '可选：衣柜条目的真实资产 ID。' },
+      name: { type: 'string', description: '可选：衣物或套装名称（与 assetId 至少提供一项）。' },
+      reason: { type: 'string', description: '可选：简短换装原因，例如“甲板风大换件外套”，最多 120 字。' },
+    },
+  },
+  metadata: { isReadOnly: false, isConcurrencySafe: false },
+  inputExamples: [
+    { name: '红色背心', reason: '准备去甲板吹风' },
+  ],
+  execute: async (args, context) => {
+    const roleId = context?.roleId?.trim()
+    if (!roleId) return '当前会话没有绑定人物，暂时不能换装。'
+    const assetId = textArg(args, 'assetId', 200)
+    const name = textArg(args, 'name', 80)
+    const reason = textArg(args, 'reason', 120)
+    if (!assetId && !name) return '请提供衣物 ID（assetId）或衣物名称（name）。'
+
+    const wardrobe = await listAssets(roleId, { kind: 'wardrobe' })
+    const wearState = wardrobe.find((item) => item.payload.recordType === 'wear-state')
+    const expectedVersion = typeof wearState?.payload.outfitVersion === 'number' && Number.isSafeInteger(wearState.payload.outfitVersion)
+      ? wearState.payload.outfitVersion
+      : 0
+    const wearableItems = wardrobe.filter((item) => item.payload.recordType !== 'wear-state')
+    let target = assetId ? wearableItems.find((item) => item.id === assetId) : undefined
+    if (!target && name) {
+      target = wearableItems.find((item) => item.name === name) ?? wearableItems.find((item) => item.name.includes(name))
+    }
+    if (!target) {
+      return '在当前人物衣柜里没有找到这件衣物，请先查询衣柜确认名称或 ID。'
+    }
+
+    const idempotencyKey = context?.sessionId && context?.toolCallId
+      ? `change-wardrobe:${roleId}:${context.sessionId}:${context.toolCallId}`
+      : undefined
+    const result = await executeCompanionCommand({
+      roleId,
+      actionType: 'change-wardrobe-tool',
+      idempotencyKey,
+      signal: context?.signal,
+      handler: () => changeWardrobe({ roleId, assetId: target.id, expectedVersion }),
+    })
+    if (!result.ok) return `换装未完成：${result.error}`
+    return `已换上「${target.name}」（ID: ${target.id}）${reason ? `，原因：${reason}` : ''}。`
   },
 })

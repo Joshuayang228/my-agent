@@ -5,6 +5,7 @@ import { requestGeneratedImage } from '../../llm/image-generation'
 import { normalizeGeneratedImage } from '../../utils/generated-image-codec'
 import { loadRolePack } from '../identity/loader'
 import { formatRoleAppearanceForImagePrompt } from '../identity/profile'
+import { listAssets } from './assets'
 import { attachMomentImageForRole } from './moment-images'
 import { getLatestMomentMediaAttempt, listMomentMediaAttempts, recordMomentMediaAttempt, storeMomentMedia } from '../adapters/moment-media-store'
 import { getCompanionRuntimeReadModel } from '../core/read-models/runtime-read-model'
@@ -32,6 +33,7 @@ export function buildAutomaticMomentImageDescription(input: {
   momentText: string
   world?: { currentLocation: string; locationDetail: string; currentActivity: string; mood: number }
   appearance?: string
+  currentOutfit?: string
 }): string {
   const worldFacts = input.world
     ? [
@@ -40,7 +42,7 @@ export function buildAutomaticMomentImageDescription(input: {
         `当前心情：${narrativeMood(input.world.mood)}`,
       ].filter(Boolean).join('；')
     : ''
-  return `为人物朋友圈动态生成一张自然生活照片。动态正文：${input.momentText.slice(0, 1200)}。${worldFacts ? `同一运行态事实：${worldFacts}。` : ''}只表现已保存的活动、地点和情绪，不添加新的事件或人物事实。${input.appearance ? `人物外观锚点：${input.appearance}` : ''}`
+  return `为人物朋友圈动态生成一张自然生活照片。动态正文：${input.momentText.slice(0, 1200)}。${worldFacts ? `同一运行态事实：${worldFacts}。` : ''}只表现已保存的活动、地点和情绪，不添加新的事件或人物事实。${input.appearance ? `人物外观锚点：${input.appearance}。` : ''}${input.currentOutfit ? `当前穿着：${input.currentOutfit}。` : ''}`
 }
 
 export async function generateAutomaticMomentMedia(roleId: string, event: CompanionEvent, moment: CompanionMoment): Promise<{ ok: true; imageId: string } | { ok: false; reason: string }> {
@@ -67,7 +69,16 @@ export async function generateAutomaticMomentMedia(roleId: string, event: Compan
     }
     const appearance = (() => { try { const profile = loadRolePack(roleId).profile; return profile ? formatRoleAppearanceForImagePrompt(profile) : '' } catch { return '' } })()
     const worldState = await getCompanionRuntimeReadModel(roleId)
-    const description = buildAutomaticMomentImageDescription({ momentText: moment.text, world: worldState ?? undefined, appearance })
+    const currentOutfit = await (async () => {
+      try {
+        const wardrobe = await listAssets(roleId, { kind: 'wardrobe' })
+        const wearing = wardrobe.find((a) => a.payload.wearing === true || a.payload.isWearing === true)
+        return wearing?.name || ''
+      } catch {
+        return ''
+      }
+    })()
+    const description = buildAutomaticMomentImageDescription({ momentText: moment.text, world: worldState ?? undefined, appearance, currentOutfit: currentOutfit || undefined })
     const response = await requestGeneratedImage(config, compileImageGenerationRequest(description), signal)
     const image = await normalizeGeneratedImage(response.bytes)
     signal?.throwIfAborted()

@@ -20,13 +20,14 @@
 
 ## 进行中
 
-| 文档 | 说明 |
-|------|------|
-| [companion-life-mapping-consistency-v1.md](./companion-life-mapping-consistency-v1.md) | 统一 15 维活人感因子快照、9 大生活切面关系梯度与生命体征节流门控、冷启动 3 天可见修复及 Chat 换装工具补齐 |
+当前无进行中施工合同。新功能立项请按需新增合同。
 
 ---
 
 ## 已完成施工快照（冻结）
+
+生活引擎映射一致性与活人感因果总线：[companion-life-mapping-consistency-v1.md](./companion-life-mapping-consistency-v1.md)，已完成 15 维活人感因子快照（`LifeContextSnapshot`）、统一生命体征节流与关系梯度门控（`life-gating.ts`）、冷启动 3 天可见修复与朋友圈关系提示及 Chat 换装工具 `companion_change_wardrobe` 闭环。
+产品视觉一致性与可替换视觉资产：[product-visual-consistency-v1.md](./product-visual-consistency-v1.md)，已完成角色头像/封面隔离覆写存储（`visual-overrides.ts`）、Chat 氛围壁纸开关（`companionChatBackdropEnabled`）、人物世界顶栏换图/重置入口、`image_generate` 支持 `targetVisualSlot` 与自主朋友圈配图当前穿着锚点注入。
 
 Foundation 复用链路与自动门禁：[foundation-reuse-enforcement-v1.md](./foundation-reuse-enforcement-v1.md)，已完成五大产品体验（Chat、人物世界、设置、工作区、Debug）`adopted` 全量回流、共享基础控件收口与 TS AST 符号级源码门禁（`foundation-enforcement-gate.test.ts`）。
 工作区五功能样张与正式回流：[playground-workspace-five-tools-v1.md](./playground-workspace-five-tools-v1.md)，已完成正式五功能工作区（文件 / 审阅 / 浏览器 / 终端 / 侧边聊天）UI 统一、Foundation 审计门禁、后端真实 IPC 契约锁与正式 Electron 桌面回归（22/22 通过）；完整 PTY 与 RAG/OAuth 按用户决策维持暂缓。

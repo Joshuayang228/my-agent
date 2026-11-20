@@ -311,6 +311,14 @@ export async function collectDayScriptLifeContext(
     if (world) {
       parts.push(`当前状态与体征：心情${world.mood}，精力${world.energy}`)
     }
+    const { collectLifeContextSnapshot } = await import('./life-context-snapshot')
+    const snapshot = await collectLifeContextSnapshot(roleId)
+    parts.push(`与用户关系：${snapshot.relationshipLabel}；今日节律：${snapshot.rhythm.weekdayLabel}·${snapshot.rhythm.weatherLabel}`)
+    if (snapshot.recentUserVibe) parts.push(`用户近期状态：${snapshot.recentUserVibe}`)
+    if (snapshot.recentMomentAvoidance.length) {
+      parts.push(`近期已发动态（今日剧本避免重复相似主题）：${snapshot.recentMomentAvoidance.join(' / ')}`)
+    }
+    // 补充统一生活上下文快照（关系、节律、用户眼色与近期动态避重）
   } catch (err) {
     log.warn('Failed to collect life context for day script', { roleId, error: String(err) })
   }

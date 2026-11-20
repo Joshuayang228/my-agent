@@ -39,6 +39,7 @@ interface SettingsForm {
   companionMomentTipsMaxPerDay: string
   companionMomentCadence: string
   companionMomentVisibility: string
+  companionChatBackdropEnabled: string
   companionMomentMaxPerDay: string
   companionMomentCooldownMinutes: string
   companionMomentPostingQuietStart: string
@@ -70,6 +71,7 @@ const DEFAULTS: SettingsForm = {
   companionMomentTipsMaxPerDay: '3',
   companionMomentCadence: 'regular',
   companionMomentVisibility: 'ai',
+  companionChatBackdropEnabled: 'true',
   companionMomentMaxPerDay: '3',
   companionMomentCooldownMinutes: '240',
   companionMomentPostingQuietStart: '23',
@@ -241,6 +243,7 @@ export function SettingsPanel({
           s.companionMomentTipsMaxPerDay || DEFAULTS.companionMomentTipsMaxPerDay,
         companionMomentCadence: s.companionMomentCadence || DEFAULTS.companionMomentCadence,
         companionMomentVisibility: s.companionMomentVisibility || DEFAULTS.companionMomentVisibility,
+        companionChatBackdropEnabled: s.companionChatBackdropEnabled || DEFAULTS.companionChatBackdropEnabled,
         companionMomentMaxPerDay: s.companionMomentMaxPerDay || DEFAULTS.companionMomentMaxPerDay,
         companionMomentCooldownMinutes: s.companionMomentCooldownMinutes || DEFAULTS.companionMomentCooldownMinutes,
         companionMomentPostingQuietStart: s.companionMomentPostingQuietStart || DEFAULTS.companionMomentPostingQuietStart,
@@ -445,6 +448,8 @@ export function SettingsPanel({
     onMomentTipsMutedChange={(value) => update('companionMomentTipsMuted', value ? 'true' : 'false')}
     proactiveGreeting={form.companionProactiveGreetingEnabled === 'true'}
     onProactiveGreetingChange={(value) => update('companionProactiveGreetingEnabled', value ? 'true' : 'false')}
+    chatBackdropEnabled={form.companionChatBackdropEnabled !== 'false'}
+    onChatBackdropEnabledChange={(value) => update('companionChatBackdropEnabled', value ? 'true' : 'false')}
     quietStart={form.companionMomentTipsQuietStart}
     quietEnd={form.companionMomentTipsQuietEnd}
     maxPerDay={form.companionMomentTipsMaxPerDay}

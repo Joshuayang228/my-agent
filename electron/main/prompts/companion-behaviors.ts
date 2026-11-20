@@ -35,6 +35,7 @@ export function buildPolishPrompt(input: {
   book?: string
   ruleText: string
   voiceHint: string
+  lifeContext?: string
   character?: ReturnType<typeof characterDefinitionFromRolePack>
   behaviorPrompt?: string
 }): string {
@@ -48,7 +49,7 @@ export function buildPolishPrompt(input: {
 - 地点：${input.location || '（无）'}
 - 着装：${input.outfit || '（无）'}
 - 在读：${input.book || '（无）'}
-规则底稿：${input.ruleText}
+规则底稿：${input.ruleText}${input.lifeContext?.trim() ? `\n\n近期生活与关系上下文（只作语气与避重参考，不得编造新行程）：\n${input.lifeContext.trim()}` : ''}
 
 人设语气参考（勿写成对白）：
 ${input.voiceHint || '（无）'}`,
@@ -72,6 +73,7 @@ export function buildCatchupLlmPrompt(input: {
   gapDays: number | string
   home: string
   voiceHint: string
+  lifeContext?: string
   character?: ReturnType<typeof characterDefinitionFromRolePack>
   behaviorPrompt?: string
 }): string {
