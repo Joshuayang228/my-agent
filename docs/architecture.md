@@ -6,7 +6,7 @@
 
 对话应用服务在回复事务中登记对话完成事件与必需的生活出站任务。消费端以原始回复定位上下文，先生成再在本地事务内复核领取记录及写入结算结果。
 
-Agent Host 为对话和诊断装配完整 Manifest，承载模型用途、权限与 Skill 白名单。运行时为 Context Provider 和 Tool 注入该 Manifest 以及真实会话和运行标识。内置伙伴领域工具（含 `companion_change_wardrobe`）全部经 `DOMAIN_TOOL_POLICIES` 双端纳管；角色视觉覆写（`visual-overrides.ts`）与生活行为门控（`life-gating.ts`）均经 `companion/application/companion-facade.ts` 对外提供。
+Agent Host 为对话和诊断装配完整 Manifest，承载模型用途、权限与 Skill 白名单。运行时为 Context Provider 和 Tool 注入该 Manifest 以及真实会话和运行标识。内置伙伴领域工具（含 `companion_change_wardrobe`）全部经 `DOMAIN_TOOL_POLICIES` 双端纳管；角色视觉覆写（`visual-overrides.ts`）、生活行为门控（`life-gating.ts`）与 12 切面投影注册表（`core/projections/surface-registry.ts`）均经 `companion/application/companion-facade.ts` 对外提供并纳入 `npm run arch:check` 与 Debug 资产目录。
 
 人物世界事实可在同一事务登记内部 Outbox 工作。内部 consumer 按上游事件执行记忆和里程碑写入，与消费回执共同提交，窗口只消费用于呈现的消息。
 

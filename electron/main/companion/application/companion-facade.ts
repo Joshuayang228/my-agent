@@ -26,6 +26,11 @@ export * as identity from '../identity/loader'
 export { isValidVisualSlot, resetRoleVisualOverride, saveRoleVisualOverride, type RoleVisualSlot } from '../identity/visual-overrides'
 
 export { getCompanionRuntimeReadModel } from '../core/read-models/runtime-read-model'
+export {
+  COMPANION_PROJECTION_SURFACES,
+  LIFE_FACTOR_CATALOG,
+  getCompanionProjectionSurfaceSummary,
+} from '../core/projections/surface-registry'
 export { executeCompanionCommand } from '../core/commands/gateway'
 export { claimFirstContact, listRelationshipStates } from '../core/persistence/life-repository'
 

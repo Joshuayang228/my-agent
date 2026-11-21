@@ -1,5 +1,7 @@
 # 质量总控
 
+人物世界 12 切面统一注册表门禁（2026-11-21）：新增 `companion-surface-registry.test.ts`（4 项静态校验：世界 9 面 + Chat 3 面覆盖、前后端源码路径真实存在、AI 工具与 `PROMPT_KEYS` 对齐、15 维活跃因子零孤儿及 Debug 资产目录派生），并已并入 `npm run arch:check`（合计 14 项静态门禁）随 Git Hook 强制执行。
+
 路飞 Role Pack 精装与 Persona Eval 升级门禁（2026-11-21）：同步 `prompt-builder.test.ts` 至路飞正式档案断言，升级 `evals/scenarios/b02-protagonist-behavior.ts` 为路飞专属反 AI 味与反编造门禁（`B02`—`B07`）；`prompt-builder`、`companion-identity`、`companion-assets`、`luffy-journey-acceptance`、`prompt-feature-contracts`、离线 Eval（`evals/eval.test.ts`）、`assets:check`、`arch:check` 与 `build` 全部通过。
 
 生活映射一致性与产品视觉一致性 v1 门禁（2026-11-21）：新增 `companion-life-mapping.test.ts`（4 项）、`role-visual-overrides.test.ts`（3 项）及 `companion-life-tools.test.ts` 聊天换装正反例回归（18 项），更新 `moment-visibility.test.ts`（冷启动 3 天可见）与 `vulnerability.test.ts`（初识拦截 / 熟悉放行）；`npm run arch:check`（10 项，验证 `companion_change_wardrobe` 纳入 Agent Host Manifest）、`npm run assets:check`（113 项）、`npm run build` 与 `npm run docs:validate` 全部通过。

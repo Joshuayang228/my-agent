@@ -1,6 +1,7 @@
 import { AUTOMATIC_PROACTIVE_POLICY } from './application/proactive-budget'
 import { LIFE_GATING_THRESHOLDS } from './life/life-gating'
 import { ROLE_VISUAL_MAX_BYTES } from './identity/visual-overrides'
+import { getCompanionProjectionSurfaceSummary } from './core/projections/surface-registry'
 /**
  * 伙伴与人格生产资产注册表。
  *
@@ -381,6 +382,13 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     source: 'electron/main/companion/identity/visual-overrides.ts#saveRoleVisualOverride', version: 'role-visual-overrides-v1',
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent({ slots: ['avatar', 'banner'], maxBytes: ROLE_VISUAL_MAX_BYTES }),
+  }), makeCompanionAsset({
+    key: 'companion:registry:projection-surfaces', name: '人物世界 12 切面与 15 维因子映射注册表',
+    purpose: '统一登记全部 12 个受生活引擎影响的投影切面（世界 9 面 + Chat 3 面）消费的状态因子、门控策略、AI 工具与源码落点',
+    role: 'platform', description: '单一事实源声明式注册表，供 Debug 资产目录与静态架构一致性门禁共享；任何新切面或映射变更必须同步登记。',
+    source: 'electron/main/companion/core/projections/surface-registry.ts#COMPANION_PROJECTION_SURFACES', version: 'projection-surfaces-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent(getCompanionProjectionSurfaceSummary()),
   })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {

@@ -12,8 +12,8 @@ export const ASSET_GOVERNANCE = [
   },
   {
     id: 'companion', labelZh: '伙伴资产', kind: 'static', modelContextTypes: ['companion-manifest', 'companion-profile', 'companion-world', 'companion-scene', 'companion-life'],
-    sourcePaths: ['electron/main/companion/asset-registry.ts', 'electron/main/companion/identity', 'electron/main/companion/cast', 'electron/main/companion/life'],
-    registryPaths: ['electron/main/companion/asset-registry.ts'], discovery: 'Role Pack manifest / loader',
+    sourcePaths: ['electron/main/companion/asset-registry.ts', 'electron/main/companion/core/projections/surface-registry.ts', 'electron/main/companion/identity', 'electron/main/companion/cast', 'electron/main/companion/life'],
+    registryPaths: ['electron/main/companion/asset-registry.ts', 'electron/main/companion/core/projections/surface-registry.ts'], discovery: 'Role Pack manifest / loader',
     keyRule: 'companion:<universe>:<role>:<kind>', display: 'Debug / 伙伴世界', usageEvidence: 'llm-input / memory-operation',
   },
   {
