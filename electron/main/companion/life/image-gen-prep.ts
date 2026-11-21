@@ -29,7 +29,7 @@ export type CompanionImageCategory =
   | 'cover'
 
 export const COMPANION_IMAGE_STYLE_ANCHOR =
-  '温暖明快的手绘日系冒险插画风格，细腻清透的水彩光影与干净线条，色彩自然有海风与阳光呼吸感，无多余文字水印。'
+  '自然统一的高质感生活插画与光影美学，色调协调、构图舒展、细节有呼吸感，无多余文字水印。'
 
 export const ANTI_CLONE_REF_SHEET_GUARD =
   '画面中只画一个主角（参考图是同一人物的多角度设定图，不是多人）。严格保持与参考图一致的画风、五官与标志物，但不要照搬参考图中的站姿和视线方向，让动作与眼神自然融入当前场景。'
@@ -141,16 +141,16 @@ export async function prepareCompanionImageGen(
 
   const referenceImages: GeneratedImageBytes[] = []
   const refLabels: string[] = []
-  const anchorParts: string[] = [COMPANION_IMAGE_STYLE_ANCHOR]
+  let pack: ReturnType<typeof loadRolePack> | null = null
+  try {
+    pack = loadRolePack(input.roleId, universeId)
+  } catch {
+    pack = null
+  }
+  const styleAnchor = pack?.profile?.appearance?.artStyle?.trim() || COMPANION_IMAGE_STYLE_ANCHOR
+  const anchorParts: string[] = [styleAnchor]
 
   if (useCharacterRef) {
-    let pack: ReturnType<typeof loadRolePack> | null = null
-    try {
-      pack = loadRolePack(input.roleId, universeId)
-    } catch {
-      pack = null
-    }
-
     if (pack?.profile) {
       const appearance = formatRoleAppearanceForImagePrompt(pack.profile)
       if (appearance) anchorParts.push(appearance)

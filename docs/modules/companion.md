@@ -44,7 +44,7 @@
 
 通用提示词去 AI 味精修与角色垫图生图管线（2026-11-21）：全量重写 10 份通用提示词（`image-generation`、`proactive-greeting`、`spontaneous-impulse`、`inner-thought`、`nightly-reflection`、`host-care`、`gift-reaction`、`vulnerability-reaction`、`culture-review`、`moment-reply`），彻底剥离通用层的硬编码角色名与 AI 抒情套话；新增 `loadRoleReferenceImages` 并在 `llm/image-generation.ts`、`image_generate` 工具与 `automatic-moment-media.ts` 打通角色垫图（Gemini 多模态生图原生携带 `inlineData` 参考图，纯文生图模型平滑降级为文字外观锚点）。
 
-统一多图垫图装配器与路飞三视图设定图（2026-11-21）：新增 `life/image-gen-prep.ts`（`prepareCompanionImageGen`），按 8 类构图场景（`selfie` / `outing` / `food` / `gift` / `hangout` / `scenery` / `mood` / `cover`）动态组装角色多角度设定图（`visual/ref-sheet-<role>.png`）+ 当前穿着衣物图 + 房间场景图（最多 3 张），纯食物/风景/静物自动跳过人物垫图；自动选择 `aspectRatio`（3:4 / 4:3 / 16:9 / 9:16 / 1:1）并注入防多胞胎克隆与防呆板视线提示；落地路飞三视图设定图 `roles/luffy/visual/ref-sheet-luffy.png` 并登记 `companion:policy:image-gen-prep`。
+统一多图垫图装配器与路飞三视图设定图（2026-11-21）：新增 `life/image-gen-prep.ts`（`prepareCompanionImageGen`），按 8 类构图场景（`selfie` / `outing` / `food` / `gift` / `hangout` / `scenery` / `mood` / `cover`）动态组装角色多角度设定图（`visual/ref-sheet-<role>.png`）+ 当前穿着衣物图 + 房间场景图（最多 3 张），纯食物/风景/静物自动跳过人物垫图；自动选择 `aspectRatio`（3:4 / 4:3 / 16:9 / 9:16 / 1:1）并注入防多胞胎克隆与防呆板视线提示；画风锚点解耦至 `RoleProfile.appearance.artStyle`（角色未声明时回退平台中性风格）；落地路飞三视图设定图 `roles/luffy/visual/ref-sheet-luffy.png` 并登记 `companion:policy:image-gen-prep`。
 
 ## 架构源码审计与深度二审状态（2026-11-20）
 

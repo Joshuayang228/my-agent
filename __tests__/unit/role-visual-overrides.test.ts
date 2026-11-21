@@ -92,6 +92,7 @@ describe('Companion Image Gen Prep（按场景动态垫图与画幅选择）', (
     const coverPrep = await prepareCompanionImageGen({ roleId: 'luffy', description: '千里阳光号迎着朝阳出航', category: 'cover', homeRoomId: 'shared-deck' })
     expect(coverPrep.aspectRatio).toBe('16:9')
     expect(coverPrep.referenceImages.length).toBeGreaterThanOrEqual(1)
+    expect(coverPrep.visualAnchor).toContain('手绘日系冒险插画风格')
     expect(coverPrep.prompt).toContain('【构图方向】')
   })
 })

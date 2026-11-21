@@ -66,6 +66,8 @@ export interface RoleAppearance {
   eyes: string
   build: string
   clothingStyle: string
+  /** 可选的角色专属画风锚点；供生图垫图装配器优先使用，缺省回退平台中性风格。 */
+  artStyle?: string
   distinguishingFeatures: string[]
   /** 可选的项目内视觉参考；不参与模型提示词，只供人物资产与人工审阅使用。 */
   visualReferencePath?: string

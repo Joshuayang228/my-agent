@@ -1,6 +1,6 @@
 # 项目进度
 
-统一多图垫图装配器与路飞三视图标准设定图落地（2026-11-21）：借鉴成熟多图垫图实践，新增 `companion/life/image-gen-prep.ts`（`prepareCompanionImageGen`），按 8 类构图场景动态拼装角色多角度设定图 + 当前穿着衣物图 + 房间场景图（纯食物/风景/静物自动跳过人物垫图），自动选择动态画幅（`3:4` / `4:3` / `16:9` / `9:16` / `1:1`）并注入防多胞胎克隆与防呆板视线提示；落地路飞 16:9 手绘水彩三视图标准设定图 `roles/luffy/visual/ref-sheet-luffy.png`，并接入 `image_generate` 工具、`automatic-moment-media.ts` 与 `asset-registry.ts`。
+统一多图垫图装配器与路飞三视图标准设定图落地（2026-11-21）：借鉴成熟多图垫图实践，新增 `companion/life/image-gen-prep.ts`（`prepareCompanionImageGen`），按 8 类构图场景动态拼装角色多角度设定图 + 当前穿着衣物图 + 房间场景图（纯食物/风景/静物自动跳过人物垫图），自动选择动态画幅（`3:4` / `4:3` / `16:9` / `9:16` / `1:1`）并注入防多胞胎克隆与防呆板视线提示；将画风锚点解耦至 `RoleProfile.appearance.artStyle` 保持平台层零角色耦合；落地路飞 16:9 手绘水彩三视图标准设定图 `roles/luffy/visual/ref-sheet-luffy.png`，并接入 `image_generate` 工具、`automatic-moment-media.ts` 与 `asset-registry.ts`。
 
 全仓通用提示词去 AI 味精修与角色垫图生图管线落地（2026-11-21）：全面重写 10 份通用提示词（通用生图、主动问候、即兴搭话、私密日记、深夜反思、宿主关怀、赠礼回响、脆弱抚慰、文化体验感想、朋友圈评论回复），剥离硬编码角色名与 AI 抒情套话；新增 `loadRoleReferenceImages` 并升级 `llm/image-generation.ts` 支持携带角色参考垫图（Gemini 原生多模态 `inlineData` 附带，纯文生图接口平滑降级），同步接入 `image_generate` 工具与 `automatic-moment-media.ts` 自主朋友圈配图。
 

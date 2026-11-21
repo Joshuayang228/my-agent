@@ -1,6 +1,6 @@
 # 质量总控
 
-统一多图垫图装配器与路飞三视图设定图门禁（2026-11-21）：`role-visual-overrides.test.ts` 新增 `inferMomentImageCategory` 与 `prepareCompanionImageGen` 场景分流、防克隆提示与动态画幅验证（5 项），`image-generate-tool.test.ts`、`assets:check`（113 项）、`arch:check`（14 项）、`build` 与 `docs:validate` 全部通过。
+统一多图垫图装配器与路飞三视图设定图门禁（2026-11-21）：`role-visual-overrides.test.ts` 新增 `inferMomentImageCategory` 与 `prepareCompanionImageGen` 场景分流、角色 `artStyle` 读取、防克隆提示与动态画幅验证（5 项），`image-generate-tool.test.ts`、`assets:check`（113 项）、`arch:check`（14 项）、`build` 与 `docs:validate` 全部通过。
 
 全仓通用提示词去 AI 味与角色垫图生图管线门禁（2026-11-21）：`role-visual-overrides.test.ts` 新增路飞垫图参考字节加载验证（4 项），全量单测（含 `image-generate-tool`、`prompt-feature-contracts`、`nightly-reflection`、`host-presence`、`gifting`、`vulnerability`、`spontaneous-impulse`）、`assets:check`（113 项）、`arch:check`（14 项）、`build` 与 `docs:validate` 全部通过。
 

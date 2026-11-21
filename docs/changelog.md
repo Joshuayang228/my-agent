@@ -1,6 +1,6 @@
 # 变更日志
 
-2026-11-21 落地统一多图垫图装配器（`image-gen-prep.ts`）与路飞三视图标准设定图（`ref-sheet-luffy.png`）：支持按 8 类场景动态拼装多职责垫图、自动选择画幅比例与防克隆/防呆板视线提示，同步接入 `image_generate` 与自主朋友圈配图。
+2026-11-21 落地统一多图垫图装配器（`image-gen-prep.ts`）与路飞三视图标准设定图（`ref-sheet-luffy.png`）：支持按 8 类场景动态拼装多职责垫图、自动选择画幅比例、角色画风锚点（`profile.appearance.artStyle`）与防克隆/防呆板视线提示，同步接入 `image_generate` 与自主朋友圈配图。
 
 2026-11-21 完成全仓 10 份通用提示词去 AI 味精修，并打通角色垫图参考生图管线（`loadRoleReferenceImages` + `llm/image-generation.ts` Gemini 多模态参考图附带，同步接入 `image_generate` 与自主朋友圈配图）。
 
