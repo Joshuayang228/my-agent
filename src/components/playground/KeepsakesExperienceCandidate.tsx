@@ -2,7 +2,34 @@ import { useMemo, useState } from 'react'
 import { WorldKeepsakesPanel } from '../world/WorldKeepsakesPanel'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
 import { WorldCandidateControls } from './WorldCandidateControls'
-import type { CompanionKeepsakeRecord } from '../../shared/types'
+import type { CompanionGiftItem, CompanionKeepsakeRecord } from '../../shared/types'
+
+const PREVIEW_AVAILABLE_GIFTS: CompanionGiftItem[] = [
+  {
+    key: 'bone-meat',
+    name: '特制带骨烤肉',
+    category: 'food',
+    iconName: 'Utensils',
+    description: '烤得滋滋冒油的超大块带骨烤肉，香气在海风里飘老远。',
+    roleAffinity: { luffy: 'favorite' },
+  },
+  {
+    key: 'treasure-map',
+    name: '泛黄的神秘海图',
+    category: 'collectible',
+    iconName: 'Map',
+    description: '边缘略微磨损的古老羊皮纸航海图，标着未知岛屿与航线。',
+    roleAffinity: { luffy: 'favorite' },
+  },
+  {
+    key: 'warm-scarf',
+    name: '手织温暖围巾',
+    category: 'emotional',
+    iconName: 'Heart',
+    description: '柔软绒线织成的围巾，夜航起风时系上很暖和。',
+    roleAffinity: { luffy: 'liked' },
+  },
+]
 
 const KEEPSAKE_SCENARIOS = [
   { id: 'default', label: '信物展架' },
@@ -107,6 +134,7 @@ export function KeepsakesExperienceCandidate({ personaId }: { personaId: string 
         key={`${personaId}-${scenario}`}
         roleId={personaId}
         previewKeepsakes={keepsakes}
+        previewAvailableGifts={PREVIEW_AVAILABLE_GIFTS}
         previewReadError={scenario === 'error' ? '信物展架暂时无法读取，请检查网络或点击重试。' : undefined}
         onPreviewRetry={() => setScenario('default')}
       />

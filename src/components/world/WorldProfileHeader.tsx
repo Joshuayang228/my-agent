@@ -4,6 +4,7 @@ import { IconButton } from '../foundation/IconButton'
 import { ActionButton } from '../foundation/ActionButton'
 import { CompanionAvatar } from '../CompanionAvatar'
 import { WorldTodayTimeline } from './WorldTodayTimeline'
+import type { CompanionTodayTimeline } from '../../shared/types'
 
 export interface WorldProfile {
   name: string
@@ -24,9 +25,10 @@ export interface WorldProfile {
  * 今日轨迹独立置于封面下方，展开时互不干扰。
  * 关键约束：不向正式产品界面暴露 0-100 数值条（数值留在 Debug）；缺省内容不编造人设。
  */
-export function WorldProfileHeader({ profile, roleId, onTakeToChat, onViewMoment, onClose, testId = 'world-profile' }: {
+export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToChat, onViewMoment, onClose, testId = 'world-profile' }: {
   profile: WorldProfile
   roleId?: string
+  initialTimeline?: CompanionTodayTimeline
   onTakeToChat?: (opts: { text: string }) => void
   onViewMoment?: (momentId: string) => void
   onClose?: () => void
@@ -203,7 +205,7 @@ export function WorldProfileHeader({ profile, roleId, onTakeToChat, onViewMoment
       </section>
 
       {/* 今日轨迹独立置于封面下方，展开全天日程时不再拉扯头图 */}
-      <WorldTodayTimeline roleId={roleId} onTakeToChat={onTakeToChat} onViewMoment={onViewMoment} />
+      <WorldTodayTimeline roleId={roleId} initialTimeline={initialTimeline} onTakeToChat={onTakeToChat} onViewMoment={onViewMoment} />
     </div>
   )
 }

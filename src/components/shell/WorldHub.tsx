@@ -15,6 +15,7 @@ import { WorldDetailsPanel } from '../WorldDetailsPanel'
 import { WorldProfileHeader, type WorldProfile } from '../world/WorldProfileHeader'
 import type { ShellView } from './SecondaryNav'
 import type { WorldAssetRecord } from '../world/WorldAssetEditor'
+import type { CompanionTodayTimeline } from '../../shared/types'
 import { layoutProfileStyle } from '../../shared/content-layout'
 
 export type WorldTab = 'moments' | 'journal' | 'keepsakes' | 'assets' | 'cast' | 'wardrobe' | 'culture' | 'home' | 'footprints'
@@ -62,6 +63,7 @@ export function WorldHub({
   tabLabels,
   tabs,
   profile,
+  previewTimeline,
   onGenerateAssetImage,
   allowAssetEditing = false,
   roleId,
@@ -99,6 +101,7 @@ export function WorldHub({
   /** Playground 可提供独立的生活面 Tab 定义；不传时保持正式页面的既有入口。 */
   tabs?: readonly WorldTabDefinition[]
   profile?: WorldProfile
+  previewTimeline?: CompanionTodayTimeline
   onGenerateAssetImage?: (asset: WorldAssetRecord) => void
   /** 人物世界正式入口只浏览；独立资产维护入口不受影响。 */
   allowAssetEditing?: boolean
@@ -139,7 +142,7 @@ export function WorldHub({
   ) : null
   return (
     <div className="world-shape-scope flex h-full flex-col" style={layoutProfileStyle('world')} data-testid="world-hub">
-      {!hideHeader && (profile ? <WorldProfileHeader profile={profile} roleId={roleId} onTakeToChat={onTakeToChat} onViewMoment={() => onTabChange('moments')} onClose={onClose} /> : <div
+      {!hideHeader && (profile ? <WorldProfileHeader profile={profile} roleId={roleId} initialTimeline={previewTimeline} onTakeToChat={onTakeToChat} onViewMoment={() => onTabChange('moments')} onClose={onClose} /> : <div
         className="flex shrink-0 items-center justify-between gap-3 border-b px-5 py-3"
         style={{ borderColor: 'var(--border-subtle)' }}
       >

@@ -781,9 +781,21 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
             profile={{
               name: persona.name,
               description: persona.blurb,
+              statusSummary: '刚收拾完上午的杂事，心情挺轻松，正打算去窗边吹会儿风。',
               avatarSrc: PERSONA_VISUALS[persona.id]?.avatarSrc,
               bannerSrc: PERSONA_VISUALS[persona.id]?.bannerSrc,
               themeColor: PERSONA_VISUALS[persona.id]?.themeColor,
+            }}
+            previewTimeline={{
+              roleId: persona.id,
+              date: '2026-11-22',
+              theme: '慢半拍的晴朗一天',
+              currentSlotIndex: 1,
+              slots: [
+                { hour: 9, minute: 30, timeStr: '09:30', activity: '泡了一壶热茶顺手理桌面', mood: '安稳', location: '书桌边', type: 'activity', status: 'past', scheduledAt: Date.UTC(2026, 10, 22, 1, 30) },
+                { hour: 14, minute: 0, timeStr: '14:00', activity: '靠在窗边翻几页随笔', mood: '轻松', location: '窗边', type: 'moment', status: 'current', scheduledAt: Date.UTC(2026, 10, 22, 6, 0) },
+                { hour: 19, minute: 0, timeStr: '19:00', activity: '出门散步顺便买点晚饭', mood: '期待', location: '街角小店', type: 'activity', status: 'upcoming', scheduledAt: Date.UTC(2026, 10, 22, 11, 0) },
+              ],
             }}
             recentByRole={{}}
             momentsPreview={momentsPreviewForPersona(persona)}
