@@ -1,5 +1,7 @@
 # 项目进度
 
+角色视觉覆写备份恢复闭环、当日聊天共鸣即时微调剧本与 Vite 依赖扫描收敛（`WISH-028` 关闭，2026-11-21）：在 `companion/identity/visual-overrides.ts` 补齐 `listRoleVisualOverrides`、`isValidBackupRoleVisualOverrides` 与幂等可回滚的 `restoreRoleVisualOverrides`，并将 `roleVisualOverrides` 与 `companionChatBackdropEnabled` 接入 `ipc/data-export.ts` 的 `data:export` / `data:import` 备份恢复链（兼容旧版 v1 备份，导入成功后广播 `companion:visuals-updated`，外层数据库失败时同步回滚新建覆写文件）；在 `companion/life/replan.ts` 新增 `adaptNextUpcomingSlotForResonance` 并接入 `chat-resonance.ts`，使主会话刚沉淀的美食/文化/日常活动心愿可即时轻度编入当日首个未改写的未来 `planned` 槽位（跳过体征重排槽位与跨日 `travel_wish`，同步标记 `absorbed_in_script` 避免次日重复，顺手修正路飞保底地点为千里阳光号船首）；在 `vite.config.ts` 显式收敛 `optimizeDeps.entries` 至应用 HTML 入口并在 `server.watch.ignored` 排除 `_reference/**` 与 `_archive/**`，彻底消除参考仓库触发的无关依赖扫描警告并关闭 `WISH-028`。
+
 统一多图垫图装配器与路飞三视图标准设定图落地（2026-11-21）：借鉴成熟多图垫图实践，新增 `companion/life/image-gen-prep.ts`（`prepareCompanionImageGen`），按 8 类构图场景动态拼装角色多角度设定图 + 当前穿着衣物图 + 房间场景图（纯食物/风景/静物自动跳过人物垫图），自动选择动态画幅（`3:4` / `4:3` / `16:9` / `9:16` / `1:1`）并注入防多胞胎克隆与防呆板视线提示；将画风锚点解耦至 `RoleProfile.appearance.artStyle` 保持平台层零角色耦合；落地路飞 16:9 手绘水彩三视图标准设定图 `roles/luffy/visual/ref-sheet-luffy.png`，并接入 `image_generate` 工具、`automatic-moment-media.ts` 与 `asset-registry.ts`。
 
 全仓通用提示词去 AI 味精修与角色垫图生图管线落地（2026-11-21）：全面重写 10 份通用提示词（通用生图、主动问候、即兴搭话、私密日记、深夜反思、宿主关怀、赠礼回响、脆弱抚慰、文化体验感想、朋友圈评论回复），剥离硬编码角色名与 AI 抒情套话；新增 `loadRoleReferenceImages` 并升级 `llm/image-generation.ts` 支持携带角色参考垫图（Gemini 原生多模态 `inlineData` 附带，纯文生图接口平滑降级），同步接入 `image_generate` 工具与 `automatic-moment-media.ts` 自主朋友圈配图。

@@ -20,7 +20,7 @@
 
 工具注册表传递实际调用 ID。朋友圈发布、人物资产创建、读书笔记与聊天换装工具（`companion_change_wardrobe`）均纳入 Agent Host Manifest 双端权限管控并用会话与工具调用 ID 装配稳定操作键；`image_generate` 支持可选 `targetVisualSlot: 'avatar' | 'banner'` 应用角色视觉覆写，挂载失败或事务中止时同步清理未落库的孤立图片文件。
 
-生活时钟由主进程的宿主编排驱动，使用 Agent Host 工作流推进当前人物。朋友圈工具沿同一应用用例发布朋友圈。2026-11-21 复核：`companion-behaviors.ts` 与全部 10 份通用行为/生图提示词已完成去 AI 味精修；`llm/image-generation.ts` 与 `image-gen-prep.ts` 支持按 8 类场景动态装配角色三视图垫图、穿着图与动态 `aspectRatio`（Gemini `inlineData` + `imageConfig.aspectRatio`，OpenAI 自动映射 `size`）。
+生活时钟由主进程的宿主编排驱动，使用 Agent Host 工作流推进当前人物。朋友圈工具沿同一应用用例发布朋友圈。2026-11-21 复核：`companion-behaviors.ts` 与全部 10 份通用行为/生图提示词已完成去 AI 味精修；`llm/image-generation.ts` 与 `image-gen-prep.ts` 支持按 8 类场景动态装配角色三视图垫图、穿着图与动态 `aspectRatio`（Gemini `inlineData` + `imageConfig.aspectRatio`，OpenAI 自动映射 `size`）；`ipc/data-export.ts` 已纳入 `roleVisualOverrides` 与 `companionChatBackdropEnabled` 备份恢复与失败回滚。
 
 ## 已落地能力补充（2026-11-18）
 

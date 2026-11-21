@@ -4,7 +4,7 @@
  * 导出格式：JSON 文件，包含会话、消息、记忆、设置、生活资产和播种标记。
  * 导入时按 ID 合并（不覆盖现有数据）；导入文件在写库前做结构与规模校验。
  */
-import { app, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import { registerSecureIpcHandler } from './ipc-security'
 import { createBackupOperationGuard } from './backup-operation'
 import path from 'node:path'
@@ -40,6 +40,12 @@ import {
   type CompanionBackupSnapshot,
 } from '../storage/companion-backup'
 import { isStarterVisualImage, restoreStarterVisualPayload } from '../companion/life/assets'
+import {
+  isValidBackupRoleVisualOverrides,
+  listRoleVisualOverrides,
+  restoreRoleVisualOverrides,
+  type BackupRoleVisualOverride,
+} from '../companion/identity/visual-overrides'
 
 const log = createLogger('DataExport')
 
@@ -77,6 +83,7 @@ const SAFE_BACKUP_SETTING_KEYS = new Set<keyof settingsStore.AppSettings>([
   'companionMomentPostingQuietEnd', 'companionMomentImagePolicy', 'companionMomentImageMaxPerDay',
   'companionMomentInteractionPolicy',
   'companionProactiveGreetingEnabled', 'companionProactiveGreetingLastDay',
+  'companionChatBackdropEnabled',
   'conversationDebugMode', 'llmCapabilityCache', 'modelConnections', 'modelRoutes',
 ])
 
@@ -149,6 +156,7 @@ export function isValidExportData(value: unknown): value is ExportData {
   if (!isRecord(value.settings)) return false
   if (value.momentHistory !== undefined && !isValidMomentBackup(value.momentHistory)) return false
   if (value.companionSnapshot !== undefined && !isValidCompanionBackupSnapshot(value.companionSnapshot)) return false
+  if (value.roleVisualOverrides !== undefined && !isValidBackupRoleVisualOverrides(value.roleVisualOverrides)) return false
   const livingAssets = value.livingAssets === undefined ? [] : value.livingAssets
   const livingAssetSeeds = value.livingAssetSeeds === undefined ? [] : value.livingAssetSeeds
   if (!Array.isArray(livingAssets) || livingAssets.length > MAX_IMPORTED_LIVING_ASSETS) return false
@@ -332,6 +340,7 @@ export interface ExportData {
   generatedImageMedia?: BackupImageMedia[]
   momentHistory?: MomentBackup
   companionSnapshot?: CompanionBackupSnapshot
+  roleVisualOverrides?: BackupRoleVisualOverride[]
 }
 
 /**
@@ -711,6 +720,7 @@ export function registerDataExportIPC(): void {
       const { snapshot: companionSnapshot, momentMediaSources } = collectCompanionBackupSnapshot(db)
       const generatedImageMedia = await collectBackupImageMedia(sessions, [...livingAssetImageSources(sourceLivingAssets), ...momentMediaSources])
       const momentHistory = collectMomentBackup(db)
+      const roleVisualOverrides = listRoleVisualOverrides()
 
       const safeSettings: Record<string, string> = {}
       for (const [key, value] of Object.entries(settings)) {
@@ -735,6 +745,7 @@ export function registerDataExportIPC(): void {
         momentHistory,
         ...(Object.keys(companionSnapshot).length ? { companionSnapshot } : {}),
         ...(generatedImageMedia.length ? { generatedImageMedia } : {}),
+        ...(roleVisualOverrides.length ? { roleVisualOverrides } : {}),
       }
 
       if (!isValidExportData(data)) throw new BackupImageError(BACKUP_IMAGE_ERRORS.export)
@@ -834,6 +845,13 @@ export function registerDataExportIPC(): void {
         preparedImages.length ? app.getPath('userData') : '',
         [...livingAssetImageCollections(pendingLivingAssets), ...companionMomentMediaImageCollections({ momentMedia: pendingMomentMedia })],
       )
+      let restoredVisuals: Awaited<ReturnType<typeof restoreRoleVisualOverrides>>
+      try {
+        restoredVisuals = await restoreRoleVisualOverrides(data.roleVisualOverrides ?? [])
+      } catch (error) {
+        restored.rollback()
+        throw error
+      }
       let importedCore: ReturnType<typeof importBackupPayload>
       try {
         importedCore = importBackupPayload(db, {
@@ -848,8 +866,20 @@ export function registerDataExportIPC(): void {
           momentHistory: data.momentHistory,
           companionSnapshot: data.companionSnapshot,
         })
-      } catch (error) { restored.rollback(); throw error }
+      } catch (error) {
+        restoredVisuals.rollback()
+        restored.rollback()
+        throw error
+      }
       restored.finish()
+      if (restoredVisuals.restoredRoles.length > 0) {
+        for (const win of BrowserWindow.getAllWindows()) {
+          if (win.isDestroyed()) continue
+          for (const roleId of restoredVisuals.restoredRoles) {
+            win.webContents.send('companion:visuals-updated', { roleId })
+          }
+        }
+      }
       const stats: DataImportStats = importedCore
       log.info('Data imported', stats as unknown as Record<string, unknown>)
       return { success: true, stats }

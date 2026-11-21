@@ -99,7 +99,11 @@ vi.mock('../../electron/main/llm/index', () => ({
   chatComplete: vi.fn(async () => ''),
 }))
 
-import { replanRemainingSlots, checkAndReplanIfExhausted } from '../../electron/main/companion/life/replan'
+import {
+  adaptNextUpcomingSlotForResonance,
+  replanRemainingSlots,
+  checkAndReplanIfExhausted,
+} from '../../electron/main/companion/life/replan'
 
 describe('日内计划槽位自适应重排（Dynamic Re-planning）', () => {
   const roleId = 'luffy'
@@ -255,5 +259,69 @@ describe('日内计划槽位自适应重排（Dynamic Re-planning）', () => {
     const res = await checkAndReplanIfExhausted(roleId, now)
     expect(res).toBeNull()
     expect(mockEvents[0].payload.activity).toBe('日常探险')
+  })
+
+  it('当天聊天共鸣只微调首个未重排的未来槽位并标记 absorbed_in_script，跳过已被体征重排的槽位与 travel_wish', async () => {
+    memDb.run(`CREATE TABLE IF NOT EXISTS companion_life_resonances (
+      id TEXT PRIMARY KEY,
+      status TEXT NOT NULL,
+      absorbed_at INTEGER
+    )`)
+    memDb.run(`INSERT INTO companion_life_resonances (id, status, absorbed_at) VALUES ('res-1', 'active', NULL)`)
+
+    mockEvents = [
+      {
+        id: 'evt-exhausted',
+        roleId,
+        scheduledAt: now + 1800 * 1000,
+        status: 'planned',
+        type: 'activity',
+        payload: { date: '2026-11-10', activity: '休养', mood: '疲惫', causedBy: { trigger: 'vitals_exhaustion' } },
+      },
+      {
+        id: 'evt-free-1',
+        roleId,
+        scheduledAt: now + 3600 * 1000,
+        status: 'planned',
+        type: 'activity',
+        payload: { date: '2026-11-10', activity: '在甲板吹海风', mood: '轻松' },
+      },
+      {
+        id: 'evt-free-2',
+        roleId,
+        scheduledAt: now + 7200 * 1000,
+        status: 'planned',
+        type: 'activity',
+        payload: { date: '2026-11-10', activity: '看晚霞', mood: '惬意' },
+      },
+    ]
+
+    // travel_wish 属于跨日航程，不走当日单槽微调
+    const skippedTravel = await adaptNextUpcomingSlotForResonance(
+      roleId,
+      { id: 'res-travel', kind: 'travel_wish', title: '去水之都', targetName: '水之都' },
+      { now },
+    )
+    expect(skippedTravel.adapted).toBe(false)
+
+    // cuisine_wish 应跳过 evt-exhausted，只微调 evt-free-1，保留 evt-free-2
+    const adapted = await adaptNextUpcomingSlotForResonance(
+      roleId,
+      { id: 'res-1', kind: 'cuisine_wish', title: '晚上吃烤肉', targetName: '带骨烤肉', reason: '聊天约好今晚吃肉' },
+      { now },
+    )
+    expect(adapted.adapted).toBe(true)
+    expect(adapted.eventId).toBe('evt-free-1')
+    expect(mockEvents[0].payload.activity).toBe('休养')
+    expect(mockEvents[1].payload.activity).toContain('带骨烤肉')
+    expect((mockEvents[1].payload.causedBy as Record<string, unknown>)?.trigger).toBe('chat_resonance')
+    expect(mockEvents[2].payload.activity).toBe('看晚霞')
+
+    const stmt = memDb.prepare("SELECT status, absorbed_at FROM companion_life_resonances WHERE id = 'res-1'")
+    stmt.step()
+    const row = stmt.getAsObject()
+    stmt.free()
+    expect(row.status).toBe('absorbed_in_script')
+    expect(typeof row.absorbed_at).toBe('number')
   })
 })

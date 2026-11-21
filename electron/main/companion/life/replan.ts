@@ -16,8 +16,9 @@
  * - 避免同一天同一诱因频繁重复重排（具备幂等/防抖保护）。
  */
 
-import type { ReplanResult } from '../../../../src/shared/types'
+import type { CompanionLifeResonanceKind, ReplanResult } from '../../../../src/shared/types'
 import { createLogger } from '../../utils/logger'
+import { getDatabase } from '../../storage/database'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm/index'
@@ -35,7 +36,7 @@ import { listEvents } from '../core/persistence/life-repository'
 const log = createLogger('LifeReplan')
 
 export interface ReplanOptions {
-  trigger: 'vitals_exhaustion' | 'vulnerability' | 'co_decision' | 'manual'
+  trigger: 'vitals_exhaustion' | 'vulnerability' | 'co_decision' | 'chat_resonance' | 'manual'
   reason: string
   now?: number
   preferLlm?: boolean
@@ -93,9 +94,9 @@ function getFallbackAdaptedSlots(
         return {
           hour: s.hour,
           minute: s.minute,
-          activity: isLuffy ? '一个人坐在羊头船首静静看海浪' : '独自站在阳台看远处的夜色',
+          activity: isLuffy ? '一个人坐在狮子头船首静静看海浪' : '独自站在阳台看远处的夜色',
           mood: '沉静释怀',
-          location: isLuffy ? '梅利号船首' : '阳台',
+          location: isLuffy ? '千里阳光号船首' : '阳台',
         }
       }
       if (idx === 1) {
@@ -313,4 +314,132 @@ export async function checkAndReplanIfExhausted(
     reason,
     now,
   })
+}
+
+const SAME_DAY_RESONANCE_KINDS = new Set<CompanionLifeResonanceKind>([
+  'cuisine_wish',
+  'culture_wish',
+  'day_activity_wish',
+])
+
+function formatResonanceSlotActivity(kind: CompanionLifeResonanceKind, targetName: string): string {
+  const clean = targetName.trim()
+  if (kind === 'cuisine_wish') return `趁兴尝一尝刚聊到的「${clean}」`
+  if (kind === 'culture_wish') return `抽空体验一下刚聊到的《${clean}》`
+  return `按刚聊到的兴致去试试「${clean}」`
+}
+
+/**
+ * 将主会话刚沉淀的生活心愿（美食 / 文化 / 日常活动）即时编入今日下一个未改动的 planned 槽位。
+ *
+ * 背景：此前 chat-resonance 沉淀的心愿只能在次日日剧本生成时被吸收，用户当天和伙伴约好
+ * “待会儿吃烤肉/看某部作品”后，当天时间线毫无反应，缺少“说到做到”的即时活人感。
+ * 设计意图：只轻度微调今日首个尚未被体征/脆弱/其他共鸣改写过的未来 planned 槽位，不覆盖整天行程；
+ * 成功后在同一工作单元内将该心愿标记为 absorbed_in_script，避免次日重复吸收；若今日已无合适槽位，
+ * 则保留 active 状态留给明日日剧本承接。
+ * 关键约束：仅针对当前活跃角色；travel_wish 属跨日航程不走当日单槽微调；绝不改写历史或已因体征透支重排的休养槽位。
+ */
+export async function adaptNextUpcomingSlotForResonance(
+  roleId: string,
+  resonance: {
+    id: string
+    kind: CompanionLifeResonanceKind
+    title: string
+    targetName: string
+    reason?: string
+  },
+  opts?: { now?: number },
+): Promise<{ adapted: boolean; eventId?: string; activity?: string }> {
+  if (!SAME_DAY_RESONANCE_KINDS.has(resonance.kind)) {
+    return { adapted: false }
+  }
+  if (!resonance.targetName.trim()) {
+    return { adapted: false }
+  }
+  if (!(await isActiveRole(roleId))) {
+    return { adapted: false }
+  }
+
+  const now = opts?.now ?? Date.now()
+  const today = toLocalDateString(now)
+  const allPlanned = await listEvents(roleId, { status: 'planned', order: 'asc', limit: 20 })
+  const targetEvent = allPlanned.find((ev) => {
+    if (ev.scheduledAt <= now) return false
+    const eventDate = typeof ev.payload.date === 'string' ? ev.payload.date : toLocalDateString(ev.scheduledAt)
+    if (eventDate !== today) return false
+    // 尊重已有高优先级因果重排（体征透支、脆弱安抚、或已编入其他聊天心愿）
+    if (ev.payload.causedBy) return false
+    return true
+  })
+
+  if (!targetEvent) {
+    return { adapted: false }
+  }
+
+  const nextActivity = formatResonanceSlotActivity(resonance.kind, resonance.targetName)
+  const scheduledDate = new Date(targetEvent.scheduledAt)
+  const reasonText = resonance.reason?.trim() || resonance.title || `聊天约定：${resonance.targetName}`
+
+  await withCompanionUnitOfWork(async () => {
+    const updatedPayload: Record<string, unknown> = {
+      ...targetEvent.payload,
+      activity: nextActivity,
+      mood: '兴致勃勃',
+      causedBy: {
+        trigger: 'chat_resonance',
+        resonanceId: resonance.id,
+        targetName: resonance.targetName,
+        reason: reasonText,
+        previousActivity: typeof targetEvent.payload.activity === 'string' ? targetEvent.payload.activity : undefined,
+        at: now,
+      },
+    }
+    await updateEventPayload(targetEvent.id, updatedPayload)
+
+    const db = await getDatabase()
+    db.run(
+      "UPDATE companion_life_resonances SET status = 'absorbed_in_script', absorbed_at = ? WHERE id = ? AND status = 'active'",
+      [now, resonance.id],
+    )
+
+    const result: ReplanResult = {
+      ok: true,
+      roleId,
+      replannedCount: 1,
+      trigger: 'chat_resonance',
+      reason: reasonText,
+      adjustedSlots: [{
+        eventId: targetEvent.id,
+        hour: scheduledDate.getHours(),
+        minute: scheduledDate.getMinutes(),
+        activity: nextActivity,
+        mood: '兴致勃勃',
+        location: typeof targetEvent.payload.location === 'string' ? targetEvent.payload.location : undefined,
+      }],
+    }
+    const sourceId = `replan:resonance:${roleId}:${resonance.id}`
+    await recordCompanionEventAndNotify({
+      roleId,
+      type: 'life_slots_replanned',
+      sourceType: 'chat_resonance',
+      sourceId,
+      idempotencyKey: sourceId,
+      occurredAt: now,
+      payload: result as unknown as Record<string, unknown>,
+      notification: [
+        { kind: 'slots-replanned', dedupeKey: sourceId, payload: result as unknown as Record<string, unknown> },
+        { kind: 'timeline-updated', dedupeKey: `${sourceId}:timeline`, payload: { roleId, now } },
+      ],
+      dispatch: false,
+    })
+  })
+
+  await dispatchCompanionWindowOutbox()
+  log.info('Adapted next upcoming slot for same-day chat resonance', {
+    roleId,
+    resonanceId: resonance.id,
+    eventId: targetEvent.id,
+    activity: nextActivity,
+  })
+  return { adapted: true, eventId: targetEvent.id, activity: nextActivity }
 }

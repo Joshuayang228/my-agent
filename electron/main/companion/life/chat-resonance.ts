@@ -44,6 +44,7 @@ import { linkCompanionExecutionEvent } from '../core/execution/ledger'
 import { withCompanionUnitOfWork } from '../core/transaction/unit-of-work'
 import { insertMoment, recordEventExecution } from '../core/persistence/life-repository'
 import { createCompanionLifeEvent } from '../application/life-event'
+import { adaptNextUpcomingSlotForResonance } from './replan'
 
 const log = createLogger('ChatResonance')
 
@@ -328,7 +329,18 @@ export async function settleChatResonance(
       log.info('Chat resonance settled', { roleId, kind, targetName, assetId })
       return { triggered: true, resonance }
     })
-    if (result.triggered) await dispatchCompanionWindowOutbox()
+    if (result.triggered && result.resonance) {
+      await dispatchCompanionWindowOutbox()
+      try {
+        await adaptNextUpcomingSlotForResonance(roleId, result.resonance)
+      } catch (err) {
+        log.warn('Same-day resonance slot adaptation skipped', {
+          roleId,
+          resonanceId: result.resonance.id,
+          error: String(err),
+        })
+      }
+    }
     return result
   } catch (err) {
     log.warn('Failed to settle chat resonance', { roleId, error: String(err) })

@@ -16,7 +16,16 @@ export default defineConfig(({ mode }) => {
       watch: { ignored: [
         '**/var/verification/**', '**/test-results/**',
         '**/docs/**', '**/methodology/**', '**/agent-skills/**', '**/.agents/skills/**',
+        '**/_reference/**', '**/_archive/**',
       ] },
+    },
+    optimizeDeps: {
+      // 背景：未声明 entries 时 Vite 会递归扫描全仓 HTML，误入 _reference/framework-harness/repos/cc-switch 报缺无关依赖（WISH-028）。
+      // 设计意图：将预构建扫描入口收敛到本应用真实 HTML 入口，避免参考仓库污染开发冷启动。
+      // 关键约束：ui-e2e 模式需同步包含 markdown-theme 验收页入口，不得破坏 E2E 预构建。
+      entries: isUiE2E
+        ? ['index.html', '__tests__/fixtures/markdown-theme.html']
+        : ['index.html'],
     },
     resolve: {
       alias: {
