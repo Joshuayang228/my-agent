@@ -62,10 +62,10 @@ export function WorldTodayTimeline({
 
   return (
     <div
-      className="mt-2 w-full rounded-lg border p-2.5 transition"
+      className="w-full border-b px-5 py-2.5 transition"
       data-testid="world-today-timeline"
       style={{
-        background: 'color-mix(in srgb, var(--card-bg) 60%, transparent)',
+        background: 'var(--bg-primary)',
         borderColor: 'var(--border-subtle)',
       }}
     >
@@ -116,7 +116,7 @@ export function WorldTodayTimeline({
               return (
                 <div
                   key={index}
-                  className="flex items-start justify-between gap-2 rounded-md border p-2 text-[11px] transition"
+                  className={`flex items-start justify-between gap-2 rounded-md border p-2 text-[11px] transition ${isPast ? 'opacity-65' : ''}`}
                   style={{
                     borderColor: isCurrent ? 'var(--accent-fg)' : 'var(--border-subtle)',
                     background: isCurrent ? 'var(--accent-subtle)' : 'var(--bg-secondary)',

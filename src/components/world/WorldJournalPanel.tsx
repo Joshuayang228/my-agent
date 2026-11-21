@@ -3,6 +3,7 @@ import { Trash2, MessageSquareShare, ArrowLeft, Smile, Sun, Heart, CloudRain, ty
 import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
 import { Badge } from '../foundation/Badge'
+import { ConfirmPanel } from '../foundation/ConfirmPanel'
 import { EmptyState } from '../foundation/EmptyState'
 import { ErrorState } from '../foundation/ErrorState'
 import { contentGutterStyle } from '../../shared/content-layout'
@@ -71,6 +72,8 @@ export function WorldJournalPanel({
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState('')
   const [selectedThoughtId, setSelectedThoughtId] = useState<string | null>(null)
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   // 同步 Playground 样张输入
   useEffect(() => {
@@ -122,18 +125,24 @@ export function WorldJournalPanel({
   }, [previewThoughts, roleId])
 
   const handleDelete = async (id: string) => {
+    if (deleting) return
     if (previewThoughts !== undefined) {
       setThoughts((prev) => prev.filter((t) => t.id !== id))
       setSelectedThoughtId((current) => current === id ? null : current)
+      setPendingDeleteId(null)
       return
     }
     if (!window.electronAPI?.companion?.deleteInnerThought) return
+    setDeleting(true)
     try {
       await window.electronAPI.companion.deleteInnerThought(id)
       setThoughts((prev) => prev.filter((t) => t.id !== id))
       setSelectedThoughtId((current) => current === id ? null : current)
+      setPendingDeleteId(null)
     } catch (err) {
       console.warn('Failed to delete inner thought:', err)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -148,14 +157,26 @@ export function WorldJournalPanel({
     >
       {/* 详情页保留返回入口，列表页直接进入日记册内容。 */}
       {selectedThought && (
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b pb-3" style={{ borderColor: 'var(--border-subtle)' }}>
-          <ActionButton variant="plain" tone="neutral" onClick={() => setSelectedThoughtId(null)} aria-label="返回日记册">
-            <ArrowLeft size={14} className="mr-1" />
-            返回日记册
-          </ActionButton>
-          <IconButton size={24} label="删除记录" onClick={() => handleDelete(selectedThought.id)} style={{ color: 'var(--text-muted)' }}>
-            <Trash2 size={13} />
-          </IconButton>
+        <div className="mb-3 space-y-3 border-b pb-3" style={{ borderColor: 'var(--border-subtle)' }}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <ActionButton variant="plain" tone="neutral" onClick={() => { setSelectedThoughtId(null); setPendingDeleteId(null) }} aria-label="返回日记册">
+              <ArrowLeft size={14} className="mr-1" />
+              返回日记册
+            </ActionButton>
+            <IconButton size={24} label="删除记录" onClick={() => setPendingDeleteId(selectedThought.id)} style={{ color: 'var(--text-muted)' }}>
+              <Trash2 size={13} />
+            </IconButton>
+          </div>
+          {pendingDeleteId === selectedThought.id && (
+            <ConfirmPanel
+              title={`删除日记《${selectedThought.title}》？`}
+              description="删除后无法恢复这篇日记内容，不影响已沉淀的长期记忆。"
+              confirmLabel="确认删除"
+              busy={deleting}
+              onConfirm={() => void handleDelete(selectedThought.id)}
+              onCancel={() => setPendingDeleteId(null)}
+            />
+          )}
         </div>
       )}
 
@@ -216,8 +237,13 @@ export function WorldJournalPanel({
           {thoughts.map((thought) => (
             <button key={thought.id} type="button" className="group flex min-h-56 flex-col overflow-hidden rounded-[var(--radius-card)] border text-left transition-colors hover:bg-[var(--hover-overlay)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} onClick={() => setSelectedThoughtId(thought.id)} aria-label={`打开日记：${thought.title}`} data-testid={`journal-entry-${thought.id}`}>
               <span className="flex min-h-28 flex-col justify-between p-4" style={{ background: 'var(--accent-subtle)' }}>
-                <span className="flex items-center justify-between text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                  <span>{formatDate(thought.createdAt)}</span>
+                <span className="flex items-center justify-between gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  <span className="flex items-center gap-1.5">
+                    <span>{formatDate(thought.createdAt)}</span>
+                    {thought.thoughtType === 'nightly_reflection' && (
+                      <Badge tone="accent">深夜反思</Badge>
+                    )}
+                  </span>
                   {thought.mood && (
                     <span role="img" aria-label={`心情：${thought.mood}`} title={`心情：${thought.mood}`} style={{ color: 'var(--accent-fg)' }}>
                       <MoodIcon mood={thought.mood} size={13} />

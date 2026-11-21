@@ -220,9 +220,9 @@ export function WorldKeepsakesPanel({
           <ActionButton onClick={() => setShowGiftModal(true)} data-testid="open-gift-modal-btn">
             <Heart size={14} className="mr-1" />赠送礼物
           </ActionButton>
-          {activeTab === 'keepsakes' && !selected && (
+          {previewKeepsakes !== undefined && activeTab === 'keepsakes' && !selected && (
             <ActionButton variant="plain" disabled={gifting} onClick={handleTriggerGift}>
-              <Sparkles size={14} className="mr-1" />{gifting ? '正在准备…' : '索取信物'}
+              <Sparkles size={14} className="mr-1" />{gifting ? '正在准备…' : '模拟获赠信物'}
             </ActionButton>
           )}
         </div>

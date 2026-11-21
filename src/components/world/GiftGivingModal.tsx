@@ -12,6 +12,7 @@ import {
   MessageSquareShare,
 } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
+import { IconButton } from '../foundation/IconButton'
 import { Badge } from '../foundation/Badge'
 import type { CompanionGiftItem, CompanionGiftRecord } from '../../shared/types'
 
@@ -27,9 +28,9 @@ interface GiftGivingModalProps {
 
 const PRESET_QUICK_NOTES = [
   '特意为你准备的，收下吧！',
-  '辛苦啦，吃饱了再出发！',
-  '大冒险也要平平安安哦！',
-  '愿你今天也是元气满满的一天！',
+  '辛苦啦，好好犒劳一下自己。',
+  '路上也要平平安安的。',
+  '希望今天也能开开心心的！',
 ]
 
 function renderGiftIcon(iconName: string) {
@@ -49,6 +50,14 @@ function renderGiftIcon(iconName: string) {
   }
 }
 
+/**
+ * 心意赠礼弹窗（GiftGivingModal）。
+ *
+ * 背景：旧版弹窗直接印出 `饱腹+20 心情+15 体力+10` 等 RPG 体征加值与硬编码角色名/十六进制色值，
+ * 容易让用户产生“给电子宠物喂药”的出戏感，且缺少 Esc 与点击遮罩关闭。
+ * 设计意图：全量改用 Foundation 设计令牌与自然情感文案（不暴露数值加值），补齐 dialog 无障碍语义与键盘关闭。
+ * 关键约束：不改变后端 sendGift IPC 契约；Playground 离线预览与正式环境共用同一交互闭环。
+ */
 export function GiftGivingModal({
   roleId = 'luffy',
   isOpen,
@@ -65,7 +74,18 @@ export function GiftGivingModal({
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<CompanionGiftRecord | null>(null)
 
-  const isLuffy = roleId === 'luffy'
+  useEffect(() => {
+    if (!isOpen) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !submitting) {
+        setResult(null)
+        setUserNote('')
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [isOpen, submitting, onClose])
 
   useEffect(() => {
     if (previewAvailableGifts) {
@@ -119,9 +139,7 @@ export function GiftGivingModal({
           giftName: selectedGift.name,
           category: selectedGift.category,
           userNote: userNote || undefined,
-          companionReaction: isLuffy
-            ? `哇啊啊啊！是大肉！太棒啦——！你怎么知道我正好肚子饿了！我要开动啦——！嚼嚼嚼……超级好吃！你果然是最好的同伴！嘻嘻嘻！`
-            : `收到你送的《${selectedGift.name}》啦！真的太贴心了，心里暖洋洋的。谢谢你！`,
+          companionReaction: `收到你送的「${selectedGift.name}」啦！真的太合我心意了，谢谢你一直惦记着我。`,
           createdAt: Date.now(),
           vitalsBuff: selectedGift.vitalsBuff,
         }
@@ -141,6 +159,7 @@ export function GiftGivingModal({
   }
 
   const handleReset = () => {
+    if (submitting) return
     setResult(null)
     setUserNote('')
     onClose()
@@ -151,9 +170,15 @@ export function GiftGivingModal({
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.45)', backdropFilter: 'blur(3px)' }}
       data-testid="gift-giving-modal"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) handleReset()
+      }}
     >
       <div
-        className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-label={result ? '送礼心意回响' : '赠送礼物'}
+        className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-[var(--radius-card)] border shadow-2xl"
         style={{
           backgroundColor: 'var(--bg-primary)',
           borderColor: 'var(--border-subtle)',
@@ -165,19 +190,14 @@ export function GiftGivingModal({
           style={{ borderColor: 'var(--border-subtle)' }}
         >
           <div className="flex items-center gap-2">
-            <Gift size={18} style={{ color: 'var(--companion-accent-warm, #f59e0b)' }} />
+            <Gift size={18} style={{ color: 'var(--accent-fg)' }} />
             <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {result ? '送礼心意回响' : '赠送礼物 · 共筑羁绊'}
+              {result ? '送礼回响' : '赠送礼物'}
             </h3>
           </div>
-          <button
-            onClick={handleReset}
-            className="flex h-7 w-7 items-center justify-center rounded-lg transition hover:bg-black/5 dark:hover:bg-white/5"
-            style={{ color: 'var(--text-muted)' }}
-            aria-label="关闭"
-          >
+          <IconButton label="关闭" onClick={handleReset} disabled={submitting} style={{ color: 'var(--text-muted)' }}>
             <X size={16} />
-          </button>
+          </IconButton>
         </div>
 
         {/* 弹窗内容 */}
@@ -186,50 +206,41 @@ export function GiftGivingModal({
             /* 赠送成功与回响卡片 */
             <div className="flex flex-col items-center text-center" data-testid="gift-result-card">
               <div
-                className="flex h-14 w-14 items-center justify-center rounded-full shadow-inner"
+                className="flex h-14 w-14 items-center justify-center rounded-full"
                 style={{
-                  backgroundColor: 'color-mix(in srgb, var(--companion-accent-warm, #f59e0b) 18%, transparent)',
-                  color: 'var(--companion-accent-warm, #f59e0b)',
+                  backgroundColor: 'var(--accent-subtle)',
+                  color: 'var(--accent-fg)',
                 }}
               >
-                <Sparkles size={28} />
+                <Sparkles size={26} />
               </div>
 
               <h4 className="mt-3 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {isLuffy ? '路飞收下了你的心意！' : '角色收到了你的礼物！'}
+                伙伴收下了你的心意
               </h4>
 
               <div className="mt-1.5">
                 <Badge tone="accent">
                   <CheckCircle2 size={11} className="mr-1 inline" />
-                  已赠送：{result.giftName}
+                  已送出：{result.giftName}
                 </Badge>
               </div>
 
-              {result.vitalsBuff && (
-                <div className="mt-2.5 flex items-center gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                  <span>体征恢复：</span>
-                  {result.vitalsBuff.satiety && <span>饱腹度 +{result.vitalsBuff.satiety}</span>}
-                  {result.vitalsBuff.mood && <span>心情 +{result.vitalsBuff.mood}</span>}
-                  {result.vitalsBuff.energy && <span>体力 +{result.vitalsBuff.energy}</span>}
-                </div>
-              )}
-
-              {/* 角色第一人称回响气泡 */}
+              {/* 伙伴第一人称回响气泡 */}
               <div
-                className="mt-4 w-full rounded-xl border p-4 text-left shadow-sm"
+                className="mt-4 w-full rounded-[var(--radius-md)] border p-4 text-left"
                 style={{
                   backgroundColor: 'var(--bg-secondary)',
-                  borderColor: 'color-mix(in srgb, var(--companion-accent-warm, #f59e0b) 35%, var(--border-subtle))',
+                  borderColor: 'var(--border-subtle)',
                 }}
               >
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="text-[11px] font-medium" style={{ color: 'var(--companion-accent-warm, #f59e0b)' }}>
-                    {isLuffy ? '路飞的即时回响：' : '伙伴回响：'}
+                  <span className="text-[11px] font-medium" style={{ color: 'var(--accent-fg)' }}>
+                    伙伴的即时回响
                   </span>
-                  <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>已存入主会话</span>
+                  <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>已同步到主会话</span>
                 </div>
-                <p className="text-[13px] leading-relaxed italic" style={{ color: 'var(--text-primary)' }}>
+                <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-primary)' }}>
                   “{result.companionReaction}”
                 </p>
               </div>
@@ -243,7 +254,7 @@ export function GiftGivingModal({
                     tone="accent"
                     onClick={() => {
                       onTakeToChat({
-                        text: `看到你这么开心，我心里也暖暖的！`,
+                        text: `看到你喜欢这份「${result.giftName}」，我也很开心。`,
                       })
                       handleReset()
                     }}
@@ -261,84 +272,72 @@ export function GiftGivingModal({
             /* 礼物货架与表单 */
             <div className="space-y-4">
               <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                挑选一件心意礼物送给伙伴；真诚的陪伴会让TA感到由衷的喜悦，并提升生命体征与彼此羁绊。
+                挑一件合心意的小礼物送给伙伴，对方收到后会给你真心的回应并记在心意手账里。
               </p>
 
-              {/* 礼物网格 */}
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-                {gifts.map((item) => {
-                  const isSelected = item.key === selectedKey
-                  const isFavorite = item.roleAffinity?.[roleId] === 'favorite'
+              {loading && gifts.length === 0 ? (
+                <p className="py-6 text-center text-xs" style={{ color: 'var(--text-muted)' }}>正在整理礼物清单…</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                  {gifts.map((item) => {
+                    const isSelected = item.key === selectedKey
+                    const isFavorite = item.roleAffinity?.[roleId] === 'favorite'
 
-                  return (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={() => setSelectedKey(item.key)}
-                      className={`flex flex-col items-center rounded-xl border p-3 text-center transition ${
-                        isSelected ? 'ring-2' : 'hover:border-amber-400/50'
-                      }`}
-                      style={{
-                        backgroundColor: isSelected
-                          ? 'color-mix(in srgb, var(--companion-accent-warm, #f59e0b) 12%, var(--bg-secondary))'
-                          : 'var(--bg-secondary)',
-                        borderColor: isSelected
-                          ? 'var(--companion-accent-warm, #f59e0b)'
-                          : 'var(--border-subtle)',
-                      }}
-                      data-testid={`gift-item-${item.key}`}
-                    >
-                      <div
-                        className="flex h-10 w-10 items-center justify-center rounded-lg shadow-sm"
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => setSelectedKey(item.key)}
+                        className="flex flex-col items-center rounded-[var(--radius-md)] border p-3 text-center transition hover:bg-[var(--hover-overlay)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
                         style={{
-                          backgroundColor: 'color-mix(in srgb, var(--companion-accent-warm, #f59e0b) 18%, transparent)',
-                          color: 'var(--companion-accent-warm, #f59e0b)',
+                          backgroundColor: isSelected ? 'var(--accent-subtle)' : 'var(--bg-secondary)',
+                          borderColor: isSelected ? 'var(--accent-fg)' : 'var(--border-subtle)',
                         }}
+                        data-testid={`gift-item-${item.key}`}
                       >
-                        {renderGiftIcon(item.iconName)}
-                      </div>
-
-                      <span className="mt-2 text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
-                        {item.name}
-                      </span>
-
-                      {isFavorite && (
-                        <span
-                          className="mt-1 rounded-full px-1.5 py-0.2 text-[9px] font-medium"
+                        <div
+                          className="flex h-10 w-10 items-center justify-center rounded-lg"
                           style={{
-                            backgroundColor: 'color-mix(in srgb, #ef4444 15%, transparent)',
-                            color: '#ef4444',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--accent-fg)',
                           }}
                         >
-                          最爱
-                        </span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
+                          {renderGiftIcon(item.iconName)}
+                        </div>
 
-              {/* 选中礼物详情 */}
+                        <span className="mt-2 text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+                          {item.name}
+                        </span>
+
+                        {isFavorite && (
+                          <span
+                            className="mt-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium"
+                            style={{
+                              backgroundColor: 'var(--accent-subtle)',
+                              color: 'var(--accent-fg)',
+                            }}
+                          >
+                            偏爱
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* 选中礼物详情（纯自然描述，不展示 RPG 体征加值） */}
               {selectedGift && (
                 <div
-                  className="rounded-xl border p-3.5"
+                  className="rounded-[var(--radius-md)] border p-3.5"
                   style={{
                     backgroundColor: 'var(--bg-secondary)',
                     borderColor: 'var(--border-subtle)',
                   }}
                 >
-                  <div className="flex items-center justify-between">
-                    <h5 className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
-                      {selectedGift.name}
-                    </h5>
-                    {selectedGift.vitalsBuff && (
-                      <span className="text-[10px]" style={{ color: 'var(--companion-accent-warm, #f59e0b)' }}>
-                        {selectedGift.vitalsBuff.satiety ? `饱腹+${selectedGift.vitalsBuff.satiety} ` : ''}
-                        {selectedGift.vitalsBuff.mood ? `心情+${selectedGift.vitalsBuff.mood} ` : ''}
-                        {selectedGift.vitalsBuff.energy ? `体力+${selectedGift.vitalsBuff.energy}` : ''}
-                      </span>
-                    )}
-                  </div>
+                  <h5 className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    {selectedGift.name}
+                  </h5>
                   <p className="mt-1 text-[11px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                     {selectedGift.description}
                   </p>
@@ -348,7 +347,7 @@ export function GiftGivingModal({
               {/* 附带寄语输入 */}
               <div>
                 <label className="block text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
-                  赠礼留言 / 寄语（可选）
+                  附带一句话（可选）
                 </label>
 
                 {/* 快捷寄语 */}
@@ -358,11 +357,11 @@ export function GiftGivingModal({
                       key={preset}
                       type="button"
                       onClick={() => setUserNote(preset)}
-                      className="rounded-full border px-2.5 py-1 text-[11px] transition hover:border-amber-400"
+                      className="rounded-full border px-2.5 py-1 text-[11px] transition hover:bg-[var(--hover-overlay)]"
                       style={{
-                        backgroundColor: userNote === preset ? 'color-mix(in srgb, var(--companion-accent-warm, #f59e0b) 12%, transparent)' : 'var(--bg-secondary)',
-                        borderColor: userNote === preset ? 'var(--companion-accent-warm, #f59e0b)' : 'var(--border-subtle)',
-                        color: userNote === preset ? 'var(--companion-accent-warm, #f59e0b)' : 'var(--text-secondary)',
+                        backgroundColor: userNote === preset ? 'var(--accent-subtle)' : 'var(--bg-secondary)',
+                        borderColor: userNote === preset ? 'var(--accent-fg)' : 'var(--border-subtle)',
+                        color: userNote === preset ? 'var(--accent-fg)' : 'var(--text-secondary)',
                       }}
                     >
                       {preset}
@@ -373,7 +372,7 @@ export function GiftGivingModal({
                 <textarea
                   value={userNote}
                   onChange={(e) => setUserNote(e.target.value)}
-                  placeholder="写下你想对TA说的心里话（如：特地为你挑选的，冒险路上要平平安安哦！）..."
+                  placeholder="想对伙伴说点什么，可以顺手写在这里…"
                   maxLength={120}
                   rows={2}
                   className="mt-2 w-full resize-none rounded-lg border p-2.5 text-xs outline-none transition focus:ring-1"
@@ -388,7 +387,7 @@ export function GiftGivingModal({
 
               {/* 底部提交 */}
               <div className="flex justify-end gap-2.5 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
-                <ActionButton size="sm" variant="plain" tone="neutral" onClick={onClose} disabled={submitting}>
+                <ActionButton size="sm" variant="plain" tone="neutral" onClick={handleReset} disabled={submitting}>
                   取消
                 </ActionButton>
                 <ActionButton
@@ -399,7 +398,7 @@ export function GiftGivingModal({
                   data-testid="send-gift-button"
                 >
                   <Sparkles size={12} className={`mr-1 ${submitting ? 'animate-spin' : ''}`} />
-                  {submitting ? '正在赠送...' : '送出心意'}
+                  {submitting ? '正在送出…' : '送出礼物'}
                 </ActionButton>
               </div>
             </div>
