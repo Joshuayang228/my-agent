@@ -33,6 +33,7 @@ import {
   Search, PanelLeftOpen, File,
 } from 'lucide-react'
 import { buildColdStartCopy } from './shared/companion-presence'
+import { formatCompanionErrorBubble } from './shared/companion-error-voice'
 import {
   ReasoningCallback,
   ToolCallbackList,
@@ -175,6 +176,8 @@ function App() {
   const [companionFirstContact, setCompanionFirstContact] = useState<{ openingLine: string; quote?: string } | undefined>()
   const [showFirstContact, setShowFirstContact] = useState(false)
   const [activeRoleId, setActiveRoleId] = useState('luffy')
+  const activeRoleIdRef = useRef(activeRoleId)
+  activeRoleIdRef.current = activeRoleId
   const [companionAvatar, setCompanionAvatar] = useState<string | null>(null)
   const [companionBanner, setCompanionBanner] = useState<string | null>(null)
   const [roleAvatars, setRoleAvatars] = useState<Record<string, string>>({})
@@ -843,21 +846,25 @@ function App() {
         setUsage({ promptTokens: ev.promptTokens, completionTokens: ev.completionTokens })
         break
 
-      case 'error':
+      case 'error': {
+        const presentation = formatCompanionErrorBubble({
+          code: ev.code,
+          message: ev.message,
+          roleId: activeRoleIdRef.current,
+        })
         setMessages((prev) => {
           const last = prev[prev.length - 1]
           if (last?.role === 'assistant' && !last.content) {
-            return [...prev.slice(0, -1), { ...last, content: `⚠️ ${ev.message}` }]
+            return [...prev.slice(0, -1), { ...last, content: presentation.displayMarkdown }]
           }
-          return [...prev, { id: genId(), role: 'assistant', content: `⚠️ ${ev.message}`, timestamp: Date.now() }]
+          return [...prev, { id: genId(), role: 'assistant', content: presentation.displayMarkdown, timestamp: Date.now() }]
         })
-        if (ev.code === 'PERMISSION_DENIED') {
-          setModeChangeNotice('操作被权限策略拒绝。可以在输入区切换审批模式，或让 Agent 尝试更安全的替代方案。')
-        } else if (ev.code === 'LLM_RATE_LIMITED' || ev.code === 'LLM_REQUEST_FAILED' || ev.code === 'TOOL_TIMEOUT') {
-          setModeChangeNotice('请求暂时失败，可以稍后重试。')
+        if (presentation.noticeText) {
+          setModeChangeNotice(presentation.noticeText)
         }
         setReasoning((prev) => completeReasoning(prev))
         break
+      }
 
       case 'execution_mode_changed':
         setApprovalMode(ev.mode === 'plan-first' ? 'confirm-all' : ev.mode)

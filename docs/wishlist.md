@@ -18,7 +18,6 @@
 
 ### 安全与韧性
 
-- [ ] **WISH-044 · 当前锁定依赖安全更新** — 来源：2026-10-26 锁定依赖审计取证；2026-11-10 重新执行 `npm audit --registry=https://registry.npmjs.org` 得全量 29 项（2 low / 12 moderate / 13 high / 2 critical），`--omit=dev` 得生产范围 16 项（2 low / 4 moderate / 8 high / 2 critical）。发布前须单独完成依赖升级、实际调用路径核验及 Unit / Eval / Electron / 打包回归。
 - [ ] **WISH-001 · URL Fetch DNS rebinding 深度防护** — 当前已有 DNS 预解析、私网黑名单、重定向阻断和响应上限；若威胁模型需要对抗主动竞态攻击，再引入固定地址连接器或进程级网络策略。历史证据见 [`../_archive/audits/security-audit-2026-08.md`](../_archive/audits/security-audit-2026-08.md)。；来源：安全审计
 - [ ] **WISH-002 · Tool Result Injection 结构化分类器** — 当前已有中英文启发式探针和不受信任内容边界；后续可用离线分类器 / Eval 扩展。；来源：安全审计 / Gap Audit
 - [ ] **WISH-003 · 长任务韧性复核** — 复核分层超时、心跳保活和可重试 / 不可重试错误码白名单，来源：2026-07 Gap Audit。
@@ -70,7 +69,6 @@
 ### 产品体验
 
 - [ ] **WISH-046 · 文化角扩展能力** — 官方封面 / 海报授权获取、联网书目检索、音乐播放、真实摄影导入、摄影系列浏览不在文化角 v1 范围；须分别明确外部来源、授权与数据 / 播放 / 导入契约后再开工，不增加假按钮。来源：[文化角施工合同](./requirements/culture-corner-v1.md)。
-- [ ] **WISH-016 · 人格化错误承接** — 评估错误码到伙伴语气模板的映射，避免技术错误提示破坏关系体验；来源：2026-07 Gap Audit。
 - [ ] **WISH-017 · M24-G3 生图朋友圈** — 非本阶段。；来源：M24 方法论
 - [ ] **WISH-018 · 原生语音输入** — 暂缓；待选择系统 STT 或云端 Whisper，见 [`deferred/native-voice-input.md`](./deferred/native-voice-input.md)。；来源：docs/deferred/native-voice-input.md
 - [ ] **WISH-019 · 真终端（node-pty / xterm）** — 当前右坞是命令控制台，不支持 vim 等交互程序。；来源：Chat Right Dock 施工合同

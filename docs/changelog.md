@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-21 落地主会话人格化错误承接（`WISH-016`）：断网、限流、超时、权限拒绝或未配置模型时，以当前伙伴的自然口吻承接并附带真实脱敏错误原因引用，避免裸技术报错破坏陪伴感；同步完成锁定依赖安全复核（`WISH-044`：生产依赖 0 漏洞，全量 0 critical / 0 high）。
+
 2026-11-21 补齐角色自定义头像/封面覆写（`roleVisualOverrides`）与 Chat 氛围壁纸开关（`companionChatBackdropEnabled`）的 `data:export` / `data:import` 备份恢复与回滚闭环；新增当日聊天共鸣即时单槽微调（`adaptNextUpcomingSlotForResonance`），让聊天中约好的美食/文化/日常活动能即时编入今天下一个空闲生活槽位；收敛 `vite.config.ts` 开发依赖扫描入口，关闭 `WISH-028`。
 
 2026-11-21 落地统一多图垫图装配器（`image-gen-prep.ts`）与路飞三视图标准设定图（`ref-sheet-luffy.png`）：支持按 8 类场景动态拼装多职责垫图、自动选择画幅比例、角色画风锚点（`profile.appearance.artStyle`）与防克隆/防呆板视线提示，同步接入 `image_generate` 与自主朋友圈配图。

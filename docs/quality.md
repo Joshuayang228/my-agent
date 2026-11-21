@@ -1,5 +1,7 @@
 # 质量总控
 
+人格化错误承接与依赖安全复核门禁（`WISH-016` / `WISH-044`，2026-11-21）：新增 `companion-error-voice.test.ts`（3 项）验证全部 12 项 `AgentErrorCode` 覆盖、路飞与通用角色语气隔离、原始错误原因完整保留及 `ABORTED` 温和承接；`npm audit --omit=dev` 生产依赖 0 漏洞，全量仅 `electron-builder` → `minimatch` 构建期 6 项 moderate（0 critical / 0 high）；全量单测、双进程 `tsc`、`arch:check`（14 项）、`assets:check`（113 项）与 `docs:validate` 全部通过。
+
 视觉覆写备份回滚、当日聊天共鸣单槽微调与 Vite 扫描收敛门禁（2026-11-21）：`role-visual-overrides.test.ts` 新增导出/校验/幂等恢复/失败回滚与 `data-export` 白名单回归（8 项），`life-replan.test.ts` 新增当日聊天共鸣单槽微调与体征重排隔离回归（6 项），修复 `image-generation.ts` 锚点标签契约（`image-generation.test.ts` 18/18）；全量单测（292 passed / 1 skipped）、`arch:check`（14 项）、`assets:check`（113 项）、`build` 与 `docs:validate` 全部通过。
 
 统一多图垫图装配器与路飞三视图设定图门禁（2026-11-21）：`role-visual-overrides.test.ts` 新增 `inferMomentImageCategory` 与 `prepareCompanionImageGen` 场景分流、角色 `artStyle` 读取、防克隆提示与动态画幅验证（5 项），`image-generate-tool.test.ts`、`assets:check`（113 项）、`arch:check`（14 项）、`build` 与 `docs:validate` 全部通过。
