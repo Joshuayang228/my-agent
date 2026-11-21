@@ -1,5 +1,7 @@
 # 质量总控
 
+全仓通用提示词去 AI 味与角色垫图生图管线门禁（2026-11-21）：`role-visual-overrides.test.ts` 新增路飞垫图参考字节加载验证（4 项），全量单测（含 `image-generate-tool`、`prompt-feature-contracts`、`nightly-reflection`、`host-presence`、`gifting`、`vulnerability`、`spontaneous-impulse`）、`assets:check`（113 项）、`arch:check`（14 项）、`build` 与 `docs:validate` 全部通过。
+
 人物世界 12 切面统一注册表门禁（2026-11-21）：新增 `companion-surface-registry.test.ts`（4 项静态校验：世界 9 面 + Chat 3 面覆盖、前后端源码路径真实存在、AI 工具与 `PROMPT_KEYS` 对齐、15 维活跃因子零孤儿及 Debug 资产目录派生），并已并入 `npm run arch:check`（合计 14 项静态门禁）随 Git Hook 强制执行。
 
 路飞 Role Pack 精装与 Persona Eval 升级门禁（2026-11-21）：同步 `prompt-builder.test.ts` 至路飞正式档案断言，升级 `evals/scenarios/b02-protagonist-behavior.ts` 为路飞专属反 AI 味与反编造门禁（`B02`—`B07`）；`prompt-builder`、`companion-identity`、`companion-assets`、`luffy-journey-acceptance`、`prompt-feature-contracts`、离线 Eval（`evals/eval.test.ts`）、`assets:check`、`arch:check` 与 `build` 全部通过。

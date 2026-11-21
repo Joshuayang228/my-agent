@@ -16,10 +16,9 @@ export function buildMomentReplyPrompt(input: MomentReplyInput): string {
     ? `用户正在回复「${input.replyToActorName}」此前在评论区的发言。`
     : '用户评论了这条动态。'
   const castDesc = input.castContext ? `\n在场可选回复人物：\n${input.castContext}` : ''
-  const commentsDesc = input.recentComments ? `\n已有评论历史：\n${input.recentComments}` : ''
 
   return composeFeaturePrompt('momentReply', {
-    platformRules: '只使用已提供事实；不冒充用户；不新增未确认的人物经历、地点、关系或承诺。',
+    platformRules: '只使用已提供事实；不冒充用户；不新增未确认的人物经历、地点、关系或承诺。回复要像真实朋友圈评论区的随口接话，简短、口语、有性格，禁止写小作文或客服式礼貌回复。',
     featureRules: `根据动态正文与最新互动（${targetDesc}），人物自主决定是否回复，以及隔多久回复。规则：\n` +
       '1. 自主决定是否回复（shouldReply: true/false）：如果是提问、分享、打趣或特定人物相关，人物有意愿回应；若是纯无意义符号或已自然完结，可不回复。\n' +
       '2. 自主决定由谁回复（responderId / responderName / actorType）：主角（protagonist）可回复；若用户明确回复某位 NPC，该 NPC（cast）优先回应；其他在场人物也可插话。\n' +

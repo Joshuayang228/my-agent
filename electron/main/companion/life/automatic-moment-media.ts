@@ -3,7 +3,7 @@ import { compileImageGenerationRequest } from '../../prompts/registered-request'
 import { loadImageGenerationConfig } from '../../llm/aux-config'
 import { requestGeneratedImage } from '../../llm/image-generation'
 import { normalizeGeneratedImage } from '../../utils/generated-image-codec'
-import { loadRolePack } from '../identity/loader'
+import { loadRolePack, loadRoleReferenceImages } from '../identity/loader'
 import { formatRoleAppearanceForImagePrompt } from '../identity/profile'
 import { listAssets } from './assets'
 import { attachMomentImageForRole } from './moment-images'
@@ -79,7 +79,8 @@ export async function generateAutomaticMomentMedia(roleId: string, event: Compan
       }
     })()
     const description = buildAutomaticMomentImageDescription({ momentText: moment.text, world: worldState ?? undefined, appearance, currentOutfit: currentOutfit || undefined })
-    const response = await requestGeneratedImage(config, compileImageGenerationRequest(description), signal)
+    const referenceImages = loadRoleReferenceImages(roleId)
+    const response = await requestGeneratedImage(config, compileImageGenerationRequest(description), signal, { referenceImages })
     const image = await normalizeGeneratedImage(response.bytes)
     signal?.throwIfAborted()
     return await withCompanionUnitOfWork(async () => {

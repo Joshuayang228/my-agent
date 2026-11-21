@@ -8,6 +8,10 @@ export const MAX_GENERATED_IMAGE_BYTES = 8 * 1024 * 1024
 const MAX_JSON_BYTES = 12 * 1024 * 1024
 const GENERATION_TIMEOUT_MS = 180_000
 export interface GeneratedImageBytes { bytes: Buffer; mimeType: 'image/png' | 'image/jpeg' | 'image/webp' }
+export interface ImageGenerationOptions {
+  /** 可选参考垫图（最多 3 张，单张不超过 4MB）；Gemini 多模态生图直接附带 inlineData，纯文生图接口平滑降级为文字锚点。 */
+  referenceImages?: ReadonlyArray<GeneratedImageBytes>
+}
 
 export class ImageGenerationError extends Error {
   constructor(message: string) { super(message); this.name = 'ImageGenerationError' }
@@ -43,7 +47,7 @@ function decodeImage(value: unknown): GeneratedImageBytes {
  * 意图：独立适配 Images 与 Gemini 图片输出协议，一次调用只有一次生成请求；下载不携带服务凭据。
  * 约束：config 必须来自统一配置工厂；不回退主模型、不重试、不自动选择型号，取消覆盖下载阶段。
  */
-export async function requestGeneratedImage(config: LLMConfig, request: RegisteredImageRequest, signal?: AbortSignal): Promise<GeneratedImageBytes> {
+export async function requestGeneratedImage(config: LLMConfig, request: RegisteredImageRequest, signal?: AbortSignal, opts?: ImageGenerationOptions): Promise<GeneratedImageBytes> {
   let prompt: string
   try { prompt = readRegisteredImageRequest(request).prompt }
   catch { throw new ImageGenerationError('生图请求必须由已登记的图片配方生成。') }
@@ -61,8 +65,14 @@ export async function requestGeneratedImage(config: LLMConfig, request: Register
       : appendApiPath(base.href, 'v1/images/generations')
     const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' }
     if (config.apiKey) headers[provider === 'gemini' ? 'x-goog-api-key' : 'Authorization'] = provider === 'gemini' ? config.apiKey : `Bearer ${config.apiKey}`
+    const refParts = provider === 'gemini' && Array.isArray(opts?.referenceImages)
+      ? opts.referenceImages
+        .filter((img) => Buffer.isBuffer(img.bytes) && img.bytes.length > 0 && img.bytes.length <= 4 * 1024 * 1024)
+        .slice(0, 3)
+        .map((img) => ({ inlineData: { mimeType: img.mimeType, data: img.bytes.toString('base64') } }))
+      : []
     const body = provider === 'gemini'
-      ? { contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { responseModalities: ['IMAGE'] } }
+      ? { contents: [{ role: 'user', parts: [...refParts, { text: prompt }] }], generationConfig: { responseModalities: ['IMAGE'] } }
       : { model: config.model, prompt, n: 1 }
     const response = await createRestrictedFetch(base.href, bounded, { maxBytes: MAX_JSON_BYTES, timeoutMs: GENERATION_TIMEOUT_MS })(url, { method: 'POST', headers, body: JSON.stringify(body) })
     if (!response.ok) {

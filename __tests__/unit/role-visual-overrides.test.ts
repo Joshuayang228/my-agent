@@ -65,3 +65,14 @@ describe('Product Visual Consistency v1 — Role Visual Overrides & Outfit Ancho
     expect(desc).toContain('当前穿着：海风防风外套')
   })
 })
+
+
+describe('Role Reference Images（角色垫图加载）', () => {
+  it('路飞 Role Pack 可加载有效的垫图参考字节用于生图一致性', async () => {
+    const { loadRoleReferenceImages } = await import('../../electron/main/companion/identity/loader')
+    const refs = loadRoleReferenceImages('luffy')
+    expect(refs.length).toBeGreaterThanOrEqual(1)
+    expect(refs[0].bytes.length).toBeGreaterThan(0)
+    expect(['image/png', 'image/jpeg', 'image/webp']).toContain(refs[0].mimeType)
+  })
+})

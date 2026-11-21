@@ -13,7 +13,7 @@ import type { GeneratedImageReference, ToolContext } from '../../../../src/share
 import type { SandboxMode } from '../../sandbox/policy'
 import { createLogger } from '../../utils/logger'
 import { attachWorldAssetImage, getAsset, listAssets } from '../../companion/life/assets'
-import { loadRolePack } from '../../companion/identity/loader'
+import { loadRolePack, loadRoleReferenceImages } from '../../companion/identity/loader'
 import { isValidVisualSlot, saveRoleVisualOverride } from '../../companion/identity/visual-overrides'
 import { formatRoleAppearanceForImagePrompt } from '../../companion/identity/profile'
 import { attachMomentImageForRole, prepareMomentImageTarget } from '../../companion/life/moment-images'
@@ -146,7 +146,8 @@ export const imageGenerateTool = buildTool({
       const appearanceAnchor = context?.roleId ? (() => { try { const profile = loadRolePack(context.roleId).profile; return profile ? formatRoleAppearanceForImagePrompt(profile) : '' } catch { return '' } })() : ''
       const wardrobeAnchor = context?.roleId && targetAsset ? await formatWardrobeVisualAnchor(context.roleId, targetAsset) : ''
       const visualAnchor = [appearanceAnchor, wardrobeAnchor].filter(Boolean).join('；')
-      const response = await requestGeneratedImage(config, compileImageGenerationRequest(args.prompt, visualAnchor), context?.signal)
+      const referenceImages = context?.roleId ? loadRoleReferenceImages(context.roleId) : []
+      const response = await requestGeneratedImage(config, compileImageGenerationRequest(args.prompt, visualAnchor), context?.signal, { referenceImages })
       const image = await normalizeGeneratedImage(response.bytes, context?.signal)
       context?.signal?.throwIfAborted()
       const currentMode = await loadEffectiveSandbox()

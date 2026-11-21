@@ -1,5 +1,7 @@
 # 项目进度
 
+全仓通用提示词去 AI 味精修与角色垫图生图管线落地（2026-11-21）：全面重写 10 份通用提示词（通用生图、主动问候、即兴搭话、私密日记、深夜反思、宿主关怀、赠礼回响、脆弱抚慰、文化体验感想、朋友圈评论回复），剥离硬编码角色名与 AI 抒情套话；新增 `loadRoleReferenceImages` 并升级 `llm/image-generation.ts` 支持携带角色参考垫图（Gemini 原生多模态 `inlineData` 附带，纯文生图接口平滑降级），同步接入 `image_generate` 工具与 `automatic-moment-media.ts` 自主朋友圈配图。
+
 人物世界 12 切面（阴影/投影）与 15 维活人感因子统一注册表落地（2026-11-21）：在 `companion/core/projections/surface-registry.ts` 建立统一声明式注册表，将世界 9 面与 Chat 3 面（氛围壁纸、语气与小声蛐蛐 `aside`、主动消息）的因子消费、门控、AI 工具、Prompt Key 与前后端源码落点收口为单一事实源，自动派生入 Debug 资产目录（`companion:registry:projection-surfaces`）并纳入 `npm run arch:check` 静态门禁（14 项全绿）。
 
 路飞人设与千里阳光号世界精装及全量去 AI 味提示词重写（2026-11-21）：全面重写路飞 Role Pack 全部 14 份提示词与世界资产（`protected.md`、`voice.md`、`mutable.default.md`、`summary.txt`、`profile.json`、`world.default.json`、`behaviors/*.md`、`scenes/*.md`）及日剧本默认活动池 `LUFFY_ACTIVITIES`，彻底清零“参与人物共创”“待用户确认”“最小可逆步骤”等早期开发腔与 AI 味黑话，补全 19 岁新世界篇档案与千里阳光号 4 大经典空间；修正平台日剧本 Prompt 的“工位/咖啡馆”硬编码；将 `evals/scenarios/b02-protagonist-behavior.ts` 升级为路飞专属人格与反 AI 味 Eval（`B02`—`B07`）。

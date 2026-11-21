@@ -325,6 +325,45 @@ export function getRoleVisuals(roleId: string, universeId: string = DEFAULT_UNIV
   }
 }
 
+/**
+ * 读取角色用于生图一致性的垫图参考字节（最多 maxCount 张，单张不超过 4MB）。
+ *
+ * 背景：仅靠文字外观描述生图容易出现长相和画风漂移；需要把 Role Pack 已登记的参考图安全透传给支持垫图的生图模型。
+ * 设计意图：优先读取 profile.appearance.visualReferencePaths 中存在的 PNG/JPG/WebP 文件，缺失或越界时静默跳过并降级为空数组。
+ * 关键约束：仅限当前 Role Pack 目录内白名单路径；绝不抛异常阻断生图主流程。
+ */
+export function loadRoleReferenceImages(
+  roleId: string,
+  universeId: string = DEFAULT_UNIVERSE,
+  maxCount = 2,
+): Array<{ bytes: Buffer; mimeType: 'image/png' | 'image/jpeg' | 'image/webp' }> {
+  try {
+    const pack = loadRolePack(roleId, universeId)
+    const candidates = [
+      ...(pack.profile?.appearance?.visualReferencePaths ?? []),
+      ...(pack.profile?.appearance?.visualReferencePath ? [pack.profile.appearance.visualReferencePath] : []),
+    ]
+    const seen = new Set<string>()
+    const results: Array<{ bytes: Buffer; mimeType: 'image/png' | 'image/jpeg' | 'image/webp' }> = []
+    for (const rel of candidates) {
+      if (results.length >= maxCount) break
+      if (!rel || seen.has(rel)) continue
+      seen.add(rel)
+      const fullPath = resolveRoleAssetFilePath(roleId, rel, universeId)
+      if (!fullPath || !fs.existsSync(fullPath)) continue
+      const bytes = fs.readFileSync(fullPath)
+      if (!bytes.length || bytes.length > 4 * 1024 * 1024) continue
+      const ext = path.extname(fullPath).toLowerCase()
+      const mimeType: 'image/png' | 'image/jpeg' | 'image/webp' =
+        ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : ext === '.webp' ? 'image/webp' : 'image/png'
+      results.push({ bytes, mimeType })
+    }
+    return results
+  } catch {
+    return []
+  }
+}
+
 export function listProtagonists(universeId: string = DEFAULT_UNIVERSE): RoleSummary[] {
   const manifest = loadUniverseManifest(universeId)
   return manifest.protagonistIds.map((roleId) => {

@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-21 完成全仓 10 份通用提示词去 AI 味精修，并打通角色垫图参考生图管线（`loadRoleReferenceImages` + `llm/image-generation.ts` Gemini 多模态参考图附带，同步接入 `image_generate` 与自主朋友圈配图）。
+
 2026-11-21 新增人物世界 12 切面与 15 维因子统一注册表（`companion/core/projections/surface-registry.ts`）：完整登记世界 9 面与 Chat 3 面（含氛围壁纸与 `aside` 小声蛐蛐）的状态映射关系，接入 Debug 资产目录并纳入 `arch:check` 静态门禁。
 
 2026-11-21 精装路飞人设与千里阳光号世界并全量去 AI 味：重写路飞 Role Pack 全部身份、语气、场景与行为提示词，清零“参与人物共创”“最小可逆步骤”等机械腔，补齐 19 岁新世界篇档案、烤肉/宴会喜好与千里阳光号 4 大空间，修正日剧本“工位/咖啡馆”硬编码，并将 `B02`—`B07` Persona Eval 升级为路飞专属反 AI 味验收。
