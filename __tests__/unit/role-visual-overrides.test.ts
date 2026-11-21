@@ -76,3 +76,22 @@ describe('Role Reference Images（角色垫图加载）', () => {
     expect(['image/png', 'image/jpeg', 'image/webp']).toContain(refs[0].mimeType)
   })
 })
+
+
+describe('Companion Image Gen Prep（按场景动态垫图与画幅选择）', () => {
+  it('食物与风景场景自动跳过人物垫图并选择正确画幅，人物与封面场景自动装配垫图', async () => {
+    const { inferMomentImageCategory, prepareCompanionImageGen } = await import('../../electron/main/companion/life/image-gen-prep')
+    expect(inferMomentImageCategory('刚出锅的带骨烤肉和海鲜炒饭太香了')).toBe('food')
+    expect(inferMomentImageCategory('晚霞把海平线染成一片金色')).toBe('scenery')
+    expect(inferMomentImageCategory('和索隆、乌索普在甲板开宴会干杯')).toBe('hangout')
+
+    const foodPrep = await prepareCompanionImageGen({ roleId: 'luffy', description: '刚出锅的带骨烤肉', category: 'food' })
+    expect(foodPrep.aspectRatio).toBe('1:1')
+    expect(foodPrep.referenceImages).toHaveLength(0)
+
+    const coverPrep = await prepareCompanionImageGen({ roleId: 'luffy', description: '千里阳光号迎着朝阳出航', category: 'cover', homeRoomId: 'shared-deck' })
+    expect(coverPrep.aspectRatio).toBe('16:9')
+    expect(coverPrep.referenceImages.length).toBeGreaterThanOrEqual(1)
+    expect(coverPrep.prompt).toContain('【构图方向】')
+  })
+})

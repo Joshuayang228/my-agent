@@ -7,10 +7,13 @@ import { createRestrictedFetch, isLoopbackUrl } from '../utils/restricted-fetch'
 export const MAX_GENERATED_IMAGE_BYTES = 8 * 1024 * 1024
 const MAX_JSON_BYTES = 12 * 1024 * 1024
 const GENERATION_TIMEOUT_MS = 180_000
+export type ImageAspectRatio = '1:1' | '3:4' | '4:3' | '16:9' | '9:16'
 export interface GeneratedImageBytes { bytes: Buffer; mimeType: 'image/png' | 'image/jpeg' | 'image/webp' }
 export interface ImageGenerationOptions {
   /** 可选参考垫图（最多 3 张，单张不超过 4MB）；Gemini 多模态生图直接附带 inlineData，纯文生图接口平滑降级为文字锚点。 */
   referenceImages?: ReadonlyArray<GeneratedImageBytes>
+  /** 可选画幅比例；传值时适配 Gemini imageConfig.aspectRatio 与 OpenAI size。 */
+  aspectRatio?: ImageAspectRatio
 }
 
 export class ImageGenerationError extends Error {
@@ -71,9 +74,22 @@ export async function requestGeneratedImage(config: LLMConfig, request: Register
         .slice(0, 3)
         .map((img) => ({ inlineData: { mimeType: img.mimeType, data: img.bytes.toString('base64') } }))
       : []
+    const openaiSize = opts?.aspectRatio === '16:9' || opts?.aspectRatio === '4:3'
+      ? '1536x1024'
+      : opts?.aspectRatio === '3:4' || opts?.aspectRatio === '9:16'
+        ? '1024x1536'
+        : opts?.aspectRatio === '1:1'
+          ? '1024x1024'
+          : undefined
     const body = provider === 'gemini'
-      ? { contents: [{ role: 'user', parts: [...refParts, { text: prompt }] }], generationConfig: { responseModalities: ['IMAGE'] } }
-      : { model: config.model, prompt, n: 1 }
+      ? {
+          contents: [{ role: 'user', parts: [...refParts, { text: prompt }] }],
+          generationConfig: {
+            responseModalities: ['IMAGE'],
+            ...(opts?.aspectRatio ? { imageConfig: { aspectRatio: opts.aspectRatio } } : {}),
+          },
+        }
+      : { model: config.model, prompt, n: 1, ...(openaiSize ? { size: openaiSize } : {}) }
     const response = await createRestrictedFetch(base.href, bounded, { maxBytes: MAX_JSON_BYTES, timeoutMs: GENERATION_TIMEOUT_MS })(url, { method: 'POST', headers, body: JSON.stringify(body) })
     if (!response.ok) {
       if ([401, 403].includes(response.status)) throw new ImageGenerationError('生图服务拒绝认证，请检查密钥和模型权限。')

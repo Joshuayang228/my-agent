@@ -44,6 +44,8 @@
 
 通用提示词去 AI 味精修与角色垫图生图管线（2026-11-21）：全量重写 10 份通用提示词（`image-generation`、`proactive-greeting`、`spontaneous-impulse`、`inner-thought`、`nightly-reflection`、`host-care`、`gift-reaction`、`vulnerability-reaction`、`culture-review`、`moment-reply`），彻底剥离通用层的硬编码角色名与 AI 抒情套话；新增 `loadRoleReferenceImages` 并在 `llm/image-generation.ts`、`image_generate` 工具与 `automatic-moment-media.ts` 打通角色垫图（Gemini 多模态生图原生携带 `inlineData` 参考图，纯文生图模型平滑降级为文字外观锚点）。
 
+统一多图垫图装配器与路飞三视图设定图（2026-11-21）：新增 `life/image-gen-prep.ts`（`prepareCompanionImageGen`），按 8 类构图场景（`selfie` / `outing` / `food` / `gift` / `hangout` / `scenery` / `mood` / `cover`）动态组装角色多角度设定图（`visual/ref-sheet-<role>.png`）+ 当前穿着衣物图 + 房间场景图（最多 3 张），纯食物/风景/静物自动跳过人物垫图；自动选择 `aspectRatio`（3:4 / 4:3 / 16:9 / 9:16 / 1:1）并注入防多胞胎克隆与防呆板视线提示；落地路飞三视图设定图 `roles/luffy/visual/ref-sheet-luffy.png` 并登记 `companion:policy:image-gen-prep`。
+
 ## 架构源码审计与深度二审状态（2026-11-20）
 
 首轮 2026-11-17 审计列出的 A01—A18 缺口、2026-11-19 零信任深度二审列出的 B01—B12 断点以及 2026-11-20 架构纯洁度收口（C01—C04）均已全部闭环：朋友圈主角/卡司评论回复与全部 Companion 核心与生活状态表均已纳入单事务备份恢复（`B01`）；可变人格 `setMutable` / `rollbackMutable` 接入命令边界、事务与 `universeId`（`B05`）；读路径剥离无条件 `persist()` 与读接口 LLM 写副作用，日剧本心愿延迟至落库事务吸收（`B06`、`B11`）；`switchUniverse` 保留暂停状态并触发补叙（`B07`）；`deleteInnerThought` 校验 `role_id` 与 `completeCultureResonance` 命令层级修正（`B08`）；双关系阶段系统统一事实源（`B09`）；全部生活与成长领域表 DDL 统一收拢到 `core/persistence/life-schema.ts`（`WeakSet<Database>` 守卫，`B10` / `C02`）；`ipc/companion.ts` 统一经 `application/companion-facade.ts` 调用伙伴领域（`C03`）；高频终态账本与任务表启用有界裁剪（`B12`），并由 `architecture-boundaries.test.ts` 的 9 项静态架构门禁锁死防回流（`C04`）。

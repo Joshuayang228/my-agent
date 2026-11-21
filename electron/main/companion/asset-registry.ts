@@ -2,6 +2,7 @@ import { AUTOMATIC_PROACTIVE_POLICY } from './application/proactive-budget'
 import { LIFE_GATING_THRESHOLDS } from './life/life-gating'
 import { ROLE_VISUAL_MAX_BYTES } from './identity/visual-overrides'
 import { getCompanionProjectionSurfaceSummary } from './core/projections/surface-registry'
+import { IMAGE_CATEGORY_CONFIG } from './life/image-gen-prep'
 /**
  * 伙伴与人格生产资产注册表。
  *
@@ -389,6 +390,13 @@ export function getCompanionAssetCatalog(universeId = DEFAULT_UNIVERSE): ModelCo
     source: 'electron/main/companion/core/projections/surface-registry.ts#COMPANION_PROJECTION_SURFACES', version: 'projection-surfaces-v1',
     assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
     content: jsonContent(getCompanionProjectionSurfaceSummary()),
+  }), makeCompanionAsset({
+    key: 'companion:policy:image-gen-prep', name: '角色多图垫图与 8 类构图装配策略',
+    purpose: '按场景分类动态拼装角色多角度设定图、当前穿着衣物图与房间参考图，并自动选择画幅与注入防克隆/防呆板视线提示',
+    role: 'platform', description: '纯食物/纯风景/静物跳过人物垫图；人物场景优先使用 ref-sheet 多角度设定图并限制单次最多 3 张参考图。',
+    source: 'electron/main/companion/life/image-gen-prep.ts#prepareCompanionImageGen', version: 'image-gen-prep-v1',
+    assetType: 'companion-life', contentKind: 'schema', ownership: 'builtin',
+    content: jsonContent({ categories: Object.keys(IMAGE_CATEGORY_CONFIG) }),
   })]
   for (const roleId of listAvailableRoleIds(universeId)) {
     try {

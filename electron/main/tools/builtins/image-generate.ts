@@ -13,7 +13,9 @@ import type { GeneratedImageReference, ToolContext } from '../../../../src/share
 import type { SandboxMode } from '../../sandbox/policy'
 import { createLogger } from '../../utils/logger'
 import { attachWorldAssetImage, getAsset, listAssets } from '../../companion/life/assets'
-import { loadRolePack, loadRoleReferenceImages } from '../../companion/identity/loader'
+import { loadRolePack } from '../../companion/identity/loader'
+import { prepareCompanionImageGen, type CompanionImageCategory } from '../../companion/life/image-gen-prep'
+import type { ImageAspectRatio } from '../../llm/image-generation'
 import { isValidVisualSlot, saveRoleVisualOverride } from '../../companion/identity/visual-overrides'
 import { formatRoleAppearanceForImagePrompt } from '../../companion/identity/profile'
 import { attachMomentImageForRole, prepareMomentImageTarget } from '../../companion/life/moment-images'
@@ -103,6 +105,8 @@ export const imageGenerateTool = buildTool({
       targetAssetId: { type: 'string', description: '可选：将生成图片绑定到当前会话角色的人物世界资产。' },
       targetMomentId: { type: 'string', description: '可选：将生成图片绑定到当前会话角色的一条已发布朋友圈动态，最多九张。' },
       targetVisualSlot: { type: 'string', enum: ['avatar', 'banner'], description: '可选：将生成图片直接应用为当前会话角色的头像（avatar）或主页封面壁纸（banner）。' },
+      category: { type: 'string', enum: ['selfie', 'outing', 'food', 'gift', 'hangout', 'scenery', 'mood', 'cover'], description: '可选：构图与垫图分类；食物/风景/静物自动跳过人物垫图。' },
+      aspectRatio: { type: 'string', enum: ['1:1', '3:4', '4:3', '16:9', '9:16'], description: '可选：画面宽高比，默认按构图分类自动选择。' },
     },
     required: ['prompt', 'path'],
   },
@@ -146,8 +150,36 @@ export const imageGenerateTool = buildTool({
       const appearanceAnchor = context?.roleId ? (() => { try { const profile = loadRolePack(context.roleId).profile; return profile ? formatRoleAppearanceForImagePrompt(profile) : '' } catch { return '' } })() : ''
       const wardrobeAnchor = context?.roleId && targetAsset ? await formatWardrobeVisualAnchor(context.roleId, targetAsset) : ''
       const visualAnchor = [appearanceAnchor, wardrobeAnchor].filter(Boolean).join('；')
-      const referenceImages = context?.roleId ? loadRoleReferenceImages(context.roleId) : []
-      const response = await requestGeneratedImage(config, compileImageGenerationRequest(args.prompt, visualAnchor), context?.signal, { referenceImages })
+      const validCategories = new Set<CompanionImageCategory>(['selfie', 'outing', 'food', 'gift', 'hangout', 'scenery', 'mood', 'cover'])
+      const validRatios = new Set<ImageAspectRatio>(['1:1', '3:4', '4:3', '16:9', '9:16'])
+      const explicitCategory = typeof args.category === 'string' && validCategories.has(args.category as CompanionImageCategory)
+        ? (args.category as CompanionImageCategory)
+        : targetVisualSlot === 'banner'
+          ? 'cover'
+          : targetVisualSlot === 'avatar'
+            ? 'selfie'
+            : undefined
+      const explicitRatio = typeof args.aspectRatio === 'string' && validRatios.has(args.aspectRatio as ImageAspectRatio)
+        ? (args.aspectRatio as ImageAspectRatio)
+        : targetVisualSlot === 'avatar'
+          ? '1:1'
+          : undefined
+      const prepared = context?.roleId
+        ? await prepareCompanionImageGen({
+            roleId: context.roleId,
+            description: args.prompt,
+            category: explicitCategory,
+            aspectRatio: explicitRatio,
+          })
+        : null
+      const finalPrompt = prepared ? prepared.prompt : args.prompt
+      const finalAnchor = [prepared?.visualAnchor || appearanceAnchor, wardrobeAnchor].filter(Boolean).join('；')
+      const response = await requestGeneratedImage(
+        config,
+        compileImageGenerationRequest(finalPrompt, finalAnchor),
+        context?.signal,
+        { referenceImages: prepared?.referenceImages ?? [], aspectRatio: explicitRatio ?? prepared?.aspectRatio },
+      )
       const image = await normalizeGeneratedImage(response.bytes, context?.signal)
       context?.signal?.throwIfAborted()
       const currentMode = await loadEffectiveSandbox()

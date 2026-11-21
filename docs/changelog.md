@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-21 落地统一多图垫图装配器（`image-gen-prep.ts`）与路飞三视图标准设定图（`ref-sheet-luffy.png`）：支持按 8 类场景动态拼装多职责垫图、自动选择画幅比例与防克隆/防呆板视线提示，同步接入 `image_generate` 与自主朋友圈配图。
+
 2026-11-21 完成全仓 10 份通用提示词去 AI 味精修，并打通角色垫图参考生图管线（`loadRoleReferenceImages` + `llm/image-generation.ts` Gemini 多模态参考图附带，同步接入 `image_generate` 与自主朋友圈配图）。
 
 2026-11-21 新增人物世界 12 切面与 15 维因子统一注册表（`companion/core/projections/surface-registry.ts`）：完整登记世界 9 面与 Chat 3 面（含氛围壁纸与 `aside` 小声蛐蛐）的状态映射关系，接入 Debug 资产目录并纳入 `arch:check` 静态门禁。
