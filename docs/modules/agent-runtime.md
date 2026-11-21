@@ -20,7 +20,7 @@
 
 工具注册表传递实际调用 ID。朋友圈发布、人物资产创建、读书笔记与聊天换装工具（`companion_change_wardrobe`）均纳入 Agent Host Manifest 双端权限管控并用会话与工具调用 ID 装配稳定操作键；`image_generate` 支持可选 `targetVisualSlot: 'avatar' | 'banner'` 应用角色视觉覆写，挂载失败或事务中止时同步清理未落库的孤立图片文件。
 
-生活时钟由主进程的宿主编排驱动，使用 Agent Host 工作流推进当前人物。朋友圈工具沿同一应用用例发布朋友圈。
+生活时钟由主进程的宿主编排驱动，使用 Agent Host 工作流推进当前人物。朋友圈工具沿同一应用用例发布朋友圈。2026-11-21 复核：`companion-behaviors.ts` 日剧本与朋友圈润色 Prompt 移除“工位/咖啡馆”硬编码并强化去 AI 味表达约束。
 
 ## 已落地能力补充（2026-11-18）
 

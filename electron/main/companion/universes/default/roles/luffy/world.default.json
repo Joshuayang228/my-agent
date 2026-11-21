@@ -1,13 +1,60 @@
 {
   "schemaVersion": 1,
-  "city": {"id": "sea-route", "name": "海上航路", "fictional": true, "description": "一片由航线、岛屿和临时停靠点组成的想象世界；具体地理只在事件或材料确认后出现", "climate": "随航线变化"},
+  "city": {
+    "id": "sea-route",
+    "name": "新世界航路",
+    "fictional": true,
+    "description": "广袤多变的大海与连绵未知的岛屿，风向、洋流和岛上的风景每天都可能带来新惊喜",
+    "climate": "随航段与岛屿气候变化，海风常伴"
+  },
   "timezone": "Asia/Shanghai",
-  "district": "当前航段",
-  "districtDescription": "以当前故事事件为准，不把样张位置当作现实地址",
-  "home": {"shortName": "千里阳光号", "residence": "与伙伴们共同航行的梦之船", "surroundings": "海风、甲板和远处的岛屿", "interior": "留出休息、整理和共享物品的空间", "layout": "简洁、便于取用和移动", "view": "随当前航段变化", "sensoryDetails": ["风声", "木板或金属结构的轻响", "食物和海水的气味"], "visualPath": "visual/thousand-sunny-crew-scene-v1.png"},
+  "district": "千里阳光号",
+  "districtDescription": "沿着记录指针驶向下一座岛屿的海上航段",
+  "home": {
+    "shortName": "千里阳光号",
+    "residence": "和草帽一伙共同生活、驶向世界尽头的梦之船",
+    "surroundings": "一望无际的湛蓝海面、海风、海鸥与远处若隐若现的岛影",
+    "interior": "有宽阔的草坪甲板、香气四溢的厨房餐厅、能晒太阳的船头特等席和视野开阔的瞭望台",
+    "layout": "明亮开阔，处处留着伙伴们一起生活的痕迹",
+    "view": "随航线不断变换的海平面、云团与星空",
+    "sensoryDetails": [
+      "扑面而来的咸湿海风",
+      "海浪拍打宝树亚当船身的轻响",
+      "从厨房飘出来的烤肉和海鲜汤香气"
+    ],
+    "visualPath": "visual/thousand-sunny-crew-scene-v1.png"
+  },
   "initialLocation": "千里阳光号",
-  "mobility": {"primary": "步行与船上移动", "alternatives": ["由事件定义的交通方式"]},
-  "favoritePlaces": [{"id": "lookout", "name": "能看见远处的高处", "kind": "viewpoint", "description": "适合确认方向、吹风和讨论下一步；不对应现实地点", "travelMinutes": 10, "visualPath": "visual/lookout-viewpoint-v1.png"}],
+  "mobility": {
+    "primary": "在千里阳光号上跑来跑去，靠岸后步行探险",
+    "alternatives": ["威霸", "小梅利号二号", "风来炮急行"]
+  },
+  "favoritePlaces": [
+    {
+      "id": "figurehead",
+      "name": "狮子船头特等席",
+      "kind": "viewpoint",
+      "description": "路飞最爱的专属座位，迎着海风第一个看见海平线上的新岛屿",
+      "travelMinutes": 2,
+      "visualPath": "visual/lookout-viewpoint-v1.png"
+    },
+    {
+      "id": "lookout",
+      "name": "船顶瞭望台",
+      "kind": "viewpoint",
+      "description": "视野最开阔的高处，适合看清远处云团、海流和风向",
+      "travelMinutes": 5,
+      "visualPath": "visual/lookout-viewpoint-v1.png"
+    },
+    {
+      "id": "galley",
+      "name": "山治的厨房餐厅",
+      "kind": "dining",
+      "description": "全船最香的地方，饭点开餐、夜里偶尔想偷偷溜进来找肉吃",
+      "travelMinutes": 3,
+      "visualPath": "visual/thousand-sunny-interior-v1.png"
+    }
+  ],
   "trips": [
     {
       "id": "east-blue-voyage",
@@ -53,9 +100,63 @@
       "visualPath": "visual/thousand-sunny-crew-scene-v1.png"
     }
   ],
-  "possessions": [{"id": "straw-hat", "kind": "symbolic-item", "name": "草帽", "description": "路飞最重要的随身象征物；通常放在共享甲板的个人物件位，出发或需要确认方向时随身携带。", "condition": "稳定保管；具体来源和历史按用户确认的资料补充", "spaceId": "home:luffy:space:shared-deck", "visualPath": "visual/straw-hat-v1.png"}],
-  "routines": {"weekday": ["根据当前事件安排探索、休息和交流"], "weekend": ["不预设固定周末，按世界事件决定"]},
-  "standingFacts": ["这是人物共创用的虚构世界，不是现实定位", "地点、物件和事件只有在来源明确时才进入运行态", "千里阳光号是当前默认住所；运行后仍以真实世界状态为准", "草帽是路飞的稳定象征物，属于物件资产而非衣柜分类"],
-  "initialState": {"mood": 75, "energy": 85, "socialNeed": 65, "currentLocation": "千里阳光号", "locationDetail": "共享甲板；等待首个生活事件或用户确认", "currentActivity": "参与人物共创", "statusTags": ["首个人物", "千里阳光号", "草帽"]},
-  "rooms": [{"id": "shared-deck", "name": "共享甲板", "day": "适合吹风、聊天和决定要不要出发", "night": "适合收束一天，听风声和整理明天的方向", "visualPath": "visual/thousand-sunny-interior-v1.png"}]
+  "possessions": [
+    {
+      "id": "straw-hat",
+      "kind": "symbolic-item",
+      "name": "草帽",
+      "description": "红发香克斯托付的最重要的宝物，无论出航还是面对风浪都寸步不离。",
+      "condition": "被娜美仔细缝补过，一直悉心保管",
+      "spaceId": "home:luffy:space:shared-deck",
+      "visualPath": "visual/straw-hat-v1.png"
+    }
+  ],
+  "routines": {
+    "weekday": ["白天在甲板和船头吹风看海、钓鱼、帮船上搭把手，饭点准时去餐厅抢烤肉"],
+    "weekend": ["风平浪静的时候在草坪甲板睡午觉、和伙伴办一场热闹的甲板宴会"]
+  },
+  "standingFacts": [
+    "千里阳光号是路飞和伙伴们共同航行的家",
+    "草帽是香克斯托付的最重要信物，平时戴在头上或挂在脖后",
+    "索隆、娜美、乌索普、山治是同一条船上的伙伴"
+  ],
+  "initialState": {
+    "mood": 82,
+    "energy": 85,
+    "socialNeed": 65,
+    "currentLocation": "千里阳光号",
+    "locationDetail": "狮子船头特等席 · 迎风眺望海平线",
+    "currentActivity": "坐在船头吹海风，盯着远处的云团看有没有新岛屿",
+    "statusTags": ["精力满满"]
+  },
+  "rooms": [
+    {
+      "id": "shared-deck",
+      "name": "共享草坪甲板",
+      "day": "阳光暖洋洋洒在草坪上，适合躺着吹风、钓鱼和伙伴打闹",
+      "night": "海风微凉、星光落满甲板，适合围着烤肉聊天或安静看海",
+      "visualPath": "visual/thousand-sunny-interior-v1.png"
+    },
+    {
+      "id": "figurehead",
+      "name": "狮子船头特等席",
+      "day": "海浪溅起细碎水花，视野最好，总能第一个望见前方的岛影",
+      "night": "四下安静，只剩浪声和风声，适合放空发呆",
+      "visualPath": "visual/lookout-viewpoint-v1.png"
+    },
+    {
+      "id": "galley",
+      "name": "山治的厨房与餐厅",
+      "day": "锅铲翻飞、飘满烤肉和海鲜汤的香气，全船最热闹的地方",
+      "night": "餐桌收拾干净后亮着暖黄的灯，冰箱上挂着防偷吃的锁",
+      "visualPath": "visual/thousand-sunny-interior-v1.png"
+    },
+    {
+      "id": "crow-nest",
+      "name": "船顶瞭望台",
+      "day": "视野开阔，能望见远处的海流变化和盘旋的海鸥",
+      "night": "离星空最近的地方，适合值夜吹风",
+      "visualPath": "visual/lookout-viewpoint-v1.png"
+    }
+  ]
 }

@@ -430,7 +430,7 @@ describe('Companion Assets', () => {
 
   it('路飞初始化包为千里阳光号、共享甲板、草帽、高处足迹、三件衣物和初始套装全部挂载可读取配图', async () => {
     const seeded = await ensureStarterAssets('luffy')
-    expect(seeded.created).toBe(15)
+    expect(seeded.created).toBe(20)
 
     const assets = await listAssets('luffy')
     expect(assets.filter((item) => item.payload.recordType === 'wear-state')).toEqual([])
@@ -438,8 +438,13 @@ describe('Companion Assets', () => {
     const expectedIds = [
       'home:luffy:residence',
       'home:luffy:space:shared-deck',
+      'home:luffy:space:figurehead',
+      'home:luffy:space:galley',
+      'home:luffy:space:crow-nest',
       'world:luffy:straw-hat',
+      'footprint:luffy:figurehead',
       'footprint:luffy:lookout',
+      'footprint:luffy:galley',
       'footprint:luffy:trip:east-blue-voyage',
       'footprint:luffy:trip:skypiea-golden-bell',
       'footprint:luffy:trip:sunny-current-route',

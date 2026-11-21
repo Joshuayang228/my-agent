@@ -1,5 +1,7 @@
 # 质量总控
 
+路飞 Role Pack 精装与 Persona Eval 升级门禁（2026-11-21）：同步 `prompt-builder.test.ts` 至路飞正式档案断言，升级 `evals/scenarios/b02-protagonist-behavior.ts` 为路飞专属反 AI 味与反编造门禁（`B02`—`B07`）；`prompt-builder`、`companion-identity`、`companion-assets`、`luffy-journey-acceptance`、`prompt-feature-contracts`、离线 Eval（`evals/eval.test.ts`）、`assets:check`、`arch:check` 与 `build` 全部通过。
+
 生活映射一致性与产品视觉一致性 v1 门禁（2026-11-21）：新增 `companion-life-mapping.test.ts`（4 项）、`role-visual-overrides.test.ts`（3 项）及 `companion-life-tools.test.ts` 聊天换装正反例回归（18 项），更新 `moment-visibility.test.ts`（冷启动 3 天可见）与 `vulnerability.test.ts`（初识拦截 / 熟悉放行）；`npm run arch:check`（10 项，验证 `companion_change_wardrobe` 纳入 Agent Host Manifest）、`npm run assets:check`（113 项）、`npm run build` 与 `npm run docs:validate` 全部通过。
 
 前端全产品回流与工作区桌面总验收门禁（2026-11-20）：`workspace-backend-contract.test.ts`、`workspace-foundation-control-audit.test.ts` 与 `foundation-enforcement-gate.test.ts` 3 文件 16 项全部通过；真实 Electron 桌面全量 `__tests__/e2e/onboarding.test.ts` 22/22 全部通过（0 失败、0 重试）；五大产品体验（Chat、人物世界、设置、工作区、Debug）全部为 `adopted`，最后 2 份施工合同冻结，全仓进行中施工合同归零。

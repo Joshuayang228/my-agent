@@ -60,7 +60,7 @@ ${input.voiceHint || '（无）'}`,
 1. 只输出一句中文动态，不要 JSON、不要引号包裹、不要话题标签堆砌
 2. 总长不超过 ${MOMENT_TEXT_MAX} 字；必须能看出上述活动或地点
 3. 禁止发明新地点、新约会、新人物；禁止「正在打字」类元叙述
-4. 可略带情绪，但别写成小作文` },
+4. 像真人随手发的朋友圈，带一点生活体温；禁止鸡汤、播音腔、AI 总结味或连串感叹号` },
   })
 }
 
@@ -122,7 +122,7 @@ ${input.characterHint || '（无）'}${input.lifeContext?.trim() ? `\n\n近期�
       `只输出符合 schema 的 JSON 日程；slots ${SLOT_COUNT_MIN}～${SLOT_COUNT_MAX} 条。`,
     ),
     output: { format: `要求：
-1. 日常可信、有分味，不要夸张奇幻；地点用短词（家/工位/路上/咖啡馆/附近街道等）
+1. 贴合当前人物的真实生活世界与节奏，不违背角色世界观；地点用简短自然词（优先使用人物默认居所与常去地点）
 2. slots ${SLOT_COUNT_MIN}～${SLOT_COUNT_MAX} 条，按时间升序；hour 0-23，minute 0 或 30
 3. type 只能是 "moment"（适合发动态）或 "activity"（推进日程）；至少 2 条 moment
 4. theme / activity / mood / location 各不超过 ${TEXT_MAX} 字

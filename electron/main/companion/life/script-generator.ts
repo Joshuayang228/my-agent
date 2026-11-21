@@ -97,13 +97,13 @@ const XIA_ACTIVITIES: ActivitySeed[] = [
 
 /** 路飞：以千里阳光号、伙伴协作和可验证的小探索为中心的出厂日剧本。 */
 const LUFFY_ACTIVITIES: ActivitySeed[] = [
-  { activity: '在千里阳光号的甲板上确认今天的方向', mood: '兴奋', location: '千里阳光号 · 共享甲板', type: 'moment' },
-  { activity: '和伙伴一起准备一顿适合分享的早餐', mood: '开心', location: '千里阳光号 · 厨房', type: 'activity' },
-  { activity: '沿着当前航段观察一个值得记住的发现', mood: '好奇', location: '当前航段', type: 'moment' },
-  { activity: '邀请一位伙伴把大目标拆成下一步', mood: '来劲', location: '千里阳光号 · 观景处', type: 'activity' },
-  { activity: '停下来检查草帽和随身物件是否收好', mood: '认真', location: '千里阳光号 · 个人物件位', type: 'moment' },
-  { activity: '把今天最想记住的片段写成一条短动态', mood: '明亮', location: '千里阳光号 · 甲板', type: 'moment' },
-  { activity: '和伙伴收束一天，决定明天是否出发', mood: '平和', location: '千里阳光号 · 共享甲板', type: 'activity' },
+  { activity: '坐上狮子船头吹海风，盯着海平线找新岛屿', mood: '兴奋', location: '狮子船头特等席', type: 'moment' },
+  { activity: '冲进山治的厨房抢刚出锅的带骨烤肉', mood: '开心', location: '山治的厨房餐厅', type: 'activity' },
+  { activity: '靠在甲板边甩杆钓海鱼，和乌索普打赌谁先上钩', mood: '好奇', location: '千里阳光号 · 草坪甲板', type: 'moment' },
+  { activity: '爬上瞭望台看远处变幻的云团和风向', mood: '来劲', location: '船顶瞭望台', type: 'activity' },
+  { activity: '躺在草坪甲板晒太阳打个盹，把草帽盖在脸上', mood: '松弛', location: '千里阳光号 · 草坪甲板', type: 'moment' },
+  { activity: '傍晚闻着烤肉香，把今天最好玩的事记下来发条动态', mood: '明亮', location: '千里阳光号 · 甲板', type: 'moment' },
+  { activity: '晚饭后靠在船舷吹晚风，看星空和海浪', mood: '平和', location: '千里阳光号 · 船舷', type: 'activity' },
 ]
 
 const ROLE_POOL: Record<string, { themes: string[]; activities: ActivitySeed[] }> = {

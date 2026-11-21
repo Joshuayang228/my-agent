@@ -159,11 +159,11 @@ describe('buildSystemPrompt', () => {
     const prompt = buildSystemPrompt(makeCtx({ persona }))
 
     expect(prompt).toContain('## 人物档案')
-    expect(prompt).toContain('年龄感：待用户确认')
+    expect(prompt).toContain('年龄感：19岁')
     expect(prompt).toContain('温暖度 8/10')
     expect(prompt).toContain('本轮仍由场景与关系阶段收放')
     expect(prompt).toContain('## 默认生活世界')
-    expect(prompt).toContain('作品时间线与具体出身资料待确认')
+    expect(prompt).toContain('风车村')
     expect(prompt).toContain('默认居所：千里阳光号')
     expect(prompt).toContain('初始物品只用于播种资产库')
     expect(prompt).not.toMatch(/临湾|海堤|旧港|码头|船笛/)
