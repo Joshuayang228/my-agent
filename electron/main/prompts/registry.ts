@@ -14,7 +14,7 @@ import { buildHostCarePrompt } from './host-care'
 import { buildNightlyReflectionUserPrompt } from './nightly-reflection'
 import { buildProactiveGreetingPrompt } from './proactive-greeting'
 import { formatRoleAppearanceForImagePrompt } from '../companion/identity/profile'
-import { buildImageGenerationPrompt } from './image-generation'
+import { buildImageGenerationPrompt, buildImageDirectorPrompt } from './image-generation'
 import { buildImageDraftPrompt, buildWorldAssetImageDraftPrompt } from '../../../src/shared/request-draft-prompts'
 /**
  * Prompt 资产目录的唯一运行时来源。
@@ -502,6 +502,36 @@ const CORE_PROMPT_ASSETS: readonly (PromptAsset & { content?: string })[] = [
     slots: [
       { name: 'protagonistName', source: '当前主角姓名', lifecycle: '关怀触发时' },
       { name: 'protagonistBrief', source: '当前主角公开人设与风格', lifecycle: '关怀触发时' },
+    ],
+  }),
+  dynamicAsset({
+    id: PROMPT_KEYS.companionImageDirector,
+    domain: 'life', name: '角色生图绘画导演扩写', category: 'companion', role: 'companion-life',
+    featureKey: PROMPT_FEATURE_CONTRACTS.imageDirector.key, adaptationStatus: 'adapted',
+    purpose: '将简短的场景描述结合时段光线、心情、穿着与构图方向扩写为专业中文生图提示词，并推断匹配房间与画幅比例',
+    desc: '供伙伴拍照工具与自主朋友圈配图在调用生图模型前执行可选的辅助模型导演扩写；无可用辅助模型或失败时平滑降级。',
+    sourcePath: 'electron/main/prompts/image-generation.ts#buildImageDirectorPrompt',
+    definitions: [
+      'electron/main/prompts/image-generation.ts#buildImageDirectorPrompt',
+      'electron/main/prompts/registered-request.ts#compileImageDirectorRequest',
+    ],
+    template: buildImageDirectorPrompt({
+      roleName: '{{roleName}}',
+      artStyle: '{{artStyle}}',
+      appearanceAnchor: '{{appearanceAnchor}}',
+      description: '{{description}}',
+      category: 'selfie',
+      compositionGuide: '{{compositionGuide}}',
+      includeCharacter: true,
+      timeLabel: '{{timeLabel}}',
+      moodSummary: '{{moodSummary}}',
+      currentOutfit: '{{currentOutfit}}',
+    }),
+    slots: [
+      { name: 'roleName', source: '当前主角姓名', lifecycle: '每次生图导演扩写' },
+      { name: 'artStyle', source: 'RoleProfile.appearance.artStyle 或平台默认画风锚点', lifecycle: '每次生图导演扩写' },
+      { name: 'description', source: '简短场景描述或动态正文', lifecycle: '每次生图导演扩写' },
+      { name: 'timeLabel', source: '当前本地时段与光线标签', lifecycle: '每次生图导演扩写' },
     ],
   }),
   dynamicAsset({

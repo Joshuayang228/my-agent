@@ -16,7 +16,7 @@ import { continueTaskTool } from './continue-task'
 import { ragSearchTool } from './rag-search'
 import { gitStatusTool, gitDiffTool, gitLogTool, gitCommitTool, gitBranchTool } from './git-tools'
 import { thinkTool } from './think'
-import { imageGenerateTool } from './image-generate'
+import { companionTakePhotoTool, imageGenerateTool } from './image-generate'
 import { companionAddReadingNoteTool, companionChangeWardrobeTool, companionCommentMomentTool, companionCreateAssetTool, companionObserveMaterialTool, companionPostMomentTool, companionReadWorldTool } from './companion-life'
 import { companionCharacterDraftTool } from './companion-character-draft'
 
@@ -45,6 +45,7 @@ const BUILTIN_TOOL_ENTRIES: Array<{ tool: ToolDefinition; source: string }> = [
   { tool: ragSearchTool, source: 'electron/main/tools/builtins/rag-search.ts' },
   { tool: thinkTool, source: 'electron/main/tools/builtins/think.ts' },
   { tool: imageGenerateTool, source: 'electron/main/tools/builtins/image-generate.ts' },
+  { tool: companionTakePhotoTool, source: 'electron/main/tools/builtins/image-generate.ts' },
   { tool: companionPostMomentTool, source: 'electron/main/tools/builtins/companion-life.ts' },
   { tool: companionReadWorldTool, source: 'electron/main/tools/builtins/companion-life.ts' },
   { tool: companionCreateAssetTool, source: 'electron/main/tools/builtins/companion-life.ts' },

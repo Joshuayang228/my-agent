@@ -2,7 +2,7 @@ import { compileImageGenerationRequest } from '../../electron/main/prompts/regis
 import { afterEach, describe, expect, it } from 'vitest'
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { requestGeneratedImage, inspectGeneratedImageBytes } from '../../electron/main/llm/image-generation'
+import { requestGeneratedImage, inspectGeneratedImageBytes, resetImageEditCapabilityCache } from '../../electron/main/llm/image-generation'
 import type { LLMConfig } from '../../src/shared/types'
 
 const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aFOkAAAAASUVORK5CYII='
@@ -13,7 +13,9 @@ async function fixture(handler: (body: Record<string, unknown>, url: string, hea
   const server = createServer(async (req, res) => {
     const chunks: Buffer[] = []
     for await (const chunk of req) chunks.push(Buffer.from(chunk))
-    const call = { body: JSON.parse(Buffer.concat(chunks).toString() || '{}'), url: req.url!, headers: req.headers }
+    const rawBody = Buffer.concat(chunks).toString()
+    const isMultipart = String(req.headers['content-type'] || '').includes('multipart/form-data')
+    const call = { body: isMultipart ? { _rawMultipart: rawBody } : JSON.parse(rawBody || '{}'), url: req.url!, headers: req.headers }
     calls.push(call)
     const result = handler(call.body, call.url, call.headers)
     if (result.delay) await new Promise(resolve => setTimeout(resolve, result.delay))
@@ -111,4 +113,43 @@ it('未签发、复制或伪造的图片请求在网络前拒绝', async () => {
     await expect(requestGeneratedImage(config, forged as typeof issued)).rejects.toThrow('已登记的图片配方')
   }
   expect(calls).toHaveLength(0)
+})
+
+it('OpenAI 携带垫图走 /images/edits，400 时自动重试 image[]，404 时缓存不支持并降级 /images/generations', async () => {
+  resetImageEditCapabilityCache()
+  const refImg = { bytes: Buffer.from(png, 'base64'), mimeType: 'image/png' as const }
+
+  // 1) /images/edits 首次 400 后自动换 image[] 成功
+  let editAttempts = 0
+  const retryFix = await fixture((_body, url) => {
+    if (url.includes('/images/edits')) {
+      editAttempts++
+      if (editAttempts === 1) return { status: 400, body: { error: { message: 'expected image[] field' } } }
+      return { body: { data: [{ b64_json: png }] } }
+    }
+    return { status: 500, body: {} }
+  })
+  const okRes = await requestGeneratedImage(retryFix.config, compileImageGenerationRequest('甲板烤肉'), undefined, {
+    referenceImages: [refImg],
+    aspectRatio: '3:4',
+  })
+  expect(okRes.mimeType).toBe('image/png')
+  expect(retryFix.calls.filter((c) => c.url.includes('/images/edits'))).toHaveLength(2)
+
+  // 2) /images/edits 返回 404 时自动降级 /images/generations，且同进程第二次直接跳过 /images/edits
+  const fallbackFix = await fixture((_body, url) => {
+    if (url.includes('/images/edits')) return { status: 404, body: { error: 'Not Found' } }
+    return { body: { data: [{ b64_json: png }] } }
+  })
+  const first = await requestGeneratedImage(fallbackFix.config, compileImageGenerationRequest('看海'), undefined, {
+    referenceImages: [refImg],
+  })
+  expect(first.mimeType).toBe('image/png')
+  expect(fallbackFix.calls.map((c) => c.url)).toEqual(['/v1/images/edits', '/v1/images/generations'])
+
+  const second = await requestGeneratedImage(fallbackFix.config, compileImageGenerationRequest('再看海'), undefined, {
+    referenceImages: [refImg],
+  })
+  expect(second.mimeType).toBe('image/png')
+  expect(fallbackFix.calls.map((c) => c.url)).toEqual(['/v1/images/edits', '/v1/images/generations', '/v1/images/generations'])
 })

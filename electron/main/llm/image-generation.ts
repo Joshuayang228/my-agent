@@ -10,10 +10,56 @@ const GENERATION_TIMEOUT_MS = 180_000
 export type ImageAspectRatio = '1:1' | '3:4' | '4:3' | '16:9' | '9:16'
 export interface GeneratedImageBytes { bytes: Buffer; mimeType: 'image/png' | 'image/jpeg' | 'image/webp' }
 export interface ImageGenerationOptions {
-  /** 可选参考垫图（最多 3 张，单张不超过 4MB）；Gemini 多模态生图直接附带 inlineData，纯文生图接口平滑降级为文字锚点。 */
+  /** 可选参考垫图（最多 3 张，单张不超过 4MB）；Gemini 附带 inlineData，OpenAI 走 /images/edits 多图垫图并在不支持时自动降级纯文生图。 */
   referenceImages?: ReadonlyArray<GeneratedImageBytes>
   /** 可选画幅比例；传值时适配 Gemini imageConfig.aspectRatio 与 OpenAI size。 */
   aspectRatio?: ImageAspectRatio
+}
+
+/**
+ * 进程级 OpenAI `/images/edits` 能力熔断缓存。
+ *
+ * 背景：部分 OpenAI 兼容中转站或旧模型只提供 `/images/generations` 而不支持 `/images/edits` 垫图。
+ * 设计意图：首次探测到明确的不支持状态（404/405/501 或 unsupported 文案）时记录 `${origin}|${model}` 并平滑降级纯文生图，
+ * 避免同进程后续每次生图重复试错；不影响 401/403/429/5xx 错误上抛，避免重复计费。
+ * 关键约束：仅缓存明确不支持垫图的端点，不缓存瞬态网络或限流故障。
+ */
+const unsupportedOpenAIEditEndpoints = new Set<string>()
+
+export function resetImageEditCapabilityCache(): void {
+  unsupportedOpenAIEditEndpoints.clear()
+}
+
+function buildOpenAIEditMultipart(
+  model: string,
+  prompt: string,
+  refs: ReadonlyArray<GeneratedImageBytes>,
+  fieldName: 'image' | 'image[]',
+  size?: string,
+): { contentType: string; body: Buffer } {
+  const boundary = `----MyAgentImgEdit${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`
+  const chunks: Buffer[] = []
+  const pushField = (name: string, value: string): void => {
+    chunks.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`, 'utf8'))
+  }
+  pushField('model', model)
+  pushField('prompt', prompt)
+  pushField('n', '1')
+  if (size) pushField('size', size)
+  refs.forEach((img, index) => {
+    const ext = img.mimeType === 'image/jpeg' ? 'jpg' : img.mimeType === 'image/webp' ? 'webp' : 'png'
+    chunks.push(Buffer.from(
+      `--${boundary}\r\nContent-Disposition: form-data; name="${fieldName}"; filename="ref${index + 1}.${ext}"\r\nContent-Type: ${img.mimeType}\r\n\r\n`,
+      'utf8',
+    ))
+    chunks.push(img.bytes)
+    chunks.push(Buffer.from('\r\n', 'utf8'))
+  })
+  chunks.push(Buffer.from(`--${boundary}--\r\n`, 'utf8'))
+  return {
+    contentType: `multipart/form-data; boundary=${boundary}`,
+    body: Buffer.concat(chunks),
+  }
 }
 
 export class ImageGenerationError extends Error {
@@ -63,16 +109,10 @@ export async function requestGeneratedImage(config: LLMConfig, request: Register
     const base = new URL(config.baseUrl)
     if (base.search || base.hash || base.username || base.password) throw new ImageGenerationError('生成服务地址无效，请检查连接设置。')
     if (!config.apiKey?.trim() && !isLoopbackUrl(base)) throw new ImageGenerationError('请先为生图连接配置密钥。')
-    const url = provider === 'gemini'
-      ? appendApiPath(base.href, `v1beta/models/${encodeURIComponent(config.model)}:generateContent`)
-      : appendApiPath(base.href, 'v1/images/generations')
-    const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' }
-    if (config.apiKey) headers[provider === 'gemini' ? 'x-goog-api-key' : 'Authorization'] = provider === 'gemini' ? config.apiKey : `Bearer ${config.apiKey}`
-    const refParts = provider === 'gemini' && Array.isArray(opts?.referenceImages)
+    const validRefs = Array.isArray(opts?.referenceImages)
       ? opts.referenceImages
         .filter((img) => Buffer.isBuffer(img.bytes) && img.bytes.length > 0 && img.bytes.length <= 4 * 1024 * 1024)
         .slice(0, 3)
-        .map((img) => ({ inlineData: { mimeType: img.mimeType, data: img.bytes.toString('base64') } }))
       : []
     const openaiSize = opts?.aspectRatio === '16:9' || opts?.aspectRatio === '4:3'
       ? '1536x1024'
@@ -81,16 +121,68 @@ export async function requestGeneratedImage(config: LLMConfig, request: Register
         : opts?.aspectRatio === '1:1'
           ? '1024x1024'
           : undefined
-    const body = provider === 'gemini'
-      ? {
-          contents: [{ role: 'user', parts: [...refParts, { text: prompt }] }],
-          generationConfig: {
-            responseModalities: ['IMAGE'],
-            ...(opts?.aspectRatio ? { imageConfig: { aspectRatio: opts.aspectRatio } } : {}),
-          },
+    const restrictedFetch = createRestrictedFetch(base.href, bounded, { maxBytes: MAX_JSON_BYTES, timeoutMs: GENERATION_TIMEOUT_MS })
+    let response: Response
+
+    if (provider === 'gemini') {
+      const url = appendApiPath(base.href, `v1beta/models/${encodeURIComponent(config.model)}:generateContent`)
+      const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' }
+      if (config.apiKey) headers['x-goog-api-key'] = config.apiKey
+      const refParts = validRefs.map((img) => ({ inlineData: { mimeType: img.mimeType, data: img.bytes.toString('base64') } }))
+      const body = {
+        contents: [{ role: 'user', parts: [...refParts, { text: prompt }] }],
+        generationConfig: {
+          responseModalities: ['IMAGE'],
+          ...(opts?.aspectRatio ? { imageConfig: { aspectRatio: opts.aspectRatio } } : {}),
+        },
+      }
+      response = await restrictedFetch(url, { method: 'POST', headers, body: JSON.stringify(body) })
+    } else {
+      const editCacheKey = `${base.origin}|${config.model}`
+      const shouldTryEdit = validRefs.length > 0 && !unsupportedOpenAIEditEndpoints.has(editCacheKey)
+      const jsonHeaders: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' }
+      const authHeaders: Record<string, string> = { Accept: 'application/json' }
+      if (config.apiKey) {
+        jsonHeaders.Authorization = `Bearer ${config.apiKey}`
+        authHeaders.Authorization = `Bearer ${config.apiKey}`
+      }
+      const generationsUrl = appendApiPath(base.href, 'v1/images/generations')
+      const generationsBody = JSON.stringify({ model: config.model, prompt, n: 1, ...(openaiSize ? { size: openaiSize } : {}) })
+
+      if (shouldTryEdit) {
+        const editsUrl = appendApiPath(base.href, 'v1/images/edits')
+        const firstPayload = buildOpenAIEditMultipart(config.model, prompt, validRefs, 'image', openaiSize)
+        response = await restrictedFetch(editsUrl, {
+          method: 'POST',
+          headers: { ...authHeaders, 'Content-Type': firstPayload.contentType },
+          body: firstPayload.body as unknown as BodyInit,
+        })
+        if (!response.ok && (response.status === 400 || response.status === 422)) {
+          const firstErrText = await response.text().catch(() => '')
+          if (/not.?support|unsupport|unknown.?endpoint/i.test(firstErrText)) {
+            unsupportedOpenAIEditEndpoints.add(editCacheKey)
+            response = await restrictedFetch(generationsUrl, { method: 'POST', headers: jsonHeaders, body: generationsBody })
+          } else {
+            // 兼容要求 multipart 数组字段名 image[] 的 OpenAI / 中转站实现
+            const retryPayload = buildOpenAIEditMultipart(config.model, prompt, validRefs, 'image[]', openaiSize)
+            response = await restrictedFetch(editsUrl, {
+              method: 'POST',
+              headers: { ...authHeaders, 'Content-Type': retryPayload.contentType },
+              body: retryPayload.body as unknown as BodyInit,
+            })
+            if (!response.ok && (response.status === 404 || response.status === 405 || response.status === 501)) {
+              unsupportedOpenAIEditEndpoints.add(editCacheKey)
+              response = await restrictedFetch(generationsUrl, { method: 'POST', headers: jsonHeaders, body: generationsBody })
+            }
+          }
+        } else if (!response.ok && (response.status === 404 || response.status === 405 || response.status === 501)) {
+          unsupportedOpenAIEditEndpoints.add(editCacheKey)
+          response = await restrictedFetch(generationsUrl, { method: 'POST', headers: jsonHeaders, body: generationsBody })
         }
-      : { model: config.model, prompt, n: 1, ...(openaiSize ? { size: openaiSize } : {}) }
-    const response = await createRestrictedFetch(base.href, bounded, { maxBytes: MAX_JSON_BYTES, timeoutMs: GENERATION_TIMEOUT_MS })(url, { method: 'POST', headers, body: JSON.stringify(body) })
+      } else {
+        response = await restrictedFetch(generationsUrl, { method: 'POST', headers: jsonHeaders, body: generationsBody })
+      }
+    }
     if (!response.ok) {
       if ([401, 403].includes(response.status)) throw new ImageGenerationError('生图服务拒绝认证，请检查密钥和模型权限。')
       if (response.status === 429) throw new ImageGenerationError('生图服务额度不足或请求过于频繁，请检查账户后重试。')

@@ -11,7 +11,7 @@ import { buildCoDecisionReactionPrompt, type CoDecisionReactionPromptInput } fro
 import { buildVulnerabilityReactionPrompt, type VulnerabilityReactionPromptInput } from './vulnerability-reaction'
 import { buildGiftReactionPrompt, type GiftReactionPromptInput } from './gift-reaction'
 import { buildNightlyReflectionUserPrompt, type NightlyReflectionPromptInput } from './nightly-reflection'
-import { buildImageGenerationPrompt } from './image-generation'
+import { buildImageGenerationPrompt, buildImageDirectorPrompt, type ImageDirectorPromptInput } from './image-generation'
 import { buildReplanSlotsPrompt, type ReplanSlotsPromptInput } from './replan-slots'
 import { buildHostCarePrompt, type HostCarePromptInput } from './host-care'
 /**
@@ -307,4 +307,8 @@ export function compileReplanSlotsRequest(input: ReplanSlotsPromptInput): Regist
 
 export function compileHostCareRequest(input: HostCarePromptInput): RegisteredModelRequest {
   return signRequest([{ role: 'user', content: buildHostCarePrompt(input) }], [PROMPT_KEYS.companionHostCare], ['host-care'])
+}
+
+export function compileImageDirectorRequest(input: ImageDirectorPromptInput): RegisteredModelRequest {
+  return signRequest([{ role: 'user', content: buildImageDirectorPrompt(input) }], [PROMPT_KEYS.companionImageDirector], ['image-director'])
 }

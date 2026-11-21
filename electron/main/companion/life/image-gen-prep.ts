@@ -13,10 +13,28 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
+import { loadAuxLLMConfig } from '../../llm/aux-config'
+import { chatComplete } from '../../llm/index'
 import type { GeneratedImageBytes, ImageAspectRatio } from '../../llm/image-generation'
+import { compileImageDirectorRequest } from '../../prompts/registered-request'
+import { createLogger } from '../../utils/logger'
 import { loadRolePack, loadRoleReferenceImages, resolveRoleAssetFilePath } from '../identity/loader'
 import { formatRoleAppearanceForImagePrompt } from '../identity/profile'
 import { listAssets } from './assets'
+
+const log = createLogger('ImageGenPrep')
+const VALID_ASPECT_RATIOS = new Set<ImageAspectRatio>(['1:1', '3:4', '4:3', '16:9', '9:16'])
+
+function getTimeOfDayLightLabel(hour: number): string {
+  if (hour >= 5 && hour < 8) return '清晨柔光（微暖晨光与淡雾）'
+  if (hour >= 8 && hour < 11) return '上午明亮日光（通透清爽）'
+  if (hour >= 11 && hour < 14) return '正午充沛阳光（明快高光）'
+  if (hour >= 14 && hour < 17) return '午后斜阳（柔和暖金色）'
+  if (hour >= 17 && hour < 19) return '黄昏晚霞（橙金与淡紫暮光）'
+  if (hour >= 19 && hour < 22) return '夜晚暖灯与微凉夜色'
+  return '深夜静谧月光与室内微光'
+}
 
 export type CompanionImageCategory =
   | 'selfie'
@@ -116,6 +134,13 @@ export interface PrepareCompanionImageGenInput {
   homeRoomId?: string
   universeId?: string
   forceCharacterRef?: boolean
+  /** 可选：是否启用辅助 LLM 绘画导演扩写（默认 true；未配置辅助模型或失败时静默回退模板）。 */
+  useDirector?: boolean
+  /** 可选：当前心情简述，供绘画导演捕捉神情与氛围。 */
+  moodSummary?: string
+  /** 可选：用户主动指定的额外参考垫图（如聊天中刚发送的图片），优先占用垫图槽位（总上限 3 张）。 */
+  extraReferenceImages?: ReadonlyArray<GeneratedImageBytes>
+  signal?: AbortSignal
 }
 
 export interface PreparedCompanionImageGen {
@@ -125,6 +150,81 @@ export interface PreparedCompanionImageGen {
   visualAnchor: string
   referenceImages: GeneratedImageBytes[]
   refLabels: string[]
+  homeRoomId?: string
+  directedByLlm?: boolean
+}
+
+export interface ImageDirectorResult {
+  prompt: string
+  homeRoom?: string
+  aspectRatio?: ImageAspectRatio
+}
+
+/**
+ * 调用辅助 LLM 将简短场景描述扩写为高质感中文生图提示词，并推断匹配房间与画幅比例。
+ *
+ * 背景：直接把 10~30 字简短描述发给生图模型容易出图平淡；由辅助模型结合时段光线、穿着与构图方向扩写可显著提升成片质量。
+ * 设计意图：仅在已配置可用辅助模型且未取消时发起一次受控 JSON 请求；任何失败或格式异常均返回 null 由上层无缝回退确定性模板。
+ * 关键约束：必须通过 compileImageDirectorRequest 签发请求；不得抛异常阻断生图主流程。
+ */
+export async function directCompanionImagePrompt(params: {
+  roleName: string
+  artStyle: string
+  appearanceAnchor?: string
+  description: string
+  category: CompanionImageCategory
+  compositionGuide: string
+  includeCharacter: boolean
+  moodSummary?: string
+  currentOutfit?: string
+  availableRooms?: ReadonlyArray<{ id: string; name: string }>
+  signal?: AbortSignal
+}): Promise<ImageDirectorResult | null> {
+  if (params.signal?.aborted) return null
+  try {
+    const auxConfig = await loadAuxLLMConfig()
+    if (!hasLLMAuthentication(auxConfig)) return null
+    const request = compileImageDirectorRequest({
+      roleName: params.roleName,
+      artStyle: params.artStyle,
+      appearanceAnchor: params.appearanceAnchor,
+      description: params.description,
+      category: params.category,
+      compositionGuide: params.compositionGuide,
+      includeCharacter: params.includeCharacter,
+      timeLabel: getTimeOfDayLightLabel(new Date().getHours()),
+      moodSummary: params.moodSummary,
+      currentOutfit: params.currentOutfit,
+      availableRooms: params.availableRooms,
+    })
+    const raw = await chatComplete({
+      config: { ...auxConfig, maxTokens: 420, temperature: 0.6 },
+      request,
+      caller: 'image-director',
+      signal: params.signal,
+    })
+    const match = raw.match(/\{[\s\S]*\}/)
+    if (!match) return null
+    const parsed = JSON.parse(match[0]) as Record<string, unknown>
+    const prompt = typeof parsed.prompt === 'string' ? parsed.prompt.trim() : ''
+    if (!prompt || prompt.length < 12) return null
+
+    const rawRoom = typeof parsed.homeRoom === 'string' ? parsed.homeRoom.trim() : ''
+    const validRoom = rawRoom && params.availableRooms?.some((r) => r.id === rawRoom) ? rawRoom : undefined
+    const rawRatio = typeof parsed.aspectRatio === 'string' ? parsed.aspectRatio.trim() : ''
+    const validRatio = VALID_ASPECT_RATIOS.has(rawRatio as ImageAspectRatio)
+      ? (rawRatio as ImageAspectRatio)
+      : undefined
+
+    return {
+      prompt: prompt.slice(0, 1200),
+      homeRoom: validRoom,
+      aspectRatio: validRatio,
+    }
+  } catch (err) {
+    log.warn('Image director expansion skipped, falling back to template', { error: String(err) })
+    return null
+  }
 }
 
 /**
@@ -136,11 +236,20 @@ export async function prepareCompanionImageGen(
   const universeId = input.universeId ?? 'default'
   const category = input.category ?? inferMomentImageCategory(input.description)
   const cfg = IMAGE_CATEGORY_CONFIG[category]
-  const aspectRatio = input.aspectRatio ?? cfg.aspectRatio
+  let aspectRatio = input.aspectRatio ?? cfg.aspectRatio
   const useCharacterRef = input.forceCharacterRef ?? cfg.includeCharacterRef
 
   const referenceImages: GeneratedImageBytes[] = []
   const refLabels: string[] = []
+  if (Array.isArray(input.extraReferenceImages) && input.extraReferenceImages.length > 0) {
+    for (const extra of input.extraReferenceImages.slice(0, 3)) {
+      if (Buffer.isBuffer(extra.bytes) && extra.bytes.length > 0 && extra.bytes.length <= 4 * 1024 * 1024) {
+        referenceImages.push(extra)
+        refLabels.push(`chat-ref-${referenceImages.length}`)
+      }
+    }
+  }
+
   let pack: ReturnType<typeof loadRolePack> | null = null
   try {
     pack = loadRolePack(input.roleId, universeId)
@@ -149,6 +258,8 @@ export async function prepareCompanionImageGen(
   }
   const styleAnchor = pack?.profile?.appearance?.artStyle?.trim() || COMPANION_IMAGE_STYLE_ANCHOR
   const anchorParts: string[] = [styleAnchor]
+  let currentOutfitName: string | undefined
+  let currentOutfitPath: string | undefined
 
   if (useCharacterRef) {
     if (pack?.profile) {
@@ -157,17 +268,19 @@ export async function prepareCompanionImageGen(
     }
 
     // 1. 优先加载角色多角度设定图 ref-sheet-<role>.png，缺失时回退 Role Pack 既有参考图
-    const refSheetPath = resolveRoleAssetFilePath(input.roleId, `visual/ref-sheet-${input.roleId}.png`, universeId)
-    const refSheetBytes = refSheetPath ? readLocalImageBytes(refSheetPath) : null
-    if (refSheetBytes) {
-      referenceImages.push(refSheetBytes)
-      refLabels.push(`ref-sheet-${input.roleId}.png`)
-      anchorParts.push(ANTI_CLONE_REF_SHEET_GUARD)
-    } else {
-      const fallbackRefs = loadRoleReferenceImages(input.roleId, universeId, 1)
-      if (fallbackRefs[0]) {
-        referenceImages.push(fallbackRefs[0])
-        refLabels.push('role-reference-fallback')
+    if (referenceImages.length < 3) {
+      const refSheetPath = resolveRoleAssetFilePath(input.roleId, `visual/ref-sheet-${input.roleId}.png`, universeId)
+      const refSheetBytes = refSheetPath ? readLocalImageBytes(refSheetPath) : null
+      if (refSheetBytes) {
+        referenceImages.push(refSheetBytes)
+        refLabels.push(`ref-sheet-${input.roleId}.png`)
+        anchorParts.push(ANTI_CLONE_REF_SHEET_GUARD)
+      } else {
+        const fallbackRefs = loadRoleReferenceImages(input.roleId, universeId, 1)
+        if (fallbackRefs[0]) {
+          referenceImages.push(fallbackRefs[0])
+          refLabels.push('role-reference-fallback')
+        }
       }
     }
 
@@ -176,8 +289,10 @@ export async function prepareCompanionImageGen(
       const wardrobe = await listAssets(input.roleId, { kind: 'wardrobe' })
       const wearing = wardrobe.find((a) => a.payload.wearing === true || a.payload.isWearing === true)
       if (wearing) {
+        currentOutfitName = wearing.name
         anchorParts.push(`当前穿着：${wearing.name}`)
         const visualPath = typeof wearing.payload.visualPath === 'string' ? wearing.payload.visualPath : ''
+        if (visualPath) currentOutfitPath = visualPath
         if (visualPath && referenceImages.length < 3) {
           const full = resolveRoleAssetFilePath(input.roleId, visualPath, universeId)
           const outfitBytes = full ? readLocalImageBytes(full) : null
@@ -190,23 +305,50 @@ export async function prepareCompanionImageGen(
     } catch {
       // 衣柜读取降级，不阻断生图
     }
+  }
 
-    // 3. 若指定了房间场景且垫图位有余量，附加该房间的场景参考图
-    if (input.homeRoomId && pack?.worldDefaults?.rooms && referenceImages.length < 3) {
-      const room = pack.worldDefaults.rooms.find((r) => r.id === input.homeRoomId)
-      const roomVisual = room?.visualPath
-      if (roomVisual) {
-        const full = resolveRoleAssetFilePath(input.roleId, roomVisual, universeId)
-        const roomBytes = full ? readLocalImageBytes(full) : null
-        if (roomBytes) {
-          referenceImages.push(roomBytes)
-          refLabels.push(`room:${room.id}`)
-        }
+  // 可选：调用辅助 LLM「绘画导演」扩写提示词，并推断匹配房间与画幅比例
+  const availableRooms = (pack?.worldDefaults?.rooms ?? []).map((r) => ({ id: r.id, name: r.name }))
+  let resolvedRoomId = input.homeRoomId
+  let directedPrompt: string | null = null
+  if (input.useDirector !== false) {
+    const directed = await directCompanionImagePrompt({
+      roleName: pack?.name || input.roleId,
+      artStyle: styleAnchor,
+      appearanceAnchor: anchorParts.filter(Boolean).join('；'),
+      description: input.description.trim(),
+      category,
+      compositionGuide: cfg.compositionGuide,
+      includeCharacter: useCharacterRef,
+      moodSummary: input.moodSummary,
+      currentOutfit: currentOutfitName,
+      availableRooms,
+      signal: input.signal,
+    })
+    if (directed) {
+      directedPrompt = directed.prompt
+      if (!resolvedRoomId && directed.homeRoom) resolvedRoomId = directed.homeRoom
+      if (!input.aspectRatio && directed.aspectRatio) aspectRatio = directed.aspectRatio
+    }
+  }
+
+  // 3. 若显式指定或由导演推断出房间场景且垫图位有余量，附加该房间的场景参考图
+  if (useCharacterRef && resolvedRoomId && pack?.worldDefaults?.rooms && referenceImages.length < 3) {
+    const room = pack.worldDefaults.rooms.find((r) => r.id === resolvedRoomId)
+    const roomVisual = room?.visualPath
+    if (roomVisual && roomVisual !== currentOutfitPath) {
+      const full = resolveRoleAssetFilePath(input.roleId, roomVisual, universeId)
+      const roomBytes = full ? readLocalImageBytes(full) : null
+      if (roomBytes) {
+        referenceImages.push(roomBytes)
+        refLabels.push(`room:${room.id}`)
       }
     }
   }
 
-  const prompt = `${input.description.trim()}\n【构图方向】${cfg.compositionGuide}`
+  const prompt = directedPrompt
+    ? `${directedPrompt}\n【构图方向】${cfg.compositionGuide}`
+    : `${input.description.trim()}\n【构图方向】${cfg.compositionGuide}`
   return {
     category,
     aspectRatio,
@@ -214,5 +356,7 @@ export async function prepareCompanionImageGen(
     visualAnchor: anchorParts.filter(Boolean).join('；'),
     referenceImages,
     refLabels,
+    ...(resolvedRoomId ? { homeRoomId: resolvedRoomId } : {}),
+    directedByLlm: Boolean(directedPrompt),
   }
 }

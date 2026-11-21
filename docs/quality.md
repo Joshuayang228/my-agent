@@ -1,5 +1,7 @@
 # 质量总控
 
+全链路生图管线 v2 门禁（2026-11-22）：`image-generation.test.ts` 新增 OpenAI `/images/edits` multipart 多图垫图、400 自动切换 `image[]` 重试与 404 进程级能力熔断降级回归（19 项），`role-visual-overrides.test.ts` 新增 `extraReferenceImages` 垫图优先级与 `companion_take_photo` / `useChatImage` 契约验证（9 项），`prompt-feature-contracts.test.ts` 扩展至 27 个核心功能合同（新增 `imageDirector`）；全量单测、双进程 `tsc`、`arch:check`（14 项）、`assets:check`（113 项）与 `docs:validate` 全部通过。
+
 人格化错误承接与依赖安全复核门禁（`WISH-016` / `WISH-044`，2026-11-21）：新增 `companion-error-voice.test.ts`（3 项）验证全部 12 项 `AgentErrorCode` 覆盖、路飞与通用角色语气隔离、原始错误原因完整保留及 `ABORTED` 温和承接；`npm audit --omit=dev` 生产依赖 0 漏洞，全量仅 `electron-builder` → `minimatch` 构建期 6 项 moderate（0 critical / 0 high）；全量单测、双进程 `tsc`、`arch:check`（14 项）、`assets:check`（113 项）与 `docs:validate` 全部通过。
 
 视觉覆写备份回滚、当日聊天共鸣单槽微调与 Vite 扫描收敛门禁（2026-11-21）：`role-visual-overrides.test.ts` 新增导出/校验/幂等恢复/失败回滚与 `data-export` 白名单回归（8 项），`life-replan.test.ts` 新增当日聊天共鸣单槽微调与体征重排隔离回归（6 项），修复 `image-generation.ts` 锚点标签契约（`image-generation.test.ts` 18/18）；全量单测（292 passed / 1 skipped）、`arch:check`（14 项）、`assets:check`（113 项）、`build` 与 `docs:validate` 全部通过。

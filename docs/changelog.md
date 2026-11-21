@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-22 落地全链路生图管线 v2：新增受控「绘画导演」辅助模型扩写层（`companionImageDirector`）、对话专属伙伴拍照工具 `companion_take_photo`、通用 `image_generate` 的 `useChatImage` 聊天图片垫图能力，以及 OpenAI `/images/edits` 多图垫图与 `image`/`image[]` 自动重试及进程级降级缓存。
+
 2026-11-21 落地主会话人格化错误承接（`WISH-016`）：断网、限流、超时、权限拒绝或未配置模型时，以当前伙伴的自然口吻承接并附带真实脱敏错误原因引用，避免裸技术报错破坏陪伴感；同步完成锁定依赖安全复核（`WISH-044`：生产依赖 0 漏洞，全量 0 critical / 0 high）。
 
 2026-11-21 补齐角色自定义头像/封面覆写（`roleVisualOverrides`）与 Chat 氛围壁纸开关（`companionChatBackdropEnabled`）的 `data:export` / `data:import` 备份恢复与回滚闭环；新增当日聊天共鸣即时单槽微调（`adaptNextUpcomingSlotForResonance`），让聊天中约好的美食/文化/日常活动能即时编入今天下一个空闲生活槽位；收敛 `vite.config.ts` 开发依赖扫描入口，关闭 `WISH-028`。

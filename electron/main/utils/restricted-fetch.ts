@@ -61,9 +61,20 @@ export function createRestrictedFetch(serverUrl: string, signal: AbortSignal, op
     const target = await withRequestAbort(resolveRestrictedTarget(input, serverUrl, allowLocalOrigin), AbortSignal.any([bounded, AbortSignal.timeout(timeoutMs)]))
     bounded.throwIfAborted()
     const body = init?.body
-    if (body !== undefined && body !== null && typeof body !== 'string' && !(body instanceof URLSearchParams)) throw new Error('Restricted HTTP body rejected')
-    const text = body?.toString()
-    if (text && Buffer.byteLength(text) > maxBytes) throw new Error('Restricted HTTP request too large')
+    let payload: string | Buffer | undefined
+    if (body === undefined || body === null) {
+      payload = undefined
+    } else if (typeof body === 'string') {
+      payload = body
+    } else if (body instanceof URLSearchParams) {
+      payload = body.toString()
+    } else if (body instanceof Uint8Array) {
+      payload = Buffer.from(body.buffer, body.byteOffset, body.byteLength)
+    } else {
+      throw new Error('Restricted HTTP body rejected')
+    }
+    const payloadBytes = payload === undefined ? 0 : typeof payload === 'string' ? Buffer.byteLength(payload) : payload.byteLength
+    if (payloadBytes > maxBytes) throw new Error('Restricted HTTP request too large')
     return new Promise<Response>((resolve, reject) => {
       const request = (target.url.protocol === 'https:' ? httpsRequest : httpRequest)(target.url, {
         method: init?.method ?? 'GET', headers: Object.fromEntries(new Headers(init?.headers)), signal: bounded,
@@ -97,7 +108,7 @@ export function createRestrictedFetch(serverUrl: string, signal: AbortSignal, op
       })
       request.on('error', reject)
       request.setTimeout(timeoutMs, () => request.destroy(new Error('Restricted HTTP request timed out')))
-      request.end(text)
+      request.end(payload)
     })
   }
 }

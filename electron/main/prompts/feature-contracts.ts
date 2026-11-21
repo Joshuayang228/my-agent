@@ -206,6 +206,12 @@ export const PROMPT_FEATURE_CONTRACTS = Object.freeze({
     overrideBoundary: ['角色关心同伴时的口吻与互动风格'], output: '只输出 JSON 对象，包含 careMessage 关怀发言、suggestedAction 建议小动作。',
     fallback: '模型不可用或解析失败时使用基于角色人设与关切类型的确定性关怀文本，不阻塞流程。', consumers: ['electron/main/companion/life/host-presence.ts'],
   }),
+  imageDirector: contract({
+    key: 'feature:image-director', name: '角色生图绘画导演扩写', domain: 'life', purpose: '将简短的场景描述结合当前时段光线、心情、穿着、房间与构图分类扩写为高质感绘画 Prompt，并推断合适的场景房间与画幅比例。',
+    staticInputs: ['安全规则', '绘画导演扩写协议', 'JSON输出约束'], runtimeInputs: ['角色外观与画风锚点', '简短场景描述', '构图分类', '当前时段与心情', '当前穿着与可用房间'],
+    overrideBoundary: ['画面光影氛围、景别构图与自然动作细节'], output: '只输出 JSON 对象，包含 prompt 绘画提示词、homeRoom 可选房间 ID、aspectRatio 建议画幅比例。',
+    fallback: '辅助模型未配置、调用失败或 JSON 解析异常时，无缝回退到确定性构图模板，绝不阻断生图主流程。', consumers: ['electron/main/companion/life/image-gen-prep.ts'],
+  }),
 } as const)
 
 export type PromptFeatureContractKey = keyof typeof PROMPT_FEATURE_CONTRACTS

@@ -92,11 +92,28 @@ describe('Companion Image Gen Prep（按场景动态垫图与画幅选择）', (
     expect(foodPrep.aspectRatio).toBe('1:1')
     expect(foodPrep.referenceImages).toHaveLength(0)
 
-    const coverPrep = await prepareCompanionImageGen({ roleId: 'luffy', description: '千里阳光号迎着朝阳出航', category: 'cover', homeRoomId: 'shared-deck' })
+    const coverPrep = await prepareCompanionImageGen({ roleId: 'luffy', description: '千里阳光号迎着朝阳出航', category: 'cover', homeRoomId: 'shared-deck', useDirector: false })
     expect(coverPrep.aspectRatio).toBe('16:9')
     expect(coverPrep.referenceImages.length).toBeGreaterThanOrEqual(1)
     expect(coverPrep.visualAnchor).toContain('手绘日系冒险插画风格')
     expect(coverPrep.prompt).toContain('【构图方向】')
+
+    const chatRefPrep = await prepareCompanionImageGen({
+      roleId: 'luffy',
+      description: '照着这张图画成水彩风',
+      category: 'selfie',
+      useDirector: false,
+      extraReferenceImages: [{ bytes: TINY_PNG, mimeType: 'image/png' }],
+    })
+    expect(chatRefPrep.refLabels[0]).toBe('chat-ref-1')
+    expect(chatRefPrep.referenceImages.length).toBeLessThanOrEqual(3)
+  })
+
+  it('companion_take_photo 与 image_generate 工具契约完整注册（含先换装再拍照规则与 useChatImage）', async () => {
+    const { companionTakePhotoTool, imageGenerateTool } = await import('../../electron/main/tools/builtins/image-generate')
+    expect(companionTakePhotoTool.name).toBe('companion_take_photo')
+    expect(companionTakePhotoTool.description).toContain('companion_change_wardrobe')
+    expect(imageGenerateTool.parameters.properties).toHaveProperty('useChatImage')
   })
 })
 

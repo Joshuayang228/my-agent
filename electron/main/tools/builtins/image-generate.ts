@@ -4,7 +4,7 @@ import path from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
 import { buildTool } from '../builder'
 import { loadImageGenerationConfig } from '../../llm/aux-config'
-import { ImageGenerationError, requestGeneratedImage } from '../../llm/image-generation'
+import { ImageGenerationError, inspectGeneratedImageBytes, requestGeneratedImage, type GeneratedImageBytes } from '../../llm/image-generation'
 import { normalizeGeneratedImage } from '../../utils/generated-image-codec'
 import { checkFileWriteSandbox, isPathInsideRoot } from '../../sandbox/file-path-guard'
 import { loadEffectiveSandbox } from '../../sandbox/effective-sandbox'
@@ -12,6 +12,8 @@ import { getRules } from '../../sandbox/permission-engine'
 import type { GeneratedImageReference, ToolContext } from '../../../../src/shared/types'
 import type { SandboxMode } from '../../sandbox/policy'
 import { createLogger } from '../../utils/logger'
+import { getSession } from '../../storage/session-store'
+import { getCompanionRuntimeState } from '../../companion/core/state/runtime-state'
 import { attachWorldAssetImage, getAsset, listAssets } from '../../companion/life/assets'
 import { loadRolePack } from '../../companion/identity/loader'
 import { prepareCompanionImageGen, type CompanionImageCategory } from '../../companion/life/image-gen-prep'
@@ -21,6 +23,51 @@ import { formatRoleAppearanceForImagePrompt } from '../../companion/identity/pro
 import { attachMomentImageForRole, prepareMomentImageTarget } from '../../companion/life/moment-images'
 
 const log = createLogger('ImageGenerate')
+
+/**
+ * 从当前会话消息历史中提取用户最近发送的图片附件，供 image_generate 的 useChatImage 垫图/改图使用。
+ *
+ * 背景：用户在对话中粘贴图片后常说“照着这张改一下”或“画成水彩风”，若工具无法读取会话图片，只能让用户手输本地路径。
+ * 设计意图：倒序扫描当前会话的 user 消息 images 附件，按 1-based 序号（true 默认第 1 张即最新一张）解码并做光栅格式校验。
+ * 关键约束：严格限定 4MB 上限与受控光栅签名；仅读当前 sessionId，不跨会话泄漏图片。
+ */
+export async function loadRecentChatImage(
+  sessionId: string,
+  selector: boolean | number,
+): Promise<GeneratedImageBytes> {
+  const session = await getSession(sessionId)
+  const attachments: string[] = []
+  if (session?.messages) {
+    for (let i = session.messages.length - 1; i >= 0; i--) {
+      const msg = session.messages[i]
+      if (msg.role !== 'user' || !Array.isArray(msg.images)) continue
+      for (let j = msg.images.length - 1; j >= 0; j--) {
+        const dataUrl = msg.images[j]?.dataUrl
+        if (typeof dataUrl === 'string' && dataUrl.startsWith('data:image/')) {
+          attachments.push(dataUrl)
+        }
+      }
+    }
+  }
+  if (attachments.length === 0) {
+    throw new ImageGenerationError('当前对话中还没有找到用户发送的图片，请先发一张图再使用 useChatImage。')
+  }
+  const index = typeof selector === 'number' && Number.isFinite(selector)
+    ? Math.max(0, Math.floor(selector) - 1)
+    : 0
+  if (index >= attachments.length) {
+    throw new ImageGenerationError(`当前对话中只有 ${attachments.length} 张图片，无法取第 ${selector} 张。`)
+  }
+  const match = attachments[index].match(/^data:image\/[^;]+;base64,(.+)$/)
+  if (!match) {
+    throw new ImageGenerationError('对话中的图片格式无效，无法作为垫图参考。')
+  }
+  const bytes = Buffer.from(match[1], 'base64')
+  if (!bytes.length || bytes.length > 4 * 1024 * 1024) {
+    throw new ImageGenerationError('对话中的图片过大（超过 4MB）或为空，无法作为垫图参考。')
+  }
+  return inspectGeneratedImageBytes(bytes)
+}
 
 /**
  * 将已校验的衣柜槽位转成生图用的短视觉锚点。
@@ -107,6 +154,7 @@ export const imageGenerateTool = buildTool({
       targetVisualSlot: { type: 'string', enum: ['avatar', 'banner'], description: '可选：将生成图片直接应用为当前会话角色的头像（avatar）或主页封面壁纸（banner）。' },
       category: { type: 'string', enum: ['selfie', 'outing', 'food', 'gift', 'hangout', 'scenery', 'mood', 'cover'], description: '可选：构图与垫图分类；食物/风景/静物自动跳过人物垫图。' },
       aspectRatio: { type: 'string', enum: ['1:1', '3:4', '4:3', '16:9', '9:16'], description: '可选：画面宽高比，默认按构图分类自动选择。' },
+      useChatImage: { type: 'number', description: '可选：引用当前对话中用户发过的图片作为垫图参考（传 1 表示最新一张，2 表示倒数第二张）。' },
     },
     required: ['prompt', 'path'],
   },
@@ -164,12 +212,18 @@ export const imageGenerateTool = buildTool({
         : targetVisualSlot === 'avatar'
           ? '1:1'
           : undefined
+      const extraReferenceImages: GeneratedImageBytes[] = []
+      if (args.useChatImage === true || (typeof args.useChatImage === 'number' && args.useChatImage >= 1)) {
+        extraReferenceImages.push(await loadRecentChatImage(context!.sessionId!, args.useChatImage))
+      }
       const prepared = context?.roleId
         ? await prepareCompanionImageGen({
             roleId: context.roleId,
             description: args.prompt,
             category: explicitCategory,
             aspectRatio: explicitRatio,
+            extraReferenceImages,
+            signal: context?.signal,
           })
         : null
       const finalPrompt = prepared ? prepared.prompt : args.prompt
@@ -178,7 +232,10 @@ export const imageGenerateTool = buildTool({
         config,
         compileImageGenerationRequest(finalPrompt, finalAnchor),
         context?.signal,
-        { referenceImages: prepared?.referenceImages ?? [], aspectRatio: explicitRatio ?? prepared?.aspectRatio },
+        {
+          referenceImages: prepared ? prepared.referenceImages : extraReferenceImages,
+          aspectRatio: explicitRatio ?? prepared?.aspectRatio,
+        },
       )
       const image = await normalizeGeneratedImage(response.bytes, context?.signal)
       context?.signal?.throwIfAborted()
@@ -221,6 +278,137 @@ export const imageGenerateTool = buildTool({
       return { content: `图片已生成并保存到 ${args.path}（${image.width} × ${image.height}）${targetVisualSlot ? `，并已应用为当前角色的${targetVisualSlot === 'avatar' ? '头像' : '主页封面'}` : ''}。`, generatedImages }
     } catch (error) {
       return { content: context?.signal?.aborted ? '已取消生图，服务端可能仍在处理；请勿重复提交。' : error instanceof ImageGenerationError ? error.message : '图片生成或保存失败，请检查模型、图片格式和项目权限；没有自动重试。', isError: true }
+    }
+  },
+})
+
+
+/**
+ * 伙伴专属拍照/自拍工具（companion_take_photo）。
+ *
+ * 背景：通用 image_generate 面向任意画面创作，主模型容易在画伙伴本人时手写漂移的外貌/画风或忘穿当前衣物；
+ * 拆出专属拍照工具后，主模型只需提供 10~50 字简短场景描述，其余全部交由绘画导演与多图垫图装配器自动完成。
+ * 设计意图：自动读取当前角色心情、穿着、房间与三视图参考，走统一安全落盘与权限边界；明确约定“换装拍照须先调 companion_change_wardrobe 再拍照”。
+ * 关键约束：必须纳入 Agent Host DOMAIN_TOOL_POLICIES（companion.write）；路径仍严格受 resolveGeneratedImageTarget 沙箱防穿越与禁覆盖约束。
+ */
+export const companionTakePhotoTool = buildTool({
+  name: 'companion_take_photo',
+  description: [
+    '为当前伙伴拍摄一张生活照、自拍、穿搭照或眼前风景/美食照（自动注入角色三视图垫图、当前穿着、时段光线、心情与绘画导演扩写）。',
+    '【使用规则】',
+    '1. 凡是需要伙伴本人出镜拍照、自拍、晒穿搭或拍当下生活瞬间时，必须优先调用本工具，不要使用 image_generate；',
+    '2. description 只需写 10~50 字的简短场景描述，不要自己编造画风、人物五官或构图参数，系统全部自动处理；',
+    '3. food / scenery / mood 分类会自动拍纯食物/风景/静物照，不画人物本人；',
+    '4. 如果用户要求先换衣服/换造型再拍照，必须先调用 companion_change_wardrobe 换装，再调用本工具，否则拍出来仍是原来的穿着。',
+  ].join('\n'),
+  parameters: {
+    type: 'object',
+    properties: {
+      description: { type: 'string', description: '10~100 字简短场景描述（例如：在甲板上迎着海风大笑、刚烤好的带骨大肉）。' },
+      category: { type: 'string', enum: ['selfie', 'outing', 'food', 'gift', 'hangout', 'scenery', 'mood', 'cover'], description: '拍摄分类，默认 selfie；food/scenery/mood 不出现人物。' },
+      homeRoomId: { type: 'string', description: '可选：指定所处房间 ID（不填则由绘画导演按场景自动匹配）。' },
+      path: { type: 'string', description: '可选：保存路径（images/名称.png）；省略时自动生成唯一文件名。' },
+      targetVisualSlot: { type: 'string', enum: ['avatar', 'banner'], description: '可选：顺手把这张照片设为当前伙伴的头像或主页封面。' },
+    },
+    required: ['description'],
+  },
+  metadata: { isReadOnly: false, isDestructive: false, isConcurrencySafe: false, longRunning: true },
+  execute: async (args, context) => {
+    try {
+      context?.signal?.throwIfAborted()
+      if (!context?.roleId) throw new ImageGenerationError('当前会话没有绑定伙伴，无法拍摄伙伴生活照。')
+      const description = typeof args.description === 'string' ? args.description.trim() : ''
+      if (!description || description.length > 500) {
+        throw new ImageGenerationError('请提供简短的场景描述（1~500 字）。')
+      }
+      const mode = await loadEffectiveSandbox()
+      const autoName = `images/companion-photo-${Date.now()}-${randomUUID().slice(0, 6)}.png`
+      const targetPath = typeof args.path === 'string' && args.path.trim() ? args.path.trim() : autoName
+      const target = resolveGeneratedImageTarget(targetPath, context, mode)
+      const rules = JSON.stringify(getRules())
+      const config = await loadImageGenerationConfig()
+      if (!config) throw new ImageGenerationError('请先在模型设置中安排生图模型。')
+
+      const validCategories = new Set<CompanionImageCategory>(['selfie', 'outing', 'food', 'gift', 'hangout', 'scenery', 'mood', 'cover'])
+      const targetVisualSlot = isValidVisualSlot(args.targetVisualSlot) ? args.targetVisualSlot : ''
+      const category: CompanionImageCategory = typeof args.category === 'string' && validCategories.has(args.category as CompanionImageCategory)
+        ? (args.category as CompanionImageCategory)
+        : targetVisualSlot === 'banner'
+          ? 'cover'
+          : 'selfie'
+      const homeRoomId = typeof args.homeRoomId === 'string' && args.homeRoomId.trim() ? args.homeRoomId.trim() : undefined
+
+      let moodSummary: string | undefined
+      try {
+        const runtimeState = await getCompanionRuntimeState(context.roleId)
+        if (runtimeState) {
+          const m = runtimeState.mood
+          moodSummary = m >= 75 ? '开心雀跃' : m >= 45 ? '轻松自然' : '略显疲惫安静'
+        }
+      } catch {
+        // 心情读取降级，不阻断拍照
+      }
+
+      const requestMode = await loadEffectiveSandbox()
+      context?.signal?.throwIfAborted()
+      const requestTarget = resolveGeneratedImageTarget(targetPath, context, requestMode)
+      if (requestTarget.target !== target.target || mode !== requestMode || rules !== JSON.stringify(getRules())) {
+        throw new ImageGenerationError('项目或权限已变化，未发起拍照。请检查设置后再操作。')
+      }
+
+      const prepared = await prepareCompanionImageGen({
+        roleId: context.roleId,
+        description,
+        category,
+        homeRoomId,
+        aspectRatio: targetVisualSlot === 'avatar' ? '1:1' : undefined,
+        moodSummary,
+        useDirector: true,
+        signal: context?.signal,
+      })
+
+      const response = await requestGeneratedImage(
+        config,
+        compileImageGenerationRequest(prepared.prompt, prepared.visualAnchor),
+        context?.signal,
+        { referenceImages: prepared.referenceImages, aspectRatio: prepared.aspectRatio },
+      )
+      const image = await normalizeGeneratedImage(response.bytes, context?.signal)
+      context?.signal?.throwIfAborted()
+      const currentMode = await loadEffectiveSandbox()
+      const current = resolveGeneratedImageTarget(targetPath, context, currentMode)
+      if (current.target !== target.target || mode !== currentMode || rules !== JSON.stringify(getRules())) {
+        throw new ImageGenerationError('拍照期间项目或权限已变化，未写入图片。')
+      }
+      commitImage(current, image.bytes)
+
+      const generatedImages: GeneratedImageReference[] = [{
+        id: createHash('sha256').update(image.bytes).digest('hex'),
+        path: current.target,
+        mimeType: image.mimeType,
+        width: image.width,
+        height: image.height,
+        byteLength: image.bytes.length,
+      }]
+
+      if (targetVisualSlot) {
+        const saved = await saveRoleVisualOverride(context.roleId, targetVisualSlot, image.bytes)
+        if (!saved.ok) throw new ImageGenerationError(saved.error)
+      }
+
+      return {
+        content: `照片已拍好并保存到 ${targetPath}（${image.width} × ${image.height}，画幅 ${prepared.aspectRatio}）${targetVisualSlot ? `，并已应用为当前伙伴的${targetVisualSlot === 'avatar' ? '头像' : '主页封面'}` : ''}。`,
+        generatedImages,
+      }
+    } catch (error) {
+      return {
+        content: context?.signal?.aborted
+          ? '已取消拍照，服务端可能仍在处理；请勿重复提交。'
+          : error instanceof ImageGenerationError
+            ? error.message
+            : '拍照失败，请检查生图模型配置与项目权限；没有自动重试。',
+        isError: true,
+      }
     }
   },
 })
