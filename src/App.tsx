@@ -1138,8 +1138,8 @@ function App() {
   return (
     <>
     <div className="app-shell relative flex h-screen select-none" style={{ display: standaloneView ? 'none' : undefined, background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-      {/* Chat 专属全宽固定氛围底图：仅在 Chat 视图铺设并向左侧栏提供强磨砂透色，切入人物世界自动退场 */}
-      {activeView === 'chat' && chatBackdropEnabled ? (
+      {/* 全宽固定氛围底图：Chat 与人物世界共享左侧栏强磨砂透色；人物世界右侧保持不透明底色防与头图重影 */}
+      {chatBackdropEnabled && (activeView === 'chat' || isWorldView(activeView)) ? (
         <CompanionSceneBackdrop roleId={activeRoleId} bannerSrc={roleBanners[activeRoleId] ?? companionBanner} opacity={chatBackdropOpacity} />
       ) : null}
       {/* ── Primary 侧栏（Alice 壳） ── */}
@@ -1163,7 +1163,7 @@ function App() {
       >
         <PrimarySidebar
           collapseControlPlacement="header"
-          frosted={activeView === 'chat' && chatBackdropEnabled}
+          frosted={chatBackdropEnabled && (activeView === 'chat' || isWorldView(activeView))}
           developerMode={developerMode}
           personaName={currentPersonaName}
           personaBlurb={companionBlurb || '越探索，越着迷。'}
