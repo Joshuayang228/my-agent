@@ -27,7 +27,8 @@ describe('World Frontend Polish（顶栏与新 Tab 去数值化与克制交互�
       roleId: 'luffy',
       previewThoughts: [],
     }))
-    expect(html).toContain('日记本里还空着')
+    expect(html).toContain('还没有日记')
+    expect(html).not.toContain('flex-1 items-center justify-center p-8')
     expect(html).not.toContain('vulnerability-card')
     expect(html).not.toContain('今晚甲板很宁静')
   })

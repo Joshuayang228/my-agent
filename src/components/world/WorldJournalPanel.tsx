@@ -213,9 +213,11 @@ export function WorldJournalPanel({
           </div>
         </article>
       ) : thoughts.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center p-8">
-          <EmptyState title="日记本里还空着" description="当角色独处、回忆或整理心情时，会自主写下真情实感。" />
-        </div>
+        <EmptyState
+          centerWithoutAction
+          title="还没有日记"
+          description="独处、回忆或整理心情时，伙伴会在这里写下日记。"
+        />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="journal-shelf">
           {thoughts.map((thought) => (

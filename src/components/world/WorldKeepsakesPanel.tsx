@@ -194,10 +194,7 @@ export function WorldKeepsakesPanel({
 
       {/* 内容展示区（纯只读礼物柜） */}
       {previewReadError || loadError ? (
-        <div
-          className="flex flex-1 flex-col items-center justify-center p-8 text-center"
-          data-testid="keepsakes-error-state"
-        >
+        <div data-testid="keepsakes-error-state">
           <ErrorState
             title="礼物柜暂时无法读取"
             description={previewReadError ?? loadError}
@@ -216,13 +213,11 @@ export function WorldKeepsakesPanel({
       ) : activeTab === 'keepsakes' ? (
         /* 伙伴送出的礼物 */
         keepsakes.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center p-8">
-            <EmptyState
-              title="还没有送出过礼物"
-              description="一起经历重要时刻或实现共同心愿时，伙伴会把想送你的纪念礼物放进这里。"
-              centerWithoutAction
-            />
-          </div>
+          <EmptyState
+            title="还没有送出过礼物"
+            description="一起经历重要时刻或实现共同心愿时，伙伴会把想送你的纪念礼物放进这里。"
+            centerWithoutAction
+          />
         ) : selected ? (
           <article
             className="w-full max-w-3xl rounded-[var(--radius-card)] border p-6 sm:p-8"
@@ -294,13 +289,11 @@ export function WorldKeepsakesPanel({
       ) : (
         /* 伙伴收到的礼物（通过聊天自然送出） */
         gifts.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center p-8">
-            <EmptyState
-              title="还没有收到过礼物"
-              description="在聊天里送给伙伴喜欢的食物或小物件，TA 会珍藏进礼物柜。"
-              centerWithoutAction
-            />
-          </div>
+          <EmptyState
+            title="还没有收到过礼物"
+            description="在聊天里送给伙伴喜欢的食物或小物件，TA 会珍藏进礼物柜。"
+            centerWithoutAction
+          />
         ) : (
           <div className="flex flex-col gap-3">
             {gifts.map((gift) => (
