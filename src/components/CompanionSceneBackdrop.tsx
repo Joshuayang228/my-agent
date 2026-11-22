@@ -12,10 +12,13 @@ import {
 interface CompanionSceneBackdropProps {
   roleId: string
   bannerSrc?: string | null
+  /** 壁纸透明度百分比（0~35，默认 12，接近轻雾感不干扰正文阅读） */
+  opacity?: number
 }
 
-export function CompanionSceneBackdrop({ roleId, bannerSrc }: CompanionSceneBackdropProps) {
+export function CompanionSceneBackdrop({ roleId, bannerSrc, opacity = 12 }: CompanionSceneBackdropProps) {
   const [scene, setScene] = useState<CompanionSceneId>('default')
+  const clampedOpacity = Math.min(0.35, Math.max(0, (Number.isFinite(opacity) ? opacity : 12) / 100))
 
   const load = useCallback(async () => {
     if (!window.electronAPI?.companion) return
@@ -76,7 +79,8 @@ export function CompanionSceneBackdrop({ roleId, bannerSrc }: CompanionSceneBack
           <img
             src={bannerSrc}
             alt=""
-            className="h-full w-full object-cover object-center opacity-[0.22] transition-opacity duration-700 select-none"
+            className="h-full w-full object-cover object-center transition-opacity duration-500 select-none"
+            style={{ opacity: clampedOpacity }}
           />
         </div>
       )}

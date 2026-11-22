@@ -123,15 +123,15 @@ function CopyButton({ text }: { text: string }) {
 export function CodeBlock({ code, language = 'text' }: { code: string; language?: string }) {
   const surfaceRef = useRef<HTMLDivElement>(null)
   const theme = useSurfaceTheme(surfaceRef)
-  return <div ref={surfaceRef} className="group relative my-3 min-w-0 overflow-hidden rounded-lg border"
-    data-testid="markdown-code-block" data-foundation="code-block" style={{ borderColor: 'var(--card-border)' }}>
-    <div className="flex items-center justify-between gap-2 px-4 py-1.5 text-xs" style={{ background: 'var(--bg-tertiary)' }}>
-      <span className="min-w-0 truncate" style={{ color: 'var(--text-muted)' }}>{language}</span>
+  return <div ref={surfaceRef} className="group relative my-3 min-w-0 overflow-hidden rounded-[var(--radius-md)] border"
+    data-testid="markdown-code-block" data-foundation="code-block" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
+    <div className="flex items-center justify-between gap-2 border-b px-3.5 py-1 text-[11px]" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+      <span className="min-w-0 truncate font-mono" style={{ color: 'var(--text-muted)' }}>{language}</span>
       <CopyButton text={code} />
     </div>
-    <SyntaxHighlighter style={theme?.mode === 'light' ? SYNTAX_HIGHLIGHT_THEMES.light : SYNTAX_HIGHLIGHT_THEMES.dark} language={language}
+    <SyntaxHighlighter className="scrollbar-thin" style={theme?.mode === 'light' ? SYNTAX_HIGHLIGHT_THEMES.light : SYNTAX_HIGHLIGHT_THEMES.dark} language={language}
       tabIndex={0} aria-label="代码内容" codeTagProps={{ style: { background: 'transparent' } }}
-      customStyle={{ margin: 0, borderRadius: 0, background: 'var(--bg-inset)', fontSize: '0.8125rem', lineHeight: '1.6', overflow: 'auto' }}>
+      customStyle={{ margin: 0, borderRadius: 0, background: 'var(--card-bg)', fontSize: '0.8125rem', lineHeight: '1.65', padding: '0.85rem 1rem', overflow: 'auto' }}>
       {code}
     </SyntaxHighlighter>
   </div>
@@ -195,8 +195,11 @@ const MARKDOWN_COMPONENTS: React.ComponentProps<typeof ReactMarkdown>['component
   code({ children }) {
     return (
       <code
-        className="rounded px-1.5 py-0.5 text-[0.8125rem]"
-        style={{ background: 'var(--bg-inset)', color: 'var(--accent-fg)' }}
+        className="rounded-[4px] px-1.5 py-[1px] font-mono text-[0.84em]"
+        style={{
+          background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)',
+          color: 'var(--text-primary)',
+        }}
       >
         {children}
       </code>

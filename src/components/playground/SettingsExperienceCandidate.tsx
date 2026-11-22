@@ -98,6 +98,8 @@ function CompanionPage({ momentTips, onMomentTipsChange, onOpenRoleShelf, onProa
   const [imageMaxPerDay, setImageMaxPerDay] = useState('1')
   const [imagePolicy, setImagePolicy] = useState<'never' | 'existing' | 'generated'>('never')
   const [interactionPolicy, setInteractionPolicy] = useState<'never' | 'occasional' | 'regular'>('occasional')
+  const [chatBackdropEnabled, setChatBackdropEnabled] = useState(true)
+  const [chatBackdropOpacity, setChatBackdropOpacity] = useState(12)
   return <CompanionSettingsContent
     showHeader={false}
     expertise={expertise as 'auto' | 'novice' | 'intermediate' | 'expert'}
@@ -106,6 +108,10 @@ function CompanionPage({ momentTips, onMomentTipsChange, onOpenRoleShelf, onProa
     onMomentTipsMutedChange={(muted) => onMomentTipsChange(!muted)}
     proactiveGreeting={proactiveGreeting}
     onProactiveGreetingChange={onProactiveGreetingChange}
+    chatBackdropEnabled={chatBackdropEnabled}
+    onChatBackdropEnabledChange={setChatBackdropEnabled}
+    chatBackdropOpacity={chatBackdropOpacity}
+    onChatBackdropOpacityChange={setChatBackdropOpacity}
     quietStart={quietStart}
     quietEnd={quietEnd}
     maxPerDay={maxPerDay}

@@ -84,6 +84,7 @@ const SAFE_BACKUP_SETTING_KEYS = new Set<keyof settingsStore.AppSettings>([
   'companionMomentInteractionPolicy',
   'companionProactiveGreetingEnabled', 'companionProactiveGreetingLastDay',
   'companionChatBackdropEnabled',
+  'companionChatBackdropOpacity',
   'conversationDebugMode', 'llmCapabilityCache', 'modelConnections', 'modelRoutes',
 ])
 

@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-22 精修 Chat 对话流视觉、过程留白流与氛围壁纸透明度设置：`CompanionSceneBackdrop` 默认壁纸浓度由 22% 降至 12% 轻雾感，并在伙伴设置新增「壁纸透明度」滑块（`companionChatBackdropOpacity`，0%–35%，同步纳入 `data:export` / `data:import` 与 Playground 设置样张）；`MarkdownRenderer` 行内代码改为轻量中性灰底深灰字，代码块启用 `.scrollbar-thin` 细滚动条与统一圆角；`ReasoningCallback` 与 `ToolCallbackList` 收口为极简留白过程流（`xxx >` 收起，展开为 88% 浅雾磨砂圆角卡、思考直接可读限高滚动、工具状态「准备中… / 进行中… / 未通过」与「去查看」统一右对齐、默认不摊开 JSON）。
+
 2026-11-22 参考 Alice `rf` / `Xg` 升级 Chat 过程视图为「双段实底小胶囊 + 点击弹窗看详情」：`ToolCallbackList` 与 `ReasoningCallback` 共用 `ProcessStepCapsule`（左段动作名、右段单行摘要与可选「去查看」轻链接，去掉重复回执行与大绿按钮）与居中 `ProcessDetailModal`（`Esc`/遮罩关闭），绝不在对话流里摊开大段 JSON；多轮折叠摘要补充失败计数提示；`GeneratedImageResult` 改为独立圆角实底图卡去除多余顶线；提升 `.ququ-line` 在氛围壁纸上的可读对比度，正式页与 Playground 同步生效。
 
 2026-11-22 轻量重构 Chat 过程视图并落地多轮任务自动收起：`ReasoningCallback` 与 `ToolCallbackList` 去框减重为统一色阶（`--text-secondary`）无框幽灵行与柔和半透明浅底展开容器；新增 `groupVisibleMessages` / `buildProcessSummaryText` 接入正式 `App.tsx` 与 Playground，多轮工具任务进行中实时展开、跑完后默认折叠过程仅保留最后一轮最终回复与外露生成图；同步将 `ChatFileChip` 移除按钮统一为与 `ChatImageThumb` 相同的右上角悬浮圆标。

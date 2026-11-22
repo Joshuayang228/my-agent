@@ -2,7 +2,7 @@
 
 会话向量从会话和源消息 ID 生成稳定索引键，首次提交和恢复重投使用同一次覆盖写入。嵌入或保存失败返回后台队列重试。
 
-人物命令复核主角时传播设置读取故障，避免存储异常时授予对人物归属的默认通过。2026-11-21 复核：新增 `companionChatBackdropEnabled` 设置项与只读 `LifeContextSnapshot` 会话眼色采样均不修改记忆表结构或召回契约。
+人物命令复核主角时传播设置读取故障，避免存储异常时授予对人物归属的默认通过。2026-11-22 复核：新增 `companionChatBackdropEnabled` / `companionChatBackdropOpacity` 设置项与只读 `LifeContextSnapshot` 会话眼色采样均不修改记忆表结构或召回契约。
 
 主对话的生活结算与回复一起登记。画像提取和语义索引继续使用各自的后台队列。
 

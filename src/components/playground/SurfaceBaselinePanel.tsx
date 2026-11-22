@@ -331,7 +331,7 @@ const STREAM_TOOL_FIXTURES: ToolCallbackItem[] = [
     args: {},
     streamingArgs: '{"pattern": "World*", "path": "src/components/"}',
     status: 'pending',
-    collapsed: false,
+    collapsed: true,
   },
   {
     callId: 'preview-tool-running',
@@ -346,7 +346,7 @@ const STREAM_TOOL_FIXTURES: ToolCallbackItem[] = [
     args: { path: 'src/shared/content-layout.ts', startLine: 1, endLine: 24 },
     result: 'export const SPACING = { tight: 8, compact: 12, normal: 16, relaxed: 20, wide: 24 } as const',
     status: 'done',
-    collapsed: false,
+    collapsed: true,
   },
   {
     callId: 'preview-tool-moment',
@@ -388,7 +388,7 @@ const STREAM_TOOL_FIXTURES: ToolCallbackItem[] = [
     args: { command: 'git push --force' },
     result: '工具错误：高风险命令已被权限策略拦截，未执行任何改动。',
     status: 'error',
-    collapsed: false,
+    collapsed: true,
   },
 ]
 
@@ -631,11 +631,10 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                             variant="plain"
                             onClick={() => setStreamProcessExpanded((open) => !open)}
                             aria-expanded={streamProcessExpanded}
-                            className="-mx-1.5 !min-h-0 !justify-start gap-1.5 rounded-[var(--radius-sm)] border-0 !px-1.5 !py-1 text-left text-[12px] hover:bg-[var(--hover-overlay)]"
+                            className="-mx-1.5 !min-h-0 !justify-start gap-1 rounded-[var(--radius-sm)] border-0 !px-1.5 !py-1 text-left text-[12px] hover:bg-[var(--hover-overlay)]"
                           >
-                            <Sparkles size={12} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
                             <span style={{ color: 'var(--text-secondary)' }}>
-                              已思考并完成 {streamTools.length} 步处理（{streamTools.filter((t) => t.status === 'error').length} 项失败） · 读取文件、发布朋友圈、生成图片…
+                              已思考并完成 {streamTools.length} 步处理（{streamTools.filter((t) => t.status === 'error').length} 项失败）
                             </span>
                             <ChevronRight
                               size={12}
@@ -644,18 +643,26 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                             />
                           </ActionButton>
                           {streamProcessExpanded && (
-                            <div className="mt-1.5 mb-2 flex flex-col items-start gap-1.5">
+                            <div
+                              className="mt-1.5 mb-2.5 space-y-2.5 rounded-[var(--radius-md)] border px-3.5 py-3 backdrop-blur-[6px]"
+                              style={{
+                                borderColor: 'var(--border-subtle)',
+                                background: 'color-mix(in srgb, var(--card-bg) 88%, transparent)',
+                              }}
+                            >
                               <ReasoningCallback
-                                chunks={[{ content: '1. 先检索布局文件确认间距阶梯；\n2. 读取伙伴生活世界状态并发布窗边下午茶动态；\n3. 记录《海边手记》到文化角并生成配图；\n4. 遇到高风险命令时直接返回拦截结果。' }]}
+                                chunks={[{ content: '先检索布局文件确认间距阶梯，再读取伙伴生活世界状态并发布窗边下午茶动态，把《海边手记》记进文化角并配一张窗边图；遇到高风险命令直接拦截。' }]}
                                 expanded={reasoningExpanded}
                                 onToggle={() => setReasoningExpanded((expanded) => !expanded)}
                                 streaming={false}
                                 presentation="stable"
+                                embedded
                               />
                               <ToolCallbackList
                                 tools={streamTools.map((item) => ({ ...item, generatedImages: undefined }))}
                                 onToggleCollapse={toggleToolIn(setStreamTools)}
                                 onNavigateToWorld={() => onNavigate?.('world')}
+                                embedded
                               />
                             </div>
                           )}

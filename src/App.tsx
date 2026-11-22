@@ -186,6 +186,7 @@ function App() {
   const [roleAvatars, setRoleAvatars] = useState<Record<string, string>>({})
   const [roleBanners, setRoleBanners] = useState<Record<string, string>>({})
   const [chatBackdropEnabled, setChatBackdropEnabled] = useState(true)
+  const [chatBackdropOpacity, setChatBackdropOpacity] = useState(12)
 
   useEffect(() => {
     if ((activeView === 'world' && worldTab === 'moments') || activeView === 'moments') {
@@ -195,6 +196,10 @@ function App() {
       void window.electronAPI?.settings?.get?.().then((s) => {
         if (s && typeof s.companionChatBackdropEnabled === 'string') {
           setChatBackdropEnabled(s.companionChatBackdropEnabled !== 'false')
+        }
+        if (s && typeof s.companionChatBackdropOpacity === 'string') {
+          const parsed = Number(s.companionChatBackdropOpacity)
+          if (Number.isFinite(parsed)) setChatBackdropOpacity(Math.min(35, Math.max(0, parsed)))
         }
       }).catch(() => {})
     }
@@ -1403,7 +1408,7 @@ function App() {
           onDragLeave={() => setDragOver(false)}
           onDrop={(e) => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) handleFileAttach(e.dataTransfer.files) }}
         >
-          {chatBackdropEnabled ? <CompanionSceneBackdrop roleId={activeRoleId} bannerSrc={roleBanners[activeRoleId] ?? companionBanner} /> : null}
+          {chatBackdropEnabled ? <CompanionSceneBackdrop roleId={activeRoleId} bannerSrc={roleBanners[activeRoleId] ?? companionBanner} opacity={chatBackdropOpacity} /> : null}
           <div className={`relative z-[1] flex min-h-full flex-col ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`}>
           <div className="mx-auto flex min-h-full w-full flex-1 flex-col" style={{ maxWidth: 'var(--layout-width)' }} data-testid="chat-content">
             {/* 欢迎屏 — 衬线问候 + 建议 pill（Phase 3） */}
@@ -1557,13 +1562,8 @@ function App() {
                               variant="plain"
                               onClick={() => setExpandedProcessRuns((prev) => ({ ...prev, [msg.id]: !processExpanded }))}
                               aria-expanded={processExpanded}
-                              className="-mx-1.5 !min-h-0 !justify-start gap-1.5 rounded-[var(--radius-sm)] border-0 !px-1.5 !py-1 text-left text-[12px] hover:bg-[var(--hover-overlay)]"
+                              className="-mx-1.5 !min-h-0 !justify-start gap-1 rounded-[var(--radius-sm)] border-0 !px-1.5 !py-1 text-left text-[12px] hover:bg-[var(--hover-overlay)]"
                             >
-                              <Sparkles
-                                size={12}
-                                className={`shrink-0 ${isRunStreaming ? 'animate-pulse' : ''}`}
-                                style={{ color: isRunStreaming ? 'var(--accent-fg)' : 'var(--text-muted)' }}
-                              />
                               <span style={{ color: 'var(--text-secondary)' }}>
                                 {isRunStreaming
                                   ? `正在处理中（已完成 ${allIntermediateTools.length || intermediateSteps.length} 步）…`
@@ -1581,7 +1581,13 @@ function App() {
                               />
                             </ActionButton>
                             {processExpanded && (
-                              <div className="mt-1.5 mb-2 flex flex-col items-start gap-1.5">
+                              <div
+                                className="mt-1.5 mb-2.5 space-y-2.5 rounded-[var(--radius-md)] border px-3.5 py-3 backdrop-blur-[6px]"
+                                style={{
+                                  borderColor: 'var(--border-subtle)',
+                                  background: 'color-mix(in srgb, var(--card-bg) 88%, transparent)',
+                                }}
+                              >
                                 {showThinkingBeforeMsg && (
                                   <ReasoningCallback
                                     chunks={reasoning.chunks}
@@ -1589,19 +1595,20 @@ function App() {
                                     onToggle={() => setThinkingExpanded(!thinkingExpanded)}
                                     streaming={isStreaming}
                                     presentation="stable"
+                                    embedded
                                   />
                                 )}
                                 {intermediateResolved.map(({ step, tools: stepTools }) => (
-                                  <div key={step.id} className="flex max-w-full flex-col items-start gap-1.5">
-                                    {stepTools.length > 0 && (
-                                      <ToolCallbackList
-                                        tools={stepTools.map((t) => ({ ...t, generatedImages: undefined }))}
-                                        sessionId={activeSessionId}
-                                        onToggleCollapse={toggleToolCollapse}
-                                        onNavigateToWorld={navigateToWorldTab}
-                                      />
-                                    )}
-                                  </div>
+                                  stepTools.length > 0 ? (
+                                    <ToolCallbackList
+                                      key={step.id}
+                                      tools={stepTools.map((t) => ({ ...t, generatedImages: undefined }))}
+                                      sessionId={activeSessionId}
+                                      onToggleCollapse={toggleToolCollapse}
+                                      onNavigateToWorld={navigateToWorldTab}
+                                      embedded
+                                    />
+                                  ) : null
                                 ))}
                               </div>
                             )}

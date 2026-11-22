@@ -40,6 +40,7 @@ interface SettingsForm {
   companionMomentCadence: string
   companionMomentVisibility: string
   companionChatBackdropEnabled: string
+  companionChatBackdropOpacity: string
   companionMomentMaxPerDay: string
   companionMomentCooldownMinutes: string
   companionMomentPostingQuietStart: string
@@ -72,6 +73,7 @@ const DEFAULTS: SettingsForm = {
   companionMomentCadence: 'regular',
   companionMomentVisibility: 'ai',
   companionChatBackdropEnabled: 'true',
+  companionChatBackdropOpacity: '12',
   companionMomentMaxPerDay: '3',
   companionMomentCooldownMinutes: '240',
   companionMomentPostingQuietStart: '23',
@@ -244,6 +246,7 @@ export function SettingsPanel({
         companionMomentCadence: s.companionMomentCadence || DEFAULTS.companionMomentCadence,
         companionMomentVisibility: s.companionMomentVisibility || DEFAULTS.companionMomentVisibility,
         companionChatBackdropEnabled: s.companionChatBackdropEnabled || DEFAULTS.companionChatBackdropEnabled,
+        companionChatBackdropOpacity: s.companionChatBackdropOpacity || DEFAULTS.companionChatBackdropOpacity,
         companionMomentMaxPerDay: s.companionMomentMaxPerDay || DEFAULTS.companionMomentMaxPerDay,
         companionMomentCooldownMinutes: s.companionMomentCooldownMinutes || DEFAULTS.companionMomentCooldownMinutes,
         companionMomentPostingQuietStart: s.companionMomentPostingQuietStart || DEFAULTS.companionMomentPostingQuietStart,
@@ -450,6 +453,8 @@ export function SettingsPanel({
     onProactiveGreetingChange={(value) => update('companionProactiveGreetingEnabled', value ? 'true' : 'false')}
     chatBackdropEnabled={form.companionChatBackdropEnabled !== 'false'}
     onChatBackdropEnabledChange={(value) => update('companionChatBackdropEnabled', value ? 'true' : 'false')}
+    chatBackdropOpacity={Math.min(35, Math.max(0, Number(form.companionChatBackdropOpacity) || 12))}
+    onChatBackdropOpacityChange={(value) => update('companionChatBackdropOpacity', String(Math.min(35, Math.max(0, Math.round(value)))))}
     quietStart={form.companionMomentTipsQuietStart}
     quietEnd={form.companionMomentTipsQuietEnd}
     maxPerDay={form.companionMomentTipsMaxPerDay}
