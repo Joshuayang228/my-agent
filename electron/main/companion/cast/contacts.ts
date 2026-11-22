@@ -1,4 +1,4 @@
-import { getRoleVisuals, loadRelations } from '../identity/loader'
+import { getRoleVisualDataUrl, getRoleVisuals, loadRelations } from '../identity/loader'
 import { listRelatedCast } from './roster'
 import { formatRelationSummary } from './relation-summary'
 import { listEvents, listEventLinks, getMomentByEventId } from '../core/persistence/life-repository'
@@ -46,7 +46,8 @@ export async function getContactsForRole(roleId: string, universeId = 'default')
       try {
         avatarSrc = getRoleVisuals(person.id, universeId).avatarDataUrl ?? undefined
       } catch {
-        avatarSrc = undefined
+        // 仅作为配角存在（无完整 protected.md/mutable.default.md）的角色直接读取其 Role Pack 头像文件
+        avatarSrc = getRoleVisualDataUrl(person.id, 'visual/avatar-v1.png', universeId) ?? undefined
       }
       return {
         id: person.id,

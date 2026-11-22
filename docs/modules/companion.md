@@ -14,7 +14,7 @@
 
 领域事件和 Outbox 保存人物命令的执行与关联标识。一个执行可定位多个事件，命令重试保留关联号，未附事件的出站消息仍可按执行查询。出站消费先事务化领取，消费结束后按同一次领取事务化结算。
 
-人物世界读写接口统一验证当前应用窗口及主文档，全量校验发生在领域调用前。通讯录投影（`companion/cast/contacts.ts#getContactsForRole`）通过 `getRoleVisuals` 一并返回关联配角的 `avatarSrc`，缺失时由前端自然降级为首字徽标。礼物柜（`companion/life/gifting.ts`）支持 `giverName` 与 Role Pack `starterReceivedGifts` 幂等播种，可同时展示用户与角色小伙伴赠送的珍藏礼物。
+人物世界读写接口统一验证当前应用窗口及主文档，全量校验发生在领域调用前。通讯录投影（`companion/cast/contacts.ts#getContactsForRole`）通过 `getRoleVisuals` 及配角直读 `getRoleVisualDataUrl` 一并返回关联配角的 `avatarSrc`，缺失时由前端自然降级为首字徽标。礼物柜（`companion/life/gifting.ts`）支持 `giverName` 与 Role Pack `starterReceivedGifts` 幂等播种，可同时展示用户与角色小伙伴赠送的珍藏礼物。
 
 朋友圈发布、资产工具与评论接入取消信号。已保存的评论继续保留，回复生成接收取消信号。人物选定的延迟回复连同到期时间写入 Outbox，重启后按原人物、世界观及评论归属恢复，同一条回复只提交一次。Chat 评论工具只回报直接回复本条评论的主角发言。
 

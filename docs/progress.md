@@ -1,5 +1,7 @@
 # 项目进度
 
+人物世界 5 项体验与 Bug 收口（2026-11-23）：`WorldKeepsakesPanel` 将「收到的礼物」统一为与「送出的礼物」相同的三列轻白卡网格与居中详情卡；`contacts.ts` 为无 `protected.md` 的配角增加 `getRoleVisualDataUrl` 降级加载，修复索隆/娜美/乌索普/山治头像不显示问题；`assets.ts#ensureStarterWardrobe` 按槽位与旧出厂引用同步升级既有 `wear-state` 为路飞全身立绘；`AssetsPanel.tsx` 在衣柜画廊隐藏误导性的「库存 · 3」计数行；`MomentsPanel.tsx` 全面对齐 Alice 朋友圈交互（发送/Esc 自动收起输入框、暖红点赞态与点赞条、三按钮 hover 态及一体化轻量评论条）。
+
 Chat 等待首字指示器去冗余（2026-11-23）：`App.tsx` 当 `ReasoningCallback` 已在流式展示思考过程时隐藏 `ContentCallbackCue`，避免出现「让我想想… >」与「回复生成中…」双指示堆叠；`ContentCallback.tsx` 移除机械文案，改为极简三点呼吸提示。
 
 文化角卡片化、路飞完整全身穿衣立绘与伙伴赠礼柜（2026-11-23）：`WorldCultureGallery.tsx` 将书籍/影视/音乐/摄影四类画廊列表统一收进 `var(--card-bg)` 边框卡片，封面图改用 `object-cover` 贴顶铺满；为路飞生成完整全身穿搭立绘 `roles/luffy/visual/wardrobe-initial-outfit-v2.png` 替代原无头衣架拆解图，并在 `assets.ts#ensureStarterWardrobe` 为已有库无损升级旧出厂 `starterOutfit` / `wear-state` 配图；在 `life-schema.ts`、`types.ts`、`life-presets.ts`、`gifting.ts` 与 `WorldKeepsakesPanel.tsx` 落地 `giverName` 与 Role Pack `starterReceivedGifts` 幂等播种，为路飞预置红发香克斯送的草帽与可雅送的黄金梅丽号，礼物柜卡片清晰区分「来自 红发香克斯 / 可雅 / 你」。

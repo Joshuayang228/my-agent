@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 人物世界收口 5 项：统一「收到的礼物」为与「送出的礼物」一致的三列纸白卡片网格 + 点击展开居中阅读详情（完整保留赠礼人、日期、附言、回响与聊聊入口）；修复配角因缺少 `protected.md` 导致 `contacts.ts` 未返回头像的 Bug（降级直读 `getRoleVisualDataUrl`）；修复旧库 `ensureStarterWardrobe` 未同步更新 `wear-state` 穿衣立绘的 Bug；移除衣柜画廊多余的「库存 · N」标题；朋友圈点赞与评论交互全面对齐 Alice（评论发送/Esc 自动收起输入框、点赞暖红态与点赞行、按钮 hover 轻高亮、一体化圆角评论条）。
+
 2026-11-23 精简 Chat 等待首字指示器：`App.tsx` 在已有「让我想想…」思考过程展示时不再叠放 `ContentCallbackCue`；`ContentCallback.tsx` 移除机械感文字「回复生成中…」，改为极简三点呼吸输入指示器（仅在无思考过程且等待首字时轻显）。
 
 2026-11-23 文化角卡片化、路飞完整穿衣立绘与礼物柜伙伴赠礼支持：`WorldCultureGallery` 书籍/影视/音乐/摄影列表统一封装为 `var(--card-bg)` 圆角卡片并改为 `object-cover` 贴顶封面，消除文字归属不清问题；为路飞生成完整人物全身穿搭立绘（`wardrobe-initial-outfit-v2.png`）替换无头衣架拆解图，并在 `assets.ts#ensureStarterWardrobe` 支持无损升级既有用户的出厂穿搭图（不覆盖用户自生成换装图）；`companion_received_gifts` 新增 `giver_name` 列与 `life-presets.json#starterReceivedGifts` 幂等播种，支持展示来自小伙伴与重要之人的礼物（路飞预置「红发香克斯的草帽」与可雅送的「黄金梅丽号」），`WorldKeepsakesPanel` 卡片同步显示「来自 xxx」徽标。

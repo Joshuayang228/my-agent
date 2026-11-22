@@ -8,7 +8,8 @@ vi.mock('../../electron/main/storage/database', () => ({ withDatabaseTransaction
 vi.mock('../../electron/main/utils/logger', () => ({ createLogger: () => ({ info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() }) }))
 vi.mock('../../electron/main/companion/identity/loader', () => ({
   loadRelations: () => ({ edges: [{ from: 'lin', to: 'yao', type: 'friend', note: '相处方式' }] }),
-  getRoleVisuals: (id: string) => ({ avatarDataUrl: id === 'yao' ? 'data:image/png;base64,yao-avatar' : null }),
+  getRoleVisuals: () => { throw new Error('cast-only role has no protected.md') },
+  getRoleVisualDataUrl: (id: string) => (id === 'yao' ? 'data:image/png;base64,yao-avatar' : null),
 }))
 vi.mock('../../electron/main/companion/cast/roster', () => ({ listRelatedCast: () => [{ id: 'yao', name: '阿遥', description: '人物介绍', summary: '摘要' }] }))
 const { getContactsForRole } = await import('../../electron/main/companion/cast/contacts')

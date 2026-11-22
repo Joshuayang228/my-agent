@@ -9,12 +9,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import {
-  Gift,
   MessageSquareShare,
-  Heart,
-  Utensils,
-  Map as MapIcon,
-  Compass,
   ArrowLeft,
 } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
@@ -61,21 +56,6 @@ function formatDate(timestamp: number): string {
   }
 }
 
-function renderGiftCategoryIcon(category: string) {
-  switch (category) {
-    case 'food':
-      return <Utensils size={16} />
-    case 'collectible':
-      return <MapIcon size={16} />
-    case 'practical':
-      return <Compass size={16} />
-    case 'emotional':
-      return <Heart size={16} />
-    default:
-      return <Gift size={16} />
-  }
-}
-
 export function WorldKeepsakesPanel({
   roleId = 'luffy',
   onTakeToChat,
@@ -93,7 +73,9 @@ export function WorldKeepsakesPanel({
   const [loadError, setLoadError] = useState('')
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const selected = keepsakes.find((item) => item.id === selectedId)
+  const selected = activeTab === 'keepsakes' ? keepsakes.find((item) => item.id === selectedId) : undefined
+  const selectedGift = activeTab === 'gifts' ? gifts.find((item) => item.id === selectedId) : undefined
+  const hasSelection = Boolean(selected || selectedGift)
 
   useEffect(() => {
     setActiveTab(initialSubTab)
@@ -172,8 +154,8 @@ export function WorldKeepsakesPanel({
       data-testid="world-keepsakes-panel"
       data-world-content="keepsakes"
     >
-      <div className={selected ? 'mx-auto mb-4 flex w-full max-w-3xl flex-wrap items-center gap-3' : 'mb-4 flex flex-wrap items-center gap-3'}>
-        {selected ? (
+      <div className={hasSelection ? 'mx-auto mb-4 flex w-full max-w-3xl flex-wrap items-center gap-3' : 'mb-4 flex flex-wrap items-center gap-3'}>
+        {hasSelection ? (
           <ActionButton variant="plain" onClick={() => setSelectedId(null)}>
             <ArrowLeft size={14} className="mr-1" />返回礼物柜
           </ActionButton>
@@ -284,95 +266,75 @@ export function WorldKeepsakesPanel({
           </div>
         )
       ) : (
-        /* 伙伴收到的礼物（通过聊天自然送出） */
+        /* 伙伴收到的礼物（来自伙伴或你在聊天中自然送出），与「送出的礼物」统一卡片与详情样式 */
         gifts.length === 0 ? (
           <EmptyState
             title="还没有收到过礼物"
             description="在聊天里送给伙伴喜欢的食物或小物件，TA 会珍藏进礼物柜。"
             centerWithoutAction
           />
-        ) : (
-          <div className="flex flex-col gap-3">
-            {gifts.map((gift) => (
-              <div
-                key={gift.id}
-                className="flex flex-col justify-between rounded-[var(--radius-card)] border p-4 transition-colors hover:bg-[var(--hover-overlay)]"
-                style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}
-                data-testid={`received-gift-card-${gift.id}`}
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-lg)]"
-                        style={{
-                          background: 'var(--accent-subtle)',
-                          color: 'var(--accent-fg)',
-                        }}
-                      >
-                        {renderGiftCategoryIcon(gift.category)}
-                      </div>
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                            {gift.giftName}
-                          </h3>
-                          <Badge tone={gift.giverName && gift.giverName !== '你' ? 'neutral' : 'accent'}>
-                            来自 {gift.giverName || '你'}
-                          </Badge>
-                        </div>
-                        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                          收到于 {formatDate(gift.createdAt)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {gift.userNote && (
-                    <div
-                      className="mt-3 rounded-[var(--radius-lg)] px-3 py-2 text-[11px] leading-relaxed"
-                      style={{
-                        backgroundColor: 'var(--bg-primary)',
-                        color: 'var(--text-secondary)',
-                      }}
-                    >
-                      <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>附言：</span>
-                      “{gift.userNote}”
-                    </div>
-                  )}
-
-                  <div
-                    className="mt-3 rounded-[var(--radius-lg)] p-2.5 text-[11px] leading-relaxed"
-                    style={{
-                      backgroundColor: 'var(--bg-secondary)',
-                      color: 'var(--text-primary)',
-                    }}
-                  >
-                    <span className="font-semibold" style={{ color: 'var(--accent-fg)' }}>
-                      收到时的回响：
-                    </span>
-                    “{gift.companionReaction}”
-                  </div>
-                </div>
-
-                {onTakeToChat && (
-                  <div className="mt-4 flex items-center justify-end border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
-                    <ActionButton
-                      size="sm"
-                      variant="plain"
-                      tone="accent"
-                      onClick={() => {
-                        onTakeToChat({
-                          text: `聊聊你礼物柜里的「${gift.giftName}」吧！`,
-                        })
-                      }}
-                    >
-                      <MessageSquareShare size={12} className="mr-1" />
-                      聊聊这份礼物
-                    </ActionButton>
-                  </div>
-                )}
+        ) : selectedGift ? (
+          <article
+            className="mx-auto w-full max-w-3xl rounded-[var(--radius-card)] border p-6 sm:p-8"
+            style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}
+            data-testid={`received-gift-detail-${selectedGift.id}`}
+          >
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h2 className="break-words font-display text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {selectedGift.giftName}
+              </h2>
+              <Badge tone={selectedGift.giverName && selectedGift.giverName !== '你' ? 'neutral' : 'accent'}>
+                来自 {selectedGift.giverName || '你'}
+              </Badge>
+            </div>
+            <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+              收到于 {formatDate(selectedGift.createdAt)}
+            </p>
+            {selectedGift.userNote && (
+              <p className="mt-5 whitespace-pre-wrap break-words text-sm leading-7" style={{ color: 'var(--text-secondary)' }}>
+                “{selectedGift.userNote}”
+              </p>
+            )}
+            <blockquote className="mt-5 whitespace-pre-wrap break-words font-display text-base leading-8" style={{ color: 'var(--text-primary)' }}>
+              {selectedGift.companionReaction}
+            </blockquote>
+            {onTakeToChat && (
+              <div className="mt-6 flex justify-end border-t pt-4" style={{ borderColor: 'var(--border-subtle)' }}>
+                <ActionButton
+                  variant="plain"
+                  tone="accent"
+                  onClick={() => onTakeToChat({ text: `聊聊你礼物柜里的「${selectedGift.giftName}」吧！` })}
+                >
+                  <MessageSquareShare size={14} className="mr-1" />聊聊这份礼物
+                </ActionButton>
               </div>
+            )}
+          </article>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="received-gift-shelf">
+            {gifts.map((gift) => (
+              <button
+                key={gift.id}
+                type="button"
+                onClick={() => setSelectedId(gift.id)}
+                aria-label={`查看礼物：${gift.giftName}`}
+                data-testid={`received-gift-card-${gift.id}`}
+                className="flex min-w-0 flex-col gap-2.5 overflow-hidden rounded-[var(--radius-card)] border p-4 text-left transition-colors hover:bg-[var(--hover-overlay)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
+                style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}
+              >
+                <span className="flex items-center justify-between gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  <span>{formatDate(gift.createdAt)}</span>
+                  <Badge tone={gift.giverName && gift.giverName !== '你' ? 'neutral' : 'accent'}>
+                    来自 {gift.giverName || '你'}
+                  </Badge>
+                </span>
+                <span className="break-words font-display text-base font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
+                  {gift.giftName}
+                </span>
+                <span className="line-clamp-3 break-words text-[12px] leading-6" style={{ color: 'var(--text-secondary)' }}>
+                  {gift.userNote || gift.companionReaction}
+                </span>
+              </button>
             ))}
           </div>
         )

@@ -527,9 +527,9 @@ export function AssetsPanel({ refreshToken, onLoadingChange, previewAssets, prev
           </section>}
           {showAddControls && wardrobeGallery && !isPreview && previewWardrobeView === 'outfits' && <WorldAssetAddRow open={adding} label="套装" draft={addDraft} busy={busy} assets={garments} onOpen={() => setAddDrafts(drafts => ({ ...drafts, wardrobe: { open: true, draft: { kind: 'wardrobe', name: '', presentation: 'wardrobe-gallery', payload: { recordType: 'outfit' } } } }))} onChange={draft => setAddDrafts(drafts => ({ ...drafts, wardrobe: { open: true, draft } }))} onSave={() => void saveAdd()} onCancel={() => { if (!busy) setAddDrafts({}) }} />}
           {(!wardrobeGallery || !['wearing', 'outfits'].includes(previewWardrobeView)) && <section data-testid="world-assets-inventory">
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-            {tab === 'bookshelf' ? '藏书' : '库存'}{(wardrobeGallery ? garments.length : tabItems.length) ? ` · ${wardrobeGallery ? garments.length : tabItems.length}` : ''}
-          </div>
+          {!wardrobeGallery && <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+            {tab === 'bookshelf' ? '藏书' : '库存'}{tabItems.length ? ` · ${tabItems.length}` : ''}
+          </div>}
           {visibleItems.length === 0 && !loading ? (
             <p className="py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>{tab === 'bookshelf' ? '书架还是空的。' : '衣柜还是空的。'}</p>
           ) : (

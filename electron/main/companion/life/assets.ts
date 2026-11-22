@@ -636,21 +636,31 @@ export async function ensureStarterWardrobe(roleId: string): Promise<{ created: 
   if (outfitAsset && outfitAsset.roleId === roleId) {
     const oldVisualPath = typeof outfitAsset.payload.visualPath === 'string' ? outfitAsset.payload.visualPath : ''
     const needsInitialImage = !outfitAsset.payload.image && outfitAsset.payload.outfitVersion === 1
-    const needsStarterVisualUpgrade = oldVisualPath !== '' && oldVisualPath !== outfitVisualPath
+    const needsStarterVisualUpgrade = oldVisualPath !== outfitVisualPath
     if (needsInitialImage || needsStarterVisualUpgrade) {
       const outfitImage = materializeRoleVisualImage(roleId, outfitVisualPath)
       if (outfitImage) {
         if (needsInitialImage) {
           await attachWorldAssetImage(outfitId, outfitImage, { expectedRoleId: roleId, expectedOutfitVersion: 1 })
         } else {
+          const oldImageId = (outfitAsset.payload.image as { id?: string } | undefined)?.id
           const nextOutfitPayload = { ...outfitAsset.payload, visualPath: outfitVisualPath, image: outfitImage }
           db.run('UPDATE companion_assets SET payload_json = ? WHERE id = ? AND role_id = ?', [JSON.stringify(nextOutfitPayload), outfitId, roleId])
-          // 若当前穿着仍沿用旧出厂图，一并无损升级为新版人物立绘，不覆盖用户自生成的换装图
+          // 若当前穿着仍沿用旧出厂套装（槽位一致或图像引用未变），一并无损升级为新版人物全身立绘
           const allWardrobe = await listAssets(roleId, { kind: ASSET_KIND_WARDROBE })
           const wearState = allWardrobe.find((item) => item.payload.recordType === 'wear-state')
-          if (wearState && wearState.payload.visualPath === oldVisualPath) {
-            const nextWearPayload = { ...wearState.payload, visualPath: outfitVisualPath, image: outfitImage }
-            db.run('UPDATE companion_assets SET payload_json = ? WHERE id = ? AND role_id = ?', [JSON.stringify(nextWearPayload), wearState.id, roleId])
+          if (wearState) {
+            const wearSlots = (wearState.payload.slots ?? {}) as Record<string, unknown>
+            const outfitSlots = (outfitAsset.payload.slots ?? {}) as Record<string, unknown>
+            const sameSlots = ['top', 'bottom', 'shoes'].every((slot) => wearSlots[slot] === outfitSlots[slot])
+            const wearImageId = (wearState.payload.image as { id?: string } | undefined)?.id
+            const usesOldStarter = (oldVisualPath && wearState.payload.visualPath === oldVisualPath)
+              || (oldImageId && wearImageId === oldImageId)
+              || (sameSlots && wearState.payload.visualPath !== outfitVisualPath)
+            if (usesOldStarter) {
+              const nextWearPayload = { ...wearState.payload, visualPath: outfitVisualPath, image: outfitImage }
+              db.run('UPDATE companion_assets SET payload_json = ? WHERE id = ? AND role_id = ?', [JSON.stringify(nextWearPayload), wearState.id, roleId])
+            }
           }
           persist()
         }

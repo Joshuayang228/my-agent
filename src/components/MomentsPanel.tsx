@@ -330,6 +330,7 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
       setCommentDrafts((current) => ({ ...current, [momentId]: '' }))
       setCommentErrors((current) => ({ ...current, [momentId]: '' }))
       setReplyTargetByMomentId((current) => ({ ...current, [momentId]: null }))
+      setCommentFocusId((current) => (current === momentId ? null : current))
       return
     }
     if (!window.electronAPI?.companion.addMomentComment) return
@@ -350,6 +351,7 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
       setCommentDrafts((current) => ({ ...current, [momentId]: '' }))
       setCommentErrors((current) => ({ ...current, [momentId]: '' }))
       setReplyTargetByMomentId((current) => ({ ...current, [momentId]: null }))
+      setCommentFocusId((current) => (current === momentId ? null : current))
     } catch {
       if (epoch === roleEpoch.current) setCommentErrors((current) => ({ ...current, [momentId]: '评论未发送，请重试。' }))
     } finally {
@@ -370,8 +372,9 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
       setReplyTargetByMomentId((current) => ({ ...current, [momentId]: null }))
       return
     }
-    if (event.key === 'Escape' && replyTargetByMomentId[momentId]) {
+    if (event.key === 'Escape') {
       setReplyTargetByMomentId((current) => ({ ...current, [momentId]: null }))
+      setCommentFocusId((current) => (current === momentId ? null : current))
       return
     }
     if (event.key !== 'Enter' || event.shiftKey) return
@@ -502,47 +505,65 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
                             </ActionButton>
                           </div>
                         ) : null}
-                        {comments.length ? (
-                          <ul className="mt-2 space-y-1 rounded-md px-2.5 py-2 text-[11px]" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                            {comments.map((c) => (
-                              <li
-                                key={c.key}
-                                data-testid="moment-comment"
-                                data-comment-source={c.source}
-                                role={socialEnabled ? 'button' : undefined}
-                                tabIndex={socialEnabled ? 0 : undefined}
-                                aria-label={socialEnabled ? `回复 ${c.actorName}` : undefined}
-                                onClick={socialEnabled ? () => handleStartReply(m.id, { commentId: c.id ?? c.key, actorName: c.actorName }) : undefined}
-                                onKeyDown={socialEnabled ? (event) => {
-                                  if (event.key === 'Enter' || event.key === ' ') {
-                                    event.preventDefault()
-                                    handleStartReply(m.id, { commentId: c.id ?? c.key, actorName: c.actorName })
-                                  }
-                                } : undefined}
-                                className={`leading-snug break-words ${socialEnabled ? 'cursor-pointer rounded px-1.5 -mx-1.5 py-0.5 transition-colors hover:bg-[var(--hover-overlay)] active:opacity-75 focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--accent-fg)]' : ''}`}
-                              >
-                                <span style={{ color: 'var(--accent-fg)', fontWeight: 500 }}>{c.actorName}</span>
-                                {c.replyToActorName ? (
-                                  <>
-                                    <span className="mx-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>回复</span>
-                                    <span style={{ color: 'var(--accent-fg)' }}>@{c.replyToActorName}</span>
-                                  </>
-                                ) : null}
-                                <span>：{c.text || '赞'}</span>
-                              </li>
-                            ))}
-                          </ul>
+                        {(social.liked || comments.length > 0) ? (
+                          <div className="mt-2.5 space-y-1.5 rounded-lg px-3 py-2 text-[11px]" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                            {social.liked && (
+                              <div className="flex items-center gap-1.5 text-[11px]">
+                                <Heart size={12} fill="currentColor" style={{ color: 'var(--danger)' }} aria-hidden="true" />
+                                <span className="font-medium" style={{ color: 'var(--accent-fg)' }}>我</span>
+                              </div>
+                            )}
+                            {social.liked && comments.length > 0 && (
+                              <div className="border-t" style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 65%, transparent)' }} />
+                            )}
+                            {comments.length > 0 && (
+                              <ul className="space-y-1">
+                                {comments.map((c) => (
+                                  <li
+                                    key={c.key}
+                                    data-testid="moment-comment"
+                                    data-comment-source={c.source}
+                                    role={socialEnabled ? 'button' : undefined}
+                                    tabIndex={socialEnabled ? 0 : undefined}
+                                    aria-label={socialEnabled ? `回复 ${c.actorName}` : undefined}
+                                    title={socialEnabled ? `回复 ${c.actorName}` : undefined}
+                                    onClick={socialEnabled ? () => handleStartReply(m.id, { commentId: c.id ?? c.key, actorName: c.actorName }) : undefined}
+                                    onKeyDown={socialEnabled ? (event) => {
+                                      if (event.key === 'Enter' || event.key === ' ') {
+                                        event.preventDefault()
+                                        handleStartReply(m.id, { commentId: c.id ?? c.key, actorName: c.actorName })
+                                      }
+                                    } : undefined}
+                                    className={`leading-snug break-words ${socialEnabled ? 'cursor-pointer rounded px-1.5 -mx-1.5 py-0.5 transition-colors hover:bg-[var(--hover-overlay)] active:opacity-75 focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--accent-fg)]' : ''}`}
+                                  >
+                                    <span style={{ color: 'var(--accent-fg)', fontWeight: 500 }}>{c.actorName}</span>
+                                    {c.replyToActorName ? (
+                                      <>
+                                        <span className="mx-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>回复</span>
+                                        <span style={{ color: 'var(--accent-fg)' }}>@{c.replyToActorName}</span>
+                                      </>
+                                    ) : null}
+                                    <span>：{c.text || '赞'}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
                         ) : null}
                         {socialEnabled && (
                           <div className="moments-alice-actions mt-3 border-t pt-2" data-testid="moment-social-actions" style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 65%, transparent)' }}>
-                            <div className="flex items-center justify-start">
+                            <div className="flex items-center justify-start gap-1">
                               <ActionButton
                                 aria-label={social.liked ? '取消赞' : '赞'}
                                 data-testid="moment-like-button"
                                 disabled={likePending}
                                 onClick={() => void handleToggleLike(m.id)}
-                                className="moments-alice-action gap-1.5"
-                                style={{ color: social.liked ? 'var(--accent-fg)' : 'var(--text-muted)', background: social.liked ? 'var(--accent-subtle)' : 'transparent', borderColor: 'transparent' }}
+                                className="moments-alice-action gap-1.5 rounded-lg transition-colors hover:text-[var(--danger)] hover:bg-[color-mix(in_srgb,var(--danger)_10%,transparent)]"
+                                style={{
+                                  color: social.liked ? 'var(--danger)' : 'var(--text-muted)',
+                                  background: social.liked ? 'color-mix(in srgb, var(--danger) 10%, transparent)' : 'transparent',
+                                  borderColor: 'transparent',
+                                }}
                               >
                                 <Heart size={13} fill={social.liked ? 'currentColor' : 'none'} aria-hidden="true" />
                                 <span aria-hidden="true">{social.liked ? '1' : '赞'}</span>
@@ -566,8 +587,12 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
                                     return m.id
                                   })
                                 }}
-                                className="moments-alice-action gap-1.5"
-                                style={{ color: commentOpen ? 'var(--accent-fg)' : 'var(--text-muted)', background: commentOpen ? 'var(--accent-subtle)' : 'transparent', borderColor: 'transparent' }}
+                                className="moments-alice-action gap-1.5 rounded-lg transition-colors hover:text-[var(--text-primary)] hover:bg-[var(--hover-overlay)]"
+                                style={{
+                                  color: commentOpen ? 'var(--text-primary)' : 'var(--text-muted)',
+                                  background: commentOpen ? 'var(--hover-overlay)' : 'transparent',
+                                  borderColor: 'transparent',
+                                }}
                               >
                                 <MessageCircle size={13} aria-hidden="true" />
                                 <span aria-hidden="true">{comments.length || '评论'}</span>
@@ -578,9 +603,9 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
                                   data-testid="moment-chat-button"
                                   onClick={() => {
                                     const excerpt = m.text.trim().slice(0, 36)
-                                    onTakeToChat({ text: `关于动态「${excerpt}${m.text.trim().length > 36 ? "..." : ""}」：` })
+                                    onTakeToChat({ text: `关于动态「${excerpt}${m.text.trim().length > 36 ? '...' : ''}」：` })
                                   }}
-                                  className="moments-alice-action gap-1.5"
+                                  className="moments-alice-action gap-1.5 rounded-lg transition-colors hover:text-[var(--accent-fg)] hover:bg-[var(--accent-subtle)]"
                                   style={{ color: 'var(--text-muted)', background: 'transparent', borderColor: 'transparent' }}
                                 >
                                   <MessageSquareShare size={13} aria-hidden="true" />
@@ -588,33 +613,59 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
                                 </ActionButton>
                               )}
                             </div>
-                            {(!compactClosedComposer || commentOpen) && <div className="mt-2 grid h-8 grid-cols-[minmax(0,1fr)_auto] items-center gap-2" data-testid="moment-comment-composer">
-                              <TextField
-                                ref={(el: HTMLInputElement | null) => { inputRefs.current[m.id] = el }}
-                                value={commentDrafts[m.id] ?? ''}
-                                onChange={(event: ChangeEvent<HTMLInputElement>) => setCommentDrafts((current) => ({ ...current, [m.id]: event.target.value }))}
-                                onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => handleCommentKey(event, m.id)}
-                                placeholder={replyTargetByMomentId[m.id] ? `回复 @${replyTargetByMomentId[m.id]!.actorName}：` : '写评论'}
-                                disabled={commentPending}
-                                aria-hidden={!commentOpen}
-                                tabIndex={commentOpen ? 0 : -1}
-                                data-testid="moment-comment-input"
-                                className="theme-input h-8 min-w-0 rounded-[var(--radius-md)] px-3"
-                                style={{ visibility: commentOpen ? 'visible' : 'hidden', pointerEvents: commentOpen ? 'auto' : 'none' }}
-                              />
-                              <ActionButton
-                                onClick={() => void handleSubmitComment(m.id)}
-                                disabled={commentPending || !(commentDrafts[m.id] ?? '').trim()}
-                                aria-hidden={!commentOpen}
-                                tabIndex={commentOpen ? 0 : -1}
-                                data-testid="moment-comment-submit"
-                                style={{ visibility: commentOpen ? 'visible' : 'hidden', pointerEvents: commentOpen ? 'auto' : 'none' }}
+                            {(!compactClosedComposer || commentOpen) && (
+                              <div
+                                className="mt-2 flex items-center gap-2 rounded-xl px-3 py-1.5"
+                                style={{
+                                  background: commentOpen ? 'var(--bg-secondary)' : 'transparent',
+                                  visibility: commentOpen ? 'visible' : 'hidden',
+                                  pointerEvents: commentOpen ? 'auto' : 'none',
+                                }}
+                                data-testid="moment-comment-composer"
                               >
-                                发送
-                              </ActionButton>
-                            </div>}
+                                {replyTargetByMomentId[m.id] && (
+                                  <span className="shrink-0 whitespace-nowrap text-xs font-medium" style={{ color: 'var(--accent-fg)' }}>
+                                    回复 {replyTargetByMomentId[m.id]!.actorName}：
+                                  </span>
+                                )}
+                                <TextField
+                                  ref={(el: HTMLInputElement | null) => { inputRefs.current[m.id] = el }}
+                                  value={commentDrafts[m.id] ?? ''}
+                                  onChange={(event: ChangeEvent<HTMLInputElement>) => setCommentDrafts((current) => ({ ...current, [m.id]: event.target.value }))}
+                                  onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => handleCommentKey(event, m.id)}
+                                  placeholder={replyTargetByMomentId[m.id] ? '写下回复…' : '写评论…'}
+                                  disabled={commentPending}
+                                  aria-hidden={!commentOpen}
+                                  tabIndex={commentOpen ? 0 : -1}
+                                  data-testid="moment-comment-input"
+                                  className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 text-xs shadow-none focus:ring-0"
+                                />
+                                {replyTargetByMomentId[m.id] && (
+                                  <ActionButton
+                                    size="sm"
+                                    variant="plain"
+                                    onClick={() => handleCancelReply(m.id)}
+                                    className="shrink-0 px-2 py-0.5 text-xs"
+                                    style={{ color: 'var(--text-muted)' }}
+                                  >
+                                    取消
+                                  </ActionButton>
+                                )}
+                                <ActionButton
+                                  size="sm"
+                                  tone="accent"
+                                  onClick={() => void handleSubmitComment(m.id)}
+                                  disabled={commentPending || !(commentDrafts[m.id] ?? '').trim()}
+                                  aria-hidden={!commentOpen}
+                                  tabIndex={commentOpen ? 0 : -1}
+                                  data-testid="moment-comment-submit"
+                                >
+                                  发送
+                                </ActionButton>
+                              </div>
+                            )}
 
-                            {(!compactClosedComposer || commentOpen) && <p className="min-h-4 text-[10px]" data-testid="moment-comment-error" style={{ color: 'var(--danger)' }}>{commentErrors[m.id] || '\u00a0'}</p>}
+                            {commentOpen && commentErrors[m.id] && <p className="mt-1 text-[10px]" data-testid="moment-comment-error" style={{ color: 'var(--danger)' }}>{commentErrors[m.id]}</p>}
                           </div>
                         )}
                       </div>
