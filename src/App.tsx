@@ -1153,7 +1153,7 @@ function App() {
         style={{
           width: sidebarOpen ? sidebarWidth + 1 : 0,
           opacity: sidebarOpen ? 1 : 0,
-          transform: sidebarOpen ? 'translateX(0)' : 'translateX(-12px)',
+          transform: sidebarOpen ? undefined : 'translateX(-12px)',
           pointerEvents: sidebarOpen ? 'auto' : 'none',
         }}
         aria-hidden={!sidebarOpen}
