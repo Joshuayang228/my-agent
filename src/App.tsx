@@ -1138,10 +1138,6 @@ function App() {
   return (
     <>
     <div className="app-shell relative flex h-screen select-none" style={{ display: standaloneView ? 'none' : undefined, background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-      {/* 全窗固定氛围底图：跨侧栏 + Chat / 人物世界，不随内容滚动位移 */}
-      {chatBackdropEnabled && (activeView === 'chat' || isWorldView(activeView)) ? (
-        <CompanionSceneBackdrop roleId={activeRoleId} bannerSrc={roleBanners[activeRoleId] ?? companionBanner} opacity={chatBackdropOpacity} />
-      ) : null}
       {/* ── Primary 侧栏（Alice 壳） ── */}
       {/*
        * 侧栏保留在 DOM 中，只动画外层轨道的宽度和位移。
@@ -1257,6 +1253,10 @@ function App() {
 
       {/* ── 主区域 ── */}
       <div className={`${activeView === 'chat' ? 'chat-shape-scope ' : ''}relative z-[1] flex min-w-0 flex-1 flex-col overflow-hidden`} style={activeView === 'chat' ? layoutProfileStyle('chat') : undefined}>
+        {/* Chat 固定氛围底图：仅在对话区铺设且不随消息滚动位移，避免与人物世界顶部大图叠图 */}
+        {activeView === 'chat' && chatBackdropEnabled ? (
+          <CompanionSceneBackdrop roleId={activeRoleId} bannerSrc={roleBanners[activeRoleId] ?? companionBanner} opacity={chatBackdropOpacity} />
+        ) : null}
         {/* Chat 工具槽常驻，避免工作区入口随项目或聊天阶段消失；其它全页视图仍自带导航。 */}
         {activeView === 'chat' && (
           <div data-testid="chat-toolbar" className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-12 items-center justify-end px-3">
@@ -1323,7 +1323,7 @@ function App() {
         )}
 
         {activeView !== 'chat' && (
-          <div className="view-transition flex flex-1 flex-col overflow-hidden" style={{ background: isWorldView(activeView) ? 'transparent' : 'var(--bg-primary)' }}>
+          <div className="view-transition flex flex-1 flex-col overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
             {isWorldView(activeView) ? (
               <WorldHub
                 profile={{
@@ -1471,6 +1471,7 @@ function App() {
                       role={isUser ? 'user' : 'assistant'}
                       name={messagePersonaName}
                       avatarSrc={isUser ? undefined : ((messageRoleId ? roleAvatars[messageRoleId] : undefined) ?? roleAvatars[activeRoleId] ?? companionAvatar)}
+                      showUserAvatar={false}
                       timestamp={msg.timestamp}
                       editing={isUser && editingMsgId === msg.id}
                       actions={isUser ? (

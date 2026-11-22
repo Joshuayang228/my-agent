@@ -221,8 +221,8 @@ export function WorldJournalPanel({
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="journal-shelf">
           {thoughts.map((thought) => (
-            <button key={thought.id} type="button" className="group flex min-h-56 flex-col overflow-hidden rounded-[var(--radius-card)] border text-left transition-colors hover:bg-[var(--hover-overlay)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} onClick={() => setSelectedThoughtId(thought.id)} aria-label={`打开日记：${thought.title}`} data-testid={`journal-entry-${thought.id}`}>
-              <span className="flex min-h-28 flex-col justify-between p-4" style={{ background: 'var(--accent-subtle)' }}>
+            <button key={thought.id} type="button" className="group flex min-h-44 flex-col gap-2.5 overflow-hidden rounded-[var(--radius-card)] border p-4 text-left transition-colors hover:bg-[var(--hover-overlay)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }} onClick={() => setSelectedThoughtId(thought.id)} aria-label={`打开日记：${thought.title}`} data-testid={`journal-entry-${thought.id}`}>
+              <span className="flex flex-col gap-2">
                 <span className="flex items-center justify-between gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
                   <span className="flex items-center gap-1.5">
                     <span>{formatDate(thought.createdAt)}</span>
@@ -236,9 +236,9 @@ export function WorldJournalPanel({
                     </span>
                   )}
                 </span>
-                <span className="font-display text-lg font-semibold leading-tight" style={{ color: 'var(--text-primary)' }}>{thought.title}</span>
+                <span className="font-display text-base font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>{thought.title}</span>
               </span>
-              <span className="flex flex-1 flex-col p-4">
+              <span className="flex flex-1 flex-col">
                 <span className="line-clamp-3 text-[12px] leading-6" style={{ color: 'var(--text-secondary)' }}>{thought.content}</span>
               </span>
             </button>

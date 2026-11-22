@@ -1,5 +1,7 @@
 # 项目进度
 
+人物世界与 Chat 视觉去噪收口（2026-11-22）：根据真机截图验收完成 5 项界面减噪——`CompanionSceneBackdrop` 从 `.app-shell` 收回至右侧 Chat 主区固定定位（聊天滚动不位移，且不再在人物世界与顶部大图重影叠加）；`PrimarySidebar` 恢复为明亮实底 `var(--card-bg)` + `var(--border-subtle)` 保持导航区纯粹可读；`electron/main/companion/orchestrator.ts#formatCompanionStatusSummary` 不再将内部反思备忘 `userRelationship.note` 拼入人物世界页头；`WorldJournalPanel` 与 `WorldKeepsakesPanel` 去掉厚重深绿顶色块改为统一 `var(--card-bg)` 轻卡片；正式 `App.tsx` 为 `ChatMessageFrame` 传入 `showUserAvatar={false}` 隐藏多余空心绿头像，同步更新 `CompanionSettingsContent` 文案与 Playground `SurfaceBaselinePanel`。
+
 全窗固定氛围底图、人物世界底图统一与通透毛玻璃侧栏（2026-11-22）：将 `CompanionSceneBackdrop` 从 Chat 滚动容器内提升至 `App.tsx` 最外层 `.app-shell` 并向人物世界透传（Chat 输入区底色同步透明），彻底解决 Chat 向下滚动时底图跑掉的问题，并让人物世界（朋友圈/日记/礼物/衣柜/文化角/家居/通讯录/足迹）统一共享固定底图；`PrimarySidebar` 改为全透明底仅留 `1px` 细分割线，与全窗轻雾底图无缝融为一体；`formatSessionPreview` 过滤 `~>` 行，`CompanionSettingsContent` 文案统一为「氛围壁纸」，Playground Chat 与人物世界样张同步更新。
 
 Chat 过程流无框化、方案 B 思考行、轻磨砂代码块与主次阅读节奏收口（2026-11-22）：移除过程展开区外层白底卡片，将 `ReasoningCallback.tsx` 与 `ToolCallbackList.tsx` 统一收紧为 `py-0.5` 紧凑步骤行并将朋友圈/生活资料「去查看」跳转收进工具展开详情块底部；思考详情、工具详情与 `MarkdownRenderer#CodeBlock` 统一为左对齐 40% 轻磨砂圆角卡片；放宽正文段落（`leading-[1.75]`）、列表（`space-y-2`）与 `.ququ-line`（`0.65rem`）行距以拉开过程与正文的主次疏密；`GeneratedImageResult.tsx` 移除底部 `<figcaption>` 技术栏，以纯净圆角图展示并支持点击全屏灯箱预览。

@@ -111,7 +111,7 @@ export function PrimarySidebar({
       className={`chat-shape-scope flex shrink-0 flex-col border-r ${collapseControlPlacement === 'header' ? 'relative' : ''}`}
       style={{
         width: width ?? 248,
-        background: 'transparent',
+        background: 'var(--card-bg)',
         borderColor: 'var(--border-subtle)',
       }}
       data-testid="primary-sidebar"

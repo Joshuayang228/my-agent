@@ -168,7 +168,8 @@ export function formatCompanionStatusSummary(input: {
   const userRelationship = input.relationships.find(item => item.subjectId === 'user')
   if (userRelationship) {
     const phase: Record<string, string> = { stranger: '还在慢慢熟悉', familiar: '相处得越来越自然', rapport: '已经很有默契' }
-    parts.push(`和你：${phase[userRelationship.phase] ?? '关系正在变化'}${userRelationship.note.trim() ? `，${userRelationship.note.trim().slice(0, 80)}` : ''}`)
+    // userRelationship.note 常由夜间反思写入内部策略备忘，不向人物世界页头暴露
+    parts.push(`和你：${phase[userRelationship.phase] ?? '关系正在变化'}`)
   }
   const emotion = input.emotions[0]
   if (emotion?.label.trim()) parts.push(`最近有些${emotion.label.trim().slice(0, 40)}`)

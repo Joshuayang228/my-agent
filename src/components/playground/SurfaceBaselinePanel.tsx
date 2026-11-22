@@ -549,7 +549,6 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
         <SurfaceViewport testId="chat-surface-viewport">
           <style>{PAGE_CANDIDATE_STYLE}</style>
           <div className="relative flex h-full min-h-[580px] overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
-            <CompanionSceneBackdrop roleId={persona.id} bannerSrc={visuals?.bannerSrc} />
             {/* 侧栏卸载会让收起硬切且丢失内部状态；候选保留固定宽内容，只过渡外框，关闭时 inert 禁止隐藏控件获焦。 */}
               <div ref={sidebarCandidateRef} className="playground-sidebar-candidate playground-chat-sidebar-motion relative z-[1] shrink-0" data-testid="surface-sidebar-candidate"
                 style={{ width: sidebarOpen ? 248 : 0, opacity: sidebarOpen ? 1 : 0 }} inert={!sidebarOpen} aria-hidden={!sidebarOpen} data-open={sidebarOpen}>
@@ -589,6 +588,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
               </div>
 
             <div className="relative z-[1] flex min-w-0 flex-1 flex-col overflow-hidden" data-testid="chat-surface-main" data-persona-id={persona.id}>
+              <CompanionSceneBackdrop roleId={persona.id} bannerSrc={visuals?.bannerSrc} />
                 <IconButton
                   ref={sidebarReopenRef}
                   size={32}
@@ -1058,7 +1058,6 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
       <div ref={setControlsTarget} className="mb-4 min-w-0" data-testid="world-candidate-controls" />
     <SurfaceViewport>
       <div className="relative flex h-full min-h-0 flex-col overflow-hidden" style={{ background: 'var(--bg-primary)' }} data-testid="playground-world-experience" data-persona-id={persona.id}>
-        <CompanionSceneBackdrop roleId={persona.id} bannerSrc={PERSONA_VISUALS[persona.id]?.bannerSrc} />
         <div className="relative z-[1] min-h-0 flex-1">
           <WorldHub
             tab={tab}

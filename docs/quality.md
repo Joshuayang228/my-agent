@@ -1,5 +1,7 @@
 # 质量总控
 
+人物世界与 Chat 视觉去噪收口门禁（2026-11-22）：`companion-status-summary.test.ts` 补齐 `userRelationship.note` 内部反思策略文本不泄漏回归；`world-profile-header.test.ts`、`foundation-enforcement-gate.test.ts`、`npm run build`、`arch:check`、`assets:check` 与 `docs:validate` 全部通过。
+
 多轮助手任务分组收起与 Chat 过程精修门禁（2026-11-22）：`group-assistant-runs.test.ts`、`foundation-enforcement-gate.test.ts`（10 项）、`foundation-story-registry.test.ts`（12 项）、双进程 `tsc`、`npm run build`、`arch:check`（15 项）、`assets:check`（115 项）与 `docs:validate` 全部通过。
 
 小声蛐蛐协议与硬冷却门禁（2026-11-22）：`aside-quality.test.ts`（8 项）与 `evals/scenarios/c02-aside-quality.ts` 统一采用纯 `~>` 独立行协议，覆盖原位切分、`parseAsideSegments` 代码围栏保护及 `shouldSuppressAside` 冷却窗口；`tone-control.test.ts`（6 项）验证近 2 轮出现过旁白时强制 `discourage` + `aside-cooldown`；`prompt-builder.test.ts` / `prompt-compiler.test.ts` 同步 `~>` 协议断言；全量单测（293 文件 / 1897 用例）、双进程 `tsc`、`npm run build`、`arch:check`（15 项）、`assets:check`（115 项）与 `docs:validate` 全部通过。

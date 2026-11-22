@@ -268,19 +268,15 @@ export function WorldKeepsakesPanel({
                 onClick={() => setSelectedId(item.id)}
                 aria-label={`查看礼物：${item.name}`}
                 data-testid={`keepsake-card-${item.id}`}
-                className="flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-card)] border text-left transition-colors hover:bg-[var(--hover-overlay)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
-                style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
+                className="flex min-w-0 flex-col gap-2.5 overflow-hidden rounded-[var(--radius-card)] border p-4 text-left transition-colors hover:bg-[var(--hover-overlay)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
+                style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}
               >
-                <span className="flex min-h-28 flex-col justify-between gap-4 p-4" style={{ background: 'var(--accent-subtle)' }}>
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatDate(item.acquiredAt)}</span>
-                  <span className="break-words font-display text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
-                    {item.name}
-                  </span>
+                <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{formatDate(item.acquiredAt)}</span>
+                <span className="break-words font-display text-base font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
+                  {item.name}
                 </span>
-                <span className="p-4">
-                  <span className="line-clamp-3 break-words text-xs leading-6" style={{ color: 'var(--text-secondary)' }}>
-                    {item.description}
-                  </span>
+                <span className="line-clamp-3 break-words text-[12px] leading-6" style={{ color: 'var(--text-secondary)' }}>
+                  {item.description}
                 </span>
               </button>
             ))}
