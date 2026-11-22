@@ -44,6 +44,7 @@ function echoTool(): ToolDefinition {
 function makeMockStream(
   textChunks: string[],
   toolCalls: { id: string; name: string; arguments: string }[] = [],
+  stopReason?: string,
 ) {
   async function* gen(): AsyncGenerator<AgentStreamEvent, any> {
     for (const chunk of textChunks) {
@@ -53,6 +54,7 @@ function makeMockStream(
       content: textChunks.join(''),
       toolCalls,
       usage: { promptTokens: 10, completionTokens: 5 },
+      ...(stopReason ? { stopReason } : {}),
     }
   }
   return gen()
@@ -110,6 +112,38 @@ describe('agentLoop', () => {
 
     const doneEvents = events.filter(e => e.type === 'done')
     expect(doneEvents).toHaveLength(1)
+  })
+
+  it('模型在输出上限前没有正文或工具调用时，不写入空 assistant，也不发送非法恢复请求', async () => {
+    const stream = vi.fn(() => makeMockStream([], [], 'length'))
+    const events = await collectEvents(agentLoop({
+      config: testConfig,
+      messages: [userMsg('请创建一个 HTML 动画文件')],
+      tools: [echoTool()],
+      _streamChatOverride: stream,
+    }, new ToolRegistry()))
+
+    expect(stream).toHaveBeenCalledTimes(1)
+    expect(events).toContainEqual(expect.objectContaining({ type: 'error', code: 'LLM_OUTPUT_TRUNCATED' }))
+    expect(events).toContainEqual({ type: 'done', reason: 'output_truncated' })
+  })
+
+  it('截断但已有正文时仍使用合法的续写恢复', async () => {
+    let turn = 0
+    const events = await collectEvents(agentLoop({
+      config: testConfig,
+      messages: [userMsg('继续写下去')],
+      tools: [],
+      _streamChatOverride: () => {
+        turn++
+        return turn === 1
+          ? makeMockStream(['已写到一半'], [], 'length')
+          : makeMockStream(['完成'])
+      },
+    }, new ToolRegistry()))
+
+    expect(events.filter(event => event.type === 'done')).toEqual([{ type: 'done', reason: 'completed' }])
+    expect(events.some(event => event.type === 'error' && event.code === 'LLM_OUTPUT_TRUNCATED')).toBe(false)
   })
 
   it('工具调用：产出 tool_start → tool_end 然后继续循环', async () => {

@@ -984,6 +984,7 @@ export type TerminalReason =
   | 'aborted'           // 被 AbortSignal 取消
   | 'prompt_too_long'   // 413 压缩后仍超限
   | 'model_error'       // LLM 调用不可恢复错误
+  | 'output_truncated'  // LLM 达到输出上限且没有产生可继续的内容或工具调用
   | 'too_many_denials'  // 拒绝次数超限（Deny-and-Continue 熔断，防无限撞墙）
 
 export type AgentStreamEvent =

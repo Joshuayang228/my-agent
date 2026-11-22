@@ -88,6 +88,8 @@ export function buildAnthropicBody(
   const body: Record<string, unknown> = {
     model: config.model,
     messages: apiMessages,
+    // Anthropic Messages 要求 max_tokens。只有这个协议保留最小兜底，
+    // OpenAI-compatible（包括 DeepSeek）路径不设置上限时交给模型端决定。
     max_tokens: config.maxTokens || 4096,
     stream: true,
   }
@@ -154,13 +156,14 @@ export function buildGeminiBody(
       parts: [{ text: m.content as string }],
     }))
 
+  const generationConfig: Record<string, unknown> = {
+    ...(config.temperature !== undefined ? { temperature: config.temperature } : {}),
+    ...(config.topP !== undefined ? { topP: config.topP } : {}),
+    ...(config.maxTokens !== undefined ? { maxOutputTokens: config.maxTokens } : {}),
+  }
   const body: Record<string, unknown> = {
     contents,
-    generationConfig: {
-      temperature: config.temperature,
-      topP: config.topP,
-      maxOutputTokens: config.maxTokens,
-    },
+    ...(Object.keys(generationConfig).length ? { generationConfig } : {}),
   }
 
   if (systemInstruction) {

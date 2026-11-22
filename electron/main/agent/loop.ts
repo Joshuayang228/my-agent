@@ -457,6 +457,25 @@ export async function* agentLoop(
 
     // ── max_output_tokens 截断恢复 ──
     if (stopReason === 'max_tokens' || stopReason === 'length') {
+      const hasActionableOutput = Boolean(content?.trim()) || toolCalls.length > 0
+      // Provider 可能只返回 reasoning，或在生成工具调用之前耗尽预算。此时不能
+      // 写入空 assistant 消息：OpenAI 兼容接口会收到既没有 content 也没有
+      // tool_calls 的非法消息，下一次请求只会把真正的问题伪装成网络/模型失败。
+      // 没有可继续的 assistant 内容时直接给出结构化终态，并保留原始用户消息。
+      if (!hasActionableOutput) {
+        log.warn('Output truncated before actionable response', {
+          stopReason,
+          recoveryAttempt: state.maxOutputRecoveryCount,
+        })
+        const truncationError = new AgentError(
+          AgentErrorCode.LLM_OUTPUT_TRUNCATED,
+          '模型在产生可执行结果前达到输出上限，尚未执行文件写入。请重试，或把任务拆成先创建文件、再补充动画两步。',
+        )
+        getObserver().onLLMEnd(llmSpan, false, truncationError.message)
+        yield { type: 'error', ...truncationError.toEventPayload() }
+        yield { type: 'done', reason: 'output_truncated' }
+        return
+      }
       if (state.maxOutputRecoveryCount < MAX_OUTPUT_RECOVERY_LIMIT) {
         state.maxOutputRecoveryCount++
         log.warn('Output truncated, attempting recovery', {

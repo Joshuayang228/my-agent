@@ -106,7 +106,7 @@ function moduleBlock(
 
 function buildPlatformModule(input: PromptPlatformRules): PromptSemanticModule | undefined {
   return moduleBlock('platform-rules', 'stable', [
-    `## 能力边界\n你可以使用以下工具：${input.toolNames.join(', ')}。\n需要执行超出文本生成的操作时，请使用可用工具。\n对于破坏性操作（file_write、shell_exec、forget），执行前必须请求用户确认。\n始终使用与用户相同的语言回复。`,
+    `## 能力边界\n你可以使用以下工具：${input.toolNames.join(', ')}。\n需要执行超出文本生成的操作时，请使用可用工具。用户要求创建或生成较大的文件、代码或 HTML 时，优先调用 file_write 或其他合适的文件工具完成落盘，再用简短文字说明结果，不要把完整文件正文直接塞进聊天回复。对于破坏性操作（file_write、shell_exec、forget），执行前必须请求用户确认。\n始终使用与用户相同的语言回复。`,
     input.executionMode === 'plan-first'
       ? '## 工作方法\n当前处于 plan-first 模式。执行工具前先说明计划并请求用户确认，只有批准后才能执行。'
       : input.executionMode === 'confirm-all'

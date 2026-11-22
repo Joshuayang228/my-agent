@@ -1,5 +1,7 @@
 # 项目进度
 
+主对话输出预算与截断恢复修复（2026-11-23）：定位生产请求 `promptTokens≈17K` 远低于服务商上下文窗口，真正耗尽的是旧版 4096 输出预算；模型在推理阶段结束时没有正文或工具调用，原 Loop 又把空 assistant 注入续写请求，导致后续请求失败。现将旧 4096 视为未显式预算，OpenAI-compatible 路径交给模型能力决定输出上限；修复空 assistant 消息、增加 `LLM_OUTPUT_TRUNCATED` 结构化终态和文件生成工具优先提示。已有可继续内容的截断仍保留续写。新增 29 项定向回归通过，双进程 `tsc` 与 `npm run build` 通过；真实外部模型重试仍需用户本地连接验证。
+
 人物世界详情居中对齐、家居总览限宽与通讯录配角头像接入（2026-11-23）：根据真机巡检收口 3 项布局与资产接线——将 `src/shared/content-layout.ts#readingContentStyle` 改为 `marginInline: 'auto'` 并将日记/礼物详情的返回栏与卡片一并居中（同步修订 `agent-skills/frontend-guidelines.md` 与 `content-layout.test.ts`），消除宽屏下「和TA聊聊」悬在中段与删除图标错位问题；将 `WorldHomeGallery.tsx` 的总览图比例调整为 `16 / 9` 并增加 `maxWidth: 760` 防止顶出首屏；在 `electron/main/companion/cast/contacts.ts#getContactsForRole` 中调用 `getRoleVisuals` 补齐 `CompanionContactPerson#avatarSrc`，正式接入已生成的 Role Pack 船员头像并补齐 `world-contacts.test.ts` 回归。
 
 修复非 Chat 视图侧栏收起无法展开、Chat/人物世界统一强磨砂透色侧栏与画廊去灰边（2026-11-22）：将 `src/App.tsx` 中「展开侧栏」按钮从 `activeView === 'chat'` 专属工具槽提升至主区域顶层并保持全视图一致的无底色轻图标，彻底解决在人物世界/记忆/技能页收起侧栏后找不到展开入口的问题；Chat 与人物世界共用全宽固定 `CompanionSceneBackdrop` 并为 `PrimarySidebar` 启用 `frosted` 模式（22% 轻底 + `blur(20px) saturate(1.45)` 柔化透色、零轮廓干扰且切换无跳变），人物世界右侧保持不透明 `var(--bg-primary)` 画布防与头图重影；同步将 `WorldRecordImage.tsx` 与 `WorldHomeGallery.tsx` 的缩略展示改为 `object-cover` 消除衣柜与家居图框的上下灰边（点击灯箱仍看完整原图）。

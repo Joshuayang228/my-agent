@@ -56,6 +56,10 @@ const GENERIC_VOICE: Record<string, ErrorVoiceTemplate> = {
     lead: '刚才信号忽然断了一下，我没能把回复发出来，你再试一次或者看看网络和模型连接？',
     notice: '请求暂时失败，可以稍后重试。',
   },
+  LLM_OUTPUT_TRUNCATED: {
+    lead: '这次内容还没来得及真正执行就到输出上限了。你可以直接再试一次，或者把任务拆成“先创建文件，再补动画”两步。',
+    notice: '模型在产生可执行结果前达到输出上限，尚未写入文件。',
+  },
   TOOL_TIMEOUT: {
     lead: '刚才那个操作等太久没回音，我先停下来了，免得一直卡着你。',
     notice: '工具执行超时，可以稍后重试或缩小操作范围。',

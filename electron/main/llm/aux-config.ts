@@ -31,7 +31,12 @@ export async function loadMainLLMConfig(overrides?: Partial<LLMConfig>, options?
     provider: routed?.provider || 'auto',
     temperature: readModelParameter('llmTemperature', s.llmTemperature),
     topP: parseFloat(s.llmTopP) || undefined,
-    maxTokens: parseInt(s.llmMaxTokens) || undefined,
+    // 4096 是旧版全局默认值，不代表用户的模型能力选择。没有显式预算时不向
+    // OpenAI-compatible Provider 发送 max_tokens，让模型端按自身能力决定上限。
+    maxTokens: (() => {
+      const parsed = parseInt(s.llmMaxTokens)
+      return parsed > 0 && parsed !== 4096 ? parsed : undefined
+    })(),
     fallbackModels: chain.length > 1 ? chain.slice(1).map(connectionConfig) : undefined,
     ...overrides,
     ...(overrides?.baseUrl !== undefined ? {

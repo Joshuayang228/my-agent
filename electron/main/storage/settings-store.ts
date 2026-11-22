@@ -198,7 +198,7 @@ function getDefaults(): AppSettings {
     llmModel: process.env.LLM_MODEL || 'gpt-4o',
     llmTemperature: '0.7',
     llmTopP: '1',
-    llmMaxTokens: '4096',
+    llmMaxTokens: '',
     systemPrompt: '',
     activeRoleId: 'luffy',
     universeId: 'default',

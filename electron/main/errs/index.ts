@@ -34,6 +34,7 @@ export enum AgentErrorCode {
   // LLM 类
   LLM_RATE_LIMITED = 'LLM_RATE_LIMITED',               // 429/限流（可重试）
   LLM_REQUEST_FAILED = 'LLM_REQUEST_FAILED',           // 其他 LLM 调用失败
+  LLM_OUTPUT_TRUNCATED = 'LLM_OUTPUT_TRUNCATED',       // 达到输出上限且没有可继续的结果
   // 工具类
   TOOL_EXECUTION_FAILED = 'TOOL_EXECUTION_FAILED',     // 工具执行抛错
   TOOL_TIMEOUT = 'TOOL_TIMEOUT',                       // 工具超时
@@ -58,6 +59,7 @@ const CODE_META: Record<AgentErrorCode, CodeMeta> = {
   [AgentErrorCode.ABORTED]: { retryable: false },
   [AgentErrorCode.LLM_RATE_LIMITED]: { retryable: true },
   [AgentErrorCode.LLM_REQUEST_FAILED]: { retryable: true },
+  [AgentErrorCode.LLM_OUTPUT_TRUNCATED]: { retryable: false },
   [AgentErrorCode.TOOL_EXECUTION_FAILED]: { retryable: false },
   [AgentErrorCode.TOOL_TIMEOUT]: { retryable: true },
   [AgentErrorCode.PERMISSION_DENIED]: { retryable: false },

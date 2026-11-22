@@ -43,6 +43,10 @@ export function buildOpenAICompatibleMessages(
         result.push({ role: msg.role, content: msg.content })
       }
     } else if (msg.role === 'assistant') {
+      // 空 assistant 且没有工具调用不是合法的对话消息。它通常来自模型在
+      // max_tokens 截断时只产生 reasoning 的异常响应，不能把这个坏状态继续
+      // 发送给 Provider，否则错误会在下一轮变成无关的请求失败。
+      if (!msg.content && (!msg.toolCalls || msg.toolCalls.length === 0)) continue
       const apiMsg: Record<string, unknown> = { role: 'assistant' }
       if (msg.content) apiMsg.content = msg.content
       if (msg.toolCalls && msg.toolCalls.length > 0) {
