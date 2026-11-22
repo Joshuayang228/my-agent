@@ -123,15 +123,15 @@ function CopyButton({ text }: { text: string }) {
 export function CodeBlock({ code, language = 'text' }: { code: string; language?: string }) {
   const surfaceRef = useRef<HTMLDivElement>(null)
   const theme = useSurfaceTheme(surfaceRef)
-  return <div ref={surfaceRef} className="group relative my-3 min-w-0 overflow-hidden rounded-[var(--radius-md)] border"
-    data-testid="markdown-code-block" data-foundation="code-block" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
-    <div className="flex items-center justify-between gap-2 border-b px-3.5 py-1 text-[11px]" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+  return <div ref={surfaceRef} className="group relative my-3 min-w-0 overflow-hidden rounded-[var(--radius-md)] border backdrop-blur-[2px]"
+    data-testid="markdown-code-block" data-foundation="code-block" style={{ borderColor: 'var(--border-subtle)', background: 'color-mix(in srgb, var(--card-bg) 52%, transparent)' }}>
+    <div className="flex items-center justify-between gap-2 border-b px-3.5 py-1 text-[11px]" style={{ borderColor: 'var(--border-subtle)', background: 'color-mix(in srgb, var(--bg-secondary) 48%, transparent)' }}>
       <span className="min-w-0 truncate font-mono" style={{ color: 'var(--text-muted)' }}>{language}</span>
       <CopyButton text={code} />
     </div>
     <SyntaxHighlighter className="scrollbar-thin" style={theme?.mode === 'light' ? SYNTAX_HIGHLIGHT_THEMES.light : SYNTAX_HIGHLIGHT_THEMES.dark} language={language}
       tabIndex={0} aria-label="代码内容" codeTagProps={{ style: { background: 'transparent' } }}
-      customStyle={{ margin: 0, borderRadius: 0, background: 'var(--card-bg)', fontSize: '0.8125rem', lineHeight: '1.65', padding: '0.85rem 1rem', overflow: 'auto' }}>
+      customStyle={{ margin: 0, borderRadius: 0, background: 'transparent', fontSize: '0.8125rem', lineHeight: '1.65', padding: '0.85rem 1rem', overflow: 'auto' }}>
       {code}
     </SyntaxHighlighter>
   </div>
