@@ -2,7 +2,7 @@
 
 > 状态：已完成施工快照（冻结，2026-11-20 核验归档）
 > 生命周期：已完成施工快照（冻结）
-> 生命周期：进行中
+> 生命周期：已完成施工快照（冻结）
 > 范围：P0 Playground 候选；取得用户明确回流许可前，不修改正式 Settings、IPC、存储或真实设置。
 > 关联：`docs/requirements/frontend-visual-language.md`、`docs/requirements/product-experience-map-v1.md`、`docs/requirements/playground-memory-information-architecture-v1.md`、`docs/modules/companion.md`、`docs/modules/memory.md`、`docs/modules/permission.md`
 
