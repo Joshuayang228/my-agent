@@ -137,9 +137,20 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
     }, 50)
   }, [])
 
-  const handleCancelReply = useCallback((momentId: string) => {
-    setReplyTargetByMomentId((current) => ({ ...current, [momentId]: null }))
-  }, [])
+  // 点击评论输入区以外任意位置自动收起输入框，同时保留 commentDrafts 内存草稿以便再次点开续写
+  useEffect(() => {
+    if (!commentFocusId) return
+    const handlePointerDownOutside = (event: globalThis.MouseEvent) => {
+      const target = event.target as HTMLElement | null
+      if (!target) return
+      if (target.closest('[data-testid="moment-comment-composer"], [data-testid="moment-comment-button"], [data-testid="moment-comment"]')) {
+        return
+      }
+      setCommentFocusId(null)
+    }
+    document.addEventListener('mousedown', handlePointerDownOutside)
+    return () => document.removeEventListener('mousedown', handlePointerDownOutside)
+  }, [commentFocusId])
   const [previewImage, setPreviewImage] = useState<{ items: MomentMediaItem[]; index: number } | null>(null)
   const pendingLikeLock = useRef(new Set<string>())
   const pendingCommentLock = useRef(new Set<string>())
@@ -634,17 +645,6 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
                                   data-testid="moment-comment-input"
                                   className="h-7 min-w-0 flex-1 text-xs"
                                 />
-                                {replyTargetByMomentId[m.id] && (
-                                  <ActionButton
-                                    size="sm"
-                                    variant="plain"
-                                    onClick={() => handleCancelReply(m.id)}
-                                    className="shrink-0 px-2 py-0.5 text-xs"
-                                    style={{ color: 'var(--text-muted)' }}
-                                  >
-                                    取消
-                                  </ActionButton>
-                                )}
                                 <ActionButton
                                   size="sm"
                                   tone="accent"
