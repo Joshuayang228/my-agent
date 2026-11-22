@@ -1,6 +1,6 @@
 # 变更日志
 
-2026-11-22 升级全窗固定氛围底图与通透毛玻璃侧栏：将 `CompanionSceneBackdrop` 提升至 `App.tsx` 最外层 `.app-shell`（覆盖左侧栏与右侧 Chat / 人物世界，彻底修复 Chat 滚动后底图随首屏消失的问题，并让人物世界各 Tab 共享同一固定底图）；`PrimarySidebar` 升级为 45% 通透毛玻璃（`--card-bg` + `backdrop-blur-[6px]`，移除展开态 `translateX(0)` 隔离合成层），告别原先灰闷侧栏且在 12% 底图上能自然透出柔和环境光晕；`formatSessionPreview` 过滤 `~>` 小声蛐蛐行防止原始符号露出，Playground Chat 与人物世界样张同步对齐。
+2026-11-22 升级全窗固定氛围底图与通透毛玻璃侧栏：将 `CompanionSceneBackdrop` 提升至 `App.tsx` 最外层 `.app-shell`（覆盖左侧栏与右侧 Chat / 人物世界，彻底修复 Chat 滚动后底图随首屏消失的问题，并让人物世界各 Tab 共享同一固定底图）；`PrimarySidebar` 改为全透明底（仅保留 `1px` 细分割线，移除展开态 `translateX(0)` 隔离合成层），与全窗 12% 轻雾底图浑然一体；`formatSessionPreview` 过滤 `~>` 小声蛐蛐行防止原始符号露出，Playground Chat 与人物世界样张同步对齐。
 
 2026-11-22 最终收口 Chat 过程流、代码块与正文阅读节奏：移除过程展开区外层白底卡片框，思考过程与工具行收紧为统一紧凑行距（`py-0.5`），「去查看」跳转收进对应工具展开详情块底部，保证工具列表右侧绝对对齐；思考详情、工具详情与 `CodeBlock` 统一为左对齐 40% 轻磨砂圆角卡片；正文段落、列表与 `💭` 小声蛐蛐放宽行高与间距，拉开过程与正文的主次疏密；移除 `GeneratedImageResult` 底部技术栏，仅保留纯净圆角图片与点击全屏灯箱预览。
 

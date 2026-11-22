@@ -1,6 +1,6 @@
 # 项目进度
 
-全窗固定氛围底图、人物世界底图统一与通透毛玻璃侧栏（2026-11-22）：将 `CompanionSceneBackdrop` 从 Chat 滚动容器内提升至 `App.tsx` 最外层 `.app-shell` 并向人物世界透传（Chat 输入区底色同步透明），彻底解决 Chat 向下滚动时底图跑掉的问题，并让人物世界（朋友圈/日记/礼物/衣柜/文化角/家居/通讯录/足迹）统一共享固定底图；`PrimarySidebar` 改为 45% 柔白轻毛玻璃（移除展开态 `translateX(0)` 避免阻断 `backdrop-filter`），随伙伴底图自然过渡零割裂；`formatSessionPreview` 过滤 `~>` 行，`CompanionSettingsContent` 文案统一为「氛围壁纸」，Playground Chat 与人物世界样张同步更新。
+全窗固定氛围底图、人物世界底图统一与通透毛玻璃侧栏（2026-11-22）：将 `CompanionSceneBackdrop` 从 Chat 滚动容器内提升至 `App.tsx` 最外层 `.app-shell` 并向人物世界透传（Chat 输入区底色同步透明），彻底解决 Chat 向下滚动时底图跑掉的问题，并让人物世界（朋友圈/日记/礼物/衣柜/文化角/家居/通讯录/足迹）统一共享固定底图；`PrimarySidebar` 改为全透明底仅留 `1px` 细分割线，与全窗轻雾底图无缝融为一体；`formatSessionPreview` 过滤 `~>` 行，`CompanionSettingsContent` 文案统一为「氛围壁纸」，Playground Chat 与人物世界样张同步更新。
 
 Chat 过程流无框化、方案 B 思考行、轻磨砂代码块与主次阅读节奏收口（2026-11-22）：移除过程展开区外层白底卡片，将 `ReasoningCallback.tsx` 与 `ToolCallbackList.tsx` 统一收紧为 `py-0.5` 紧凑步骤行并将朋友圈/生活资料「去查看」跳转收进工具展开详情块底部；思考详情、工具详情与 `MarkdownRenderer#CodeBlock` 统一为左对齐 40% 轻磨砂圆角卡片；放宽正文段落（`leading-[1.75]`）、列表（`space-y-2`）与 `.ququ-line`（`0.65rem`）行距以拉开过程与正文的主次疏密；`GeneratedImageResult.tsx` 移除底部 `<figcaption>` 技术栏，以纯净圆角图展示并支持点击全屏灯箱预览。
 
