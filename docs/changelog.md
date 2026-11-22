@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-22 统一 Chat 对话流全部过程组件视觉与对齐：`ReasoningCallback` 与 `ContentCallbackCue` 收拢进 `ChatMessageFrame` 助手列与正文、工具卡严格左对齐；思考卡与 `ToolCallbackList` 共用同一套轻量过程折叠卡皮肤（统一圆角/字号/状态点/右侧折叠箭头，思考正文改用 UI 字体，工具名映射自然中文与语义图标）；`MemoryCitationChips` 改用中文分类名与 `--radius-pill` 轻胶囊，正式页与 Playground 同步生效。
+
 2026-11-22 归档并删除多余的 Playground 候选文件（`VulnerabilityExperienceCandidate` 与 `GiftingExperienceCandidate`），在 Playground Chat 主旅程新增「思考与工具」全景交互视图（完整接入 `ReasoningCallback` 进行中/完成、`ToolCallbackList` 七态含朋友圈/生活记录/生图/错误、`ContentCallbackCue`、`MemoryCitationChips`、`MarkdownRenderer`+`<aside>` 与 `formatCompanionErrorBubble`），便于先在 Playground 统一检视对话流视觉问题。
 
 2026-11-22 移除人物世界图片组件 `WorldRecordImage` 右下角「在文件夹中定位」角标按钮，消除生活画廊遮挡；同步收口 Playground `SurfaceBaselinePanel` 与正式人物世界顶栏的偏差，移除独立假头图 `WorldOverviewHero` 与 `hideHeader`，改由 `WorldHub` 直接渲染真实 `WorldProfileHeader` + `WorldTodayTimeline` 并同步「刷新礼物」标签。

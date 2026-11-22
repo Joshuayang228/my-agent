@@ -1,6 +1,6 @@
 /**
  * Content 通道相位指示（正文仍在消息气泡里增量渲染）。
- * streaming 且已有正文时显示 Progress；结束后由父级卸载。
+ * streaming 且尚无首字时显示轻量脉冲提示；结束后由父级卸载。
  */
 
 import type { CallbackPhase } from './types'
@@ -22,7 +22,7 @@ export function ContentCallbackCue({
   if (phase !== 'active') return null
   return (
     <div
-      className="mt-2 flex items-center gap-1.5 text-[11px]"
+      className="flex items-center gap-2 py-1 text-[12px]"
       style={{ color: 'var(--text-muted)' }}
       data-callback="content"
       data-phase={phase}

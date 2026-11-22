@@ -1473,16 +1473,6 @@ function App() {
                     className={`animate-fade-in-up group ${dimmed ? 'opacity-20' : ''} ${isSearchMatch ? 'rounded-md ring-1' : ''}`}
                     style={isSearchMatch ? { ['--tw-ring-color' as string]: 'var(--accent)', ['--tw-ring-opacity' as string]: '0.3' } as React.CSSProperties : {}}
                   >
-                    {showThinkingBeforeMsg && (
-                      <ReasoningCallback
-                        chunks={reasoning.chunks}
-                        expanded={thinkingExpanded}
-                        onToggle={() => setThinkingExpanded(!thinkingExpanded)}
-                        streaming={isStreaming}
-                        presentation="stable"
-                        className="mb-3"
-                      />
-                    )}
                     <ChatMessageFrame
                       role={isUser ? 'user' : 'assistant'}
                       name={messagePersonaName}
@@ -1575,6 +1565,16 @@ function App() {
                         )}
 
                       </> : <>
+                        {showThinkingBeforeMsg && (
+                          <ReasoningCallback
+                            chunks={reasoning.chunks}
+                            expanded={thinkingExpanded}
+                            onToggle={() => setThinkingExpanded(!thinkingExpanded)}
+                            streaming={isStreaming}
+                            presentation="stable"
+                            className="mb-2.5"
+                          />
+                        )}
                         {msg.memoryCitations && msg.memoryCitations.length > 0 && (
                           <MemoryCitationChips
                             citations={msg.memoryCitations}
@@ -1621,27 +1621,39 @@ function App() {
               })}
             </div>
 
-            {/* Reasoning：助手消息尚未出现时显示在消息流下方 */}
-            {reasoning.chunks.length > 0 && visibleMessages[visibleMessages.length - 1]?.role !== 'assistant' && (
-              <ReasoningCallback
-                chunks={reasoning.chunks}
-                expanded={thinkingExpanded}
-                onToggle={() => setThinkingExpanded(!thinkingExpanded)}
-                streaming={isStreaming}
-                presentation="stable"
-                className="mt-4"
-              />
-            )}
-
-            <ContentCallbackCue
-              phase={contentPhase(
+            {/* 助手消息尚未出现时，思考过程与回复生成中提示共用助手列，与正式回复严格左对齐 */}
+            {(() => {
+              const showPendingReasoning = reasoning.chunks.length > 0 && visibleMessages[visibleMessages.length - 1]?.role !== 'assistant'
+              const pendingContentPhase = contentPhase(
                 Boolean(
                   messages[messages.length - 1]?.role === 'assistant'
                   && messages[messages.length - 1]?.content,
                 ),
                 isStreaming,
-              )}
-            />
+              )
+              if (!showPendingReasoning && pendingContentPhase !== 'active') return null
+              return (
+                <div className="mt-4">
+                  <ChatMessageFrame
+                    role="assistant"
+                    name={currentPersonaName}
+                    avatarSrc={roleAvatars[activeRoleId] ?? companionAvatar}
+                  >
+                    {showPendingReasoning && (
+                      <ReasoningCallback
+                        chunks={reasoning.chunks}
+                        expanded={thinkingExpanded}
+                        onToggle={() => setThinkingExpanded(!thinkingExpanded)}
+                        streaming={isStreaming}
+                        presentation="stable"
+                        className="mb-2"
+                      />
+                    )}
+                    <ContentCallbackCue phase={pendingContentPhase} />
+                  </ChatMessageFrame>
+                </div>
+              )
+            })()}
 
             <div ref={messagesEndRef} />
           </div>

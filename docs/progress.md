@@ -1,5 +1,7 @@
 # 项目进度
 
+Chat 对话流过程视图视觉与对齐统一（2026-11-22）：基于现有 Foundation 控件与设计语言统一改造 Chat 对话流全部过程组件，正式页（`App.tsx`）与 Playground（`SurfaceBaselinePanel.tsx`）同步收口——将 `ReasoningCallback` 与 `ContentCallbackCue` 移入 `ChatMessageFrame` 助手列内，消除原先全宽顶左与助手正文错位的问题；`ReasoningCallback` 与 `ToolCallbackList` 统一为同源轻量过程折叠卡（统一 `--radius-md`、12px 头部、13px 语义图标、状态圆点、右侧状态标签与右侧 `ChevronRight` 折叠箭头，思考过程改用自然 UI 字体而非等宽 `<pre>`，内置/伙伴工具映射自然中文动作名与参数摘要，展开后在 `--bg-primary` 阅读底色内查看技术细节，朋友圈/生活记录回执条去噪融入）；`MemoryCitationChips` 改用中文分类名与 `--radius-pill` 轻胶囊，「记错了 / 改正」悬停清晰浮现。
+
 Playground 冗余候选清理与 Chat 对话流全交互视图补齐（2026-11-22）：在 `ui-component-registry.ts` 归档 `layout.vulnerability-experience-candidate` 与 `layout.gifting-experience-candidate` 并删除两个孤立候选文件；在 `SurfaceBaselinePanel.tsx` 的 Chat 主旅程新增「思考与工具（`stream`）」场景并补强「处理中 / 已完成」旅程，直接复用正式 `ReasoningCallback`、`ToolCallbackList`（`pending` / `running` / `done` / 朋友圈卡 / 生活记录卡 / 生图预览 / `error`）、`ContentCallbackCue`、`MemoryCitationChips`、`MarkdownRenderer`（含 `<aside>` 与代码块）及 `formatCompanionErrorBubble`，作为统一打磨对话流视觉的 Playground 验收基线。
 
 人物世界图片角标清理与 Playground 顶栏同源收口（2026-11-22）：从 `WorldRecordImage` 移除右下角「在文件夹中定位」悬浮按钮，恢复家居、衣柜、文化角、通讯录、足迹画廊纯净观感；移除 Playground `SurfaceBaselinePanel` 中脱离正式实现的假头图 `WorldOverviewHero` 与 `hideHeader` 覆写，通过 `WorldHub#profileTestId` 直接渲染正式 `WorldProfileHeader` 与 `WorldTodayTimeline`，并同步「刷新礼物」文案。

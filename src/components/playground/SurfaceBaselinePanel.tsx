@@ -615,16 +615,16 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                         <span className="whitespace-pre-wrap break-words">帮我查一下布局规范、发一条下午茶朋友圈、记一本书并画张窗边配图，顺便看看命令拦截长什么样。</span>
                       </ChatMessageFrame>
 
-                      {/* 1. 思考完成 + 记忆引用 + Markdown/aside + 全七态工具卡 */}
-                      <ReasoningCallback
-                        chunks={[{ content: '1. 先检索布局文件确认间距阶梯；\n2. 读取伙伴生活世界状态并发布窗边下午茶动态；\n3. 记录《海边手记》到文化角并生成配图；\n4. 遇到高风险命令时直接返回拦截结果。' }]}
-                        expanded={reasoningExpanded}
-                        onToggle={() => setReasoningExpanded((expanded) => !expanded)}
-                        streaming={false}
-                        presentation="stable"
-                        className="mb-3"
-                      />
+                      {/* 1. 思考完成 + 记忆引用 + Markdown/aside + 全七态工具卡（全部对齐在同一助手列内） */}
                       <ChatMessageFrame role="assistant" name={persona.name} avatarSrc={visuals?.avatarSrc} previewTimeLabel="刚刚">
+                        <ReasoningCallback
+                          chunks={[{ content: '1. 先检索布局文件确认间距阶梯；\n2. 读取伙伴生活世界状态并发布窗边下午茶动态；\n3. 记录《海边手记》到文化角并生成配图；\n4. 遇到高风险命令时直接返回拦截结果。' }]}
+                          expanded={reasoningExpanded}
+                          onToggle={() => setReasoningExpanded((expanded) => !expanded)}
+                          streaming={false}
+                          presentation="stable"
+                          className="mb-2.5"
+                        />
                         <MemoryCitationChips
                           citations={previewCitations}
                           showActions
@@ -654,19 +654,21 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                         />
                       </ChatMessageFrame>
 
-                      {/* 2. 进行中：思考中（streaming=true）+ 回复生成中（ContentCallbackCue） */}
+                      {/* 2. 进行中：思考中（streaming=true）+ 回复生成中（ContentCallbackCue），同样挂在助手列内 */}
                       <ChatMessageFrame role="user" showUserAvatar={false}>
                         <span className="whitespace-pre-wrap break-words">再帮我看下思考中和回复生成中是什么状态？</span>
                       </ChatMessageFrame>
-                      <ReasoningCallback
-                        chunks={[{ content: '正在对照正式对话流检查思考框与头像列的对齐关系、工具卡折叠态以及流式脉冲提示…' }]}
-                        expanded={activeReasoningExpanded}
-                        onToggle={() => setActiveReasoningExpanded((expanded) => !expanded)}
-                        streaming
-                        presentation="stable"
-                        className="mb-3"
-                      />
-                      <ContentCallbackCue phase="active" />
+                      <ChatMessageFrame role="assistant" name={persona.name} avatarSrc={visuals?.avatarSrc} previewTimeLabel="刚刚">
+                        <ReasoningCallback
+                          chunks={[{ content: '正在对照正式对话流检查思考框与头像列的对齐关系、工具卡折叠态以及流式脉冲提示…' }]}
+                          expanded={activeReasoningExpanded}
+                          onToggle={() => setActiveReasoningExpanded((expanded) => !expanded)}
+                          streaming
+                          presentation="stable"
+                          className="mb-2"
+                        />
+                        <ContentCallbackCue phase="active" />
+                      </ChatMessageFrame>
 
                       {/* 3. 人格化错误承接气泡 */}
                       <ChatMessageFrame role="assistant" name={persona.name} avatarSrc={visuals?.avatarSrc} previewTimeLabel="刚刚">
@@ -684,15 +686,15 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                       <ChatMessageFrame role="user" showUserAvatar={false}>
                         <span className="whitespace-pre-wrap break-words">{previewMessage || '帮我把今天的事情理一下，先做最重要的。'}</span>
                       </ChatMessageFrame>
-                      <ReasoningCallback
-                        chunks={[{ content: isWork ? '正在读取今天的待办记录并检查需要优先处理的三件事…' : '先确认今天必须完成的事情，再按重要程度整理，保留可以稍后再做的内容。' }]}
-                        expanded={reasoningExpanded}
-                        onToggle={() => setReasoningExpanded((expanded) => !expanded)}
-                        streaming={isWork}
-                        presentation="stable"
-                        className="mb-3"
-                      />
                       <ChatMessageFrame role="assistant" name={persona.name} avatarSrc={visuals?.avatarSrc} previewTimeLabel="刚刚">
+                        <ReasoningCallback
+                          chunks={[{ content: isWork ? '正在读取今天的待办记录并检查需要优先处理的三件事…' : '先确认今天必须完成的事情，再按重要程度整理，保留可以稍后再做的内容。' }]}
+                          expanded={reasoningExpanded}
+                          onToggle={() => setReasoningExpanded((expanded) => !expanded)}
+                          streaming={isWork}
+                          presentation="stable"
+                          className="mb-2.5"
+                        />
                         {journey === 'completed' && (
                           <MemoryCitationChips citations={previewCitations.slice(0, 1)} showActions />
                         )}
@@ -711,9 +713,9 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                             className="mt-2.5"
                           />
                         )}
+                        {isWork && <ContentCallbackCue phase="active" />}
                         <div className="mt-3 flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}><MessageCircle size={12} aria-hidden="true" />上下文会跟着当前会话保留</div>
                       </ChatMessageFrame>
-                      {isWork && <ContentCallbackCue phase="active" />}
                       {isTaskJourney && <ChatTaskJourney journey={journey} onJourneyChange={setJourney} />}
                     </div>
                   )}
