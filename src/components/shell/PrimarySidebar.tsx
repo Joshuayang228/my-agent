@@ -66,6 +66,7 @@ export function PrimarySidebar({
   collapseFooterDivider = true,
   collapseControlPlacement = 'toolbar',
   unreadMomentsCount = 0,
+  frosted = false,
 }: {
   personaName: string
   personaBlurb: string
@@ -105,13 +106,19 @@ export function PrimarySidebar({
   collapseControlPlacement?: 'toolbar' | 'header'
   /** 朋友圈新回复或新动态未读计数 */
   unreadMomentsCount?: number
+  /** 仅在 Chat 存在氛围壁纸时启用高雾度毛玻璃透色，保持文字清晰同时与底图柔和呼应 */
+  frosted?: boolean
 }) {
   return (
     <aside
       className={`chat-shape-scope flex shrink-0 flex-col border-r ${collapseControlPlacement === 'header' ? 'relative' : ''}`}
       style={{
         width: width ?? 248,
-        background: 'color-mix(in srgb, var(--bg-primary) 42%, var(--card-bg))',
+        background: frosted
+          ? 'color-mix(in srgb, var(--card-bg) 76%, transparent)'
+          : 'color-mix(in srgb, var(--bg-primary) 42%, var(--card-bg))',
+        backdropFilter: frosted ? 'blur(24px) saturate(1.25)' : undefined,
+        WebkitBackdropFilter: frosted ? 'blur(24px) saturate(1.25)' : undefined,
         borderColor: 'var(--border-subtle)',
       }}
       data-testid="primary-sidebar"

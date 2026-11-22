@@ -1138,6 +1138,10 @@ function App() {
   return (
     <>
     <div className="app-shell relative flex h-screen select-none" style={{ display: standaloneView ? 'none' : undefined, background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+      {/* Chat 专属全宽固定氛围底图：仅在 Chat 视图铺设并向左侧栏提供强磨砂透色，切入人物世界自动退场 */}
+      {activeView === 'chat' && chatBackdropEnabled ? (
+        <CompanionSceneBackdrop roleId={activeRoleId} bannerSrc={roleBanners[activeRoleId] ?? companionBanner} opacity={chatBackdropOpacity} />
+      ) : null}
       {/* ── Primary 侧栏（Alice 壳） ── */}
       {/*
        * 侧栏保留在 DOM 中，只动画外层轨道的宽度和位移。
@@ -1159,6 +1163,7 @@ function App() {
       >
         <PrimarySidebar
           collapseControlPlacement="header"
+          frosted={activeView === 'chat' && chatBackdropEnabled}
           developerMode={developerMode}
           personaName={currentPersonaName}
           personaBlurb={companionBlurb || '越探索，越着迷。'}
@@ -1253,32 +1258,41 @@ function App() {
 
       {/* ── 主区域 ── */}
       <div className={`${activeView === 'chat' ? 'chat-shape-scope ' : ''}relative z-[1] flex min-w-0 flex-1 flex-col overflow-hidden`} style={activeView === 'chat' ? layoutProfileStyle('chat') : undefined}>
-        {/* Chat 固定氛围底图：仅在对话区铺设且不随消息滚动位移，避免与人物世界顶部大图叠图 */}
-        {activeView === 'chat' && chatBackdropEnabled ? (
-          <CompanionSceneBackdrop roleId={activeRoleId} bannerSrc={roleBanners[activeRoleId] ?? companionBanner} opacity={chatBackdropOpacity} />
-        ) : null}
+        {/* 收起侧栏后的展开按钮：常驻于主区域左上角，覆盖 Chat / 人物世界 / 记忆 / 技能全部视图 */}
+        {!sidebarOpen && sidebarReopenReady && (
+          <IconButton
+            ref={sidebarReopenRef}
+            size={32}
+            label="展开侧栏"
+            onClick={() => {
+              setSidebarReopenReady(false)
+              setSidebarOpen(true)
+              requestAnimationFrame(() => sidebarShellRef.current?.querySelector<HTMLButtonElement>('button[aria-label="收起侧栏"]')?.focus())
+            }}
+            className="pointer-events-auto absolute left-3 top-3 z-30 hover:bg-[var(--hover-overlay)]"
+            style={activeView === 'chat'
+              ? { color: 'var(--text-muted)' }
+              : {
+                  color: 'var(--text-primary)',
+                  background: 'color-mix(in srgb, var(--card-bg) 82%, transparent)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                }}
+            onMouseEnter={(e) => {
+              if (activeView === 'chat') e.currentTarget.style.background = 'var(--hover-overlay)'
+            }}
+            onMouseLeave={(e) => {
+              if (activeView === 'chat') e.currentTarget.style.background = ''
+            }}
+            title="展开侧边栏 (Ctrl+B)"
+          >
+            <PanelLeftOpen size={16} />
+          </IconButton>
+        )}
         {/* Chat 工具槽常驻，避免工作区入口随项目或聊天阶段消失；其它全页视图仍自带导航。 */}
         {activeView === 'chat' && (
           <div data-testid="chat-toolbar" className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-12 items-center justify-end px-3">
-            {!sidebarOpen && sidebarReopenReady && (
-              <IconButton
-                ref={sidebarReopenRef}
-                size={32}
-                label="展开侧栏"
-                onClick={() => {
-                  setSidebarReopenReady(false)
-                  setSidebarOpen(true)
-                  requestAnimationFrame(() => sidebarShellRef.current?.querySelector<HTMLButtonElement>('button[aria-label="收起侧栏"]')?.focus())
-                }}
-                className="pointer-events-auto absolute left-3 top-[22px] z-10 hover:bg-[var(--hover-overlay)]"
-                style={{ color: 'var(--text-muted)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-                title="展开侧边栏 (Ctrl+B)"
-              >
-                <PanelLeftOpen size={16} />
-              </IconButton>
-            )}
             <div className="min-w-0 flex-1" aria-hidden="true" />
               <IconButton
                 onClick={() => {

@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-22 修复非 Chat 视图收起侧栏后无法展开的 Bug 并落地 Chat 强磨砂透色侧栏与画廊去灰边：将 `App.tsx` 的「展开侧栏」按钮移出 `activeView === 'chat'` 分支，使其在人物世界、记忆、技能与 Chat 全部视图收起后均可一键展开（非 Chat 视图带磨砂圆底确保在封面上清晰可见）；Chat 视图启用全宽 `CompanionSceneBackdrop` + `PrimarySidebar#frosted`（76% 浅雾 + `blur(24px) saturate(1.25)`）柔和透出底图色温而不透出人物线条，人物世界保持素底不变；`WorldRecordImage` 与 `WorldHomeGallery` 改用 `object-cover` 消除衣柜与家居图片的上下灰边。
+
 2026-11-22 人物世界与侧栏二次视觉精修：`PrimarySidebar` 底色微调为与主题画布柔和融合的 `color-mix(in srgb, var(--bg-primary) 42%, var(--card-bg))` 并为会话列表底部增加渐隐过渡防硬截断；`WorldProfileHeader` 封面裁剪锚点调至 `object-[center_22%]` 避免裁掉人物头部并平滑过渡至 `var(--bg-primary)`；`WorldHub` 分区标签改为轻量化 `underline` 样式移除 8 个冗余外框；朋友圈帖子、日记详情与礼物卡片统一为清爽 `var(--card-bg)` 纸白卡，移除朋友圈顶部「展示近 14 天动态」系统提示与日记卡多余固定高度。
 
 2026-11-22 人物世界与 Chat 视觉去噪收口（5 项）：`CompanionSceneBackdrop` 收回至右侧 Chat 主区固定渲染（滚动不位移，不再在人物世界重复叠加头图）；`PrimarySidebar` 改用明亮纸白实底 `var(--card-bg)` 避免底图人物干扰会话列表；`orchestrator.ts#formatCompanionStatusSummary` 停止拼接内部反思备忘 `userRelationship.note`；`WorldJournalPanel` 与 `WorldKeepsakesPanel` 列表卡移除厚重深绿上半色块，统一为清爽 `var(--card-bg)` 卡片；正式 Chat 传入 `showUserAvatar={false}` 隐藏多余空心用户头像；同步更新 `CompanionSettingsContent` 文案与 Playground 样张。

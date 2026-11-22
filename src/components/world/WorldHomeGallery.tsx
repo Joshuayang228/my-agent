@@ -25,7 +25,7 @@ function HomePicture({ src, alt, state, variant }: { src?: string; alt: string; 
   return <div data-testid={`home-${variant}-picture`} onErrorCapture={() => setFailed(true)}
     className="w-full overflow-hidden rounded-md" style={{ aspectRatio: overview ? '4 / 3' : variant === 'scene' ? '16 / 9' : '1', maxWidth: variant === 'scene' ? 560 : undefined, background: 'var(--bg-secondary)' }}>
     {src && state === 'ready' && !failed
-      ? <ImagePreviewImage src={src} alt={alt} buttonClassName="h-full w-full transition hover:brightness-95" className="block h-full w-full object-contain" />
+      ? <ImagePreviewImage src={src} alt={alt} buttonClassName="h-full w-full transition hover:brightness-95" className="block h-full w-full object-cover" />
       : <div role="status" className="flex h-full flex-col items-center justify-center gap-2 px-3 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>
         {variant === 'object' ? <Package size={20} /> : <Home size={20} />}
         <span>{state === 'pending' ? '配图生成中' : state === 'failed' || failed ? '配图未能显示' : '暂无配图'}</span>

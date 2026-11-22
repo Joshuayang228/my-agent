@@ -44,7 +44,7 @@ function RecordImageContent({ assetId, image, alt, readImage, mode = 'preview' }
   </div>
   return <div className="relative h-full w-full" data-testid="world-record-image" aria-busy={!result || (result.ok && !decoded)}>
     {result?.ok && <button type="button" aria-label={`预览图片：${alt}`} disabled={!decoded} className="block h-full w-full appearance-none border-0 bg-transparent p-0" onClick={() => setOpen(true)}>
-      <img src={result.dataUrl} alt={alt} className="block h-full w-full object-contain" style={{ opacity: decoded ? 1 : 0 }} onLoad={() => setDecoded(true)} onError={() => setResult({ ok: false, error: '图片无法显示，请重新读取。' })} />
+      <img src={result.dataUrl} alt={alt} className="block h-full w-full object-cover" style={{ opacity: decoded ? 1 : 0 }} onLoad={() => setDecoded(true)} onError={() => setResult({ ok: false, error: '图片无法显示，请重新读取。' })} />
     </button>}
     {!result || (result.ok && !decoded) ? <div role="status" className="absolute inset-0 flex items-center justify-center" style={{ color: 'var(--text-muted)' }}><LoaderCircle className="animate-spin" size={16} aria-label="正在读取图片" /></div> : !result.ok && <div role="alert" className="absolute inset-0 flex flex-col items-center justify-center gap-2 overflow-auto p-2 text-center text-[11px]" style={{ color: 'var(--text-secondary)' }}>
       <ImageOff size={18} /><span>{result.error}</span><IconButton label="重新读取图片" onClick={() => setAttempt(value => value + 1)}><RefreshCw size={14} /></IconButton>
