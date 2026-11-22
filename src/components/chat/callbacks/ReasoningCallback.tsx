@@ -39,7 +39,7 @@ export function ReasoningCallback({
   if (embedded) {
     return (
       <div
-        className={`scrollbar-thin max-h-36 overflow-y-auto whitespace-pre-wrap break-words text-[12px] leading-6 ${className}`}
+        className={`scrollbar-thin max-h-36 overflow-y-auto whitespace-pre-wrap break-words text-[12px] leading-6 opacity-85 ${className}`}
         style={{ color: 'var(--text-muted)' }}
         data-callback="reasoning"
         data-phase={phase}
@@ -79,7 +79,7 @@ export function ReasoningCallback({
         }
       >
         <div
-          className="scrollbar-thin mt-1 mb-2.5 max-h-48 overflow-auto whitespace-pre-wrap break-words text-[12px] leading-6"
+          className="scrollbar-thin mt-1 mb-2.5 max-h-48 overflow-auto whitespace-pre-wrap break-words text-[12px] leading-6 opacity-85"
           style={{ color: 'var(--text-muted)' }}
         >
           {fullText}

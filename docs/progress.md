@@ -1,6 +1,6 @@
 # 项目进度
 
-Chat 过程流无框化、固定箭头槽与纯净生图收口（2026-11-22）：移除 `App.tsx`、`SurfaceBaselinePanel.tsx`、`ReasoningCallback.tsx` 与 `ToolCallbackList.tsx` 中过程展开区的外层白底卡片与边框，思考正文与工具行直接铺在统一画布上；工具行最右侧常驻 `w-4` 箭头占位槽（收起态 hover/focus 浮现 `>`、展开态原地旋转向下，彻底消除状态文字跳动），展开详情微缩进 `ml-5` 以紧凑 `--bg-secondary` 小块呈现；`GeneratedImageResult.tsx` 移除底部 `<figcaption>` 技术栏，以纯净圆角图展示并支持点击全屏灯箱预览。
+Chat 过程流无框化、固定箭头槽与纯净生图收口（2026-11-22）：移除 `App.tsx`、`SurfaceBaselinePanel.tsx`、`ReasoningCallback.tsx` 与 `ToolCallbackList.tsx` 中过程展开区的外层白底卡片与边框，思考正文（`opacity-85`）与工具行直接铺在统一画布上；工具行最右侧常驻 `w-4` 箭头占位槽（收起态 hover/focus 浮现 `>`、展开态原地旋转向下，彻底消除状态文字跳动），展开详情严格左对齐正文列并以与代码块同源的 `--card-bg` + 1px 细边呈现；`GeneratedImageResult.tsx` 移除底部 `<figcaption>` 技术栏，以纯净圆角图展示并支持点击全屏灯箱预览。
 
 Chat 极简留白过程流、代码块精修与壁纸透明度可调（2026-11-22）：收口 Chat 对话流 4 项细节——`CompanionSceneBackdrop` 默认透明度降至 12%，在 `settings-store.ts`、`data-export.ts`、`SettingsPanel.tsx`、`CompanionSettingsContent.tsx` 与 `App.tsx` 补齐 `companionChatBackdropOpacity`（0%–35%）滑块与备份恢复链；`MarkdownRenderer` 行内代码改为中性柔和浅灰底、代码块挂载 `.scrollbar-thin` 消除 Windows 粗灰箭头滚动条；`ReasoningCallback` 与 `ToolCallbackList` 统一为 `xxx >` 收起 + 88% 柔和浅雾磨砂展开卡（思考直接可读、无横线无「已完成」、右侧状态与「去查看」统一右对齐、按需点开看紧凑参数/结果），正式页与 Playground 同步生效。
 

@@ -240,8 +240,12 @@ export function ToolCallbackList({
             </div>
             {!collapsed && (hasStreamingArgs || hasArgs || hasResult) && (
               <div
-                className="scrollbar-thin ml-5 mt-1 mb-1.5 space-y-2 rounded-[var(--radius-sm)] px-3 py-2 font-mono text-[11px] leading-5"
-                style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+                className="scrollbar-thin mt-1 mb-2 space-y-2 rounded-[var(--radius-md)] border px-3 py-2 font-mono text-[11px] leading-5"
+                style={{
+                  borderColor: 'var(--border-subtle)',
+                  background: 'var(--card-bg)',
+                  color: 'var(--text-secondary)',
+                }}
               >
                 {hasStreamingArgs && (
                   <pre className="scrollbar-thin max-h-24 overflow-auto" style={{ color: 'var(--text-muted)' }}>
