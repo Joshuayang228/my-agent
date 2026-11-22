@@ -115,10 +115,10 @@ export function PrimarySidebar({
       style={{
         width: width ?? 248,
         background: frosted
-          ? 'color-mix(in srgb, var(--card-bg) 76%, transparent)'
+          ? 'color-mix(in srgb, var(--card-bg) 22%, transparent)'
           : 'color-mix(in srgb, var(--bg-primary) 42%, var(--card-bg))',
-        backdropFilter: frosted ? 'blur(24px) saturate(1.25)' : undefined,
-        WebkitBackdropFilter: frosted ? 'blur(24px) saturate(1.25)' : undefined,
+        backdropFilter: frosted ? 'blur(20px) saturate(1.45)' : undefined,
+        WebkitBackdropFilter: frosted ? 'blur(20px) saturate(1.45)' : undefined,
         borderColor: 'var(--border-subtle)',
       }}
       data-testid="primary-sidebar"
