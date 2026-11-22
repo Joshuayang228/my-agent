@@ -116,3 +116,86 @@ export function resolveToolsForAssistant(
   }
   return resolveHistoricTools(assistant, messages, { expand: opts.expandHistoric })
 }
+
+
+export type ChatDisplayEntry =
+  | { kind: 'user'; msg: ChatMessage; visibleIndex: number }
+  | {
+      kind: 'assistant-run'
+      /** 中间轮次的助手消息（通常携带 toolCalls 与过渡话术） */
+      intermediate: ChatMessage[]
+      /** 最后一轮助手回复（面向用户的最终输出） */
+      finalMsg: ChatMessage
+      /** 最后一条消息在 visibleMessages 中的索引，用于判断 isLastMsg */
+      lastVisibleIndex: number
+    }
+
+/**
+ * 背景：多轮工具调用会产生多条连续的 `role === 'assistant'` 消息；直接平铺会让对话流充满中间过渡句与工具条。
+ * 设计意图：将同一用户提问后的连续助手消息分为「中间过程步骤（intermediate）」与「最后一轮回复（finalMsg）」，
+ * 进行中实时展开，跑完后默认折叠过程、只留最后一轮输出，同时保留中间产出的生成图片外露。
+ * 关键约束：纯函数无副作用；单条助手回复保持 `intermediate: []`，不影响单轮对话与现有单测。
+ */
+export function groupVisibleMessages(visibleMessages: ChatMessage[]): ChatDisplayEntry[] {
+  const entries: ChatDisplayEntry[] = []
+  let i = 0
+  while (i < visibleMessages.length) {
+    const msg = visibleMessages[i]
+    if (msg.role === 'user') {
+      entries.push({ kind: 'user', msg, visibleIndex: i })
+      i += 1
+      continue
+    }
+    const run: ChatMessage[] = []
+    while (i < visibleMessages.length && visibleMessages[i].role !== 'user') {
+      run.push(visibleMessages[i])
+      i += 1
+    }
+    const finalMsg = run[run.length - 1]
+    entries.push({
+      kind: 'assistant-run',
+      intermediate: run.slice(0, -1),
+      finalMsg,
+      lastVisibleIndex: i - 1,
+    })
+  }
+  return entries
+}
+
+const TOOL_SUMMARY_LABELS: Record<string, string> = {
+  file_read: '读取文件',
+  file_write: '修改文件',
+  file_edit: '修改文件',
+  file_search: '检索文件',
+  grep_search: '检索文件',
+  list_dir: '检索文件',
+  shell_exec: '执行命令',
+  web_search: '检索网页',
+  web_fetch: '检索网页',
+  image_generate: '生成图片',
+  companion_take_photo: '拍一张照片',
+  companion_post_moment: '发布朋友圈',
+  companion_comment_moment: '评论朋友圈',
+  companion_read_world: '查看生活世界',
+  companion_create_asset: '记录生活资料',
+  companion_add_reading_note: '记录生活资料',
+  companion_change_wardrobe: '更换穿搭',
+  companion_receive_gift: '收下礼物',
+  remember: '记下记忆',
+  recall: '回忆记忆',
+  forget: '遗忘记忆',
+}
+
+/** 生成多轮过程折叠摘要文案（如：已完成 4 步处理 · 读取文件、发布朋友圈…） */
+export function buildProcessSummaryText(toolNames: string[], stepCount: number, hasThinking: boolean): string {
+  const uniqueLabels: string[] = []
+  for (const name of toolNames) {
+    const label = TOOL_SUMMARY_LABELS[name] ?? (name || '调用工具')
+    if (!uniqueLabels.includes(label)) uniqueLabels.push(label)
+  }
+  const count = toolNames.length > 0 ? toolNames.length : stepCount
+  const prefix = hasThinking ? `已思考并完成 ${count} 步处理` : `已完成 ${count} 步处理`
+  if (uniqueLabels.length === 0) return prefix
+  const preview = uniqueLabels.slice(0, 3).join('、')
+  return uniqueLabels.length > 3 ? `${prefix} · ${preview}…` : `${prefix} · ${preview}`
+}

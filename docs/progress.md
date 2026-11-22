@@ -1,5 +1,7 @@
 # 项目进度
 
+Chat 过程视图减重、多轮任务自动收起与附件关闭按钮统一（2026-11-22）：`ReasoningCallback` 与 `ToolCallbackList` 去掉逐条带框灰底大卡片改为无框幽灵行与统一 `--text-secondary` 色阶，展开详情采用柔和半透明浅底微容器；在 `src/components/chat/callbacks/resolve-tools-for-message.ts` 新增 `groupVisibleMessages` / `buildProcessSummaryText` 接入正式 `App.tsx` 与 Playground，多轮工具任务跑完后默认收起全部中间步骤与工具条仅保留最后一轮最终输出，同时通过 `ToolCallbackList#imagesOnly` 将生成图片留在折叠区外直接展示；`ChatFileChip` 的移除按钮统一为与图片缩略图一致的右上角悬浮圆标。
+
 Chat 小声蛐蛐（内心独白）对齐 Alice 视觉与硬冷却治理（2026-11-22）：`src/shared/aside.ts` 升级为纯 `~>` 独立行原位解析 `parseAsideSegments`（流式零闪跳、保护代码围栏，不保留旧 `<aside>` 标签兼容）并新增 2 轮冷却判断 `shouldSuppressAside`；`MarkdownRenderer.tsx` + `src/index.css` 对齐 Alice `.ququ-line`（`💭 ` 前缀、12px 正体 muted 色、不可选中、`onCopy` 复制正文自动剔除）；主进程将旁白格式指引收敛至 `compiler.ts` 单一位置、移除 `voice.md` / `reply-stance.ts` / `tone-control.ts` 重复提醒，并在 `runtime.ts` + `registered-request.ts` 接入硬抑制（紧绷态或近 2 轮出现过旁白时本轮直接不注入），同步更新 Playground 样张。
 
 Chat 输入区与消息流图片/文件附件样式统一（参考 Alice，2026-11-22）：新增共享组件 `src/components/chat/ChatAttachments.tsx`，将 `ChatAttachmentTray` 接入 `ChatComposer` 内部 `prefix` 槽，图片缩略图与结构化文件卡片同高 52px 并排收纳、移除按钮 hover/focus 浮现；正式 `App.tsx` 与 Playground `SurfaceBaselinePanel.tsx` 共用同一实现，并在 Playground「图片与文件」旅程补齐已发送的纯文件消息气泡、单图消息与多图+文件混合消息。

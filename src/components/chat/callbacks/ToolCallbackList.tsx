@@ -99,6 +99,7 @@ export function ToolCallbackList({
   readGeneratedImage,
   revealGeneratedImage,
   onNavigateToWorld,
+  imagesOnly = false,
 }: {
   tools: ToolCallbackItem[]
   onToggleCollapse: (callId: string) => void
@@ -107,6 +108,8 @@ export function ToolCallbackList({
   readGeneratedImage?: GeneratedImageReader
   revealGeneratedImage?: GeneratedImageRevealer
   onNavigateToWorld?: (tab: 'moments' | 'culture' | 'wardrobe' | 'home' | 'footprints') => void
+  /** 仅渲染工具产出的图片（用于多轮任务收起过程后把生成图直接留在终答外展示） */
+  imagesOnly?: boolean
 }) {
   const readImage = useCallback<GeneratedImageReader>(async (imageId) => {
     if (readGeneratedImage) return readGeneratedImage(imageId)
@@ -120,41 +123,51 @@ export function ToolCallbackList({
   }, [sessionId, revealGeneratedImage])
   if (tools.length === 0) return null
 
+  if (imagesOnly) {
+    const images = tools.flatMap((tool) => tool.generatedImages ?? [])
+    if (images.length === 0) return null
+    return (
+      <div className={`space-y-2 ${className}`} data-testid="tool-generated-images">
+        {images.map((image) => (
+          <GeneratedImageResult
+            key={image.id}
+            image={image}
+            readImage={readImage}
+            revealImage={sessionId || revealGeneratedImage ? revealImage : undefined}
+            scope={sessionId ?? 'preview'}
+          />
+        ))}
+      </div>
+    )
+  }
+
   return (
-    <div className={`space-y-2 ${className}`} data-callback="tool" data-testid="tool-callback-list">
+    <div className={`space-y-0.5 ${className}`} data-callback="tool" data-testid="tool-callback-list">
       {tools.map((tool) => {
         const phase = toolItemPhase(tool.status)
         const collapsed = tool.collapsed !== false
         const meta = getToolDisplayMeta(tool.name)
         const argSummary = summarizeToolArgs(tool.args)
         const isActive = tool.status === 'pending' || tool.status === 'running'
+        const isError = tool.status === 'error'
         return (
-          <div
-            key={tool.callId}
-            className="overflow-hidden rounded-[var(--radius-md)] border"
-            style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
-            data-phase={phase}
-          >
+          <div key={tool.callId} data-phase={phase}>
             <ActionButton
               variant="plain"
               onClick={() => onToggleCollapse(tool.callId)}
               aria-expanded={!collapsed}
-              className="w-full !min-h-0 !justify-start gap-2 rounded-none border-0 !px-3 !py-1.5 text-left text-[12px] hover:bg-[var(--hover-overlay)]"
+              className="-mx-1.5 w-[calc(100%+0.75rem)] !min-h-0 !justify-start gap-1.5 rounded-[var(--radius-sm)] border-0 !px-1.5 !py-1 text-left text-[12px] hover:bg-[var(--hover-overlay)]"
             >
-              <span className="shrink-0" style={{ color: 'var(--text-muted)' }}>
+              <span
+                className={`shrink-0 ${isActive ? 'animate-pulse' : ''}`}
+                style={{ color: isError ? 'var(--danger)' : isActive ? 'var(--accent-fg)' : 'var(--text-muted)' }}
+              >
                 {meta.icon}
               </span>
               <span
-                className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${isActive ? 'animate-pulse' : ''}`}
-                style={{
-                  background: isActive
-                    ? 'var(--accent)'
-                    : tool.status === 'error'
-                      ? 'var(--danger)'
-                      : 'var(--success)',
-                }}
-              />
-              <span className="shrink-0 font-medium" style={{ color: 'var(--text-primary)' }}>
+                className="shrink-0"
+                style={{ color: isError ? 'var(--danger)' : 'var(--text-secondary)' }}
+              >
                 {meta.label}
               </span>
               {argSummary && (
@@ -162,22 +175,24 @@ export function ToolCallbackList({
                   {argSummary}
                 </span>
               )}
-              <span
-                className="ml-auto shrink-0 text-[11px]"
-                style={{ color: tool.status === 'error' ? 'var(--danger)' : 'var(--text-muted)' }}
-              >
-                {STATUS_LABEL[tool.status]}
-              </span>
+              {(isActive || isError) && (
+                <span
+                  className="ml-auto shrink-0 text-[11px]"
+                  style={{ color: isError ? 'var(--danger)' : 'var(--accent-fg)' }}
+                >
+                  {STATUS_LABEL[tool.status]}
+                </span>
+              )}
               <ChevronRight
-                size={13}
-                className={`shrink-0 transition-transform ${collapsed ? '' : 'rotate-90'}`}
+                size={12}
+                className={`${isActive || isError ? '' : 'ml-auto'} shrink-0 transition-transform ${collapsed ? '' : 'rotate-90'}`}
                 style={{ color: 'var(--text-muted)' }}
               />
             </ActionButton>
             {!collapsed && (
               <div
-                className="space-y-2 border-t px-3 py-2.5"
-                style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}
+                className="mt-1 mb-2 space-y-2 rounded-[var(--radius-md)] px-3 py-2"
+                style={{ background: 'color-mix(in srgb, var(--bg-secondary) 60%, transparent)' }}
               >
                 {tool.name && tool.name !== meta.label && (
                   <div className="font-mono text-[10px]" style={{ color: 'var(--text-muted)' }}>
@@ -208,7 +223,7 @@ export function ToolCallbackList({
                     <div className="mb-1 text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>结果</div>
                     <pre
                       className="max-h-32 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-5"
-                      style={{ color: tool.status === 'error' ? 'var(--danger)' : 'var(--text-secondary)' }}
+                      style={{ color: isError ? 'var(--danger)' : 'var(--text-secondary)' }}
                     >
                       {tool.result.slice(0, 2000)}
                     </pre>
@@ -218,18 +233,15 @@ export function ToolCallbackList({
             )}
             {tool.name === 'companion_post_moment' && tool.status === 'done' && (
               <div
-                className="flex items-center justify-between gap-2 border-t px-3 py-2 text-[12px]"
-                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)' }}
+                className="my-1 flex items-center justify-between gap-2 rounded-[var(--radius-sm)] px-2.5 py-1 text-[12px]"
+                style={{ background: 'color-mix(in srgb, var(--bg-secondary) 45%, transparent)' }}
                 data-testid="tool-moment-card"
               >
-                <div className="flex min-w-0 items-center gap-2">
-                  <Newspaper size={13} className="shrink-0" style={{ color: 'var(--accent-fg)' }} />
-                  <span className="truncate" style={{ color: 'var(--text-secondary)' }}>
-                    {typeof tool.args?.text === 'string'
-                      ? `「${tool.args.text.slice(0, 32)}${tool.args.text.length > 32 ? '…' : ''}」`
-                      : '已发布一条新动态'}
-                  </span>
-                </div>
+                <span className="min-w-0 truncate" style={{ color: 'var(--text-muted)' }}>
+                  {typeof tool.args?.text === 'string'
+                    ? `「${tool.args.text.slice(0, 32)}${tool.args.text.length > 32 ? '…' : ''}」`
+                    : '已发布一条新动态'}
+                </span>
                 {onNavigateToWorld && (
                   <ActionButton
                     variant="plain"
@@ -245,16 +257,13 @@ export function ToolCallbackList({
             )}
             {tool.name === 'companion_create_asset' && tool.status === 'done' && (
               <div
-                className="flex items-center justify-between gap-2 border-t px-3 py-2 text-[12px]"
-                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)' }}
+                className="my-1 flex items-center justify-between gap-2 rounded-[var(--radius-sm)] px-2.5 py-1 text-[12px]"
+                style={{ background: 'color-mix(in srgb, var(--bg-secondary) 45%, transparent)' }}
                 data-testid="tool-asset-card"
               >
-                <div className="flex min-w-0 items-center gap-2">
-                  <BookOpen size={13} className="shrink-0" style={{ color: 'var(--accent-fg)' }} />
-                  <span className="truncate" style={{ color: 'var(--text-secondary)' }}>
-                    {typeof tool.args?.name === 'string' ? `已收录《${tool.args.name}》` : '已存入人物世界'}
-                  </span>
-                </div>
+                <span className="min-w-0 truncate" style={{ color: 'var(--text-muted)' }}>
+                  {typeof tool.args?.name === 'string' ? `已收录《${tool.args.name}》` : '已存入人物世界'}
+                </span>
                 {onNavigateToWorld && (
                   <ActionButton
                     variant="plain"
@@ -269,7 +278,7 @@ export function ToolCallbackList({
               </div>
             )}
             {tool.generatedImages?.map((image) => (
-              <div key={image.id} className="border-t p-2.5" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
+              <div key={image.id} className="mt-1.5 mb-2">
                 <GeneratedImageResult
                   image={image}
                   readImage={readImage}

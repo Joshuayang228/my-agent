@@ -1,5 +1,7 @@
 # 质量总控
 
+多轮助手任务分组收起门禁（2026-11-22）：新增 `group-assistant-runs.test.ts`（3 项）验证单轮原样透传、多轮连续助手步骤折叠为单一 `assistant-run` 仅留终答以及中文摘要去重截断；全量单测、双进程 `tsc`、`npm run build`、`arch:check`（15 项）、`assets:check`（115 项）与 `docs:validate` 全部通过。
+
 小声蛐蛐协议与硬冷却门禁（2026-11-22）：`aside-quality.test.ts`（8 项）与 `evals/scenarios/c02-aside-quality.ts` 统一采用纯 `~>` 独立行协议，覆盖原位切分、`parseAsideSegments` 代码围栏保护及 `shouldSuppressAside` 冷却窗口；`tone-control.test.ts`（6 项）验证近 2 轮出现过旁白时强制 `discourage` + `aside-cooldown`；`prompt-builder.test.ts` / `prompt-compiler.test.ts` 同步 `~>` 协议断言；全量单测（293 文件 / 1897 用例）、双进程 `tsc`、`npm run build`、`arch:check`（15 项）、`assets:check`（115 项）与 `docs:validate` 全部通过。
 
 平台层零角色耦合门禁（2026-11-22）：`architecture-boundaries.test.ts` 扩展至 11 项静态门禁（`arch:check` 合计 15 项），强制校验 `companion/life`、`companion/growth`、`prompts` 与 `src/shared/companion-error-voice.ts` 不含任何具体角色硬编码（`roleId === 'luffy'` / `LUFFY_` / `千里阳光号` 等）；全量单测（293 文件 / 1894 用例）、双进程 `tsc`、`npm run build`、`assets:check` 与 `docs:validate` 全部通过。

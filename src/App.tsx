@@ -23,12 +23,13 @@ import { ChatComposer } from './components/chat/ChatComposer'
 import { ChatAttachmentTray } from './components/chat/ChatAttachments'
 import { ChatApprovalControl } from './components/chat/ChatApprovalControl'
 import { ChatMessageFrame } from './components/chat/ChatMessageFrame'
+import { ActionButton } from './components/foundation/ActionButton'
 import { IconButton } from './components/foundation/IconButton'
 import { ImagePreviewImage } from './components/foundation/ImagePreviewImage'
 import {
   Volume2, Paperclip,
   Folder, FolderOpen, Ban, PanelRight,
-  ChevronDown,
+  ChevronDown, ChevronRight, Sparkles,
   Copy, Check, X, Pencil, RotateCcw, GitBranch, Trash2,
   Search, PanelLeftOpen, File,
 } from 'lucide-react'
@@ -47,6 +48,8 @@ import {
   completeReasoning,
   findLiveToolHostId,
   resolveToolsForAssistant,
+  groupVisibleMessages,
+  buildProcessSummaryText,
   type ReasoningCallbackState,
   type ToolCallbackItem,
 } from './components/chat/callbacks'
@@ -211,6 +214,8 @@ function App() {
   const [sessionPreviews, setSessionPreviews] = useState<Record<string, string>>({})
   /** 工具卡折叠态（callId → collapsed）；未记录则 running/pending 展开、完成折叠 */
   const [toolCollapse, setToolCollapse] = useState<Record<string, boolean>>({})
+  /** 多轮任务过程展开态（finalMsg.id → expanded）；跑完默认收起只留最后一轮输出 */
+  const [expandedProcessRuns, setExpandedProcessRuns] = useState<Record<string, boolean>>({})
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [sessionFilter, setSessionFilter] = useState('')
@@ -1413,14 +1418,40 @@ function App() {
               </div>
             )}
 
-            {/* 消息流 — Alice 壳 Phase B */}
+            {/* 消息流 — Alice 壳 Phase B（多轮工具任务完成后默认折叠过程，只留最后一轮最终回复与外露生图） */}
             <div className={LAYOUT_CLASSES.section}>
-              {visibleMessages.map((msg, msgIndex) => {
-                const isSearchMatch = searchQuery && msg.content.toLowerCase().includes(searchQuery.toLowerCase())
+              {groupVisibleMessages(visibleMessages).map((entry) => {
+                const isUser = entry.kind === 'user'
+                const msg = isUser ? entry.msg : entry.finalMsg
+                const intermediateSteps = isUser ? [] : entry.intermediate
+                const hasMultiTurnProcess = intermediateSteps.length > 0
+                const isSearchMatch = searchQuery && (
+                  msg.content.toLowerCase().includes(searchQuery.toLowerCase())
+                  || intermediateSteps.some((step) => step.content.toLowerCase().includes(searchQuery.toLowerCase()))
+                )
                 const dimmed = searchQuery && !isSearchMatch
-                const isUser = msg.role === 'user'
-                const isLastMsg = msgIndex === visibleMessages.length - 1
+                const isLastMsg = (isUser ? entry.visibleIndex : entry.lastVisibleIndex) === visibleMessages.length - 1
                 const showThinkingBeforeMsg = !isUser && isLastMsg && reasoning.chunks.length > 0
+                const isRunStreaming = !isUser && isStreaming && isLastMsg
+                const processExpanded = hasMultiTurnProcess && (isRunStreaming || Boolean(expandedProcessRuns[msg.id]))
+                const intermediateResolved = hasMultiTurnProcess
+                  ? intermediateSteps.map((step) => ({
+                      step,
+                      tools: applyToolCollapse(
+                        resolveToolsForAssistant(step, messages, {
+                          liveHostId: liveToolHostId,
+                          liveTools: activeTools,
+                          expandHistoric: false,
+                        }),
+                      ),
+                    }))
+                  : []
+                const allIntermediateTools = intermediateResolved.flatMap((item) => item.tools)
+                const intermediateImageTools = allIntermediateTools.filter((item) => Boolean(item.generatedImages?.length))
+                const navigateToWorldTab = (targetTab: 'moments' | 'culture' | 'wardrobe' | 'home' | 'footprints') => {
+                  setActiveView('world')
+                  setWorldTab(targetTab)
+                }
 
                 return (
                   <div
@@ -1520,16 +1551,78 @@ function App() {
                         )}
 
                       </> : <>
-                        {showThinkingBeforeMsg && (
+                        {hasMultiTurnProcess ? (
+                          <div className="mb-2" data-testid="assistant-process-group">
+                            <ActionButton
+                              variant="plain"
+                              onClick={() => setExpandedProcessRuns((prev) => ({ ...prev, [msg.id]: !processExpanded }))}
+                              aria-expanded={processExpanded}
+                              className="-mx-1.5 !min-h-0 !justify-start gap-1.5 rounded-[var(--radius-sm)] border-0 !px-1.5 !py-1 text-left text-[12px] hover:bg-[var(--hover-overlay)]"
+                            >
+                              <Sparkles
+                                size={12}
+                                className={`shrink-0 ${isRunStreaming ? 'animate-pulse' : ''}`}
+                                style={{ color: isRunStreaming ? 'var(--accent-fg)' : 'var(--text-muted)' }}
+                              />
+                              <span style={{ color: 'var(--text-secondary)' }}>
+                                {isRunStreaming
+                                  ? `正在处理中（已完成 ${allIntermediateTools.length || intermediateSteps.length} 步）…`
+                                  : buildProcessSummaryText(
+                                      allIntermediateTools.map((t) => t.name),
+                                      intermediateSteps.length,
+                                      showThinkingBeforeMsg,
+                                    )}
+                              </span>
+                              <ChevronRight
+                                size={12}
+                                className={`shrink-0 transition-transform ${processExpanded ? 'rotate-90' : ''}`}
+                                style={{ color: 'var(--text-muted)' }}
+                              />
+                            </ActionButton>
+                            {processExpanded && (
+                              <div
+                                className="mt-1.5 mb-2 space-y-2 rounded-[var(--radius-md)] px-3 py-2.5"
+                                style={{ background: 'color-mix(in srgb, var(--bg-secondary) 55%, transparent)' }}
+                              >
+                                {showThinkingBeforeMsg && (
+                                  <ReasoningCallback
+                                    chunks={reasoning.chunks}
+                                    expanded={thinkingExpanded}
+                                    onToggle={() => setThinkingExpanded(!thinkingExpanded)}
+                                    streaming={isStreaming}
+                                    presentation="stable"
+                                  />
+                                )}
+                                {intermediateResolved.map(({ step, tools: stepTools }) => (
+                                  <div key={step.id} className="space-y-1.5">
+                                    {step.content.trim() && (
+                                      <div className="text-[12px] leading-5" style={{ color: 'var(--text-muted)' }}>
+                                        <MarkdownRenderer content={step.content} />
+                                      </div>
+                                    )}
+                                    {stepTools.length > 0 && (
+                                      <ToolCallbackList
+                                        tools={stepTools.map((t) => ({ ...t, generatedImages: undefined }))}
+                                        sessionId={activeSessionId}
+                                        onToggleCollapse={toggleToolCollapse}
+                                        onNavigateToWorld={navigateToWorldTab}
+                                      />
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ) : showThinkingBeforeMsg ? (
                           <ReasoningCallback
                             chunks={reasoning.chunks}
                             expanded={thinkingExpanded}
                             onToggle={() => setThinkingExpanded(!thinkingExpanded)}
                             streaming={isStreaming}
                             presentation="stable"
-                            className="mb-2.5"
+                            className="mb-2"
                           />
-                        )}
+                        ) : null}
                         {(msg.content || (isStreaming && isLastMsg)) && (
                         <div className="mb-3" style={{ color: 'var(--text-primary)' }}>
                           {msg.content ? <MarkdownRenderer content={msg.content} /> : null}
@@ -1537,6 +1630,15 @@ function App() {
                             <span className="animate-typing-cursor ml-0.5 inline-block h-4 w-0.5" style={{ background: 'var(--accent)' }} />
                           )}
                         </div>
+                        )}
+                        {intermediateImageTools.length > 0 && (
+                          <ToolCallbackList
+                            tools={intermediateImageTools}
+                            sessionId={activeSessionId}
+                            onToggleCollapse={toggleToolCollapse}
+                            imagesOnly
+                            className="mt-2"
+                          />
                         )}
                         {(() => {
                           // Alice：tool_call 跟在本回合 assistant 正文后；历史从 toolCalls+后续 tool 还原
@@ -1552,10 +1654,7 @@ function App() {
                               tools={turnTools}
                               sessionId={activeSessionId}
                               onToggleCollapse={toggleToolCollapse}
-                              onNavigateToWorld={(targetTab: 'moments' | 'culture' | 'wardrobe' | 'home' | 'footprints') => {
-                                setActiveView('world')
-                                setWorldTab(targetTab)
-                              }}
+                              onNavigateToWorld={navigateToWorldTab}
                               className="mt-1"
                             />
                           ) : null

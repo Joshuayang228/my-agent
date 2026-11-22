@@ -24,3 +24,4 @@ export {
   collectToolResultsAfter,
 } from './resolve-tools-for-message'
 export { ContentCallbackCue, contentPhase } from './ContentCallback'
+export { groupVisibleMessages, buildProcessSummaryText, type ChatDisplayEntry } from './resolve-tools-for-message'

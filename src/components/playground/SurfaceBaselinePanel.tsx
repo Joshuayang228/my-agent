@@ -5,7 +5,7 @@ import { buildImageDraftPrompt } from '../../shared/request-draft-prompts'
  */
 
 import { useMemo, useRef, useState, type Dispatch, type MouseEvent, type ReactNode, type SetStateAction } from 'react'
-import { ArrowRight, Check, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, RotateCcw, Search, X } from 'lucide-react'
+import { ArrowRight, Check, ChevronRight, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, RotateCcw, Search, Sparkles, X } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
 import { PlaygroundCandidateControls, PlaygroundCandidateControlsTarget, WorldCandidateControls, WorldCandidateControlsTarget, WorldCandidateRefresh } from './WorldCandidateControls'
@@ -464,6 +464,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
   const [previewMessage, setPreviewMessage] = useState('')
   const previewFileRef = useRef<HTMLInputElement>(null)
   const [workspaceOpen, setWorkspaceOpen] = useState(false)
+  const [streamProcessExpanded, setStreamProcessExpanded] = useState(false)
   const [reasoningExpanded, setReasoningExpanded] = useState(false)
   const [activeReasoningExpanded, setActiveReasoningExpanded] = useState(true)
   const [streamTools, setStreamTools] = useState<ToolCallbackItem[]>(() => STREAM_TOOL_FIXTURES.map((item) => ({ ...item })))
@@ -623,16 +624,48 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                         <span className="whitespace-pre-wrap break-words">帮我查一下布局规范、发一条下午茶朋友圈、记一本书并画张窗边配图，顺便看看命令拦截长什么样。</span>
                       </ChatMessageFrame>
 
-                      {/* 1. 思考完成 + 记忆引用 + Markdown/aside + 全七态工具卡（全部对齐在同一助手列内） */}
+                      {/* 1. 多轮任务完成后默认收起全部过程，只留一行极轻摘要 + 最后一轮最终输出 */}
                       <ChatMessageFrame role="assistant" name={persona.name} avatarSrc={visuals?.avatarSrc} previewTimeLabel="刚刚">
-                        <ReasoningCallback
-                          chunks={[{ content: '1. 先检索布局文件确认间距阶梯；\n2. 读取伙伴生活世界状态并发布窗边下午茶动态；\n3. 记录《海边手记》到文化角并生成配图；\n4. 遇到高风险命令时直接返回拦截结果。' }]}
-                          expanded={reasoningExpanded}
-                          onToggle={() => setReasoningExpanded((expanded) => !expanded)}
-                          streaming={false}
-                          presentation="stable"
-                          className="mb-2.5"
-                        />
+                        <div className="mb-2">
+                          <ActionButton
+                            variant="plain"
+                            onClick={() => setStreamProcessExpanded((open) => !open)}
+                            aria-expanded={streamProcessExpanded}
+                            className="-mx-1.5 !min-h-0 !justify-start gap-1.5 rounded-[var(--radius-sm)] border-0 !px-1.5 !py-1 text-left text-[12px] hover:bg-[var(--hover-overlay)]"
+                          >
+                            <Sparkles size={12} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
+                            <span style={{ color: 'var(--text-secondary)' }}>
+                              已思考并完成 {streamTools.length} 步处理 · 读取文件、发布朋友圈、生成图片…
+                            </span>
+                            <ChevronRight
+                              size={12}
+                              className={`shrink-0 transition-transform ${streamProcessExpanded ? 'rotate-90' : ''}`}
+                              style={{ color: 'var(--text-muted)' }}
+                            />
+                          </ActionButton>
+                          {streamProcessExpanded && (
+                            <div
+                              className="mt-1.5 mb-2 space-y-2 rounded-[var(--radius-md)] px-3 py-2.5"
+                              style={{ background: 'color-mix(in srgb, var(--bg-secondary) 55%, transparent)' }}
+                            >
+                              <ReasoningCallback
+                                chunks={[{ content: '1. 先检索布局文件确认间距阶梯；\n2. 读取伙伴生活世界状态并发布窗边下午茶动态；\n3. 记录《海边手记》到文化角并生成配图；\n4. 遇到高风险命令时直接返回拦截结果。' }]}
+                                expanded={reasoningExpanded}
+                                onToggle={() => setReasoningExpanded((expanded) => !expanded)}
+                                streaming={false}
+                                presentation="stable"
+                              />
+                              <p className="text-[12px] leading-5" style={{ color: 'var(--text-muted)' }}>
+                                中间步骤：先核对布局规范，再顺手处理动态、书架和配图。
+                              </p>
+                              <ToolCallbackList
+                                tools={streamTools.map((item) => ({ ...item, generatedImages: undefined }))}
+                                onToggleCollapse={toggleToolIn(setStreamTools)}
+                                onNavigateToWorld={() => onNavigate?.('world')}
+                              />
+                            </div>
+                          )}
+                        </div>
                         <MarkdownRenderer
                           content={[
                             '都帮你过了一遍，关键点先列在下面：',
@@ -640,20 +673,22 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                             '~>先把窗边光线和刚刚查到的结果对齐一下，免得又漏掉空态边距',
                             '',
                             '- 共享间距来自 `src/shared/content-layout.ts` 的 `SPACING`；',
-                            '- 朋友圈动态、文化角书架和配图都已挂在下方工具卡里，点击每张卡可展开/收起参数和结果。',
+                            '- 朋友圈动态、文化角书架和配图都已处理完毕，需要核对细节时点上方过程摘要展开即可。',
                             '',
                             '```ts',
                             'export const CONTENT_LAYOUT = { gutter: 16, readingWidth: 672, sectionGap: 20 } as const',
                             '```',
                           ].join('\n')}
                         />
-                        <ToolCallbackList
-                          tools={streamTools}
-                          onToggleCollapse={toggleToolIn(setStreamTools)}
-                          readGeneratedImage={readPreviewGeneratedImage}
-                          onNavigateToWorld={() => onNavigate?.('world')}
-                          className="mt-2.5"
-                        />
+                        {/* 生成的图片始终留在折叠过程之外，直接呈现在终答下方 */}
+                        <div className="mt-2.5">
+                          <ToolCallbackList
+                            tools={streamTools.filter((item) => Boolean(item.generatedImages?.length))}
+                            onToggleCollapse={toggleToolIn(setStreamTools)}
+                            readGeneratedImage={readPreviewGeneratedImage}
+                            imagesOnly
+                          />
+                        </div>
                       </ChatMessageFrame>
 
                       {/* 2. 进行中：思考中（streaming=true）+ 回复生成中（ContentCallbackCue），同样挂在助手列内 */}

@@ -102,10 +102,10 @@ export function ChatFileChip({
           label={`移除文件 ${file.name}`}
           size={24}
           onClick={onRemove}
-          className="shrink-0 opacity-0 transition-opacity group-hover/file:opacity-100 focus-visible:opacity-100"
-          style={{ color: 'var(--text-muted)' }}
+          className="!h-4 !w-4 !min-h-0 !min-w-0 absolute -right-1 -top-1 rounded-full opacity-0 shadow-sm transition-opacity group-hover/file:opacity-100 focus-visible:opacity-100"
+          style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
         >
-          <X size={12} />
+          <X size={10} />
         </IconButton>
       )}
     </div>

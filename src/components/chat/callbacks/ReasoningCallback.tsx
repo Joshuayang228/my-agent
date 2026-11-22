@@ -34,8 +34,7 @@ export function ReasoningCallback({
 
   return (
     <div
-      className={`overflow-hidden rounded-[var(--radius-md)] border ${presentation === 'stable' ? 'reasoning-callback-stable' : ''} ${className}`}
-      style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
+      className={`${presentation === 'stable' ? 'reasoning-callback-stable' : ''} ${className}`}
       data-callback="reasoning"
       data-phase={phase}
     >
@@ -43,19 +42,14 @@ export function ReasoningCallback({
         variant="plain"
         onClick={onToggle}
         aria-expanded={expanded}
-        className="w-full !min-h-0 !justify-start gap-2 rounded-none border-0 !px-3 !py-1.5 text-left text-[12px] hover:bg-[var(--hover-overlay)]"
+        className="-mx-1.5 !min-h-0 !justify-start gap-1.5 rounded-[var(--radius-sm)] border-0 !px-1.5 !py-1 text-left text-[12px] hover:bg-[var(--hover-overlay)]"
       >
-        <Sparkles size={13} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
-        <span
-          className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${isActive ? 'animate-pulse' : ''}`}
-          style={{ background: isActive ? 'var(--accent)' : 'var(--success)' }}
-        />
-        <span className="font-medium" style={{ color: 'var(--text-primary)' }}>思考过程</span>
-        <span className="ml-auto shrink-0 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-          {isActive ? '思考中…' : '已完成'}
+        <Sparkles size={12} className={`shrink-0 ${isActive ? 'animate-pulse' : ''}`} style={{ color: isActive ? 'var(--accent-fg)' : 'var(--text-muted)' }} />
+        <span className="font-medium" style={{ color: 'var(--text-secondary)' }}>
+          {isActive ? '思考中…' : '思考过程'}
         </span>
         <ChevronRight
-          size={13}
+          size={12}
           className={`shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
           style={{ color: 'var(--text-muted)' }}
         />
@@ -69,11 +63,10 @@ export function ReasoningCallback({
         }
       >
         <div
-          className="max-h-52 overflow-auto whitespace-pre-wrap break-words border-t px-3 py-2.5 text-[12px] leading-6"
+          className="mt-1 mb-1.5 max-h-52 overflow-auto whitespace-pre-wrap break-words rounded-[var(--radius-md)] px-3 py-2 text-[12px] leading-6"
           style={{
-            borderColor: 'var(--border-subtle)',
-            background: 'var(--bg-primary)',
-            color: 'var(--text-secondary)',
+            background: 'color-mix(in srgb, var(--bg-secondary) 60%, transparent)',
+            color: 'var(--text-muted)',
           }}
         >
           {chunks.map((t) => t.content).join('')}
