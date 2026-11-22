@@ -1571,6 +1571,7 @@ function App() {
                                       allIntermediateTools.map((t) => t.name),
                                       intermediateSteps.length,
                                       showThinkingBeforeMsg,
+                                      allIntermediateTools.filter((t) => t.status === 'error').length,
                                     )}
                               </span>
                               <ChevronRight
@@ -1580,10 +1581,7 @@ function App() {
                               />
                             </ActionButton>
                             {processExpanded && (
-                              <div
-                                className="mt-1.5 mb-2 space-y-2 rounded-[var(--radius-md)] px-3 py-2.5"
-                                style={{ background: 'color-mix(in srgb, var(--bg-secondary) 55%, transparent)' }}
-                              >
+                              <div className="mt-1.5 mb-2 flex flex-col items-start gap-1.5">
                                 {showThinkingBeforeMsg && (
                                   <ReasoningCallback
                                     chunks={reasoning.chunks}
@@ -1594,12 +1592,7 @@ function App() {
                                   />
                                 )}
                                 {intermediateResolved.map(({ step, tools: stepTools }) => (
-                                  <div key={step.id} className="space-y-1.5">
-                                    {step.content.trim() && (
-                                      <div className="text-[12px] leading-5" style={{ color: 'var(--text-muted)' }}>
-                                        <MarkdownRenderer content={step.content} />
-                                      </div>
-                                    )}
+                                  <div key={step.id} className="flex max-w-full flex-col items-start gap-1.5">
                                     {stepTools.length > 0 && (
                                       <ToolCallbackList
                                         tools={stepTools.map((t) => ({ ...t, generatedImages: undefined }))}

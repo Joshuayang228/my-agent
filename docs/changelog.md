@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-22 参考 Alice `rf` / `Xg` 升级 Chat 过程视图为「双段实底小胶囊 + 点击弹窗看详情」：`ToolCallbackList` 与 `ReasoningCallback` 共用 `ProcessStepCapsule`（左段动作名、右段单行摘要与可选「去查看」轻链接，去掉重复回执行与大绿按钮）与居中 `ProcessDetailModal`（`Esc`/遮罩关闭），绝不在对话流里摊开大段 JSON；多轮折叠摘要补充失败计数提示；`GeneratedImageResult` 改为独立圆角实底图卡去除多余顶线；提升 `.ququ-line` 在氛围壁纸上的可读对比度，正式页与 Playground 同步生效。
+
 2026-11-22 轻量重构 Chat 过程视图并落地多轮任务自动收起：`ReasoningCallback` 与 `ToolCallbackList` 去框减重为统一色阶（`--text-secondary`）无框幽灵行与柔和半透明浅底展开容器；新增 `groupVisibleMessages` / `buildProcessSummaryText` 接入正式 `App.tsx` 与 Playground，多轮工具任务进行中实时展开、跑完后默认折叠过程仅保留最后一轮最终回复与外露生成图；同步将 `ChatFileChip` 移除按钮统一为与 `ChatImageThumb` 相同的右上角悬浮圆标。
 
 2026-11-22 参考 Alice 的「蛐蛐（`.ququ-line` / `~>`）」重构小声蛐蛐样式与频次控制：`src/shared/aside.ts` 新增 `parseAsideSegments` 与 `shouldSuppressAside`（纯 `~>` 独立行协议，跳过代码围栏、流式零闪跳，移除旧 `<aside>` XML 标签兼容）；`MarkdownRenderer.tsx` 与 `src/index.css` 落地 `💭 ` 前缀、12px 正体 muted 原位渲染及 `user-select: none` + `onCopy` 自动剔除；主进程收敛 Prompt 单一事实源（消除 4 处重复提及）并接入 2 轮硬冷却与紧绷态静默抑制，Playground 同步更新样张。

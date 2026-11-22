@@ -187,14 +187,20 @@ const TOOL_SUMMARY_LABELS: Record<string, string> = {
 }
 
 /** 生成多轮过程折叠摘要文案（如：已完成 4 步处理 · 读取文件、发布朋友圈…） */
-export function buildProcessSummaryText(toolNames: string[], stepCount: number, hasThinking: boolean): string {
+export function buildProcessSummaryText(
+  toolNames: string[],
+  stepCount: number,
+  hasThinking: boolean,
+  errorCount = 0,
+): string {
   const uniqueLabels: string[] = []
   for (const name of toolNames) {
     const label = TOOL_SUMMARY_LABELS[name] ?? (name || '调用工具')
     if (!uniqueLabels.includes(label)) uniqueLabels.push(label)
   }
   const count = toolNames.length > 0 ? toolNames.length : stepCount
-  const prefix = hasThinking ? `已思考并完成 ${count} 步处理` : `已完成 ${count} 步处理`
+  const base = hasThinking ? `已思考并完成 ${count} 步处理` : `已完成 ${count} 步处理`
+  const prefix = errorCount > 0 ? `${base}（${errorCount} 项失败）` : base
   if (uniqueLabels.length === 0) return prefix
   const preview = uniqueLabels.slice(0, 3).join('、')
   return uniqueLabels.length > 3 ? `${prefix} · ${preview}…` : `${prefix} · ${preview}`

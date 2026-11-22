@@ -1,16 +1,18 @@
 /**
- * Reasoning 通道 UI：思考过程 Start/Progress/Complete。
+ * Reasoning 通道 UI：思考过程 Start/Progress/Complete（双段实底小胶囊 + 点击弹详情弹窗）。
  *
- * 背景：此前思考卡使用等宽 `<pre>`、左侧箭头与全宽独立摆放，和同列中的工具卡、助手正文风格割裂且左边界错位。
- * 设计意图：与 `ToolCallbackList` 共用同一套轻量过程折叠卡皮肤（统一圆角、字号、右侧状态与右侧折叠箭头），
- * 正文改用自然 UI 字体阅读；调用方将其置于 `ChatMessageFrame` 助手列内，保证与正文、工具卡严格左对齐。
+ * 背景：在对话流里原地展开大段思考文本会打断阅读节奏，而在带壁纸的背景下半透明无框块又容易发虚。
+ * 设计意图：与 `ToolCallbackList` 采用同一双段实底小胶囊样式，并复用 `ProcessDetailModal`，
+ * 在对话流中仅展示一枚紧凑双段胶囊（图标 + 思考过程 + 单行预览），点击后在居中弹窗中舒适阅读完整思考内容。
  * 关键约束：保留 `data-callback="reasoning"`、`data-phase` 与 Foundation `ActionButton`（名称含「思考过程」）。
  */
 
-import { ChevronRight, Sparkles } from 'lucide-react'
+import { useState } from 'react'
+import { Sparkles } from 'lucide-react'
 import type { ReasoningChunk } from './types'
 import { reasoningPhase } from './types'
 import { ActionButton } from '../../foundation/ActionButton'
+import { ProcessDetailModal } from './ToolCallbackList'
 
 export function ReasoningCallback({
   chunks,
@@ -21,57 +23,80 @@ export function ReasoningCallback({
   presentation = 'default',
 }: {
   chunks: ReasoningChunk[]
-  expanded: boolean
-  onToggle: () => void
+  expanded?: boolean
+  onToggle?: () => void
   streaming: boolean
   className?: string
-  /** 正式主聊天显式采用稳定标题槽与渐显；其他调用方仍保留默认展示。 */
+  /** 保留兼容属性，供外部稳定容器识别 */
   presentation?: 'default' | 'stable'
 }) {
+  const [modalOpen, setModalOpen] = useState(false)
   if (chunks.length === 0) return null
+
   const phase = reasoningPhase(chunks, streaming)
   const isActive = phase === 'active'
+  const fullText = chunks.map((t) => t.content).join('')
+  const compact = fullText.replace(/\s+/g, ' ').trim()
+  const preview = isActive
+    ? (compact.length > 48 ? `…${compact.slice(-48)}` : compact)
+    : (compact.length > 48 ? `${compact.slice(0, 48)}…` : compact)
 
   return (
     <div
-      className={`${presentation === 'stable' ? 'reasoning-callback-stable' : ''} ${className}`}
+      className={`inline-flex max-w-full items-stretch overflow-hidden rounded-[15px] border transition-colors ${presentation === 'stable' ? 'reasoning-callback-stable' : ''} ${className}`}
+      style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}
       data-callback="reasoning"
       data-phase={phase}
     >
       <ActionButton
         variant="plain"
-        onClick={onToggle}
-        aria-expanded={expanded}
-        className="-mx-1.5 !min-h-0 !justify-start gap-1.5 rounded-[var(--radius-sm)] border-0 !px-1.5 !py-1 text-left text-[12px] hover:bg-[var(--hover-overlay)]"
+        onClick={() => {
+          onToggle?.()
+          setModalOpen(true)
+        }}
+        title={compact || '思考过程'}
+        className="min-w-0 !min-h-0 !justify-start gap-0 rounded-none border-0 !p-0 text-left hover:brightness-[0.97]"
       >
-        <Sparkles size={12} className={`shrink-0 ${isActive ? 'animate-pulse' : ''}`} style={{ color: isActive ? 'var(--accent-fg)' : 'var(--text-muted)' }} />
-        <span className="font-medium" style={{ color: 'var(--text-secondary)' }}>
-          {isActive ? '思考中…' : '思考过程'}
+        <span
+          className="inline-flex shrink-0 items-center gap-1.5 px-2.5 py-1 text-[12px] font-medium"
+          style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+        >
+          <Sparkles
+            size={12}
+            className={`shrink-0 ${isActive ? 'animate-pulse' : ''}`}
+            style={{ color: isActive ? 'var(--accent-fg)' : 'var(--text-muted)' }}
+          />
+          <span className="whitespace-nowrap">思考过程</span>
         </span>
-        <ChevronRight
-          size={12}
-          className={`shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
-          style={{ color: 'var(--text-muted)' }}
-        />
+        {(preview || isActive) && (
+          <span className="inline-flex min-w-0 items-center gap-2 px-2.5 py-1 text-[12px]">
+            {preview && (
+              <span className="min-w-0 truncate" style={{ color: 'var(--text-muted)' }}>
+                {preview}
+              </span>
+            )}
+            {isActive && (
+              <span className="shrink-0 text-[11px]" style={{ color: 'var(--accent-fg)' }}>
+                思考中…
+              </span>
+            )}
+          </span>
+        )}
       </ActionButton>
-      <div
-        aria-hidden={!expanded}
-        className={
-          presentation === 'stable'
-            ? `reasoning-callback-content ${expanded ? 'reasoning-callback-content-open' : ''}`
-            : expanded ? 'block' : 'hidden'
-        }
+      <ProcessDetailModal
+        open={modalOpen || Boolean(expanded && !onToggle)}
+        title="思考过程"
+        icon={<Sparkles size={14} />}
+        statusText={isActive ? '思考中…' : '已完成'}
+        onClose={() => setModalOpen(false)}
       >
         <div
-          className="mt-1 mb-1.5 max-h-52 overflow-auto whitespace-pre-wrap break-words rounded-[var(--radius-md)] px-3 py-2 text-[12px] leading-6"
-          style={{
-            background: 'color-mix(in srgb, var(--bg-secondary) 60%, transparent)',
-            color: 'var(--text-muted)',
-          }}
+          className="whitespace-pre-wrap break-words text-[13px] leading-7"
+          style={{ color: 'var(--text-secondary)' }}
         >
-          {chunks.map((t) => t.content).join('')}
+          {fullText}
         </div>
-      </div>
+      </ProcessDetailModal>
     </div>
   )
 }

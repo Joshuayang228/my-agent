@@ -50,5 +50,9 @@ describe('groupVisibleMessages', () => {
     expect(
       buildProcessSummaryText(['file_read'], 1, false),
     ).toBe('已完成 1 步处理 · 读取文件')
+
+    expect(
+      buildProcessSummaryText(['file_read', 'shell_exec'], 2, true, 1),
+    ).toBe('已思考并完成 2 步处理（1 项失败） · 读取文件、执行命令')
   })
 })

@@ -48,8 +48,8 @@ function ImageContent({ image, readImage, revealImage }: { image: GeneratedImage
   const ratio = Number.isFinite(image.width) && Number.isFinite(image.height) && image.width > 0 && image.height > 0
     ? Math.min(4, Math.max(0.5, image.width / image.height)) : 1
   const loading = !result || (!!result.source && !decoded)
-  return <figure className="min-w-0 border-t p-3" style={{ borderColor: 'var(--border-subtle)' }} data-testid="generated-image-result">
-    <div className="relative w-full overflow-auto rounded" style={{ aspectRatio: ratio, minHeight: 128, maxHeight: 360, background: 'var(--bg-tertiary)' }} data-testid="generated-image-viewport" aria-busy={loading}>
+  return <figure className="min-w-0 rounded-[var(--radius-md)] border p-2.5" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }} data-testid="generated-image-result">
+    <div className="relative w-full overflow-auto rounded-[var(--radius-sm)]" style={{ aspectRatio: ratio, minHeight: 128, maxHeight: 360, background: 'var(--bg-tertiary)' }} data-testid="generated-image-viewport" aria-busy={loading}>
       {result?.source && <button type="button" aria-label="预览生成的图片" className="absolute inset-0 block min-w-0 appearance-none border-0 bg-transparent p-0 text-left" disabled={!decoded} onClick={() => setViewerOpen(true)}>
         <img src={result.source} alt="生成的图片" width={image.width} height={image.height}
           className={original ? 'block max-w-none' : 'absolute inset-0 h-full w-full object-contain'}

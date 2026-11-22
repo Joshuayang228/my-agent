@@ -635,7 +635,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                           >
                             <Sparkles size={12} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
                             <span style={{ color: 'var(--text-secondary)' }}>
-                              已思考并完成 {streamTools.length} 步处理 · 读取文件、发布朋友圈、生成图片…
+                              已思考并完成 {streamTools.length} 步处理（{streamTools.filter((t) => t.status === 'error').length} 项失败） · 读取文件、发布朋友圈、生成图片…
                             </span>
                             <ChevronRight
                               size={12}
@@ -644,10 +644,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                             />
                           </ActionButton>
                           {streamProcessExpanded && (
-                            <div
-                              className="mt-1.5 mb-2 space-y-2 rounded-[var(--radius-md)] px-3 py-2.5"
-                              style={{ background: 'color-mix(in srgb, var(--bg-secondary) 55%, transparent)' }}
-                            >
+                            <div className="mt-1.5 mb-2 flex flex-col items-start gap-1.5">
                               <ReasoningCallback
                                 chunks={[{ content: '1. 先检索布局文件确认间距阶梯；\n2. 读取伙伴生活世界状态并发布窗边下午茶动态；\n3. 记录《海边手记》到文化角并生成配图；\n4. 遇到高风险命令时直接返回拦截结果。' }]}
                                 expanded={reasoningExpanded}
@@ -655,9 +652,6 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                                 streaming={false}
                                 presentation="stable"
                               />
-                              <p className="text-[12px] leading-5" style={{ color: 'var(--text-muted)' }}>
-                                中间步骤：先核对布局规范，再顺手处理动态、书架和配图。
-                              </p>
                               <ToolCallbackList
                                 tools={streamTools.map((item) => ({ ...item, generatedImages: undefined }))}
                                 onToggleCollapse={toggleToolIn(setStreamTools)}

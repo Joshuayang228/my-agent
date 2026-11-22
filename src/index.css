@@ -986,8 +986,8 @@ html[data-font-scale="lg"] {
 .ququ-line {
   display: block;
   font-size: 0.75rem;
-  color: var(--text-muted);
-  opacity: 0.78;
+  color: var(--text-secondary);
+  opacity: 0.86;
   margin: 0.5rem 0;
   line-height: 1.6;
 }
