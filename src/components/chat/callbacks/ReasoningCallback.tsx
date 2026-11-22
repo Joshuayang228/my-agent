@@ -79,12 +79,8 @@ export function ReasoningCallback({
         }
       >
         <div
-          className="scrollbar-thin mt-1 mb-1.5 max-h-52 overflow-auto whitespace-pre-wrap break-words rounded-[var(--radius-md)] border px-3 py-2.5 text-[12px] leading-6 backdrop-blur-[6px]"
-          style={{
-            borderColor: 'var(--border-subtle)',
-            background: 'color-mix(in srgb, var(--card-bg) 88%, transparent)',
-            color: 'var(--text-muted)',
-          }}
+          className="scrollbar-thin mt-1 mb-2.5 max-h-48 overflow-auto whitespace-pre-wrap break-words text-[12px] leading-6"
+          style={{ color: 'var(--text-muted)' }}
         >
           {fullText}
         </div>

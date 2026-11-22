@@ -141,15 +141,7 @@ export function ToolCallbackList({
 
   return (
     <div
-      className={`space-y-1 ${embedded ? '' : 'rounded-[var(--radius-md)] border px-3 py-2 backdrop-blur-[6px]'} ${className}`}
-      style={
-        embedded
-          ? undefined
-          : {
-              borderColor: 'var(--border-subtle)',
-              background: 'color-mix(in srgb, var(--card-bg) 88%, transparent)',
-            }
-      }
+      className={`space-y-0.5 ${className}`}
       data-callback="tool"
       data-testid="tool-callback-list"
     >
@@ -163,6 +155,9 @@ export function ToolCallbackList({
         const isMomentDone = tool.name === 'companion_post_moment' && tool.status === 'done'
         const isAssetDone = tool.name === 'companion_create_asset' && tool.status === 'done'
         const showWorldLink = Boolean(onNavigateToWorld && (isMomentDone || isAssetDone))
+        const hasArgs = Object.keys(tool.args).length > 0
+        const hasStreamingArgs = tool.status === 'pending' && Boolean(tool.streamingArgs)
+        const hasResult = Boolean(tool.result)
         const handleWorldNavigate = () => {
           if (!onNavigateToWorld) return
           if (isMomentDone) {
@@ -184,7 +179,7 @@ export function ToolCallbackList({
             data-phase={phase}
             data-testid={isMomentDone ? 'tool-moment-card' : isAssetDone ? 'tool-asset-card' : undefined}
           >
-            <div className="flex items-center gap-2">
+            <div className="group/row flex items-center gap-1.5">
               <ActionButton
                 variant="plain"
                 onClick={() => onToggleCollapse(tool.callId)}
@@ -218,13 +213,19 @@ export function ToolCallbackList({
                     未通过
                   </span>
                 )}
-                {!collapsed && (
+                <span
+                  className={`${isActive || isError ? '' : 'ml-auto'} flex h-4 w-4 shrink-0 items-center justify-center transition-opacity ${
+                    collapsed
+                      ? 'opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100'
+                      : 'opacity-100'
+                  }`}
+                  style={{ color: 'var(--text-muted)' }}
+                >
                   <ChevronRight
                     size={12}
-                    className={`${isActive || isError ? '' : 'ml-auto'} shrink-0 rotate-90`}
-                    style={{ color: 'var(--text-muted)' }}
+                    className={`transition-transform ${collapsed ? '' : 'rotate-90'}`}
                   />
-                )}
+                </span>
               </ActionButton>
               {showWorldLink && (
                 <ActionButton
@@ -237,27 +238,30 @@ export function ToolCallbackList({
                 </ActionButton>
               )}
             </div>
-            {!collapsed && (
+            {!collapsed && (hasStreamingArgs || hasArgs || hasResult) && (
               <div
-                className="mt-1 mb-1.5 space-y-1.5 rounded-[var(--radius-sm)] px-2.5 py-2 font-mono text-[11px] leading-5"
+                className="scrollbar-thin ml-5 mt-1 mb-1.5 space-y-2 rounded-[var(--radius-sm)] px-3 py-2 font-mono text-[11px] leading-5"
                 style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
               >
-                {tool.status === 'pending' && tool.streamingArgs && (
-                  <pre className="max-h-24 overflow-auto" style={{ color: 'var(--text-muted)' }}>
+                {hasStreamingArgs && (
+                  <pre className="scrollbar-thin max-h-24 overflow-auto" style={{ color: 'var(--text-muted)' }}>
                     {tool.streamingArgs}
                   </pre>
                 )}
-                {Object.keys(tool.args).length > 0 && (
-                  <pre className="max-h-28 overflow-auto" style={{ color: 'var(--text-muted)' }}>
+                {hasArgs && (
+                  <pre className="scrollbar-thin max-h-28 overflow-auto" style={{ color: 'var(--text-muted)' }}>
                     {JSON.stringify(tool.args, null, 2)}
                   </pre>
                 )}
-                {tool.result && (
+                {hasResult && (
                   <pre
-                    className="max-h-32 overflow-auto whitespace-pre-wrap break-words"
-                    style={{ color: isError ? 'var(--danger)' : 'var(--text-secondary)' }}
+                    className={`scrollbar-thin max-h-32 overflow-auto whitespace-pre-wrap break-words ${hasArgs || hasStreamingArgs ? 'border-t pt-2' : ''}`}
+                    style={{
+                      borderColor: 'var(--border-subtle)',
+                      color: isError ? 'var(--danger)' : 'var(--text-secondary)',
+                    }}
                   >
-                    {tool.result.slice(0, 2000)}
+                    {tool.result!.slice(0, 2000)}
                   </pre>
                 )}
               </div>

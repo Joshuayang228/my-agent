@@ -1581,13 +1581,7 @@ function App() {
                               />
                             </ActionButton>
                             {processExpanded && (
-                              <div
-                                className="mt-1.5 mb-2.5 space-y-2.5 rounded-[var(--radius-md)] border px-3.5 py-3 backdrop-blur-[6px]"
-                                style={{
-                                  borderColor: 'var(--border-subtle)',
-                                  background: 'color-mix(in srgb, var(--card-bg) 88%, transparent)',
-                                }}
-                              >
+                              <div className="mt-1.5 mb-3 space-y-2">
                                 {showThinkingBeforeMsg && (
                                   <ReasoningCallback
                                     chunks={reasoning.chunks}

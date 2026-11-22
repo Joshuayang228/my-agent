@@ -643,13 +643,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                             />
                           </ActionButton>
                           {streamProcessExpanded && (
-                            <div
-                              className="mt-1.5 mb-2.5 space-y-2.5 rounded-[var(--radius-md)] border px-3.5 py-3 backdrop-blur-[6px]"
-                              style={{
-                                borderColor: 'var(--border-subtle)',
-                                background: 'color-mix(in srgb, var(--card-bg) 88%, transparent)',
-                              }}
-                            >
+                            <div className="mt-1.5 mb-3 space-y-2">
                               <ReasoningCallback
                                 chunks={[{ content: '先检索布局文件确认间距阶梯，再读取伙伴生活世界状态并发布窗边下午茶动态，把《海边手记》记进文化角并配一张窗边图；遇到高风险命令直接拦截。' }]}
                                 expanded={reasoningExpanded}
