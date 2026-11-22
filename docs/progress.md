@@ -1,5 +1,7 @@
 # 项目进度
 
+Chat 消息流撤除记忆引用芯片并补齐 Playground 图片与文件样张（2026-11-22）：按产品验收结论，从 `src/App.tsx` 与 `SurfaceBaselinePanel.tsx` 移除聊天正文上方的 `MemoryCitationChips` 渲染（保留后端记忆召回与 Debug 证据查询）；同时在 Playground Chat 主旅程新增「图片与文件（`attachments`）」场景，完整展示单图/多图用户消息、文件引用消息以及输入区待发送文件胶囊与图片缩略图预览及移除交互。
+
 平台层零角色耦合重构与 Role Pack 预设下沉（2026-11-22）：将全部 15 个伙伴生活引擎/成长模块及通用 Prompt、内置工具、错误承接中的路飞硬编码数据与分支彻底剥离，新增通用加载器 `electron/main/companion/identity/life-presets.ts`（`loadRoleLifePresets`）并把路飞专属预设统一沉淀到 `electron/main/companion/universes/default/roles/luffy/life-presets.json`；平台代码只保留中性通用兜底，换入任何新角色均可无缝运行；同步在 `architecture-boundaries.test.ts` 新增「零角色耦合静态门禁」纳入 `arch:check` 与 Git Hook。
 
 Chat 对话流过程视图视觉与对齐统一（2026-11-22）：基于现有 Foundation 控件与设计语言统一改造 Chat 对话流全部过程组件，正式页（`App.tsx`）与 Playground（`SurfaceBaselinePanel.tsx`）同步收口——将 `ReasoningCallback` 与 `ContentCallbackCue` 移入 `ChatMessageFrame` 助手列内，消除原先全宽顶左与助手正文错位的问题；`ReasoningCallback` 与 `ToolCallbackList` 统一为同源轻量过程折叠卡（统一 `--radius-md`、12px 头部、13px 语义图标、状态圆点、右侧状态标签与右侧 `ChevronRight` 折叠箭头，思考过程改用自然 UI 字体而非等宽 `<pre>`，内置/伙伴工具映射自然中文动作名与参数摘要，展开后在 `--bg-primary` 阅读底色内查看技术细节，朋友圈/生活记录回执条去噪融入）；`MemoryCitationChips` 改用中文分类名与 `--radius-pill` 轻胶囊，「记错了 / 改正」悬停清晰浮现。

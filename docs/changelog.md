@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-22 从正式 Chat 消息流与 Playground 旅程中撤掉正上方 `MemoryCitationChips` 记忆引用芯片（后端召回与 Debug 记录保持不变）；并在 Playground Chat 新增「图片与文件」主旅程，补齐已发送单图/多图与文件引用消息样式以及输入区待发送图片缩略图、文件胶囊预览交互。
+
 2026-11-22 完成平台层零角色耦合重构：新增通用 Role Pack 预设加载器 `companion/identity/life-presets.ts`，将原散落在 15 个平台模块（`assets`、`relationship-keepsake`、`co-decision`、`replan`、`script-generator`、`vulnerability`、`inner-thoughts`、`gifting`、`host-presence`、`chat-resonance`、`travel-progression`、`nightly-reflection`、`spontaneous-impulse`、`life-context-snapshot`、`moment-interactions`）及 Prompt/工具/`companion-error-voice.ts` 中的路飞专属数据与硬编码分支全部下沉至 `universes/default/roles/luffy/life-presets.json`，并在 `arch:check` 新增「零角色耦合静态门禁」防回流。
 
 2026-11-22 统一 Chat 对话流全部过程组件视觉与对齐：`ReasoningCallback` 与 `ContentCallbackCue` 收拢进 `ChatMessageFrame` 助手列与正文、工具卡严格左对齐；思考卡与 `ToolCallbackList` 共用同一套轻量过程折叠卡皮肤（统一圆角/字号/状态点/右侧折叠箭头，思考正文改用 UI 字体，工具名映射自然中文与语义图标）；`MemoryCitationChips` 改用中文分类名与 `--radius-pill` 轻胶囊，正式页与 Playground 同步生效。

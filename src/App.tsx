@@ -17,7 +17,6 @@ import { ToastProvider, useToast } from './components/Toast'
 import { SkillsPanel } from './components/SkillsPanel'
 import { ChatRightDock } from './components/chat/right-dock/ChatRightDock'
 import MentionPopup from './components/MentionPopup'
-import { MemoryCitationChips } from './components/chat/MemoryCitationChips'
 import { PermissionConfirmCard } from './components/chat/PermissionConfirmCard'
 import { ChatWelcome } from './components/chat/ChatWelcome'
 import { ChatComposer } from './components/chat/ChatComposer'
@@ -249,51 +248,6 @@ function App() {
   const sessionsRef = useRef<SessionSummary[]>([])
   const activeSessionIdRef = useRef<string | null>(null)
   const { toast } = useToast()
-
-  /** M29-G2：从消息与本轮 ref 去掉已纠错芯片 */
-  const dropCitationChip = useCallback((citationId: string) => {
-    turnCitationsRef.current = turnCitationsRef.current.filter((c) => c.id !== citationId)
-    setMessages((prev) =>
-      prev.map((m) => {
-        if (!m.memoryCitations?.length) return m
-        const next = m.memoryCitations.filter((c) => c.id !== citationId)
-        if (next.length === m.memoryCitations.length) return m
-        return { ...m, memoryCitations: next.length ? next : undefined }
-      }),
-    )
-  }, [])
-
-  const handleForgetCitation = useCallback(
-    async (citationId: string) => {
-      const r = await window.electronAPI?.memory.correctCitation(citationId)
-      if (!r?.ok) {
-        toast(r && 'error' in r ? r.error : '纠错失败', 'error')
-        return
-      }
-      dropCitationChip(citationId)
-      toast('已忘掉这条引用（库已清理）', 'success')
-    },
-    [dropCitationChip, toast],
-  )
-
-  const handleAmendCitation = useCallback(
-    async (citationId: string, hint: string) => {
-      const replacement = window.prompt('改正为（将写入事实记忆，并清掉错误引用）', hint)
-      if (replacement == null) return
-      if (!replacement.trim()) {
-        toast('改正内容不能为空', 'error')
-        return
-      }
-      const r = await window.electronAPI?.memory.correctCitation(citationId, replacement.trim())
-      if (!r?.ok) {
-        toast(r && 'error' in r ? r.error : '改正失败', 'error')
-        return
-      }
-      dropCitationChip(citationId)
-      toast(r.action === 'updated' ? '已更新这条记忆' : '已改正并写入新事实', 'success')
-    },
-    [dropCitationChip, toast],
-  )
 
   useEffect(() => { sessionsRef.current = sessions }, [sessions])
   useEffect(() => { activeSessionIdRef.current = activeSessionId }, [activeSessionId])
@@ -1573,14 +1527,6 @@ function App() {
                             streaming={isStreaming}
                             presentation="stable"
                             className="mb-2.5"
-                          />
-                        )}
-                        {msg.memoryCitations && msg.memoryCitations.length > 0 && (
-                          <MemoryCitationChips
-                            citations={msg.memoryCitations}
-                            showActions={!isStreaming}
-                            onForget={(id) => void handleForgetCitation(id)}
-                            onAmend={(id, summary) => void handleAmendCitation(id, summary)}
                           />
                         )}
                         {(msg.content || (isStreaming && isLastMsg)) && (

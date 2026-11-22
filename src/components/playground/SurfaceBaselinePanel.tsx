@@ -5,7 +5,7 @@ import { buildImageDraftPrompt } from '../../shared/request-draft-prompts'
  */
 
 import { useMemo, useRef, useState, type Dispatch, type MouseEvent, type ReactNode, type SetStateAction } from 'react'
-import { ArrowRight, Check, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, RotateCcw, Search, X } from 'lucide-react'
+import { ArrowRight, Check, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, Paperclip, RotateCcw, Search, X } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
 import { PlaygroundCandidateControls, PlaygroundCandidateControlsTarget, WorldCandidateControls, WorldCandidateControlsTarget, WorldCandidateRefresh } from './WorldCandidateControls'
@@ -25,8 +25,8 @@ import { CharacterShelfContent } from '../companion/CharacterShelfContent'
 import { ChatComposer } from '../chat/ChatComposer'
 import { ChatApprovalControl } from '../chat/ChatApprovalControl'
 import { ChatMessageFrame } from '../chat/ChatMessageFrame'
-import { MemoryCitationChips } from '../chat/MemoryCitationChips'
 import { MarkdownRenderer } from '../MarkdownRenderer'
+import { ImagePreviewImage } from '../foundation/ImagePreviewImage'
 import { ReasoningCallback } from '../chat/callbacks/ReasoningCallback'
 import { ToolCallbackList } from '../chat/callbacks/ToolCallbackList'
 import { ContentCallbackCue } from '../chat/callbacks/ContentCallback'
@@ -300,16 +300,27 @@ const PAGE_CANDIDATE_STYLE = `
     }
   `
 
-type ChatJourney = 'welcome' | 'conversation' | 'stream' | 'work' | 'confirmation' | 'completed' | 'failed'
+type ChatJourney = 'welcome' | 'conversation' | 'stream' | 'attachments' | 'work' | 'confirmation' | 'completed' | 'failed'
 
 const CHAT_JOURNEYS: Array<{ id: ChatJourney; label: string; description: string }> = [
   { id: 'welcome', label: '初次进入', description: '轻量欢迎，不打断主任务。' },
   { id: 'conversation', label: '正在聊天', description: '对话成为页面的唯一主叙事。' },
-  { id: 'stream', label: '思考与工具', description: '完整展示思考中/完成、工具七态、记忆引用、旁白、生图与人格化报错。' },
+  { id: 'stream', label: '思考与工具', description: '完整展示思考中/完成、工具七态、旁白、生图与人格化报错。' },
+  { id: 'attachments', label: '图片与文件', description: '展示已发送的图片/文件消息样式与输入区待发送图片缩略图、文件附件胶囊。' },
   { id: 'work', label: '处理中', description: '需要工作区时，再让它按需出现。' },
   { id: 'confirmation', label: '需确认', description: '高影响操作必须在对话中说明并等待用户决定。' },
   { id: 'completed', label: '已完成', description: '任务结果回到对话，而不是留在工作区。' },
   { id: 'failed', label: '未完成', description: '说明失败原因并保留重试和回到对话的路径。' },
+]
+
+const ATTACHMENT_PENDING_IMAGES = [
+  { id: 'pending-img-1', src: momentTeaByWindow, fileName: 'window-tea.jpg' },
+  { id: 'pending-img-2', src: homeOverviewBanner, fileName: 'room-overview.png' },
+]
+
+const ATTACHMENT_PENDING_FILES = [
+  'content-layout.ts',
+  'frontend-guidelines.md',
 ]
 
 const STREAM_TOOL_FIXTURES: ToolCallbackItem[] = [
@@ -409,11 +420,6 @@ const STREAM_COMPLETED_TOOLS: ToolCallbackItem[] = [
   },
 ]
 
-const STREAM_MEMORY_CITATIONS = [
-  { id: 'mem-preview-1', category: 'preference', summary: '偏好直接、清楚、先给结论再展开细节' },
-  { id: 'mem-preview-2', category: 'workflow', summary: '先在 Playground 对照验收，再回流正式页' },
-]
-
 const readPreviewGeneratedImage = async () => ({
   ok: true as const,
   dataUrl: momentTeaByWindow,
@@ -462,7 +468,8 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
   const [streamTools, setStreamTools] = useState<ToolCallbackItem[]>(() => STREAM_TOOL_FIXTURES.map((item) => ({ ...item })))
   const [workTools, setWorkTools] = useState<ToolCallbackItem[]>(() => STREAM_WORK_TOOLS.map((item) => ({ ...item })))
   const [completedTools, setCompletedTools] = useState<ToolCallbackItem[]>(() => STREAM_COMPLETED_TOOLS.map((item) => ({ ...item })))
-  const [previewCitations, setPreviewCitations] = useState(() => STREAM_MEMORY_CITATIONS.map((item) => ({ ...item })))
+  const [pendingPreviewImages, setPendingPreviewImages] = useState(() => ATTACHMENT_PENDING_IMAGES.map((item) => ({ ...item })))
+  const [pendingAttachmentFiles, setPendingAttachmentFiles] = useState<string[]>(() => [...ATTACHMENT_PENDING_FILES])
   const toggleToolIn = (setter: Dispatch<SetStateAction<ToolCallbackItem[]>>) => (callId: string) => {
     setter((items) => items.map((item) => (item.callId === callId ? { ...item, collapsed: item.collapsed === false } : item)))
   }
@@ -625,12 +632,6 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                           presentation="stable"
                           className="mb-2.5"
                         />
-                        <MemoryCitationChips
-                          citations={previewCitations}
-                          showActions
-                          onForget={(id) => setPreviewCitations((items) => items.filter((item) => item.id !== id))}
-                          onAmend={(id, summary) => setPreviewCitations((items) => items.map((item) => (item.id === id ? { ...item, summary: `${summary}（已修正）` } : item)))}
-                        />
                         <MarkdownRenderer
                           content={[
                             '都帮你过了一遍，关键点先列在下面：',
@@ -681,6 +682,60 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                         />
                       </ChatMessageFrame>
                     </div>
+                  ) : journey === 'attachments' ? (
+                    <div className={`mx-auto w-full ${LAYOUT_CLASSES.section} py-4`} style={{ maxWidth: 'var(--layout-width)' }} data-testid="chat-surface-message-flow">
+                      {/* 1. 单图附件用户消息 */}
+                      <ChatMessageFrame role="user" showUserAvatar={false}>
+                        <div className="mb-2 flex flex-wrap gap-2" data-testid="chat-preview-sent-single-image">
+                          <ImagePreviewImage
+                            src={momentTeaByWindow}
+                            alt="window-tea.jpg"
+                            className="max-h-48 max-w-full rounded border"
+                            buttonClassName="max-w-full"
+                            style={{ borderColor: 'var(--border-color)' }}
+                          />
+                        </div>
+                        <div className="whitespace-pre-wrap break-words">帮我看看这张窗边照片的光线和构图怎么样？</div>
+                      </ChatMessageFrame>
+
+                      <ChatMessageFrame role="assistant" name={persona.name} avatarSrc={visuals?.avatarSrc} previewTimeLabel="刚刚">
+                        <p className="text-[14px] leading-7" style={{ color: 'var(--text-primary)' }}>
+                          光线很柔和，茶杯和笔记本的前后层次也刚好。你可以点击图片放大看细节，下面再试试多图和文件一起发送的效果。
+                        </p>
+                      </ChatMessageFrame>
+
+                      {/* 2. 多图 + 文件引用用户消息 */}
+                      <ChatMessageFrame role="user" showUserAvatar={false}>
+                        <div className="mb-2 flex flex-wrap gap-2" data-testid="chat-preview-sent-multi-image">
+                          <ImagePreviewImage
+                            src={homeOverviewBanner}
+                            alt="room-overview.png"
+                            className="max-h-36 max-w-full rounded border"
+                            buttonClassName="max-w-full"
+                            style={{ borderColor: 'var(--border-color)' }}
+                          />
+                          <ImagePreviewImage
+                            src={travelCanalBanner}
+                            alt="canal-view.png"
+                            className="max-h-36 max-w-full rounded border"
+                            buttonClassName="max-w-full"
+                            style={{ borderColor: 'var(--border-color)' }}
+                          />
+                        </div>
+                        <div className="whitespace-pre-wrap break-words">结合 @content-layout.ts 和 @frontend-guidelines.md，帮我核对这两张页面截图的边距。</div>
+                      </ChatMessageFrame>
+
+                      <ChatMessageFrame role="assistant" name={persona.name} avatarSrc={visuals?.avatarSrc} previewTimeLabel="刚刚">
+                        <p className="text-[14px] leading-7" style={{ color: 'var(--text-primary)' }}>
+                          已读取你附上的两份文件和截图，下方输入区也展示了待发送的文件胶囊与图片缩略图条，点击右上角可移除或点下方恢复示例。
+                        </p>
+                        <ToolCallbackList
+                          tools={completedTools}
+                          onToggleCollapse={toggleToolIn(setCompletedTools)}
+                          className="mt-2.5"
+                        />
+                      </ChatMessageFrame>
+                    </div>
                   ) : (
                     <div className={`mx-auto w-full ${LAYOUT_CLASSES.section} py-4`} style={{ maxWidth: 'var(--layout-width)' }} data-testid="chat-surface-message-flow">
                       <ChatMessageFrame role="user" showUserAvatar={false}>
@@ -695,9 +750,6 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                           presentation="stable"
                           className="mb-2.5"
                         />
-                        {journey === 'completed' && (
-                          <MemoryCitationChips citations={previewCitations.slice(0, 1)} showActions />
-                        )}
                         <p className="text-[14px] leading-7" data-testid={journey === 'completed' ? 'chat-surface-completed-reply' : undefined} style={{ color: 'var(--text-primary)' }}>{journey === 'completed' ? '已经整理好优先顺序。今天先处理最重要的三件事，剩下的我先放在会话里，之后可以继续接着排。' : isWork ? '正在翻看你的工作记录，稍等几秒我把优先级排出来。' : '可以。我们先把今天必须完成的事情挑出来，再给剩下的留一点喘息的空间。'}</p>
                         {isWork && (
                           <ToolCallbackList
@@ -724,6 +776,68 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                   <div className="mx-auto w-full" style={{ maxWidth: 'var(--layout-width)' }}>
                     <input ref={previewFileRef} type="file" multiple hidden data-testid="chat-preview-file-input"
                       onChange={(event) => { setPreviewFiles(Array.from(event.target.files ?? []).map(file => file.name)); event.target.value = '' }} />
+                    {journey === 'attachments' && (
+                      <div className="mb-2 space-y-2" data-testid="chat-preview-pending-attachments">
+                        {pendingAttachmentFiles.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {pendingAttachmentFiles.map((fileName, idx) => (
+                              <span
+                                key={`${fileName}-${idx}`}
+                                className="inline-flex max-w-full items-center gap-1 rounded-[var(--radius-pill)] border px-2.5 py-0.5 text-[11px]"
+                                style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+                              >
+                                <Paperclip size={11} className="shrink-0" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
+                                <span className="min-w-0 truncate">{fileName}</span>
+                                <IconButton
+                                  label={`移除文件 ${fileName}`}
+                                  size={24}
+                                  onClick={() => setPendingAttachmentFiles((list) => list.filter((_, i) => i !== idx))}
+                                >
+                                  <X size={10} />
+                                </IconButton>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {pendingPreviewImages.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-2">
+                            {pendingPreviewImages.map((img) => (
+                              <div key={img.id} className="group relative">
+                                <ImagePreviewImage
+                                  src={img.src}
+                                  alt={img.fileName}
+                                  className="h-14 w-14 rounded-[var(--radius-md)] border object-cover"
+                                  style={{ borderColor: 'var(--border-color)' }}
+                                />
+                                <IconButton
+                                  label={`移除图片 ${img.fileName}`}
+                                  size={24}
+                                  onClick={() => setPendingPreviewImages((list) => list.filter((item) => item.id !== img.id))}
+                                  className="absolute -right-1.5 -top-1.5 rounded-full border shadow-sm"
+                                  style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}
+                                >
+                                  <X size={10} />
+                                </IconButton>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {(pendingAttachmentFiles.length === 0 || pendingPreviewImages.length === 0) && (
+                          <div>
+                            <ActionButton
+                              variant="plain"
+                              size="sm"
+                              onClick={() => {
+                                setPendingAttachmentFiles([...ATTACHMENT_PENDING_FILES])
+                                setPendingPreviewImages(ATTACHMENT_PENDING_IMAGES.map((item) => ({ ...item })))
+                              }}
+                            >
+                              <RotateCcw size={11} className="mr-1 inline" />恢复示例图片与文件
+                            </ActionButton>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <ChatComposer
                       inputProps={{ value: previewInput, onChange: event => setPreviewInput(event.target.value),
                         placeholder: isWelcome ? `和${persona.name}说说…` : `继续和${persona.name}聊聊…`, 'data-testid': 'chat-surface-input',
