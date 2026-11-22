@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 优化右下角 Toast 停留时长与悬停暂停：`Toast.tsx` 由固定 3s 改为按文案字数自适应（4s–8.5s，报错至少 6.5s），并支持鼠标悬停暂停倒计时、移开后平滑退场，确保长评论回复提示从容可读。
+
 2026-11-23 朋友圈评论交互微调：`MomentsPanel.tsx` 移除回复栏冗余「取消」按钮（直接按退格键清除回复前缀），并新增点击输入区外任意位置自动收起评论框且保留内存草稿，再次点开可无缝续写。
 
 2026-11-23 修复朋友圈按钮 hover 被内联样式屏蔽与评论框双层套框：`MomentsPanel.tsx` 移除赞/评论/聊聊按钮的内联 `background`/`color` 覆盖，交由 `index.css` 的 `.moments-alice-action:hover` 语义类正常响应悬停态；评论框改用 Foundation `<TextField appearance="embedded" />` 彻底消除内层方框套框。

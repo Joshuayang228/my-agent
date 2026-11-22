@@ -7,14 +7,23 @@ interface ToastItem {
   id: number
   message: string
   type: ToastType
+  durationMs: number
   onPresented?: () => void
   onClick?: () => void
 }
 
-export type ToastPreviewItem = ToastItem
+export type ToastPreviewItem = Omit<ToastItem, 'durationMs'> & { durationMs?: number }
 
 interface ToastContextValue {
-  toast: (message: string, type?: ToastType, options?: { onPresented?: () => void; onClick?: () => void }) => void
+  toast: (message: string, type?: ToastType, options?: { onPresented?: () => void; onClick?: () => void; durationMs?: number }) => void
+}
+
+/** 按文案长度与类型计算停留时长：短提示约 4s，长回复自动延长至最多 8.5s，报错至少 6.5s。 */
+function resolveToastDuration(message: string, type: ToastType, explicitMs?: number): number {
+  if (typeof explicitMs === 'number' && explicitMs > 0) return explicitMs
+  const chars = Array.from(message.trim()).length
+  const computed = Math.min(8500, Math.max(4000, 3200 + chars * 75))
+  return type === 'error' ? Math.max(6500, computed) : computed
 }
 
 const ToastContext = createContext<ToastContextValue>({ toast: () => {} })
@@ -28,12 +37,10 @@ let nextId = 0
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([])
 
-  const toast = useCallback((message: string, type: ToastType = 'info', options?: { onPresented?: () => void; onClick?: () => void }) => {
+  const toast = useCallback((message: string, type: ToastType = 'info', options?: { onPresented?: () => void; onClick?: () => void; durationMs?: number }) => {
     const id = ++nextId
-    setItems(prev => [...prev, { id, message, type, onPresented: options?.onPresented, onClick: options?.onClick }])
-    setTimeout(() => {
-      setItems(prev => prev.filter(t => t.id !== id))
-    }, 3500)
+    const durationMs = resolveToastDuration(message, type, options?.durationMs)
+    setItems(prev => [...prev, { id, message, type, durationMs, onPresented: options?.onPresented, onClick: options?.onClick }])
   }, [])
 
   return (
@@ -62,10 +69,13 @@ const TYPE_ICONS: Record<ToastType, typeof Check> = {
   info: Info,
 }
 
-export function ToastBubble({ item, onDismiss, staticPreview = false }: { item: ToastItem; onDismiss: (id: number) => void; staticPreview?: boolean }) {
+export function ToastBubble({ item, onDismiss, staticPreview = false }: { item: ToastPreviewItem; onDismiss: (id: number) => void; staticPreview?: boolean }) {
   const [visible, setVisible] = useState(staticPreview)
+  const [hovered, setHovered] = useState(false)
   const element = useRef<HTMLDivElement>(null)
   const presented = useRef(false)
+  const remainingRef = useRef(item.durationMs ?? resolveToastDuration(item.message, item.type))
+  const startedAtRef = useRef<number>(0)
   const Icon = TYPE_ICONS[item.type]
   const style = TYPE_STYLES[item.type]
 
@@ -74,10 +84,26 @@ export function ToastBubble({ item, onDismiss, staticPreview = false }: { item: 
       setVisible(true)
       return
     }
-    requestAnimationFrame(() => setVisible(true))
-    const timer = setTimeout(() => setVisible(false), 3000)
-    return () => clearTimeout(timer)
+    const raf = requestAnimationFrame(() => setVisible(true))
+    return () => cancelAnimationFrame(raf)
   }, [staticPreview])
+
+  // 支持按字数自适应停留 + 鼠标悬停暂停倒计时，移开后继续计时并平滑退场
+  useEffect(() => {
+    if (staticPreview || hovered) return
+    startedAtRef.current = Date.now()
+    let removeTimer: ReturnType<typeof setTimeout> | undefined
+    const hideTimer = setTimeout(() => {
+      setVisible(false)
+      removeTimer = setTimeout(() => onDismiss(item.id), 320)
+    }, Math.max(800, remainingRef.current))
+    return () => {
+      clearTimeout(hideTimer)
+      if (removeTimer) clearTimeout(removeTimer)
+      const elapsed = Date.now() - startedAtRef.current
+      remainingRef.current = Math.max(800, remainingRef.current - elapsed)
+    }
+  }, [staticPreview, hovered, item.id, onDismiss])
 
   /** 背景：加入 React 队列不代表提示已呈现，不能据此发送问候回执。
    * 意图：在可见样式提交后的绘制帧核对 DOM，回调只执行一次。
@@ -114,6 +140,8 @@ export function ToastBubble({ item, onDismiss, staticPreview = false }: { item: 
       className={`pointer-events-auto flex items-start gap-2 rounded-lg border px-3.5 py-2.5 shadow-lg backdrop-blur-sm transition-all duration-300 ${item.onClick ? 'cursor-pointer hover:opacity-95' : ''} ${staticPreview ? 'w-full' : ''} ${visible ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}
       style={{ borderColor: style.border, background: style.background, color: style.color }}
       role="status"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       onClick={() => item.onClick?.()}
     >
       <Icon size={15} strokeWidth={1.8} className="mt-0.5 shrink-0" aria-hidden="true" />

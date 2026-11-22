@@ -1,5 +1,7 @@
 # 项目进度
 
+右下角 Toast 自适应时长与悬停暂停（2026-11-23）：`src/components/Toast.tsx` 根据消息字数动态计算停留时间（4s–8.5s，错误至少 6.5s），并在鼠标悬停时暂停自动消失倒计时。
+
 朋友圈评论收起与草稿保留微调（2026-11-23）：`MomentsPanel.tsx` 移除多余「取消」按钮（保留退格键清回复对象），并支持点击输入区外任意位置收起评论框同时缓存未发送草稿。
 
 修复朋友圈按钮 hover 态与评论框 Foundation 嵌入样式（2026-11-23）：`MomentsPanel.tsx` 与 `src/index.css` 清理阻塞 `:hover` 的内联样式并补全赞（暖红）/ 评论（柔和灰）/ 聊聊（主题色）悬停反馈；评论输入使用 Foundation `<TextField appearance="embedded" />` 消除双重边框。
