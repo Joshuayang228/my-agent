@@ -1,5 +1,7 @@
 # 项目进度
 
+人物世界图片角标清理与 Playground 顶栏同源收口（2026-11-22）：从 `WorldRecordImage` 移除右下角「在文件夹中定位」悬浮按钮，恢复家居、衣柜、文化角、通讯录、足迹画廊纯净观感；移除 Playground `SurfaceBaselinePanel` 中脱离正式实现的假头图 `WorldOverviewHero` 与 `hideHeader` 覆写，通过 `WorldHub#profileTestId` 直接渲染正式 `WorldProfileHeader` 与 `WorldTodayTimeline`，并同步「刷新礼物」文案。
+
 前端一致性既有规范与门禁补牢（2026-11-22）：不另建新规范体系，直接补齐现有链路 4 处缝隙——`EmptyState` 将 `centerWithoutAction` 默认改为 `true`（无 `action` 自动居中，避免漏传导致文字偏上）；`foundation-enforcement-gate.test.ts` 将 6 个人物世界正式内容页纳入 AST 扫描并新增 `auditEmptyStateWrapper` 门禁（附负例）拦截空态/错误态外包居中大留白容器；`AGENTS.md`「按任务类型读」新增前端 UI / 新增 Tab 必读 `frontend-guidelines.md` 与 `playground-to-production` 路由；`frontend-guidelines.md` 补清内容页空态与错误态直接放入 `contentGutterStyle()` 的约定。
 
 人物世界日记移除脆弱心境卡片与「礼物柜」只读收口（Chat 驱动送礼与空态对齐，2026-11-22）：根据真机界面验收反馈，从 `WorldJournalPanel` 彻底移除顶部的 `VulnerabilityCard` 表单卡片，恢复纯净日记册视图；将 `WorldHub` 中的「信物」Tab 更名为「礼物」，`WorldKeepsakesPanel` 收口为伙伴的只读礼物柜（「送出的礼物」与「收到的礼物」），移除「赠送礼物」按钮、手动送礼弹窗与 RPG 体征徽标；对齐 `WorldJournalPanel` 与 `WorldKeepsakesPanel` 空态/错误态布局至通讯录、文化角、家居、足迹的统一全宽贴顶 `<EmptyState centerWithoutAction />` 规范；新增 Chat 工具 `companion_receive_gift`（经 `gifting.ts#recordGiftFromChat` 落库并广播刷新，纳入 Agent Host `DOMAIN_TOOL_POLICIES` 与 12 切面注册表），用户直接在聊天中送出任意礼物即可自动收进伙伴礼物柜；同步更新 Playground 样张（`JournalExperienceCandidate` / `KeepsakesExperienceCandidate` / `GiftingExperienceCandidate`）。

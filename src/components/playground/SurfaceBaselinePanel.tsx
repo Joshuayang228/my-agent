@@ -5,7 +5,7 @@ import { buildImageDraftPrompt } from '../../shared/request-draft-prompts'
  */
 
 import { useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
-import { ArrowRight, Check, CircleAlert, Clock3, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, RotateCcw, Search, X } from 'lucide-react'
+import { ArrowRight, Check, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, RotateCcw, Search, X } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
 import { PlaygroundCandidateControls, PlaygroundCandidateControlsTarget, WorldCandidateControls, WorldCandidateControlsTarget, WorldCandidateRefresh } from './WorldCandidateControls'
@@ -43,7 +43,6 @@ import linAvatar from '../../assets/playground/contact-lin-avatar.png'
 import yaoAvatar from '../../assets/playground/contact-yao-avatar.png'
 import homeOverviewBanner from '../../assets/playground/home-overview.png'
 import travelCanalBanner from '../../assets/playground/travel-canal.png'
-import { CompanionAvatar } from '../CompanionAvatar'
 import { CompanionSceneBackdrop } from '../CompanionSceneBackdrop'
 
 const PERSONA_VISUALS: Record<string, { avatarSrc: string; bannerSrc: string; themeColor: string }> = {
@@ -607,61 +606,6 @@ function SidebarSurface() {
 function DockSurface() {
   return <WorkspaceExperienceCandidate />
 }
-function WorldOverviewHero({ persona }: { persona: PlaygroundPersona }) {
-  const visuals = PERSONA_VISUALS[persona.id]
-  const hasBanner = Boolean(visuals?.bannerSrc)
-  return (
-    <section
-      className={`relative shrink-0 border-b px-5 pb-4 pt-4 sm:px-6 overflow-hidden ${hasBanner ? 'min-h-[7.5rem] flex items-end' : ''}`}
-      data-testid="playground-moments-profile"
-      style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}
-    >
-      {hasBanner && (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-          <img
-            src={visuals!.bannerSrc}
-            alt=""
-            className="h-full w-full object-cover object-center"
-            style={{ filter: 'brightness(0.92)' }}
-          />
-          <div
-            className="absolute inset-0"
-            style={{
-              background: 'linear-gradient(180deg, rgba(0,0,0,0.2) 0%, color-mix(in srgb, var(--bg-secondary) 85%, transparent) 45%, var(--bg-secondary) 100%)',
-            }}
-          />
-        </div>
-      )}
-      <div className="relative z-10 flex min-w-0 w-full items-start gap-3">
-        <CompanionAvatar
-          src={visuals?.avatarSrc}
-          name={persona.name}
-          role="assistant"
-          size="lg"
-          shape="rounded"
-          themeColor={visuals?.themeColor}
-          className="ring-4 shadow-md !border-2"
-        />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <h2 className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{persona.name}</h2>
-            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px]" style={{ color: 'var(--success)', background: 'color-mix(in srgb, var(--success) 11%, transparent)' }}>
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--success)' }} />
-              此刻在家
-            </span>
-          </div>
-          <p className="mt-1 max-w-2xl text-[11px] leading-5" style={{ color: 'var(--text-secondary)' }}>{persona.blurb}</p>
-        </div>
-        <div className="hidden shrink-0 items-center gap-1.5 text-[10px] sm:flex" style={{ color: 'var(--text-muted)' }}>
-          <Clock3 size={12} strokeWidth={1.7} aria-hidden="true" />
-          <span>下午 · 杭州</span>
-        </div>
-      </div>
-
-    </section>
-  )
-}
-
 function worldPreviewAsset(personaId: string, id: string, kind: string, name: string, payload: Record<string, unknown>, acquiredAt = 1): WorldAssetRecord {
   return { id: `${personaId}-${id}`, roleId: personaId, kind, name, payload, acquiredAt, sourceEventId: null }
 }
@@ -765,19 +709,20 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
       <FootprintsExperienceCandidate key={persona.id} personaId={persona.id} />
     ),
   }
-  const refreshLabel = ({ moments: '刷新朋友圈', journal: '刷新日记', keepsakes: '刷新信物', assets: '刷新衣柜', wardrobe: '刷新衣柜', culture: '刷新文化角', home: '刷新家居', cast: '刷新通讯录', footprints: '刷新足迹' } as const)[tab]
+  const refreshLabel = ({ moments: '刷新朋友圈', journal: '刷新日记', keepsakes: '刷新礼物', assets: '刷新衣柜', wardrobe: '刷新衣柜', culture: '刷新文化角', home: '刷新家居', cast: '刷新通讯录', footprints: '刷新足迹' } as const)[tab]
   return (
     <WorldCandidateControlsTarget.Provider value={controlsTarget}>
       <div ref={setControlsTarget} className="mb-4 min-w-0" data-testid="world-candidate-controls" />
     <SurfaceViewport>
       <div className="flex h-full min-h-0 flex-col" data-testid="playground-world-experience" data-persona-id={persona.id}>
-        <WorldOverviewHero persona={persona} />
         <div className="min-h-0 flex-1">
           <WorldHub
             tab={tab}
             onTabChange={setTab}
             onClose={noop}
             onOpenSession={noop}
+            roleId={persona.id}
+            profileTestId="playground-moments-profile"
             profile={{
               name: persona.name,
               description: persona.blurb,
@@ -806,7 +751,6 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
             hideMomentsHeader
             previewPanels={previewPanels}
             previewTabVariant="surface"
-            hideHeader
             toolbarAction={<WorldCandidateRefresh key={tab} label={refreshLabel} />}
           />
         </div>

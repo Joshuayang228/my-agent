@@ -63,6 +63,7 @@ export function WorldHub({
   tabLabels,
   tabs,
   profile,
+  profileTestId,
   previewTimeline,
   onGenerateAssetImage,
   allowAssetEditing = false,
@@ -101,6 +102,7 @@ export function WorldHub({
   /** Playground 可提供独立的生活面 Tab 定义；不传时保持正式页面的既有入口。 */
   tabs?: readonly WorldTabDefinition[]
   profile?: WorldProfile
+  profileTestId?: string
   previewTimeline?: CompanionTodayTimeline
   onGenerateAssetImage?: (asset: WorldAssetRecord) => void
   /** 人物世界正式入口只浏览；独立资产维护入口不受影响。 */
@@ -142,7 +144,7 @@ export function WorldHub({
   ) : null
   return (
     <div className="world-shape-scope flex h-full flex-col" style={layoutProfileStyle('world')} data-testid="world-hub">
-      {!hideHeader && (profile ? <WorldProfileHeader profile={profile} roleId={roleId} initialTimeline={previewTimeline} onTakeToChat={onTakeToChat} onViewMoment={() => onTabChange('moments')} onClose={onClose} /> : <div
+      {!hideHeader && (profile ? <WorldProfileHeader profile={profile} testId={profileTestId} roleId={roleId} initialTimeline={previewTimeline} onTakeToChat={onTakeToChat} onViewMoment={() => onTabChange('moments')} onClose={onClose} /> : <div
         className="flex shrink-0 items-center justify-between gap-3 border-b px-5 py-3"
         style={{ borderColor: 'var(--border-subtle)' }}
       >
