@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 修复朋友圈按钮 hover 被内联样式屏蔽与评论框双层套框：`MomentsPanel.tsx` 移除赞/评论/聊聊按钮的内联 `background`/`color` 覆盖，交由 `index.css` 的 `.moments-alice-action:hover` 语义类正常响应悬停态；评论框改用 Foundation `<TextField appearance="embedded" />` 彻底消除内层方框套框。
+
 2026-11-23 人物世界收口 5 项：统一「收到的礼物」为与「送出的礼物」一致的三列纸白卡片网格 + 点击展开居中阅读详情（完整保留赠礼人、日期、附言、回响与聊聊入口）；修复配角因缺少 `protected.md` 导致 `contacts.ts` 未返回头像的 Bug（降级直读 `getRoleVisualDataUrl`）；修复旧库 `ensureStarterWardrobe` 未同步更新 `wear-state` 穿衣立绘的 Bug；移除衣柜画廊多余的「库存 · N」标题；朋友圈点赞与评论交互全面对齐 Alice（评论发送/Esc 自动收起输入框、点赞暖红态与点赞行、按钮 hover 轻高亮、一体化圆角评论条）。
 
 2026-11-23 精简 Chat 等待首字指示器：`App.tsx` 在已有「让我想想…」思考过程展示时不再叠放 `ContentCallbackCue`；`ContentCallback.tsx` 移除机械感文字「回复生成中…」，改为极简三点呼吸输入指示器（仅在无思考过程且等待首字时轻显）。

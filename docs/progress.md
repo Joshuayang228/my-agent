@@ -1,5 +1,7 @@
 # 项目进度
 
+修复朋友圈按钮 hover 态与评论框 Foundation 嵌入样式（2026-11-23）：`MomentsPanel.tsx` 与 `src/index.css` 清理阻塞 `:hover` 的内联样式并补全赞（暖红）/ 评论（柔和灰）/ 聊聊（主题色）悬停反馈；评论输入使用 Foundation `<TextField appearance="embedded" />` 消除双重边框。
+
 人物世界 5 项体验与 Bug 收口（2026-11-23）：`WorldKeepsakesPanel` 将「收到的礼物」统一为与「送出的礼物」相同的三列轻白卡网格与居中详情卡；`contacts.ts` 为无 `protected.md` 的配角增加 `getRoleVisualDataUrl` 降级加载，修复索隆/娜美/乌索普/山治头像不显示问题；`assets.ts#ensureStarterWardrobe` 按槽位与旧出厂引用同步升级既有 `wear-state` 为路飞全身立绘；`AssetsPanel.tsx` 在衣柜画廊隐藏误导性的「库存 · 3」计数行；`MomentsPanel.tsx` 全面对齐 Alice 朋友圈交互（发送/Esc 自动收起输入框、暖红点赞态与点赞条、三按钮 hover 态及一体化轻量评论条）。
 
 Chat 等待首字指示器去冗余（2026-11-23）：`App.tsx` 当 `ReasoningCallback` 已在流式展示思考过程时隐藏 `ContentCallbackCue`，避免出现「让我想想… >」与「回复生成中…」双指示堆叠；`ContentCallback.tsx` 移除机械文案，改为极简三点呼吸提示。

@@ -930,7 +930,17 @@ html[data-font-scale="lg"] {
   color: var(--text-muted);
   transition: color var(--motion-fast) var(--motion-ease), background var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
 }
-.moments-alice-feed .moments-alice-action:hover {
+.moments-alice-feed .moments-alice-action:hover,
+.moments-alice-feed .moments-alice-action.is-active {
+  color: var(--text-primary);
+  background: var(--hover-overlay);
+}
+.moments-alice-feed .moments-alice-action-like:hover,
+.moments-alice-feed .moments-alice-action-like.is-active {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+.moments-alice-feed .moments-alice-action-chat:hover {
   color: var(--accent-fg);
   background: var(--accent-subtle);
 }

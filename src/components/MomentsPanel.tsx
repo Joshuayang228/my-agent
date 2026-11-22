@@ -554,21 +554,18 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
                           <div className="moments-alice-actions mt-3 border-t pt-2" data-testid="moment-social-actions" style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 65%, transparent)' }}>
                             <div className="flex items-center justify-start gap-1">
                               <ActionButton
+                                variant="plain"
                                 aria-label={social.liked ? '取消赞' : '赞'}
                                 data-testid="moment-like-button"
                                 disabled={likePending}
                                 onClick={() => void handleToggleLike(m.id)}
-                                className="moments-alice-action gap-1.5 rounded-lg transition-colors hover:text-[var(--danger)] hover:bg-[color-mix(in_srgb,var(--danger)_10%,transparent)]"
-                                style={{
-                                  color: social.liked ? 'var(--danger)' : 'var(--text-muted)',
-                                  background: social.liked ? 'color-mix(in srgb, var(--danger) 10%, transparent)' : 'transparent',
-                                  borderColor: 'transparent',
-                                }}
+                                className={`moments-alice-action moments-alice-action-like gap-1.5 rounded-lg${social.liked ? ' is-active' : ''}`}
                               >
                                 <Heart size={13} fill={social.liked ? 'currentColor' : 'none'} aria-hidden="true" />
                                 <span aria-hidden="true">{social.liked ? '1' : '赞'}</span>
                               </ActionButton>
                               <ActionButton
+                                variant="plain"
                                 aria-label="评论"
                                 aria-pressed={commentOpen}
                                 data-testid="moment-comment-button"
@@ -587,26 +584,21 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
                                     return m.id
                                   })
                                 }}
-                                className="moments-alice-action gap-1.5 rounded-lg transition-colors hover:text-[var(--text-primary)] hover:bg-[var(--hover-overlay)]"
-                                style={{
-                                  color: commentOpen ? 'var(--text-primary)' : 'var(--text-muted)',
-                                  background: commentOpen ? 'var(--hover-overlay)' : 'transparent',
-                                  borderColor: 'transparent',
-                                }}
+                                className={`moments-alice-action gap-1.5 rounded-lg${commentOpen ? ' is-active' : ''}`}
                               >
                                 <MessageCircle size={13} aria-hidden="true" />
                                 <span aria-hidden="true">{comments.length || '评论'}</span>
                               </ActionButton>
                               {onTakeToChat && (
                                 <ActionButton
+                                  variant="plain"
                                   aria-label="和TA聊聊"
                                   data-testid="moment-chat-button"
                                   onClick={() => {
                                     const excerpt = m.text.trim().slice(0, 36)
                                     onTakeToChat({ text: `关于动态「${excerpt}${m.text.trim().length > 36 ? '...' : ''}」：` })
                                   }}
-                                  className="moments-alice-action gap-1.5 rounded-lg transition-colors hover:text-[var(--accent-fg)] hover:bg-[var(--accent-subtle)]"
-                                  style={{ color: 'var(--text-muted)', background: 'transparent', borderColor: 'transparent' }}
+                                  className="moments-alice-action moments-alice-action-chat gap-1.5 rounded-lg"
                                 >
                                   <MessageSquareShare size={13} aria-hidden="true" />
                                   <span aria-hidden="true">聊聊</span>
@@ -615,9 +607,10 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
                             </div>
                             {(!compactClosedComposer || commentOpen) && (
                               <div
-                                className="mt-2 flex items-center gap-2 rounded-xl px-3 py-1.5"
+                                className="mt-2 flex items-center gap-2 rounded-xl border px-3 py-1.5"
                                 style={{
                                   background: commentOpen ? 'var(--bg-secondary)' : 'transparent',
+                                  borderColor: commentOpen ? 'var(--border-subtle)' : 'transparent',
                                   visibility: commentOpen ? 'visible' : 'hidden',
                                   pointerEvents: commentOpen ? 'auto' : 'none',
                                 }}
@@ -629,6 +622,7 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
                                   </span>
                                 )}
                                 <TextField
+                                  appearance="embedded"
                                   ref={(el: HTMLInputElement | null) => { inputRefs.current[m.id] = el }}
                                   value={commentDrafts[m.id] ?? ''}
                                   onChange={(event: ChangeEvent<HTMLInputElement>) => setCommentDrafts((current) => ({ ...current, [m.id]: event.target.value }))}
@@ -638,7 +632,7 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
                                   aria-hidden={!commentOpen}
                                   tabIndex={commentOpen ? 0 : -1}
                                   data-testid="moment-comment-input"
-                                  className="h-7 min-w-0 flex-1 border-0 bg-transparent px-0 text-xs shadow-none focus:ring-0"
+                                  className="h-7 min-w-0 flex-1 text-xs"
                                 />
                                 {replyTargetByMomentId[m.id] && (
                                   <ActionButton
