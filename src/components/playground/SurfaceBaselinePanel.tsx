@@ -645,7 +645,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                           {streamProcessExpanded && (
                             <div className="mt-1.5 mb-3 space-y-2">
                               <ReasoningCallback
-                                chunks={[{ content: '先检索布局文件确认间距阶梯，再读取伙伴生活世界状态并发布窗边下午茶动态，把《海边手记》记进文化角并配一张窗边图；遇到高风险命令直接拦截。' }]}
+                                chunks={[{ content: '1. 先检索布局文件 src/shared/content-layout.ts 确认当前间距阶梯与阅读宽度约束，避免回流后出现边缘对齐偏移；\n2. 读取伙伴生活世界状态，确认下午茶时段与当前地点一致，再发布一条自然口吻的窗边下午茶动态；\n3. 将《海边手记》收录进文化角书架，并按 4:3 画幅生成一张柔和自然光的窗边乌龙茶与笔记本配图；\n4. 遇到高风险强制推送命令时，直接按权限策略拦截并返回清晰说明，绝不静默放行；\n5. 最后把关键结论收拢在终答正文里，中间过程默认折叠，生成的图片直接留在终答下方供随时预览。' }]}
                                 expanded={reasoningExpanded}
                                 onToggle={() => setReasoningExpanded((expanded) => !expanded)}
                                 streaming={false}

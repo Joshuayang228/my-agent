@@ -240,10 +240,10 @@ export function ToolCallbackList({
             </div>
             {!collapsed && (hasStreamingArgs || hasArgs || hasResult) && (
               <div
-                className="scrollbar-thin mt-1 mb-2 space-y-2 rounded-[var(--radius-md)] border px-3 py-2 font-mono text-[11px] leading-5"
+                className="scrollbar-thin mt-1 mb-2 space-y-2 rounded-[var(--radius-md)] border px-3 py-2 font-mono text-[11px] leading-5 backdrop-blur-[2px]"
                 style={{
                   borderColor: 'var(--border-subtle)',
-                  background: 'var(--card-bg)',
+                  background: 'color-mix(in srgb, var(--card-bg) 40%, transparent)',
                   color: 'var(--text-secondary)',
                 }}
               >
