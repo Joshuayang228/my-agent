@@ -23,7 +23,7 @@ function HomePicture({ src, alt, state, variant }: { src?: string; alt: string; 
   const [failed, setFailed] = useState(false)
   const overview = variant === 'overview'
   return <div data-testid={`home-${variant}-picture`} onErrorCapture={() => setFailed(true)}
-    className="w-full overflow-hidden rounded-md" style={{ aspectRatio: overview ? '4 / 3' : variant === 'scene' ? '16 / 9' : '1', maxWidth: variant === 'scene' ? 560 : undefined, background: 'var(--bg-secondary)' }}>
+    className="w-full overflow-hidden rounded-md" style={{ aspectRatio: overview ? '16 / 9' : variant === 'scene' ? '16 / 9' : '1', maxWidth: overview ? 760 : variant === 'scene' ? 560 : undefined, background: 'var(--bg-secondary)' }}>
     {src && state === 'ready' && !failed
       ? <ImagePreviewImage src={src} alt={alt} buttonClassName="h-full w-full transition hover:brightness-95" className="block h-full w-full object-cover" />
       : <div role="status" className="flex h-full flex-col items-center justify-center gap-2 px-3 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>
@@ -68,7 +68,7 @@ export function WorldHomeGallery({ overviewImage, spaces, objects, imageState = 
     if (returnId.current) { triggers.current.get(returnId.current)?.focus({ preventScroll: true }); returnId.current = null }
   }, [selected, activeSpaceId])
   const picture = (id: string, variant: 'overview' | 'scene' | 'object', src?: string, name?: string) => renderPicture
-    ? <div data-testid={`home-${variant}-picture`} className="w-full overflow-hidden rounded-md" style={{ aspectRatio: variant === 'overview' ? '4 / 3' : variant === 'scene' ? '16 / 9' : '1', maxWidth: variant === 'scene' ? 560 : undefined, background: 'var(--bg-secondary)' }}>{renderPicture(id, variant)}</div>
+    ? <div data-testid={`home-${variant}-picture`} className="w-full overflow-hidden rounded-md" style={{ aspectRatio: variant === 'overview' ? '16 / 9' : variant === 'scene' ? '16 / 9' : '1', maxWidth: variant === 'overview' ? 760 : variant === 'scene' ? 560 : undefined, background: 'var(--bg-secondary)' }}>{renderPicture(id, variant)}</div>
     : <HomePicture key={`${id}-${imageState}`} src={src} alt={`${name ?? '住所鸟瞰图'}，家居设计样张`} state={imageState} variant={variant} />
   return <div className="flex min-h-0 flex-1 flex-col" style={{ paddingInline: CONTENT_LAYOUT.gutter, paddingBottom: CONTENT_LAYOUT.gutter }} data-testid="home-gallery">
     <div className={toolbarAction ? 'flex min-w-0 shrink-0 items-center gap-3 py-3' : 'shrink-0 py-3'}>{!empty && <TabStrip label="家居空间" activeId={activeSpaceId} items={tabs} onSelect={id => {

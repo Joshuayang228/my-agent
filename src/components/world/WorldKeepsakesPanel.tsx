@@ -171,7 +171,7 @@ export function WorldKeepsakesPanel({
       data-testid="world-keepsakes-panel"
       data-world-content="keepsakes"
     >
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      <div className={selected ? 'mx-auto mb-4 flex w-full max-w-3xl flex-wrap items-center gap-3' : 'mb-4 flex flex-wrap items-center gap-3'}>
         {selected ? (
           <ActionButton variant="plain" onClick={() => setSelectedId(null)}>
             <ArrowLeft size={14} className="mr-1" />返回礼物柜
@@ -220,7 +220,7 @@ export function WorldKeepsakesPanel({
           />
         ) : selected ? (
           <article
-            className="w-full max-w-3xl rounded-[var(--radius-card)] border p-6 sm:p-8"
+            className="mx-auto w-full max-w-3xl rounded-[var(--radius-card)] border p-6 sm:p-8"
             style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}
             data-testid={`keepsake-detail-${selected.id}`}
           >

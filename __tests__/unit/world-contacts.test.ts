@@ -6,7 +6,10 @@ const SQL = await initSqlJs()
 let db: InstanceType<typeof SQL.Database>
 vi.mock('../../electron/main/storage/database', () => ({ withDatabaseTransaction: async (work: (db: typeof db) => Promise<unknown>) => runLocalTransaction(db, work), getDatabase: vi.fn(async () => db), persist: vi.fn() }))
 vi.mock('../../electron/main/utils/logger', () => ({ createLogger: () => ({ info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() }) }))
-vi.mock('../../electron/main/companion/identity/loader', () => ({ loadRelations: () => ({ edges: [{ from: 'lin', to: 'yao', type: 'friend', note: '相处方式' }] }) }))
+vi.mock('../../electron/main/companion/identity/loader', () => ({
+  loadRelations: () => ({ edges: [{ from: 'lin', to: 'yao', type: 'friend', note: '相处方式' }] }),
+  getRoleVisuals: (id: string) => ({ avatarDataUrl: id === 'yao' ? 'data:image/png;base64,yao-avatar' : null }),
+}))
 vi.mock('../../electron/main/companion/cast/roster', () => ({ listRelatedCast: () => [{ id: 'yao', name: '阿遥', description: '人物介绍', summary: '摘要' }] }))
 const { getContactsForRole } = await import('../../electron/main/companion/cast/contacts')
 const { insertEvent, replaceEventLinks, insertMoment } = await import('../../electron/main/companion/core/persistence/life-repository')
@@ -26,7 +29,7 @@ describe('通讯录真实事件投影', () => {
     const saved = db.export()
     db.close(); db = new SQL.Database(saved)
     const data = await getContactsForRole('lin')
-    expect(data.people).toEqual([{ id: 'yao', name: '阿遥', introduction: '人物介绍' }])
+    expect(data.people).toEqual([{ id: 'yao', name: '阿遥', introduction: '人物介绍', avatarSrc: 'data:image/png;base64,yao-avatar' }])
     expect(data.relations).toEqual([{ ownerRoleId: 'lin', personId: 'yao', relationType: 'friend', summary: '相处方式' }])
     expect(data.experiences.map(item => item.title)).toEqual(['经历-2', '经历-1'])
     expect(data.experiences.every(item => item.ownerRoleId === 'lin' && item.personId === 'yao')).toBe(true)

@@ -72,9 +72,9 @@ describe('共享内容布局候选', () => {
     expect(readingContentStyle('workspace').maxWidth).toBe('none')
     expect(readingContentStyle('chat').maxWidth).toBe(800)
   })
-  it('数值只有一个来源，限宽不隐式居中', () => {
+  it('数值只有一个来源，阅读详情由共享样式统一居中', () => {
     expect(contentGutterStyle().padding).toBe(CONTENT_LAYOUT.gutter)
-    expect(readingContentStyle()).toMatchObject({ maxWidth: CONTENT_LAYOUT.readingWidth, width: '100%', marginInline: 0 })
+    expect(readingContentStyle()).toMatchObject({ maxWidth: CONTENT_LAYOUT.readingWidth, width: '100%', marginInline: 'auto' })
   })
   it.each([
     ['world/WorldTravelGallery', 'travel-detail'],

@@ -1,4 +1,4 @@
-import { loadRelations } from '../identity/loader'
+import { getRoleVisuals, loadRelations } from '../identity/loader'
 import { listRelatedCast } from './roster'
 import { formatRelationSummary } from './relation-summary'
 import { listEvents, listEventLinks, getMomentByEventId } from '../core/persistence/life-repository'
@@ -39,5 +39,23 @@ export async function getContactsForRole(roleId: string, universeId = 'default')
     }
     for (const personId of participants) experiences.push({ id: `${event.id}:${personId}`, ownerRoleId: roleId, personId, occurredAt: event.scheduledAt, eventId: event.id, title, story, references })
   }
-  return { roleId, people: cast.map(person => ({ id: person.id, name: person.name, introduction: person.description || person.summary })), relations, experiences }
+  return {
+    roleId,
+    people: cast.map(person => {
+      let avatarSrc: string | undefined
+      try {
+        avatarSrc = getRoleVisuals(person.id, universeId).avatarDataUrl ?? undefined
+      } catch {
+        avatarSrc = undefined
+      }
+      return {
+        id: person.id,
+        name: person.name,
+        introduction: person.description || person.summary,
+        ...(avatarSrc ? { avatarSrc } : {}),
+      }
+    }),
+    relations,
+    experiences,
+  }
 }

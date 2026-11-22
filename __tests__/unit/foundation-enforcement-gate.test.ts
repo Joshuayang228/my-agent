@@ -228,7 +228,7 @@ describe('Foundation 布局与控件复用自动门禁', () => {
 
     const readingStyle = readingContentStyle('world')
     expect(readingStyle.maxWidth).toBe(672)
-    expect(readingStyle.marginInline).toBe(0)
+    expect(readingStyle.marginInline).toBe('auto')
 
     expect(LAYOUT_CLASSES.gutter).toContain('px-[var(--layout-gutter-small,1rem)]')
     expect(LAYOUT_CLASSES.card).toContain('p-[var(--layout-card-small,1rem)]')

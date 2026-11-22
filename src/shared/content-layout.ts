@@ -76,5 +76,5 @@ export function contentGutterStyle() {
 }
 
 export function readingContentStyle(profile?: LayoutProfileId) {
-  return { width: '100%', maxWidth: profile ? LAYOUT_PROFILES[profile].width ?? 'none' : CONTENT_LAYOUT.readingWidth, minWidth: 0, marginInline: 0 } as const
+  return { width: '100%', maxWidth: profile ? LAYOUT_PROFILES[profile].width ?? 'none' : CONTENT_LAYOUT.readingWidth, minWidth: 0, marginInline: 'auto' } as const
 }

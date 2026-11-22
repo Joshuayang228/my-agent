@@ -1323,7 +1323,7 @@ export interface SkillDefinition {
   source: 'builtin' | 'user'
 }
 
-export interface CompanionContactPerson { id: string; name: string; introduction: string }
+export interface CompanionContactPerson { id: string; name: string; introduction: string; avatarSrc?: string }
 export interface CompanionContactRelation {
   ownerRoleId: string; personId: string; relationType: string; summary: string
 }

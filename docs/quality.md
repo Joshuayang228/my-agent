@@ -1,5 +1,7 @@
 # 质量总控
 
+人物世界详情居中、家居总览尺寸与通讯录头像门禁（2026-11-23）：`content-layout.test.ts` 更新为校验 `readingContentStyle()` 居中对齐（`marginInline: 'auto'`）且禁止局部覆盖；`world-contacts.test.ts` 新增配角 `avatarSrc` 投影断言；`home-gallery.test.ts`、`foundation-enforcement-gate.test.ts`、`npm run build`、`arch:check`、`assets:check` 与 `docs:validate` 全部通过。
+
 人物世界与 Chat 视觉去噪收口门禁（2026-11-22）：`companion-status-summary.test.ts` 补齐 `userRelationship.note` 内部反思策略文本不泄漏回归；`world-profile-header.test.ts`、`foundation-enforcement-gate.test.ts`、`npm run build`、`arch:check`、`assets:check` 与 `docs:validate` 全部通过。
 
 多轮助手任务分组收起与 Chat 过程精修门禁（2026-11-22）：`group-assistant-runs.test.ts`、`foundation-enforcement-gate.test.ts`（10 项）、`foundation-story-registry.test.ts`（12 项）、双进程 `tsc`、`npm run build`、`arch:check`（15 项）、`assets:check`（115 项）与 `docs:validate` 全部通过。
