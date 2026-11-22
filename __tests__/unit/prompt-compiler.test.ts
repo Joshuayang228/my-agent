@@ -40,7 +40,8 @@ describe('Prompt semantic compiler', () => {
     expect(text).toContain('人物行为补充（增量）')
     expect(text).toContain('活动：散步')
     expect(text).toContain('必须锚定活动或地点')
-    expect(text).not.toContain('<aside>')
+    expect(text).not.toContain('## 回复格式')
+    expect(text).not.toContain('~>')
   })
 
   it('主对话把持久化关系和情绪摘要放入情境区，并保留行为边界', () => {

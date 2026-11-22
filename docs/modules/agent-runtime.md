@@ -558,7 +558,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 - 正式 workspace 侧聊已通过本地 SSE + 独立数据目录的 Electron 流程：真实项目文件读取、首段流式回复、流中关闭、服务端断连、存储删除和重开正常回复。无长期记忆召回时不再对 undefined 调用 trim；组装异常不会因 span 尚未创建而再次报错。主进程统一取消/等待/删除，删除期间拒绝新发送，工具确认校验窗口并在关闭/销毁时拒绝和清理；初始化阶段可取消且退出前保持运行锁。创建会话失败时重试重新调用 createWorkspace，未创建成功不能发送；父会话变化时整体重建侧聊，正文、草稿、确认和旧发送错误不进入新实例。同父会话切换标签/折叠保留实例；创建失败与旧状态隔离有 Renderer 故障注入回归，切换主会话后的旧流断开/存储删除及新侧聊发送有真实 Electron 证据。
 
 - 原始代码共享渲染：`MarkdownRenderer.tsx` 导出的 `CodeBlock` 接收原文而不进行 Markdown／aside／Mermaid 解释；基础 Markdown／Diff 故事、候选工作区、正式文件代码预览和 ReviewPanel 共用它。代码块主题底色同源、复制保留原文，复制操作槽固定；剪贴板失败可重试。正式五功能菜单顺序已对齐；浏览器是真实受限只读查看器，侧聊真实链路与验收见上条，不再是未接入壳。
-- 小声蛐蛐（内心独白）渲染与频控：`MarkdownRenderer.tsx` 通过 `parseAsideSegments` 原位渲染 `~>` 独立行与历史 `<aside>` 为 `.ququ-line`（`💭 ` 前缀、12px 正体、`user-select: none` + `onCopy` 自动剔除，不误切代码围栏）；运行时在 `runtime.ts` → `resolveToneControl` → `compileMainSystem(suppressAside)` 实施 2 轮硬冷却与紧绷态不注入。
+- 小声蛐蛐（内心独白）渲染与频控：`MarkdownRenderer.tsx` 通过 `parseAsideSegments` 原位渲染 `~>` 独立行为 `.ququ-line`（`💭 ` 前缀、12px 正体、`user-select: none` + `onCopy` 自动剔除，不误切代码围栏）；运行时在 `runtime.ts` → `resolveToneControl` → `compileMainSystem(suppressAside)` 实施 2 轮硬冷却与紧绷态不注入。
 
 - Playground 场景控制器统一为 MCP 风格独立选项；Chat 主旅程/宽度、记忆分类/场景、模型/Skills/MCP、工作区功能/形态/宽度与公共故事选择共享尺寸、间距和主题选中态。动效样张兼容构建压缩的秒单位，统一换算毫秒展示与放慢演示；产品内容标签与正式 UI 不受影响。
 

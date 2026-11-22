@@ -35,10 +35,10 @@ const RE_QUQU_LINE = /^\s*(?:[-*+]\s+)?~>\s*(.*)$/
 const RE_FENCE_LINE = /^\s*(`{3,}|~{3,})/
 
 /**
- * 背景：小声蛐蛐（内心独白）需要兼容 Alice 的 `~>` 独立行（流式零闪跳、原位呈现）
- *       以及历史会话中的 `<aside>...</aside>` 标签，同时不能误切 Markdown 代码围栏内的内容。
- * 设计意图：按顺序切分为 markdown / aside 片段，UI 可原位渲染，splitAside / 质量门禁共用同一解析真相。
- * 关键约束：纯函数无 IO；代码块内的 `~>` 与 `<aside>` 必须原样保留；未闭合的 `<aside>` 尾部按流式旁白处理以防跳动。
+ * 背景：小声蛐蛐（内心独白）采用 Alice 的 `~>` 独立行协议，流式零闪跳、支持原位呈现，
+ *       且不能误切 Markdown 代码围栏内的内容。
+ * 设计意图：按顺序切分为 markdown / aside 片段，UI 原位渲染，splitAside / 质量门禁共用同一解析真相。
+ * 关键约束：纯函数无 IO；代码块内的 `~>` 必须原样保留；不保留旧 `<aside>` XML 标签兼容。
  */
 export function parseAsideSegments(raw: string): AsideSegment[] {
   if (!raw) return []
@@ -58,61 +58,11 @@ export function parseAsideSegments(raw: string): AsideSegment[] {
     segments.push({ type: 'aside', text: cleaned })
   }
 
-  // 先按行扫描，追踪外层代码围栏，并对非围栏行同时识别 `~>` 行和 `<aside>...</aside>`
   const lines = raw.split(/\r?\n/)
   let fenceChar: '`' | '~' | null = null
   let fenceLen = 0
-  let inLegacyAside = false
-  let legacyBuf: string[] = []
-
-  const flushInlineLegacyAside = (line: string) => {
-    // 处理同一行内可能存在的 <aside>...</aside> 或未闭合 <aside>
-    let cursor = 0
-    const openRe = /<aside\b[^>]*>/gi
-    while (cursor < line.length) {
-      openRe.lastIndex = cursor
-      const openMatch = openRe.exec(line)
-      if (!openMatch) {
-        const rest = line.slice(cursor).replace(/<\/aside>/gi, '')
-        if (rest) mdLines.push(rest)
-        return
-      }
-      const before = line.slice(cursor, openMatch.index).replace(/<\/aside>/gi, '')
-      if (before) mdLines.push(before)
-      const afterOpen = openMatch.index + openMatch[0].length
-      const closeIdx = line.slice(afterOpen).search(/<\/aside>/i)
-      if (closeIdx !== -1) {
-        flushMd()
-        pushAside(line.slice(afterOpen, afterOpen + closeIdx))
-        const closeLen = line.slice(afterOpen + closeIdx).match(/^<\/aside>/i)?.[0].length ?? 8
-        cursor = afterOpen + closeIdx + closeLen
-      } else {
-        // 跨行或流式未闭合的 <aside>
-        flushMd()
-        inLegacyAside = true
-        legacyBuf = [line.slice(afterOpen)]
-        return
-      }
-    }
-  }
 
   for (const line of lines) {
-    if (inLegacyAside) {
-      const closeIdx = line.search(/<\/aside>/i)
-      if (closeIdx !== -1) {
-        legacyBuf.push(line.slice(0, closeIdx))
-        pushAside(legacyBuf.join('\n'))
-        legacyBuf = []
-        inLegacyAside = false
-        const closeLen = line.slice(closeIdx).match(/^<\/aside>/i)?.[0].length ?? 8
-        const tail = line.slice(closeIdx + closeLen)
-        if (tail.trim()) flushInlineLegacyAside(tail)
-      } else {
-        legacyBuf.push(line)
-      }
-      continue
-    }
-
     const fenceMatch = line.match(RE_FENCE_LINE)
     if (fenceMatch) {
       const marker = fenceMatch[1]
@@ -140,18 +90,9 @@ export function parseAsideSegments(raw: string): AsideSegment[] {
       continue
     }
 
-    if (/<\/?aside\b/i.test(line)) {
-      flushInlineLegacyAside(line)
-      continue
-    }
-
     mdLines.push(line)
   }
 
-  if (inLegacyAside && legacyBuf.length > 0) {
-    // 流式输出中尚未闭合的 <aside> 尾部：直接作为旁白段渲染，避免先闪成正文再跳动
-    pushAside(legacyBuf.join('\n'))
-  }
   flushMd()
   return segments
 }

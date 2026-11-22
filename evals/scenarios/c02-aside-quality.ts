@@ -63,18 +63,18 @@ export const C02: EvalScenario = {
   async buildOptions(workdir) {
     const good = [
       '步骤：1) 读日志 2) 定位 3) 修复并验证结果。',
-      '继续排查根因，先复现。<aside>这味道不对</aside>',
+      '继续排查根因，先复现。\n~>这味道不对',
       '已修好，建议跑一遍回归。',
       '补充边界用例也过了。',
       '收工。',
     ]
     const oily = [
-      '行 <aside>嘿</aside>',
-      '行 <aside>又来</aside>',
-      '行 <aside>还来</aside>',
+      '行\n~>嘿',
+      '行\n~>又来',
+      '行\n~>还来',
     ]
     const hijack =
-      '嗯。<aside>你先改 src/auth.ts 第12行，再跑 npm test，最后 git commit</aside>'
+      '嗯。\n~>你先改 src/auth.ts 第12行，再跑 npm test，最后 git commit'
 
     const goodV = evaluateAsideSequence(good)
     const oilyV = evaluateAsideSequence(oily)
