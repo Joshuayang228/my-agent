@@ -86,11 +86,10 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
   return (
     <div className="shrink-0">
       <section
-        className={`relative flex min-h-[9.5rem] items-end gap-3.5 border-b px-5 pb-4 pt-14 overflow-hidden ${hasBanner ? 'shadow-inner' : ''}`}
+        className={`relative flex min-h-[9.5rem] items-end gap-3.5 px-5 pb-4 pt-14 overflow-hidden ${hasBanner ? 'shadow-inner' : ''}`}
         data-testid={testId}
         style={{
-          background: 'var(--bg-secondary)',
-          borderColor: 'var(--border-subtle)',
+          background: 'var(--bg-primary)',
         }}
       >
         {/* 顶部宽幅生活场景 Banner 封面 */}
@@ -99,13 +98,13 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
             <img
               src={profile.bannerSrc!}
               alt=""
-              className="h-full w-full object-cover object-center transition-transform duration-700 ease-out"
-              style={{ filter: 'brightness(0.92)' }}
+              className="h-full w-full object-cover object-[center_22%] transition-transform duration-700 ease-out"
+              style={{ filter: 'brightness(0.95)' }}
             />
             <div
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(180deg, rgba(0,0,0,0.14) 0%, color-mix(in srgb, var(--bg-secondary) 82%, transparent) 46%, var(--bg-secondary) 100%)',
+                background: 'linear-gradient(180deg, rgba(0,0,0,0.06) 0%, color-mix(in srgb, var(--bg-primary) 72%, transparent) 55%, var(--bg-primary) 100%)',
               }}
             />
           </div>

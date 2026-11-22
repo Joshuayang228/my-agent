@@ -221,7 +221,7 @@ export function WorldKeepsakesPanel({
         ) : selected ? (
           <article
             className="w-full max-w-3xl rounded-[var(--radius-card)] border p-6 sm:p-8"
-            style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
+            style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}
             data-testid={`keepsake-detail-${selected.id}`}
           >
             <h2 className="break-words font-display text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
@@ -295,8 +295,8 @@ export function WorldKeepsakesPanel({
             {gifts.map((gift) => (
               <div
                 key={gift.id}
-                className="flex flex-col justify-between border-b pb-4 transition-colors hover:bg-[var(--hover-overlay)]"
-                style={{ borderColor: 'var(--border-subtle)' }}
+                className="flex flex-col justify-between rounded-[var(--radius-card)] border p-4 transition-colors hover:bg-[var(--hover-overlay)]"
+                style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}
                 data-testid={`received-gift-card-${gift.id}`}
               >
                 <div>

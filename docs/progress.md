@@ -1,5 +1,7 @@
 # 项目进度
 
+人物世界与侧栏二次视觉精修（2026-11-22）：`PrimarySidebar` 改用 `color-mix(in srgb, var(--bg-primary) 42%, var(--card-bg))` 实底柔和衔接左右区域并为会话列表底部加入渐隐防硬截断；`WorldProfileHeader` 封面改用 `object-[center_22%]` 与无横线平滑渐变解决人物头部裁切与分层断层；`WorldHub` 切换为 `TabStrip variant="underline"` 去掉 8 个重复外框；`src/index.css`（`.moments-alice-post`）、`MomentsPanel`、`WorldJournalPanel` 与 `WorldKeepsakesPanel` 全面统一为清爽 `var(--card-bg)` 卡片，移除朋友圈顶部「展示近 14 天动态」提示并去掉日记卡多余固定高度。
+
 人物世界与 Chat 视觉去噪收口（2026-11-22）：根据真机截图验收完成 5 项界面减噪——`CompanionSceneBackdrop` 从 `.app-shell` 收回至右侧 Chat 主区固定定位（聊天滚动不位移，且不再在人物世界与顶部大图重影叠加）；`PrimarySidebar` 恢复为明亮实底 `var(--card-bg)` + `var(--border-subtle)` 保持导航区纯粹可读；`electron/main/companion/orchestrator.ts#formatCompanionStatusSummary` 不再将内部反思备忘 `userRelationship.note` 拼入人物世界页头；`WorldJournalPanel` 与 `WorldKeepsakesPanel` 去掉厚重深绿顶色块改为统一 `var(--card-bg)` 轻卡片；正式 `App.tsx` 为 `ChatMessageFrame` 传入 `showUserAvatar={false}` 隐藏多余空心绿头像，同步更新 `CompanionSettingsContent` 文案与 Playground `SurfaceBaselinePanel`。
 
 全窗固定氛围底图、人物世界底图统一与通透毛玻璃侧栏（2026-11-22）：将 `CompanionSceneBackdrop` 从 Chat 滚动容器内提升至 `App.tsx` 最外层 `.app-shell` 并向人物世界透传（Chat 输入区底色同步透明），彻底解决 Chat 向下滚动时底图跑掉的问题，并让人物世界（朋友圈/日记/礼物/衣柜/文化角/家居/通讯录/足迹）统一共享固定底图；`PrimarySidebar` 改为全透明底仅留 `1px` 细分割线，与全窗轻雾底图无缝融为一体；`formatSessionPreview` 过滤 `~>` 行，`CompanionSettingsContent` 文案统一为「氛围壁纸」，Playground Chat 与人物世界样张同步更新。

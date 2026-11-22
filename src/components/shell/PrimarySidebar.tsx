@@ -111,7 +111,7 @@ export function PrimarySidebar({
       className={`chat-shape-scope flex shrink-0 flex-col border-r ${collapseControlPlacement === 'header' ? 'relative' : ''}`}
       style={{
         width: width ?? 248,
-        background: 'var(--card-bg)',
+        background: 'color-mix(in srgb, var(--bg-primary) 42%, var(--card-bg))',
         borderColor: 'var(--border-subtle)',
       }}
       data-testid="primary-sidebar"
@@ -224,7 +224,7 @@ export function PrimarySidebar({
       </div>
 
       {/* 会话列表 */}
-      <div className="scrollbar-hover mt-3 flex-1 overflow-y-auto px-2 pb-2" data-testid="sidebar-session-list">
+      <div className="scrollbar-hover mt-3 flex-1 overflow-y-auto px-2 pb-5 [mask-image:linear-gradient(to_bottom,black_calc(100%-18px),transparent)]" data-testid="sidebar-session-list">
         {sessionGroups.map((group) => (
           <div key={group.label}>
             <div
