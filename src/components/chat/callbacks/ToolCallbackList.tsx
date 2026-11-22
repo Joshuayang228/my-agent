@@ -179,12 +179,12 @@ export function ToolCallbackList({
             data-phase={phase}
             data-testid={isMomentDone ? 'tool-moment-card' : isAssetDone ? 'tool-asset-card' : undefined}
           >
-            <div className="group/row flex items-center gap-1.5">
+            <div className="group/row flex items-center">
               <ActionButton
                 variant="plain"
                 onClick={() => onToggleCollapse(tool.callId)}
                 aria-expanded={!collapsed}
-                className="-mx-1.5 min-w-0 flex-1 !min-h-0 !justify-start gap-2 rounded-[var(--radius-sm)] border-0 !px-1.5 !py-1 text-left text-[12px] hover:bg-[var(--hover-overlay)]"
+                className="-mx-1.5 min-w-0 flex-1 !min-h-0 !justify-start gap-2 rounded-[var(--radius-sm)] border-0 !px-1.5 !py-0.5 text-left text-[12px] leading-5 hover:bg-[var(--hover-overlay)]"
               >
                 <span
                   className={`shrink-0 ${isActive ? 'animate-pulse' : ''}`}
@@ -227,18 +227,8 @@ export function ToolCallbackList({
                   />
                 </span>
               </ActionButton>
-              {showWorldLink && (
-                <ActionButton
-                  variant="plain"
-                  onClick={handleWorldNavigate}
-                  className="shrink-0 !min-h-0 rounded-[var(--radius-sm)] border-0 !px-1.5 !py-0.5 text-[11px] hover:bg-[var(--hover-overlay)]"
-                  style={{ color: 'var(--accent-fg)' }}
-                >
-                  去查看
-                </ActionButton>
-              )}
             </div>
-            {!collapsed && (hasStreamingArgs || hasArgs || hasResult) && (
+            {!collapsed && (hasStreamingArgs || hasArgs || hasResult || showWorldLink) && (
               <div
                 className="scrollbar-thin mt-1 mb-2 space-y-2 rounded-[var(--radius-md)] border px-3 py-2 font-mono text-[11px] leading-5 backdrop-blur-[2px]"
                 style={{
@@ -267,6 +257,21 @@ export function ToolCallbackList({
                   >
                     {tool.result!.slice(0, 2000)}
                   </pre>
+                )}
+                {showWorldLink && (
+                  <div
+                    className={`flex justify-end font-sans ${hasStreamingArgs || hasArgs || hasResult ? 'border-t pt-1.5' : ''}`}
+                    style={{ borderColor: 'var(--border-subtle)' }}
+                  >
+                    <ActionButton
+                      variant="plain"
+                      onClick={handleWorldNavigate}
+                      className="!min-h-0 rounded-[var(--radius-sm)] border-0 !px-1.5 !py-0.5 text-[11px] hover:bg-[var(--hover-overlay)]"
+                      style={{ color: 'var(--accent-fg)' }}
+                    >
+                      {isMomentDone ? '去朋友圈查看 →' : '去人物世界查看 →'}
+                    </ActionButton>
+                  </div>
                 )}
               </div>
             )}

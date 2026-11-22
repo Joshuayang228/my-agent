@@ -988,8 +988,8 @@ html[data-font-scale="lg"] {
   font-size: 0.75rem;
   color: var(--text-secondary);
   opacity: 0.86;
-  margin: 0.5rem 0;
-  line-height: 1.6;
+  margin: 0.65rem 0;
+  line-height: 1.65;
 }
 .ququ-prefix {
   display: inline;

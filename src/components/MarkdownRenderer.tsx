@@ -226,7 +226,7 @@ const MARKDOWN_COMPONENTS: React.ComponentProps<typeof ReactMarkdown>['component
 
   // 块元素
   p({ children }) {
-    return <p className="my-2 leading-relaxed">{children}</p>
+    return <p className="my-2.5 leading-[1.75]">{children}</p>
   },
   h1({ children }) {
     return <h1 className="mb-3 mt-6 text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{children}</h1>
@@ -238,13 +238,13 @@ const MARKDOWN_COMPONENTS: React.ComponentProps<typeof ReactMarkdown>['component
     return <h3 className="mb-2 mt-4 text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{children}</h3>
   },
   ul({ children }) {
-    return <ul className="my-2 ml-5 list-disc space-y-1">{children}</ul>
+    return <ul className="my-2.5 ml-5 list-disc space-y-2 leading-[1.75]">{children}</ul>
   },
   ol({ children }) {
-    return <ol className="my-2 ml-5 list-decimal space-y-1">{children}</ol>
+    return <ol className="my-2.5 ml-5 list-decimal space-y-2 leading-[1.75]">{children}</ol>
   },
   li({ children }) {
-    return <li style={{ color: 'var(--text-primary)' }}>{children}</li>
+    return <li className="leading-[1.75]" style={{ color: 'var(--text-primary)' }}>{children}</li>
   },
   blockquote({ children }) {
     return <blockquote className="md-blockquote">{children}</blockquote>

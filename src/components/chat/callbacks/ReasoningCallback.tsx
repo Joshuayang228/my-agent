@@ -44,12 +44,12 @@ export function ReasoningCallback({
         data-callback="reasoning"
         data-phase={phase}
       >
-        <div className="group/row flex items-center gap-1.5">
+        <div className="group/row flex items-center">
           <ActionButton
             variant="plain"
             onClick={onToggle}
             aria-expanded={expanded}
-            className="-mx-1.5 min-w-0 flex-1 !min-h-0 !justify-start gap-2 rounded-[var(--radius-sm)] border-0 !px-1.5 !py-1 text-left text-[12px] hover:bg-[var(--hover-overlay)]"
+            className="-mx-1.5 min-w-0 flex-1 !min-h-0 !justify-start gap-2 rounded-[var(--radius-sm)] border-0 !px-1.5 !py-0.5 text-left text-[12px] leading-5 hover:bg-[var(--hover-overlay)]"
           >
             <Sparkles
               size={12}

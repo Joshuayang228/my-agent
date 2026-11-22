@@ -1581,7 +1581,7 @@ function App() {
                               />
                             </ActionButton>
                             {processExpanded && (
-                              <div className="mt-1.5 mb-3 space-y-2">
+                              <div className="mt-1 mb-3.5 space-y-0.5">
                                 {showThinkingBeforeMsg && (
                                   <ReasoningCallback
                                     chunks={reasoning.chunks}
