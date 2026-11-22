@@ -1695,7 +1695,7 @@ function App() {
                         className="mb-2"
                       />
                     )}
-                    <ContentCallbackCue phase={pendingContentPhase} />
+                    {!showPendingReasoning && <ContentCallbackCue phase={pendingContentPhase} />}
                   </ChatMessageFrame>
                 </div>
               )

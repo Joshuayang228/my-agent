@@ -1,5 +1,7 @@
 # 项目进度
 
+Chat 等待首字指示器去冗余（2026-11-23）：`App.tsx` 当 `ReasoningCallback` 已在流式展示思考过程时隐藏 `ContentCallbackCue`，避免出现「让我想想… >」与「回复生成中…」双指示堆叠；`ContentCallback.tsx` 移除机械文案，改为极简三点呼吸提示。
+
 文化角卡片化、路飞完整全身穿衣立绘与伙伴赠礼柜（2026-11-23）：`WorldCultureGallery.tsx` 将书籍/影视/音乐/摄影四类画廊列表统一收进 `var(--card-bg)` 边框卡片，封面图改用 `object-cover` 贴顶铺满；为路飞生成完整全身穿搭立绘 `roles/luffy/visual/wardrobe-initial-outfit-v2.png` 替代原无头衣架拆解图，并在 `assets.ts#ensureStarterWardrobe` 为已有库无损升级旧出厂 `starterOutfit` / `wear-state` 配图；在 `life-schema.ts`、`types.ts`、`life-presets.ts`、`gifting.ts` 与 `WorldKeepsakesPanel.tsx` 落地 `giverName` 与 Role Pack `starterReceivedGifts` 幂等播种，为路飞预置红发香克斯送的草帽与可雅送的黄金梅丽号，礼物柜卡片清晰区分「来自 红发香克斯 / 可雅 / 你」。
 
 主对话输出预算与截断恢复修复（2026-11-23）：定位生产请求 `promptTokens≈17K` 远低于服务商上下文窗口，真正耗尽的是旧版 4096 输出预算；模型在推理阶段结束时没有正文或工具调用，原 Loop 又把空 assistant 注入续写请求，导致后续请求失败。现将旧 4096 视为未显式预算，OpenAI-compatible 路径交给模型能力决定输出上限；修复空 assistant 消息、增加 `LLM_OUTPUT_TRUNCATED` 结构化终态和文件生成工具优先提示。已有可继续内容的截断仍保留续写。新增 29 项定向回归通过，双进程 `tsc` 与 `npm run build` 通过；真实外部模型重试仍需用户本地连接验证。

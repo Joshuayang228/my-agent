@@ -22,14 +22,16 @@ export function ContentCallbackCue({
   if (phase !== 'active') return null
   return (
     <div
-      className="flex items-center gap-2 py-1 text-[12px]"
-      style={{ color: 'var(--text-muted)' }}
+      className="flex items-center gap-1 py-1.5"
       data-callback="content"
       data-phase={phase}
+      role="status"
+      aria-label="正在输入"
       aria-live="polite"
     >
-      <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ background: 'var(--accent)' }} />
-      <span>回复生成中…</span>
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ background: 'var(--text-muted)', animationDelay: '0ms' }} />
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ background: 'var(--text-muted)', animationDelay: '180ms' }} />
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ background: 'var(--text-muted)', animationDelay: '360ms' }} />
     </div>
   )
 }

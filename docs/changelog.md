@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 精简 Chat 等待首字指示器：`App.tsx` 在已有「让我想想…」思考过程展示时不再叠放 `ContentCallbackCue`；`ContentCallback.tsx` 移除机械感文字「回复生成中…」，改为极简三点呼吸输入指示器（仅在无思考过程且等待首字时轻显）。
+
 2026-11-23 文化角卡片化、路飞完整穿衣立绘与礼物柜伙伴赠礼支持：`WorldCultureGallery` 书籍/影视/音乐/摄影列表统一封装为 `var(--card-bg)` 圆角卡片并改为 `object-cover` 贴顶封面，消除文字归属不清问题；为路飞生成完整人物全身穿搭立绘（`wardrobe-initial-outfit-v2.png`）替换无头衣架拆解图，并在 `assets.ts#ensureStarterWardrobe` 支持无损升级既有用户的出厂穿搭图（不覆盖用户自生成换装图）；`companion_received_gifts` 新增 `giver_name` 列与 `life-presets.json#starterReceivedGifts` 幂等播种，支持展示来自小伙伴与重要之人的礼物（路飞预置「红发香克斯的草帽」与可雅送的「黄金梅丽号」），`WorldKeepsakesPanel` 卡片同步显示「来自 xxx」徽标。
 
 2026-11-23 修复人物世界详情居中对齐、家居总览图尺寸上限与通讯录船员头像接入：`readingContentStyle()` 与日记/礼物详情统一居中（`marginInline: 'auto'`，同步更新 `frontend-guidelines.md` 与 `content-layout.test.ts`），解决宽屏下「和TA聊聊」按钮悬停中段与右侧大片留白；`WorldHomeGallery` 总览图改为 `16 / 9` 并限宽 `760px` 避免撑爆首屏；`companion/cast/contacts.ts#getContactsForRole` 通过 `getRoleVisuals` 补齐 `avatarSrc`，让 Role Pack 中已生成的船员头像正式在通讯录显示（同步补齐 `world-contacts.test.ts` 断言）。
