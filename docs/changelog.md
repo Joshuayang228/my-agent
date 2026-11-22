@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-22 归档并删除多余的 Playground 候选文件（`VulnerabilityExperienceCandidate` 与 `GiftingExperienceCandidate`），在 Playground Chat 主旅程新增「思考与工具」全景交互视图（完整接入 `ReasoningCallback` 进行中/完成、`ToolCallbackList` 七态含朋友圈/生活记录/生图/错误、`ContentCallbackCue`、`MemoryCitationChips`、`MarkdownRenderer`+`<aside>` 与 `formatCompanionErrorBubble`），便于先在 Playground 统一检视对话流视觉问题。
+
 2026-11-22 移除人物世界图片组件 `WorldRecordImage` 右下角「在文件夹中定位」角标按钮，消除生活画廊遮挡；同步收口 Playground `SurfaceBaselinePanel` 与正式人物世界顶栏的偏差，移除独立假头图 `WorldOverviewHero` 与 `hideHeader`，改由 `WorldHub` 直接渲染真实 `WorldProfileHeader` + `WorldTodayTimeline` 并同步「刷新礼物」标签。
 
 2026-11-22 补牢现有前端一致性门禁与路由：`EmptyState` 无操作时默认自动垂直居中；`foundation-enforcement-gate.test.ts` 覆盖 6 个人物世界正式面板并新增禁止 `EmptyState` / `ErrorState` 外包居中大留白容器的 AST 门禁与负例；`AGENTS.md` 补齐前端 UI 任务必读路由，`frontend-guidelines.md` 明确内容页空态与错误态直接贴内容区边界。

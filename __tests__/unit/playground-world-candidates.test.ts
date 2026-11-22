@@ -20,9 +20,9 @@ describe('Playground World Candidates (日记与专属信物)', () => {
     expect(keepsakesComp.category).toBe('layout')
     expect(keepsakesComp.status).toBe('playground')
     expect(keepsakesComp.sourcePath).toBe('src/components/playground/KeepsakesExperienceCandidate.tsx')
-    expect(keepsakesComp.stories).toContain('信物展架')
+    expect(keepsakesComp.stories).toContain('礼物柜')
     expect(keepsakesComp.stories).toContain('长名称与寄语')
-    expect(keepsakesComp.stories).toContain('空信物架')
+    expect(keepsakesComp.stories).toContain('空礼物柜')
   })
 
   it('产品体验注册表（experience.world）纳管了两个样张组件源文件与体验组成部分', () => {

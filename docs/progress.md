@@ -1,5 +1,7 @@
 # 项目进度
 
+Playground 冗余候选清理与 Chat 对话流全交互视图补齐（2026-11-22）：在 `ui-component-registry.ts` 归档 `layout.vulnerability-experience-candidate` 与 `layout.gifting-experience-candidate` 并删除两个孤立候选文件；在 `SurfaceBaselinePanel.tsx` 的 Chat 主旅程新增「思考与工具（`stream`）」场景并补强「处理中 / 已完成」旅程，直接复用正式 `ReasoningCallback`、`ToolCallbackList`（`pending` / `running` / `done` / 朋友圈卡 / 生活记录卡 / 生图预览 / `error`）、`ContentCallbackCue`、`MemoryCitationChips`、`MarkdownRenderer`（含 `<aside>` 与代码块）及 `formatCompanionErrorBubble`，作为统一打磨对话流视觉的 Playground 验收基线。
+
 人物世界图片角标清理与 Playground 顶栏同源收口（2026-11-22）：从 `WorldRecordImage` 移除右下角「在文件夹中定位」悬浮按钮，恢复家居、衣柜、文化角、通讯录、足迹画廊纯净观感；移除 Playground `SurfaceBaselinePanel` 中脱离正式实现的假头图 `WorldOverviewHero` 与 `hideHeader` 覆写，通过 `WorldHub#profileTestId` 直接渲染正式 `WorldProfileHeader` 与 `WorldTodayTimeline`，并同步「刷新礼物」文案。
 
 前端一致性既有规范与门禁补牢（2026-11-22）：不另建新规范体系，直接补齐现有链路 4 处缝隙——`EmptyState` 将 `centerWithoutAction` 默认改为 `true`（无 `action` 自动居中，避免漏传导致文字偏上）；`foundation-enforcement-gate.test.ts` 将 6 个人物世界正式内容页纳入 AST 扫描并新增 `auditEmptyStateWrapper` 门禁（附负例）拦截空态/错误态外包居中大留白容器；`AGENTS.md`「按任务类型读」新增前端 UI / 新增 Tab 必读 `frontend-guidelines.md` 与 `playground-to-production` 路由；`frontend-guidelines.md` 补清内容页空态与错误态直接放入 `contentGutterStyle()` 的约定。

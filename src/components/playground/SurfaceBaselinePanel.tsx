@@ -4,7 +4,7 @@ import { buildImageDraftPrompt } from '../../shared/request-draft-prompts'
  * 该展厅只提供静态 props，不创建会话、不发送模型请求，也不保存设置。
  */
 
-import { useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
+import { useMemo, useRef, useState, type Dispatch, type MouseEvent, type ReactNode, type SetStateAction } from 'react'
 import { ArrowRight, Check, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, RotateCcw, Search, X } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
@@ -25,7 +25,13 @@ import { CharacterShelfContent } from '../companion/CharacterShelfContent'
 import { ChatComposer } from '../chat/ChatComposer'
 import { ChatApprovalControl } from '../chat/ChatApprovalControl'
 import { ChatMessageFrame } from '../chat/ChatMessageFrame'
+import { MemoryCitationChips } from '../chat/MemoryCitationChips'
+import { MarkdownRenderer } from '../MarkdownRenderer'
 import { ReasoningCallback } from '../chat/callbacks/ReasoningCallback'
+import { ToolCallbackList } from '../chat/callbacks/ToolCallbackList'
+import { ContentCallbackCue } from '../chat/callbacks/ContentCallback'
+import type { ToolCallbackItem } from '../chat/callbacks/types'
+import { formatCompanionErrorBubble } from '../../shared/companion-error-voice'
 import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
 import { MomentsPanel, type MomentItem, type MomentMediaItem, type MomentsPreviewData } from '../MomentsPanel'
@@ -294,16 +300,125 @@ const PAGE_CANDIDATE_STYLE = `
     }
   `
 
-type ChatJourney = 'welcome' | 'conversation' | 'work' | 'confirmation' | 'completed' | 'failed'
+type ChatJourney = 'welcome' | 'conversation' | 'stream' | 'work' | 'confirmation' | 'completed' | 'failed'
 
 const CHAT_JOURNEYS: Array<{ id: ChatJourney; label: string; description: string }> = [
   { id: 'welcome', label: '初次进入', description: '轻量欢迎，不打断主任务。' },
   { id: 'conversation', label: '正在聊天', description: '对话成为页面的唯一主叙事。' },
+  { id: 'stream', label: '思考与工具', description: '完整展示思考中/完成、工具七态、记忆引用、旁白、生图与人格化报错。' },
   { id: 'work', label: '处理中', description: '需要工作区时，再让它按需出现。' },
   { id: 'confirmation', label: '需确认', description: '高影响操作必须在对话中说明并等待用户决定。' },
   { id: 'completed', label: '已完成', description: '任务结果回到对话，而不是留在工作区。' },
   { id: 'failed', label: '未完成', description: '说明失败原因并保留重试和回到对话的路径。' },
 ]
+
+const STREAM_TOOL_FIXTURES: ToolCallbackItem[] = [
+  {
+    callId: 'preview-tool-pending',
+    name: 'file_search',
+    args: {},
+    streamingArgs: '{"pattern": "World*", "path": "src/components/"}',
+    status: 'pending',
+    collapsed: false,
+  },
+  {
+    callId: 'preview-tool-running',
+    name: 'companion_read_world',
+    args: { view: 'moments', limit: 5 },
+    status: 'running',
+    collapsed: true,
+  },
+  {
+    callId: 'preview-tool-done',
+    name: 'file_read',
+    args: { path: 'src/shared/content-layout.ts', startLine: 1, endLine: 24 },
+    result: 'export const SPACING = { tight: 8, compact: 12, normal: 16, relaxed: 20, wide: 24 } as const',
+    status: 'done',
+    collapsed: false,
+  },
+  {
+    callId: 'preview-tool-moment',
+    name: 'companion_post_moment',
+    args: { text: '下午窗边风很舒服，泡了一壶乌龙茶慢慢理桌面。' },
+    result: '已发布朋友圈动态（id: preview-moment-1）',
+    status: 'done',
+    collapsed: true,
+  },
+  {
+    callId: 'preview-tool-asset',
+    name: 'companion_create_asset',
+    args: { kind: 'culture', name: '海边手记' },
+    result: '已写入文化角书架（id: preview-asset-1）',
+    status: 'done',
+    collapsed: true,
+  },
+  {
+    callId: 'preview-tool-image',
+    name: 'image_generate',
+    args: { prompt: '午后窗边乌龙茶与笔记本，柔和自然光', aspectRatio: '4:3' },
+    result: '已生成配图 1 张',
+    status: 'done',
+    collapsed: true,
+    generatedImages: [
+      {
+        id: 'preview-gen-img-1',
+        path: 'preview/moment-tea-by-window.jpg',
+        mimeType: 'image/jpeg',
+        width: 1200,
+        height: 900,
+        byteLength: 81790,
+      },
+    ],
+  },
+  {
+    callId: 'preview-tool-error',
+    name: 'shell_exec',
+    args: { command: 'git push --force' },
+    result: '工具错误：高风险命令已被权限策略拦截，未执行任何改动。',
+    status: 'error',
+    collapsed: false,
+  },
+]
+
+const STREAM_WORK_TOOLS: ToolCallbackItem[] = [
+  {
+    callId: 'work-tool-running',
+    name: 'file_read',
+    args: { path: 'src/components/chat/callbacks/ToolCallbackList.tsx' },
+    status: 'running',
+    collapsed: true,
+  },
+  {
+    callId: 'work-tool-pending',
+    name: 'file_search',
+    args: {},
+    streamingArgs: '{"pattern": "ReasoningCallback"}',
+    status: 'pending',
+    collapsed: false,
+  },
+]
+
+const STREAM_COMPLETED_TOOLS: ToolCallbackItem[] = [
+  {
+    callId: 'completed-tool-done',
+    name: 'file_read',
+    args: { path: 'docs/progress.md', startLine: 1, endLine: 20 },
+    result: '已读取今日任务清单与优先项。',
+    status: 'done',
+    collapsed: true,
+  },
+]
+
+const STREAM_MEMORY_CITATIONS = [
+  { id: 'mem-preview-1', category: 'preference', summary: '偏好直接、清楚、先给结论再展开细节' },
+  { id: 'mem-preview-2', category: 'workflow', summary: '先在 Playground 对照验收，再回流正式页' },
+]
+
+const readPreviewGeneratedImage = async () => ({
+  ok: true as const,
+  dataUrl: momentTeaByWindow,
+  fileName: 'window-tea-preview.jpg',
+})
 
 /**
  * Playground 只模拟 Chat 任务生命周期的可见状态，不驱动真实 Prompt、工具或权限引擎。
@@ -343,6 +458,14 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
   const previewFileRef = useRef<HTMLInputElement>(null)
   const [workspaceOpen, setWorkspaceOpen] = useState(false)
   const [reasoningExpanded, setReasoningExpanded] = useState(false)
+  const [activeReasoningExpanded, setActiveReasoningExpanded] = useState(true)
+  const [streamTools, setStreamTools] = useState<ToolCallbackItem[]>(() => STREAM_TOOL_FIXTURES.map((item) => ({ ...item })))
+  const [workTools, setWorkTools] = useState<ToolCallbackItem[]>(() => STREAM_WORK_TOOLS.map((item) => ({ ...item })))
+  const [completedTools, setCompletedTools] = useState<ToolCallbackItem[]>(() => STREAM_COMPLETED_TOOLS.map((item) => ({ ...item })))
+  const [previewCitations, setPreviewCitations] = useState(() => STREAM_MEMORY_CITATIONS.map((item) => ({ ...item })))
+  const toggleToolIn = (setter: Dispatch<SetStateAction<ToolCallbackItem[]>>) => (callId: string) => {
+    setter((items) => items.map((item) => (item.callId === callId ? { ...item, collapsed: item.collapsed === false } : item)))
+  }
   const finishSidebarCollapse = () => {
     setSidebarReopenReady(true)
     requestAnimationFrame(() => sidebarReopenRef.current?.focus())
@@ -486,13 +609,15 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                       onOpenWorld={() => onNavigate?.('world')}
                       actionTestId="chat-journey-quick-action"
                     />
-                  ) : (
+                  ) : journey === 'stream' ? (
                     <div className={`mx-auto w-full ${LAYOUT_CLASSES.section} py-4`} style={{ maxWidth: 'var(--layout-width)' }} data-testid="chat-surface-message-flow">
                       <ChatMessageFrame role="user" showUserAvatar={false}>
-                        <span className="whitespace-pre-wrap break-words">{previewMessage || '帮我把今天的事情理一下，先做最重要的。'}</span>
+                        <span className="whitespace-pre-wrap break-words">帮我查一下布局规范、发一条下午茶朋友圈、记一本书并画张窗边配图，顺便看看命令拦截长什么样。</span>
                       </ChatMessageFrame>
+
+                      {/* 1. 思考完成 + 记忆引用 + Markdown/aside + 全七态工具卡 */}
                       <ReasoningCallback
-                        chunks={[{ content: '先确认今天必须完成的事情，再按重要程度整理，保留可以稍后再做的内容。' }]}
+                        chunks={[{ content: '1. 先检索布局文件确认间距阶梯；\n2. 读取伙伴生活世界状态并发布窗边下午茶动态；\n3. 记录《海边手记》到文化角并生成配图；\n4. 遇到高风险命令时直接返回拦截结果。' }]}
                         expanded={reasoningExpanded}
                         onToggle={() => setReasoningExpanded((expanded) => !expanded)}
                         streaming={false}
@@ -500,9 +625,95 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                         className="mb-3"
                       />
                       <ChatMessageFrame role="assistant" name={persona.name} avatarSrc={visuals?.avatarSrc} previewTimeLabel="刚刚">
-                          <p className="text-[14px] leading-7" data-testid={journey === 'completed' ? 'chat-surface-completed-reply' : undefined} style={{ color: 'var(--text-primary)' }}>{journey === 'completed' ? '已经整理好优先顺序。今天先处理最重要的三件事，剩下的我先放在会话里，之后可以继续接着排。' : '可以。我们先把今天必须完成的事情挑出来，再给剩下的留一点喘息的空间。'}</p>
-                          <div className="mt-3 flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}><MessageCircle size={12} aria-hidden="true" />上下文会跟着当前会话保留</div>
+                        <MemoryCitationChips
+                          citations={previewCitations}
+                          showActions
+                          onForget={(id) => setPreviewCitations((items) => items.filter((item) => item.id !== id))}
+                          onAmend={(id, summary) => setPreviewCitations((items) => items.map((item) => (item.id === id ? { ...item, summary: `${summary}（已修正）` } : item)))}
+                        />
+                        <MarkdownRenderer
+                          content={[
+                            '都帮你过了一遍，关键点先列在下面：',
+                            '',
+                            '<aside>（小声嘀咕：先把窗边光线和刚刚查到的结果对齐一下，免得又漏掉空态边距。）</aside>',
+                            '',
+                            '- 共享间距来自 `src/shared/content-layout.ts` 的 `SPACING`；',
+                            '- 朋友圈动态、文化角书架和配图都已挂在下方工具卡里，点击每张卡可展开/收起参数和结果。',
+                            '',
+                            '```ts',
+                            'export const CONTENT_LAYOUT = { gutter: 16, readingWidth: 672, sectionGap: 20 } as const',
+                            '```',
+                          ].join('\n')}
+                        />
+                        <ToolCallbackList
+                          tools={streamTools}
+                          onToggleCollapse={toggleToolIn(setStreamTools)}
+                          readGeneratedImage={readPreviewGeneratedImage}
+                          onNavigateToWorld={() => onNavigate?.('world')}
+                          className="mt-2.5"
+                        />
                       </ChatMessageFrame>
+
+                      {/* 2. 进行中：思考中（streaming=true）+ 回复生成中（ContentCallbackCue） */}
+                      <ChatMessageFrame role="user" showUserAvatar={false}>
+                        <span className="whitespace-pre-wrap break-words">再帮我看下思考中和回复生成中是什么状态？</span>
+                      </ChatMessageFrame>
+                      <ReasoningCallback
+                        chunks={[{ content: '正在对照正式对话流检查思考框与头像列的对齐关系、工具卡折叠态以及流式脉冲提示…' }]}
+                        expanded={activeReasoningExpanded}
+                        onToggle={() => setActiveReasoningExpanded((expanded) => !expanded)}
+                        streaming
+                        presentation="stable"
+                        className="mb-3"
+                      />
+                      <ContentCallbackCue phase="active" />
+
+                      {/* 3. 人格化错误承接气泡 */}
+                      <ChatMessageFrame role="assistant" name={persona.name} avatarSrc={visuals?.avatarSrc} previewTimeLabel="刚刚">
+                        <MarkdownRenderer
+                          content={formatCompanionErrorBubble({
+                            code: 'RATE_LIMITED',
+                            message: '429 Too Many Requests: upstream rate limit exceeded',
+                            roleId: persona.id,
+                          }).displayMarkdown}
+                        />
+                      </ChatMessageFrame>
+                    </div>
+                  ) : (
+                    <div className={`mx-auto w-full ${LAYOUT_CLASSES.section} py-4`} style={{ maxWidth: 'var(--layout-width)' }} data-testid="chat-surface-message-flow">
+                      <ChatMessageFrame role="user" showUserAvatar={false}>
+                        <span className="whitespace-pre-wrap break-words">{previewMessage || '帮我把今天的事情理一下，先做最重要的。'}</span>
+                      </ChatMessageFrame>
+                      <ReasoningCallback
+                        chunks={[{ content: isWork ? '正在读取今天的待办记录并检查需要优先处理的三件事…' : '先确认今天必须完成的事情，再按重要程度整理，保留可以稍后再做的内容。' }]}
+                        expanded={reasoningExpanded}
+                        onToggle={() => setReasoningExpanded((expanded) => !expanded)}
+                        streaming={isWork}
+                        presentation="stable"
+                        className="mb-3"
+                      />
+                      <ChatMessageFrame role="assistant" name={persona.name} avatarSrc={visuals?.avatarSrc} previewTimeLabel="刚刚">
+                        {journey === 'completed' && (
+                          <MemoryCitationChips citations={previewCitations.slice(0, 1)} showActions />
+                        )}
+                        <p className="text-[14px] leading-7" data-testid={journey === 'completed' ? 'chat-surface-completed-reply' : undefined} style={{ color: 'var(--text-primary)' }}>{journey === 'completed' ? '已经整理好优先顺序。今天先处理最重要的三件事，剩下的我先放在会话里，之后可以继续接着排。' : isWork ? '正在翻看你的工作记录，稍等几秒我把优先级排出来。' : '可以。我们先把今天必须完成的事情挑出来，再给剩下的留一点喘息的空间。'}</p>
+                        {isWork && (
+                          <ToolCallbackList
+                            tools={workTools}
+                            onToggleCollapse={toggleToolIn(setWorkTools)}
+                            className="mt-2.5"
+                          />
+                        )}
+                        {journey === 'completed' && (
+                          <ToolCallbackList
+                            tools={completedTools}
+                            onToggleCollapse={toggleToolIn(setCompletedTools)}
+                            className="mt-2.5"
+                          />
+                        )}
+                        <div className="mt-3 flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}><MessageCircle size={12} aria-hidden="true" />上下文会跟着当前会话保留</div>
+                      </ChatMessageFrame>
+                      {isWork && <ContentCallbackCue phase="active" />}
                       {isTaskJourney && <ChatTaskJourney journey={journey} onJourneyChange={setJourney} />}
                     </div>
                   )}
