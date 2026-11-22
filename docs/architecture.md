@@ -6,7 +6,7 @@
 
 对话应用服务在回复事务中登记对话完成事件与必需的生活出站任务。消费端以原始回复定位上下文，先生成再在本地事务内复核领取记录及写入结算结果。
 
-Agent Host 为对话和诊断装配完整 Manifest，承载模型用途、权限与 Skill 白名单。运行时为 Context Provider 和 Tool 注入该 Manifest 以及真实会话和运行标识。内置伙伴领域工具（含 `companion_change_wardrobe`、`companion_take_photo`）全部经 `DOMAIN_TOOL_POLICIES` 双端纳管；角色视觉覆写（`visual-overrides.ts`，已接入 `data:export` / `data:import` 备份回滚）、生活行为门控（`life-gating.ts`）、当日聊天共鸣单槽微调（`replan.ts`）与 12 切面投影注册表（`core/projections/surface-registry.ts`）均经 `companion/application/companion-facade.ts` 对外提供并纳入 `npm run arch:check` 与 Debug 资产目录；`llm/image-generation.ts`、`restricted-fetch.ts` 与 `image-gen-prep.ts` 支持辅助 LLM 绘画导演扩写、Gemini/OpenAI 双协议多职责垫图与动态画幅 `aspectRatio` 透传。
+Agent Host 为对话和诊断装配完整 Manifest，承载模型用途、权限与 Skill 白名单。运行时为 Context Provider 和 Tool 注入该 Manifest 以及真实会话和运行标识。内置伙伴领域工具（含 `companion_change_wardrobe`、`companion_take_photo`、`companion_receive_gift`）全部经 `DOMAIN_TOOL_POLICIES` 双端纳管；角色视觉覆写（`visual-overrides.ts`，已接入 `data:export` / `data:import` 备份回滚）、生活行为门控（`life-gating.ts`）、当日聊天共鸣单槽微调（`replan.ts`）与 12 切面投影注册表（`core/projections/surface-registry.ts`）均经 `companion/application/companion-facade.ts` 对外提供并纳入 `npm run arch:check` 与 Debug 资产目录；`llm/image-generation.ts`、`restricted-fetch.ts` 与 `image-gen-prep.ts` 支持辅助 LLM 绘画导演扩写、Gemini/OpenAI 双协议多职责垫图与动态画幅 `aspectRatio` 透传。
 
 人物世界事实可在同一事务登记内部 Outbox 工作。内部 consumer 按上游事件执行记忆和里程碑写入，与消费回执共同提交，窗口只消费用于呈现的消息。
 

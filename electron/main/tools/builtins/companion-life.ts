@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { buildTool } from '../builder'
 import { POST_MOMENT_DEFINITION, publishCompanionMoment, textArg } from '../../companion/application/publish-moment'
 import { changeWardrobe, createAsset, getAsset, listAssets, updateAsset } from '../../companion/life/assets'
+import { recordGiftFromChat } from '../../companion/life/gifting'
 import { addMomentCommentForRole } from '../../companion/life/moments'
 import { listMoments } from '../../companion/core/persistence/life-repository'
 import { getSession } from '../../storage/session-store'
@@ -387,5 +388,58 @@ export const companionChangeWardrobeTool = buildTool({
     })
     if (!result.ok) return `换装未完成：${result.error}`
     return `已换上「${target.name}」（ID: ${target.id}）${reason ? `，原因：${reason}` : ''}。`
+  },
+})
+
+
+/**
+ * 聊天收礼工具：用户在对话中送出礼物时，将礼物收进当前伙伴的礼物柜。
+ *
+ * 背景：人物世界「礼物」Tab 定位为只读礼物柜，不保留手动点按钮送礼；
+ * 用户在聊天里自然表达“送你一块烤肉/这张海图/一条围巾”时，由伙伴通过本工具收进礼物柜。
+ * 设计意图：复用 recordGiftFromChat 在本地工作单元内记录礼物、微调体征与关系事件并广播礼物柜更新；
+ * 普通闲聊或随口提到食物时不调用。
+ * 关键约束：严格绑定当前会话 roleId，通过 Agent Host DOMAIN_TOOL_POLICIES（companion.write）双端纳管。
+ */
+export const companionReceiveGiftTool = buildTool({
+  name: 'companion_receive_gift',
+  description: '当用户在聊天中明确赠送给伙伴一件礼物（食物、纪念品、实用小物或心意物件）时，将其收进伙伴的礼物柜并记录此次心意。普通闲聊或只是随口聊到食物时不调用。',
+  parameters: {
+    type: 'object',
+    properties: {
+      giftName: { type: 'string', description: '礼物名称，1~40 字（例如：特制带骨烤肉、古老航海图、手织围巾）。' },
+      category: { type: 'string', enum: ['food', 'collectible', 'practical', 'emotional'], description: '礼物分类，默认 emotional。' },
+      userNote: { type: 'string', description: '可选：用户送礼时附带的话或心意（最多 120 字）。' },
+      reaction: { type: 'string', description: '可选：伙伴收下礼物时的一句简短开心回响（最多 200 字）。' },
+    },
+    required: ['giftName'],
+  },
+  metadata: { isReadOnly: false, isConcurrencySafe: false },
+  inputExamples: [
+    { giftName: '特制带骨烤肉', category: 'food', userNote: '刚烤好的，趁热吃！', reaction: '哇！是带骨大肉，太香啦，我收进礼物柜记着今天！' },
+  ],
+  execute: async (args, context) => {
+    const roleId = context?.roleId?.trim()
+    if (!roleId) return '当前会话没有绑定人物，暂时无法收下礼物。'
+    const giftName = textArg(args, 'giftName', 40)
+    if (!giftName) return '请提供礼物名称（giftName，不超过 40 字）。'
+    const rawCategory = textArg(args, 'category', 20)
+    const category = rawCategory === 'food' || rawCategory === 'collectible' || rawCategory === 'practical' || rawCategory === 'emotional'
+      ? rawCategory
+      : undefined
+    const userNote = textArg(args, 'userNote', 120) || undefined
+    const reaction = textArg(args, 'reaction', 200) || undefined
+
+    const idempotencyKey = context?.sessionId && context?.toolCallId
+      ? `receive-gift:${roleId}:${context.sessionId}:${context.toolCallId}`
+      : undefined
+    const saved = await executeCompanionCommand({
+      roleId,
+      actionType: 'receive-gift-tool',
+      idempotencyKey,
+      signal: context?.signal,
+      handler: () => recordGiftFromChat({ roleId, giftName, category, userNote, companionReaction: reaction }),
+    })
+    return `已将「${saved.giftName}」收进伙伴的礼物柜（ID: ${saved.id}）。`
   },
 })

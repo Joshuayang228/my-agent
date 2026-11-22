@@ -65,6 +65,7 @@ export const DOMAIN_TOOL_POLICIES: Readonly<Record<string, { domainKey: string; 
   companion_comment_moment: { domainKey: 'companion', capabilityKey: 'companion.moment.comment', requiredPermissions: ['companion.write'] },
   companion_change_wardrobe: { domainKey: 'companion', capabilityKey: 'companion.wardrobe.change', requiredPermissions: ['companion.write'] },
   companion_take_photo: { domainKey: 'companion', capabilityKey: 'companion.photo.take', requiredPermissions: ['companion.write'] },
+  companion_receive_gift: { domainKey: 'companion', capabilityKey: 'companion.gift.receive', requiredPermissions: ['companion.write'] },
   companion_character_draft: { domainKey: 'companion', capabilityKey: 'companion.character.draft', requiredPermissions: ['companion.write'] },
   companion_switch_universe: { domainKey: 'companion', capabilityKey: 'companion.universe.switch', requiredPermissions: ['companion.write'] },
   recall: { domainKey: 'memory', capabilityKey: 'memory.recall', requiredPermissions: ['memory.read'] },

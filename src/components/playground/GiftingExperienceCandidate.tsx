@@ -5,14 +5,12 @@ import { WorldCandidateControls } from './WorldCandidateControls'
 import type {
   CompanionKeepsakeRecord,
   CompanionGiftRecord,
-  CompanionGiftItem,
 } from '../../shared/types'
 
 const GIFTING_SCENARIOS = [
-  { id: 'gifting-history', label: '心意手账（已赠历史）' },
-  { id: 'gifting-shelf', label: '礼物货架与赠礼' },
-  { id: 'gifting-empty', label: '空手账态' },
-  { id: 'keepsakes', label: '伙伴信物展架' },
+  { id: 'gifting-history', label: '收到的礼物' },
+  { id: 'keepsakes', label: '送出的礼物' },
+  { id: 'gifting-empty', label: '空礼物柜' },
 ] as const
 
 type GiftingScenario = typeof GIFTING_SCENARIOS[number]['id']
@@ -39,54 +37,6 @@ const MOCK_KEEPSAKES: readonly CompanionKeepsakeRecord[] = [
     giftReason: '共同心愿兑现',
     iconName: 'bell',
     acquiredAt: Date.UTC(2026, 10, 5, 16, 20),
-  },
-]
-
-const MOCK_AVAILABLE_GIFTS: CompanionGiftItem[] = [
-  {
-    key: 'bone-meat',
-    name: '特制带骨烤肉',
-    category: 'food',
-    iconName: 'Utensils',
-    description: '烤得滋滋冒油的超大块带骨烤肉，肉香扑鼻，在海风中格外诱人！',
-    vitalsBuff: { satiety: 30, mood: 25, energy: 15 },
-    roleAffinity: { luffy: 'favorite' },
-  },
-  {
-    key: 'treasure-map',
-    name: '泛黄的神秘海图',
-    category: 'collectible',
-    iconName: 'Map',
-    description: '边缘略微磨损的古老羊皮纸航海图，标注着未知的神秘海域与危险航标。',
-    vitalsBuff: { mood: 20, energy: 10 },
-    roleAffinity: { luffy: 'favorite' },
-  },
-  {
-    key: 'handmade-bento',
-    name: '山治风特制便当',
-    category: 'food',
-    iconName: 'Utensils',
-    description: '荤素搭配、极为讲究的现做海上便当，打开还冒着腾腾热气。',
-    vitalsBuff: { satiety: 25, mood: 15, energy: 10 },
-    roleAffinity: { luffy: 'liked' },
-  },
-  {
-    key: 'star-compass',
-    name: '星光探险罗盘',
-    category: 'practical',
-    iconName: 'Compass',
-    description: '黄铜外壳、指针泛着微光的航海罗盘，无论风浪多大都坚定指引航向。',
-    vitalsBuff: { mood: 15, energy: 10 },
-    roleAffinity: { luffy: 'liked' },
-  },
-  {
-    key: 'warm-scarf',
-    name: '手织温暖围巾',
-    category: 'emotional',
-    iconName: 'Heart',
-    description: '用柔软绒线亲手织成的红蓝两色围巾，在甲板夜航的风暴中格外暖和。',
-    vitalsBuff: { mood: 20 },
-    roleAffinity: { luffy: 'liked' },
   },
 ]
 
@@ -124,8 +74,9 @@ export function GiftingExperienceCandidate({ personaId }: { personaId: string })
   }, [scenario])
 
   const keepsakes = useMemo<CompanionKeepsakeRecord[]>(() => {
+    if (scenario === 'gifting-empty') return []
     return [...MOCK_KEEPSAKES]
-  }, [])
+  }, [scenario])
 
   return (
     <div
@@ -138,16 +89,16 @@ export function GiftingExperienceCandidate({ personaId }: { personaId: string })
           items={GIFTING_SCENARIOS}
           value={scenario}
           onChange={(val) => setScenario(val as GiftingScenario)}
-          ariaLabel="赠礼体验场景切换"
+          ariaLabel="礼物柜体验场景切换"
         />
       </WorldCandidateControls>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         <WorldKeepsakesPanel
           roleId="luffy"
+          initialSubTab={scenario === 'keepsakes' ? 'keepsakes' : 'gifts'}
           previewKeepsakes={keepsakes}
           previewGifts={gifts}
-          previewAvailableGifts={MOCK_AVAILABLE_GIFTS}
           onTakeToChat={(opts) => {
             console.log('[Playground Gifting Preview] Take to chat:', opts.text)
           }}

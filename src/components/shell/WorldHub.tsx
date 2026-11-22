@@ -25,7 +25,7 @@ export type WorldTabDefinition = { id: WorldTab; label: string; icon: ReactNode 
 const WORLD_TABS: WorldTabDefinition[] = [
   { id: 'moments', label: '朋友圈', icon: <Newspaper size={14} strokeWidth={1.5} /> },
   { id: 'journal', label: '日记', icon: <FileText size={14} strokeWidth={1.5} /> },
-  { id: 'keepsakes', label: '信物', icon: <Gift size={14} strokeWidth={1.5} /> },
+  { id: 'keepsakes', label: '礼物', icon: <Gift size={14} strokeWidth={1.5} /> },
   { id: 'wardrobe', label: '衣柜', icon: <Shirt size={14} strokeWidth={1.5} /> },
   { id: 'culture', label: '文化角', icon: <BookOpen size={14} strokeWidth={1.5} /> },
   { id: 'home', label: '家居', icon: <Home size={14} strokeWidth={1.5} /> },
@@ -126,7 +126,7 @@ export function WorldHub({
     return () => unsub?.()
   }, [roleId])
 
-  const refreshLabel = ({ moments: '刷新朋友圈', journal: '刷新日记', keepsakes: '刷新信物', assets: '刷新衣柜', wardrobe: '刷新衣柜', culture: '刷新文化角', home: '刷新家居', cast: '刷新通讯录', footprints: '刷新足迹' } as const)[tab]
+  const refreshLabel = ({ moments: '刷新朋友圈', journal: '刷新日记', keepsakes: '刷新礼物', assets: '刷新衣柜', wardrobe: '刷新衣柜', culture: '刷新文化角', home: '刷新家居', cast: '刷新通讯录', footprints: '刷新足迹' } as const)[tab]
   const defaultToolbarAction = !toolbarAction ? (
     <IconButton
       label={refreshLabel}

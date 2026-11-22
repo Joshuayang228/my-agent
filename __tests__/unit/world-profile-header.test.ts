@@ -2,7 +2,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { WorldProfileHeader } from '../../src/components/world/WorldProfileHeader'
-import { VulnerabilityCard } from '../../src/components/world/VulnerabilityCard'
+import { WorldJournalPanel } from '../../src/components/world/WorldJournalPanel'
 import { WorldKeepsakesPanel } from '../../src/components/world/WorldKeepsakesPanel'
 import { GiftGivingModal } from '../../src/components/world/GiftGivingModal'
 
@@ -22,23 +22,23 @@ describe('World Frontend Polish（顶栏与新 Tab 去数值化与克制交互�
     expect(html).not.toContain('关系信号')
   })
 
-  it('VulnerabilityCard 正式态无活跃心事时静默隐藏，不占顶部空框也不剧透触发机制', () => {
-    const prodHtml = renderToStaticMarkup(createElement(VulnerabilityCard, { roleId: 'luffy' }))
-    expect(prodHtml).toBe('')
-    expect(prodHtml).not.toContain('今晚甲板很宁静')
-
-    const previewEmptyHtml = renderToStaticMarkup(createElement(VulnerabilityCard, {
+  it('WorldJournalPanel 保持纯粹日记册视图，不再渲染脆弱心境卡片', () => {
+    const html = renderToStaticMarkup(createElement(WorldJournalPanel, {
       roleId: 'luffy',
-      previewVulnerability: null,
+      previewThoughts: [],
     }))
-    expect(previewEmptyHtml).toContain('此刻很平静')
-    expect(previewEmptyHtml).not.toContain('今晚甲板很宁静')
+    expect(html).toContain('日记本里还空着')
+    expect(html).not.toContain('vulnerability-card')
+    expect(html).not.toContain('今晚甲板很宁静')
   })
 
-  it('WorldKeepsakesPanel 正式态不显示「索取信物」按钮', () => {
+  it('WorldKeepsakesPanel 为只读礼物柜，展示「送出的礼物」与「收到的礼物」且无手动送礼/索取按钮', () => {
     const html = renderToStaticMarkup(createElement(WorldKeepsakesPanel, { roleId: 'luffy' }))
+    expect(html).toContain('送出的礼物')
+    expect(html).toContain('收到的礼物')
+    expect(html).not.toContain('赠送礼物')
     expect(html).not.toContain('索取信物')
-    expect(html).toContain('赠送礼物')
+    expect(html).not.toContain('现在送出第一份心意')
   })
 
   it('GiftGivingModal 不暴露饱腹/心情/体力加值数字，具备 dialog 无障碍语义', () => {

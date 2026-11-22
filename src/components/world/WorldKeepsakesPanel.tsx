@@ -1,8 +1,16 @@
+/**
+ * 伙伴礼物柜面板（WorldKeepsakesPanel）。
+ *
+ * 背景：人物世界的「礼物」Tab 定位为伙伴的只读礼物柜，展示伙伴送出的纪念礼物与收到的礼物回响；
+ * 此前页内保留了「赠送礼物」「索取信物」等手动按钮与 RPG 体征加值徽标，与只读生活面及“通过聊天自然送礼”的产品定位冲突。
+ * 设计意图：彻底收敛为只读陈列柜，双子标签按伙伴视角分为「送出的礼物」与「收到的礼物」，
+ * 不保留任何手动送礼/刷信物按钮；用户送礼通过主会话 Chat（companion_receive_gift）自然完成。
+ * 关键约束：保留 previewKeepsakes / previewGifts 供 Playground 离线预览；保留与 TA 聊聊入口。
+ */
 import { useCallback, useEffect, useState } from 'react'
 import {
   Gift,
   MessageSquareShare,
-  Sparkles,
   Heart,
   Utensils,
   Map as MapIcon,
@@ -10,12 +18,10 @@ import {
   ArrowLeft,
 } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
-import { Badge } from '../foundation/Badge'
 import { EmptyState } from '../foundation/EmptyState'
 import { ErrorState } from '../foundation/ErrorState'
 import { TabStrip } from '../foundation/TabStrip'
 import { contentGutterStyle } from '../../shared/content-layout'
-import { GiftGivingModal } from './GiftGivingModal'
 import type {
   CompanionKeepsakeRecord,
   CompanionGiftRecord,
@@ -29,13 +35,16 @@ interface WorldKeepsakesPanelProps {
   onLoadingChange?: (loading: boolean) => void
   /**
    * Playground 离线样张注入数据：提供时完全跳过主进程 IPC 查询与广播订阅，
-   * 并在内存中响应增改删与交互，用于无真实后端的纯前端设计审查。
+   * 用于无真实后端的纯前端设计审查。
    */
   previewKeepsakes?: CompanionKeepsakeRecord[]
   previewGifts?: CompanionGiftRecord[]
+  /** 兼容既有样张 props（只读礼物柜不再弹手动送礼窗） */
   previewAvailableGifts?: CompanionGiftItem[]
   previewReadError?: string
   onPreviewRetry?: () => void
+  /** 可选默认子标签，方便 Playground 分别展示「送出的礼物」与「收到的礼物」 */
+  initialSubTab?: 'keepsakes' | 'gifts'
 }
 
 function formatDate(timestamp: number): string {
@@ -73,22 +82,23 @@ export function WorldKeepsakesPanel({
   onLoadingChange,
   previewKeepsakes,
   previewGifts,
-  previewAvailableGifts,
   previewReadError,
   onPreviewRetry,
+  initialSubTab = 'keepsakes',
 }: WorldKeepsakesPanelProps) {
-  const [activeTab, setActiveTab] = useState<'keepsakes' | 'gifts'>('keepsakes')
+  const [activeTab, setActiveTab] = useState<'keepsakes' | 'gifts'>(initialSubTab)
   const [keepsakes, setKeepsakes] = useState<CompanionKeepsakeRecord[]>(previewKeepsakes ?? [])
   const [gifts, setGifts] = useState<CompanionGiftRecord[]>(previewGifts ?? [])
-  const [loading, setLoading] = useState(false)
-  const [gifting, setGifting] = useState(false)
-  const [showGiftModal, setShowGiftModal] = useState(false)
   const [loadError, setLoadError] = useState('')
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const selected = keepsakes.find(item => item.id === selectedId)
+  const selected = keepsakes.find((item) => item.id === selectedId)
 
-  // 同步 Playground 样张输入
+  useEffect(() => {
+    setActiveTab(initialSubTab)
+    setSelectedId(null)
+  }, [initialSubTab])
+
   useEffect(() => {
     if (previewKeepsakes !== undefined) {
       setKeepsakes(previewKeepsakes)
@@ -103,7 +113,6 @@ export function WorldKeepsakesPanel({
 
   const loadData = useCallback(async () => {
     if (previewKeepsakes !== undefined || previewGifts !== undefined) return
-    setLoading(true)
     setLoadError('')
     onLoadingChange?.(true)
     try {
@@ -116,10 +125,9 @@ export function WorldKeepsakesPanel({
         setGifts(giftRecords)
       }
     } catch (err) {
-      setLoadError('信物与礼物读取失败，请重试。')
-      console.warn('Failed to load keepsakes or gifts:', err)
+      setLoadError('礼物柜读取失败，请重试。')
+      console.warn('Failed to load gift cabinet:', err)
     } finally {
-      setLoading(false)
       onLoadingChange?.(false)
     }
   }, [previewKeepsakes, previewGifts, roleId, onLoadingChange])
@@ -128,7 +136,7 @@ export function WorldKeepsakesPanel({
     void loadData()
   }, [loadData, refreshToken])
 
-  // 监听信物与赠礼实时广播
+  // 监听礼物实时广播（由 Chat 或关系里程碑触发）
   useEffect(() => {
     if (previewKeepsakes !== undefined && previewGifts !== undefined) return
     const unsubs: Array<() => void> = []
@@ -156,45 +164,6 @@ export function WorldKeepsakesPanel({
     }
   }, [previewKeepsakes, previewGifts, roleId])
 
-  const handleTriggerGift = async () => {
-    if (gifting) return
-    if (previewKeepsakes !== undefined) {
-      setGifting(true)
-      const mockGift: CompanionKeepsakeRecord = {
-        id: `mock-keepsake-${Date.now()}`,
-        roleId,
-        name: '羁绊的晨曦星盘',
-        description: '在一次并肩跨越狂风骤雨后的黎明，由伙伴亲手雕刻并赠予你的专属星盘。',
-        lore: '「喂！看这个！只要指针还转动，无论我们在大海的哪一端，我们都是最牢固的伙伴！」',
-        giftMessage: '喂！看这个！这是我们一起冒险的证明！',
-        giftReason: '样张中的模拟羁绊赠礼',
-        iconName: 'gift',
-        acquiredAt: Date.now(),
-      }
-      setKeepsakes((prev) => [mockGift, ...prev])
-      setGifting(false)
-      return
-    }
-    if (!window.electronAPI?.companion?.giftKeepsake) return
-    setGifting(true)
-    try {
-      const gifted = await window.electronAPI.companion.giftKeepsake(roleId)
-      if (gifted) {
-        setKeepsakes((prev) => [gifted, ...prev.filter((k) => k.id !== gifted.id)])
-      }
-    } catch (err) {
-      console.warn('Failed to gift keepsake:', err)
-    } finally {
-      setGifting(false)
-    }
-  }
-
-  const handleGiftSent = (gift: CompanionGiftRecord) => {
-    setGifts((prev) => [gift, ...prev.filter((g) => g.id !== gift.id)])
-    setSelectedId(null)
-    setActiveTab('gifts')
-  }
-
   return (
     <div
       className="flex min-h-0 flex-1 flex-col py-3"
@@ -205,98 +174,131 @@ export function WorldKeepsakesPanel({
       <div className="mb-4 flex flex-wrap items-center gap-3">
         {selected ? (
           <ActionButton variant="plain" onClick={() => setSelectedId(null)}>
-            <ArrowLeft size={14} className="mr-1" />返回信物
+            <ArrowLeft size={14} className="mr-1" />返回礼物柜
           </ActionButton>
         ) : (
-          <TabStrip label="信物内容" activeId={activeTab}
-            onSelect={id => { setActiveTab(id as 'keepsakes' | 'gifts'); setSelectedId(null) }}
+          <TabStrip
+            label="礼物柜分类"
+            activeId={activeTab}
+            onSelect={(id) => {
+              setActiveTab(id as 'keepsakes' | 'gifts')
+              setSelectedId(null)
+            }}
             items={[
-              { id: 'keepsakes', label: '收到的信物', testId: 'tab-keepsakes' },
-              { id: 'gifts', label: '送出的礼物', testId: 'tab-gifts' },
+              { id: 'keepsakes', label: '送出的礼物', testId: 'tab-keepsakes' },
+              { id: 'gifts', label: '收到的礼物', testId: 'tab-gifts' },
             ]}
           />
         )}
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <ActionButton onClick={() => setShowGiftModal(true)} data-testid="open-gift-modal-btn">
-            <Heart size={14} className="mr-1" />赠送礼物
-          </ActionButton>
-          {previewKeepsakes !== undefined && activeTab === 'keepsakes' && !selected && (
-            <ActionButton variant="plain" disabled={gifting} onClick={handleTriggerGift}>
-              <Sparkles size={14} className="mr-1" />{gifting ? '正在准备…' : '模拟获赠信物'}
-            </ActionButton>
-          )}
-        </div>
       </div>
 
-      {/* 内容展示区 */}
+      {/* 内容展示区（纯只读礼物柜） */}
       {previewReadError || loadError ? (
         <div
           className="flex flex-1 flex-col items-center justify-center p-8 text-center"
           data-testid="keepsakes-error-state"
         >
           <ErrorState
-            title="信物与礼物暂时无法读取"
+            title="礼物柜暂时无法读取"
             description={previewReadError ?? loadError}
-            action={<ActionButton size="sm" variant="plain" tone="accent" onClick={previewReadError ? onPreviewRetry : () => { void loadData() }}>重新加载</ActionButton>}
+            action={(
+              <ActionButton
+                size="sm"
+                variant="plain"
+                tone="accent"
+                onClick={previewReadError ? onPreviewRetry : () => { void loadData() }}
+              >
+                重新加载
+              </ActionButton>
+            )}
           />
         </div>
       ) : activeTab === 'keepsakes' ? (
-        /* 信物列表 */
+        /* 伙伴送出的礼物 */
         keepsakes.length === 0 ? (
           <div className="flex flex-1 items-center justify-center p-8">
             <EmptyState
-              title="还没有获赠信物"
-              description="与角色共同完成心愿、持续深入交谈或跨越相处里程碑时，角色会主动向你赠予信物。"
+              title="还没有送出过礼物"
+              description="一起经历重要时刻或实现共同心愿时，伙伴会把想送你的纪念礼物放进这里。"
               centerWithoutAction
             />
           </div>
-        ) : (
-          selected ? (
-            <article className="w-full max-w-3xl rounded-[var(--radius-card)] border p-6 sm:p-8"
-              style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
-              data-testid={`keepsake-detail-${selected.id}`}>
-              <h2 className="break-words font-display text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>{selected.name}</h2>
-              <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>获赠于 {formatDate(selected.acquiredAt)}</p>
-              <p className="mt-5 whitespace-pre-wrap break-words text-sm leading-7" style={{ color: 'var(--text-secondary)' }}>{selected.description}</p>
-              {selected.lore && <p className="mt-4 whitespace-pre-wrap break-words font-display text-sm leading-7" style={{ color: 'var(--text-secondary)' }}>{selected.lore}</p>}
-              {selected.giftMessage && <blockquote className="mt-5 whitespace-pre-wrap break-words font-display text-base leading-8" style={{ color: 'var(--text-primary)' }}>{selected.giftMessage}</blockquote>}
-              {selected.giftReason && <p className="mt-4 text-xs" style={{ color: 'var(--text-muted)' }}>{selected.giftReason}</p>}
-              {onTakeToChat && <div className="mt-6 flex justify-end">
-                <ActionButton variant="plain" onClick={() => onTakeToChat({ text: `我想和你聊聊你送我的《${selected.name}》。` })}>
-                  <MessageSquareShare size={14} className="mr-1" />聊聊这件信物
+        ) : selected ? (
+          <article
+            className="w-full max-w-3xl rounded-[var(--radius-card)] border p-6 sm:p-8"
+            style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
+            data-testid={`keepsake-detail-${selected.id}`}
+          >
+            <h2 className="break-words font-display text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+              {selected.name}
+            </h2>
+            <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+              送出于 {formatDate(selected.acquiredAt)}
+            </p>
+            <p className="mt-5 whitespace-pre-wrap break-words text-sm leading-7" style={{ color: 'var(--text-secondary)' }}>
+              {selected.description}
+            </p>
+            {selected.lore && (
+              <p className="mt-4 whitespace-pre-wrap break-words font-display text-sm leading-7" style={{ color: 'var(--text-secondary)' }}>
+                {selected.lore}
+              </p>
+            )}
+            {selected.giftMessage && (
+              <blockquote className="mt-5 whitespace-pre-wrap break-words font-display text-base leading-8" style={{ color: 'var(--text-primary)' }}>
+                {selected.giftMessage}
+              </blockquote>
+            )}
+            {selected.giftReason && (
+              <p className="mt-4 text-xs" style={{ color: 'var(--text-muted)' }}>
+                {selected.giftReason}
+              </p>
+            )}
+            {onTakeToChat && (
+              <div className="mt-6 flex justify-end">
+                <ActionButton
+                  variant="plain"
+                  onClick={() => onTakeToChat({ text: `我想和你聊聊你送我的「${selected.name}」。` })}
+                >
+                  <MessageSquareShare size={14} className="mr-1" />聊聊这份礼物
                 </ActionButton>
-              </div>}
-            </article>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="keepsake-shelf">
-              {keepsakes.map(item => (
-                <button key={item.id} type="button" onClick={() => setSelectedId(item.id)}
-                  aria-label={`查看信物：${item.name}`} data-testid={`keepsake-card-${item.id}`}
-                  className="flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-card)] border text-left transition-colors hover:bg-[var(--hover-overlay)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
-                  style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
-                  <span className="flex min-h-28 flex-col justify-between gap-4 p-4" style={{ background: 'var(--accent-subtle)' }}>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatDate(item.acquiredAt)}</span>
-                    <span className="break-words font-display text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{item.name}</span>
+              </div>
+            )}
+          </article>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="keepsake-shelf">
+            {keepsakes.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setSelectedId(item.id)}
+                aria-label={`查看礼物：${item.name}`}
+                data-testid={`keepsake-card-${item.id}`}
+                className="flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-card)] border text-left transition-colors hover:bg-[var(--hover-overlay)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
+                style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
+              >
+                <span className="flex min-h-28 flex-col justify-between gap-4 p-4" style={{ background: 'var(--accent-subtle)' }}>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatDate(item.acquiredAt)}</span>
+                  <span className="break-words font-display text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    {item.name}
                   </span>
-                  <span className="p-4"><span className="line-clamp-3 break-words text-xs leading-6" style={{ color: 'var(--text-secondary)' }}>{item.description}</span></span>
-                </button>
-              ))}
-            </div>
-          )
+                </span>
+                <span className="p-4">
+                  <span className="line-clamp-3 break-words text-xs leading-6" style={{ color: 'var(--text-secondary)' }}>
+                    {item.description}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
         )
       ) : (
-        /* 心意手账（用户送礼历史） */
+        /* 伙伴收到的礼物（通过聊天自然送出） */
         gifts.length === 0 ? (
           <div className="flex flex-1 items-center justify-center p-8">
             <EmptyState
-              title="还没有赠送过心意礼物"
-              description="挑选一份合适的礼物送给伙伴，TA会感受到你的心意。"
-              action={
-                <ActionButton size="sm" tone="accent" onClick={() => setShowGiftModal(true)}>
-                  <Heart size={12} className="mr-1" />
-                  现在送出第一份心意
-                </ActionButton>
-              }
+              title="还没有收到过礼物"
+              description="在聊天里送给伙伴喜欢的食物或小物件，TA 会珍藏进礼物柜。"
+              centerWithoutAction
             />
           </div>
         ) : (
@@ -314,8 +316,8 @@ export function WorldKeepsakesPanel({
                       <div
                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-lg)]"
                         style={{
-                          background: 'color-mix(in srgb, var(--companion-accent-warm) 15%, transparent)',
-                          color: 'var(--companion-accent-warm)',
+                          background: 'var(--accent-subtle)',
+                          color: 'var(--accent-fg)',
                         }}
                       >
                         {renderGiftCategoryIcon(gift.category)}
@@ -325,21 +327,12 @@ export function WorldKeepsakesPanel({
                           {gift.giftName}
                         </h3>
                         <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                          赠送于 {formatDate(gift.createdAt)}
+                          收到于 {formatDate(gift.createdAt)}
                         </span>
                       </div>
                     </div>
-
-                    {gift.vitalsBuff && (
-                      <Badge tone="accent">
-                        {gift.vitalsBuff.satiety ? `饱腹+${gift.vitalsBuff.satiety} ` : ''}
-                        {gift.vitalsBuff.mood ? `心情+${gift.vitalsBuff.mood} ` : ''}
-                        {gift.vitalsBuff.energy ? `体力+${gift.vitalsBuff.energy}` : ''}
-                      </Badge>
-                    )}
                   </div>
 
-                  {/* 用户留言 */}
                   {gift.userNote && (
                     <div
                       className="mt-3 rounded-[var(--radius-lg)] px-3 py-2 text-[11px] leading-relaxed"
@@ -348,58 +341,47 @@ export function WorldKeepsakesPanel({
                         color: 'var(--text-secondary)',
                       }}
                     >
-                      <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>我的寄语：</span>
+                      <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>附言：</span>
                       “{gift.userNote}”
                     </div>
                   )}
 
-                  {/* 角色欢呼回响 */}
                   <div
-                    className="mt-3 rounded-[var(--radius-lg)] p-2.5 text-[11px] leading-relaxed italic"
+                    className="mt-3 rounded-[var(--radius-lg)] p-2.5 text-[11px] leading-relaxed"
                     style={{
                       backgroundColor: 'var(--bg-secondary)',
                       color: 'var(--text-primary)',
                     }}
                   >
-                    <span className="font-semibold not-italic" style={{ color: 'var(--companion-accent-warm)' }}>
-                      伙伴回响：
+                    <span className="font-semibold" style={{ color: 'var(--accent-fg)' }}>
+                      收到时的回响：
                     </span>
                     “{gift.companionReaction}”
                   </div>
                 </div>
 
-                <div className="mt-4 flex items-center justify-end border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
-                  {onTakeToChat && (
+                {onTakeToChat && (
+                  <div className="mt-4 flex items-center justify-end border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
                     <ActionButton
                       size="sm"
                       variant="plain"
                       tone="accent"
                       onClick={() => {
                         onTakeToChat({
-                          text: `我们刚才聊到了你收到的《${gift.giftName}》，真是太开心了！`,
+                          text: `聊聊你礼物柜里的「${gift.giftName}」吧！`,
                         })
                       }}
                     >
                       <MessageSquareShare size={12} className="mr-1" />
-                      与TA聊聊这份礼物
+                      聊聊这份礼物
                     </ActionButton>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )
       )}
-
-      {/* 赠礼模态弹窗 */}
-      <GiftGivingModal
-        roleId={roleId}
-        isOpen={showGiftModal}
-        onClose={() => setShowGiftModal(false)}
-        onGiftSent={handleGiftSent}
-        onTakeToChat={onTakeToChat}
-        previewAvailableGifts={previewAvailableGifts}
-      />
     </div>
   )
 }

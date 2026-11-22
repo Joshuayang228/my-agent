@@ -159,14 +159,14 @@ export const COMPANION_PROJECTION_SURFACES: readonly CompanionProjectionSurface[
   {
     id: 'surface.world.keepsakes',
     domain: 'world',
-    name: '专属信物与心意手账',
-    description: '承载双向赠礼与关系/文化里程碑信物，直接联动体征恢复、关系推进与高光回忆重温。',
+    name: '礼物柜（送出与收到的礼物）',
+    description: '伙伴的只读礼物陈列柜，展示伙伴送出的纪念礼物与通过聊天收到的礼物回响，所有赠礼由主会话自然触发。',
     factors: ['vitals', 'relationship_stage', 'emotion_memory', 'recent_experience'],
     gatingPolicies: [],
-    toolNames: [],
+    toolNames: ['companion_receive_gift', 'companion_read_world'],
     promptKeys: [PROMPT_KEYS.companionGiftReaction, PROMPT_KEYS.companionKeepsakeGift],
     backendSources: ['electron/main/companion/life/gifting.ts', 'electron/main/companion/growth/relationship-keepsake.ts'],
-    frontendSources: ['src/components/world/WorldKeepsakesPanel.tsx', 'src/components/world/GiftGivingModal.tsx'],
+    frontendSources: ['src/components/world/WorldKeepsakesPanel.tsx'],
   },
   {
     id: 'surface.world.contacts',

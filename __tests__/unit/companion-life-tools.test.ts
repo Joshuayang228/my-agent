@@ -1,7 +1,7 @@
 import { runLocalTransaction } from '../helpers/local-transaction'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import initSqlJs from 'sql.js'
-import { companionAddReadingNoteTool, companionChangeWardrobeTool, companionCommentMomentTool, companionCreateAssetTool, companionObserveMaterialTool, companionPostMomentTool, companionReadWorldTool } from '../../electron/main/tools/builtins/companion-life'
+import { companionAddReadingNoteTool, companionChangeWardrobeTool, companionCommentMomentTool, companionCreateAssetTool, companionObserveMaterialTool, companionPostMomentTool, companionReadWorldTool, companionReceiveGiftTool } from '../../electron/main/tools/builtins/companion-life'
 import { ToolRegistry } from '../../electron/main/tools/registry'
 import { listEventLinks, listMomentUserInteractions, listMoments } from '../../electron/main/companion/core/persistence/life-repository'
 import { listAssets } from '../../electron/main/companion/life/assets'
@@ -27,6 +27,7 @@ function registry() {
   value.register(companionAddReadingNoteTool)
   value.register(companionObserveMaterialTool)
   value.register(companionChangeWardrobeTool)
+  value.register(companionReceiveGiftTool)
   return value
 }
 
@@ -332,4 +333,36 @@ it('Chat 换装工具可为当前人物换上衣柜衣物，拒绝不存在或�
     { sessionId: 's', workdir: process.cwd(), roleId: 'lin' },
   )
   expect(crossRoleRes[0].content).toContain('没有找到这件衣物')
+})
+
+it('Chat 收礼工具可将用户在对话中送出的礼物记入礼物柜，无人物绑定时拒绝', async () => {
+  const { listReceivedGifts } = await import('../../electron/main/companion/life/gifting')
+
+  const okRes = await registry().executeAll(
+    [{
+      id: 'gift-1',
+      name: 'companion_receive_gift',
+      arguments: JSON.stringify({
+        giftName: '刚烤好的海王类带骨肉',
+        category: 'food',
+        userNote: '看你今天出海辛苦了，给你烤的！',
+        reaction: '哇啊啊啊太香了吧！我要大口吃掉！',
+      }),
+    }],
+    { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' },
+  )
+  expect(okRes[0].content).toContain('刚烤好的海王类带骨肉')
+  expect(okRes[0].content).toContain('礼物柜')
+
+  const history = await listReceivedGifts('luffy')
+  expect(history).toHaveLength(1)
+  expect(history[0].giftName).toBe('刚烤好的海王类带骨肉')
+  expect(history[0].userNote).toBe('看你今天出海辛苦了，给你烤的！')
+  expect(history[0].companionReaction).toBe('哇啊啊啊太香了吧！我要大口吃掉！')
+
+  const noRoleRes = await registry().executeAll(
+    [{ id: 'gift-2', name: 'companion_receive_gift', arguments: JSON.stringify({ giftName: '草帽徽章' }) }],
+    { sessionId: 's', workdir: process.cwd() },
+  )
+  expect(noRoleRes[0].content).toContain('没有绑定人物')
 })

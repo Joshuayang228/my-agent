@@ -7,8 +7,7 @@ import { ConfirmPanel } from '../foundation/ConfirmPanel'
 import { EmptyState } from '../foundation/EmptyState'
 import { ErrorState } from '../foundation/ErrorState'
 import { contentGutterStyle } from '../../shared/content-layout'
-import { VulnerabilityCard } from './VulnerabilityCard'
-import type { CompanionInnerThoughtRecord, CompanionVulnerabilityRecord } from '../../shared/types'
+import type { CompanionInnerThoughtRecord } from '../../shared/types'
 
 interface WorldJournalPanelProps {
   roleId?: string
@@ -20,8 +19,6 @@ interface WorldJournalPanelProps {
    * 并在内存中响应增删改与筛选，用于无真实后端的纯前端设计审查。
    */
   previewThoughts?: CompanionInnerThoughtRecord[]
-  previewVulnerability?: CompanionVulnerabilityRecord | null
-  showVulnerabilityCard?: boolean
   previewReadError?: string
   onPreviewRetry?: () => void
   /** 日记册样式先显示封面摘要，再进入信件式正文阅读。 */
@@ -62,8 +59,6 @@ export function WorldJournalPanel({
   refreshToken = 0,
   onLoadingChange,
   previewThoughts,
-  previewVulnerability,
-  showVulnerabilityCard = true,
   previewReadError,
   onPreviewRetry,
   presentation = 'shelf',
@@ -177,17 +172,6 @@ export function WorldJournalPanel({
               onCancel={() => setPendingDeleteId(null)}
             />
           )}
-        </div>
-      )}
-
-      {/* 伙伴实时心境波动与脆弱时刻 */}
-      {showVulnerabilityCard && !selectedThought && (
-        <div className="mb-4">
-          <VulnerabilityCard
-            roleId={roleId}
-            previewVulnerability={previewVulnerability}
-            onTakeToChat={onTakeToChat}
-          />
         </div>
       )}
 

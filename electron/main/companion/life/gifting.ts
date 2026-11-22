@@ -366,3 +366,135 @@ export async function sendGiftToCompanion(
 
   return record
 }
+
+
+export interface ChatGiftInput {
+  roleId: string
+  giftName: string
+  category?: GiftCategory
+  userNote?: string
+  companionReaction?: string
+  now?: number
+}
+
+/**
+ * 通过主会话 Chat 工具接收用户送给伙伴的礼物并收进礼物柜。
+ *
+ * 背景：人物世界「礼物」Tab 定位为只读礼物柜，不提供手动点击送礼的按钮；
+ * 用户在聊天里自然送出食物、纪念品或小物时，由伙伴调用 companion_receive_gift 收进礼物柜。
+ * 设计意图：支持匹配预设礼物或记录任意自定义礼物名称；由于伙伴正在当前会话里直接回复用户，
+ * 本入口不向主会话额外插一条重复的 assistant 消息，仅原子落库、更新体征/关系事件并广播礼物柜刷新。
+ * 关键约束：giftName 必须为非空短文本（<=40字）；严格走 withCompanionUnitOfWork 与参数化 SQL。
+ */
+export async function recordGiftFromChat(input: ChatGiftInput): Promise<CompanionGiftRecord> {
+  await ensureGiftTable()
+  const db = await getDatabase()
+  const now = input.now ?? Date.now()
+  const cleanName = input.giftName.trim().slice(0, 40)
+  if (!cleanName) throw new Error('礼物名称不能为空。')
+
+  const matchedPreset = PRESET_GIFTS.find(
+    (g) => g.key === cleanName || g.name === cleanName || cleanName.includes(g.name),
+  )
+  const giftKey = matchedPreset?.key ?? 'chat-custom'
+  const category: GiftCategory = input.category ?? matchedPreset?.category ?? 'emotional'
+  const vitalsBuff = matchedPreset?.vitalsBuff ?? { mood: 12, energy: 6 }
+  const userNote = input.userNote?.trim().slice(0, 120) || undefined
+  const reactionText = input.companionReaction?.trim().slice(0, 300) || `收下了你送的「${cleanName}」，已经好好放进礼物柜啦！`
+  const recordId = `gift-${now}-${randomUUID().slice(0, 8)}`
+  const buffJson = JSON.stringify(vitalsBuff)
+
+  let protagonistName = input.roleId
+  try {
+    const pack = loadRolePack(input.roleId)
+    if (pack?.name) protagonistName = pack.name
+  } catch {
+    // 忽略 Role Pack 加载降级
+  }
+
+  const record = await withCompanionUnitOfWork(async () => {
+    db.run(
+      `INSERT INTO companion_received_gifts
+       (id, role_id, gift_key, gift_name, category, user_note, companion_reaction, vitals_buff_json, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [recordId, input.roleId, giftKey, cleanName, category, userNote || null, reactionText, buffJson, now],
+    )
+
+    const record: CompanionGiftRecord = {
+      id: recordId,
+      roleId: input.roleId,
+      giftKey,
+      giftName: cleanName,
+      category,
+      userNote,
+      companionReaction: reactionText,
+      createdAt: now,
+      vitalsBuff,
+    }
+
+    const world = await getCompanionRuntimeState(input.roleId)
+    const domainEvent = await appendCompanionDomainEvent({
+      roleId: input.roleId,
+      universeId: world.universeId,
+      type: 'gift_received',
+      sourceType: 'chat_gift_tool',
+      sourceId: recordId,
+      causationId: recordId,
+      correlationId: recordId,
+      idempotencyKey: `gift-received:${recordId}`,
+      occurredAt: now,
+      payload: { giftKey, giftName: cleanName, category },
+      schemaVersion: 1,
+    })
+
+    await applyCompanionRuntimeDelta({
+      roleId: input.roleId,
+      eventId: domainEvent.id,
+      delta: {
+        mood: vitalsBuff.mood ?? 0,
+        energy: vitalsBuff.energy ?? 0,
+      },
+      updatedAt: now,
+    })
+
+    await recordRelationshipEvent({
+      roleId: input.roleId,
+      subjectId: 'user',
+      phase: 'familiar',
+      delta: matchedPreset?.roleAffinity?.[input.roleId] === 'favorite' ? 5 : 3,
+      note: `在聊天里收到礼物「${cleanName}」`,
+      sourceEventId: domainEvent.id,
+    })
+
+    await enqueueCompanionOutbox({
+      roleId: input.roleId,
+      eventId: domainEvent.id,
+      kind: 'gift-received',
+      dedupeKey: `gift-received:${recordId}`,
+      payload: { roleId: input.roleId, gift: record },
+    })
+
+    await enqueueCompanionOutbox({
+      roleId: input.roleId,
+      eventId: domainEvent.id,
+      kind: 'timeline-updated',
+      dedupeKey: `gift-timeline:${recordId}`,
+      payload: { roleId: input.roleId, now },
+    })
+
+    return record
+  })
+
+  await dispatchCompanionWindowOutbox()
+
+  try {
+    await tryRecordMilestone(input.roleId, 'gift_received', {
+      roleDisplayName: protagonistName,
+      now,
+    })
+  } catch (err) {
+    log.warn('Failed to record chat gift milestone', { roleId: input.roleId, error: String(err) })
+  }
+
+  return record
+}
