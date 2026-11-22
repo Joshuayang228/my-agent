@@ -1,6 +1,6 @@
 # 项目进度
 
-修复非 Chat 视图侧栏收起无法展开、Chat/人物世界统一强磨砂透色侧栏与画廊去灰边（2026-11-22）：将 `src/App.tsx` 中「展开侧栏」按钮从 `activeView === 'chat'` 专属工具槽提升至主区域顶层，彻底解决在人物世界/记忆/技能页收起侧栏后找不到展开入口的问题；Chat 与人物世界共用全宽固定 `CompanionSceneBackdrop` 并为 `PrimarySidebar` 启用 `frosted` 模式（22% 轻底 + `blur(20px) saturate(1.45)` 柔化透色、零轮廓干扰且切换无跳变），人物世界右侧保持不透明 `var(--bg-primary)` 画布防与头图重影；同步将 `WorldRecordImage.tsx` 与 `WorldHomeGallery.tsx` 的缩略展示改为 `object-cover` 消除衣柜与家居图框的上下灰边（点击灯箱仍看完整原图）。
+修复非 Chat 视图侧栏收起无法展开、Chat/人物世界统一强磨砂透色侧栏与画廊去灰边（2026-11-22）：将 `src/App.tsx` 中「展开侧栏」按钮从 `activeView === 'chat'` 专属工具槽提升至主区域顶层并保持全视图一致的无底色轻图标，彻底解决在人物世界/记忆/技能页收起侧栏后找不到展开入口的问题；Chat 与人物世界共用全宽固定 `CompanionSceneBackdrop` 并为 `PrimarySidebar` 启用 `frosted` 模式（22% 轻底 + `blur(20px) saturate(1.45)` 柔化透色、零轮廓干扰且切换无跳变），人物世界右侧保持不透明 `var(--bg-primary)` 画布防与头图重影；同步将 `WorldRecordImage.tsx` 与 `WorldHomeGallery.tsx` 的缩略展示改为 `object-cover` 消除衣柜与家居图框的上下灰边（点击灯箱仍看完整原图）。
 
 人物世界与侧栏二次视觉精修（2026-11-22）：`PrimarySidebar` 改用 `color-mix(in srgb, var(--bg-primary) 42%, var(--card-bg))` 实底柔和衔接左右区域并为会话列表底部加入渐隐防硬截断；`WorldProfileHeader` 封面改用 `object-[center_22%]` 与无横线平滑渐变解决人物头部裁切与分层断层；`WorldHub` 切换为 `TabStrip variant="underline"` 去掉 8 个重复外框；`src/index.css`（`.moments-alice-post`）、`MomentsPanel`、`WorldJournalPanel` 与 `WorldKeepsakesPanel` 全面统一为清爽 `var(--card-bg)` 卡片，移除朋友圈顶部「展示近 14 天动态」提示并去掉日记卡多余固定高度。
 

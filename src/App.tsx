@@ -1270,21 +1270,9 @@ function App() {
               requestAnimationFrame(() => sidebarShellRef.current?.querySelector<HTMLButtonElement>('button[aria-label="收起侧栏"]')?.focus())
             }}
             className="pointer-events-auto absolute left-3 top-3 z-30 hover:bg-[var(--hover-overlay)]"
-            style={activeView === 'chat'
-              ? { color: 'var(--text-muted)' }
-              : {
-                  color: 'var(--text-primary)',
-                  background: 'color-mix(in srgb, var(--card-bg) 82%, transparent)',
-                  backdropFilter: 'blur(12px)',
-                  WebkitBackdropFilter: 'blur(12px)',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-                }}
-            onMouseEnter={(e) => {
-              if (activeView === 'chat') e.currentTarget.style.background = 'var(--hover-overlay)'
-            }}
-            onMouseLeave={(e) => {
-              if (activeView === 'chat') e.currentTarget.style.background = ''
-            }}
+            style={{ color: 'var(--text-muted)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '')}
             title="展开侧边栏 (Ctrl+B)"
           >
             <PanelLeftOpen size={16} />
