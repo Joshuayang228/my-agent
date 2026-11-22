@@ -20,6 +20,7 @@ import MentionPopup from './components/MentionPopup'
 import { PermissionConfirmCard } from './components/chat/PermissionConfirmCard'
 import { ChatWelcome } from './components/chat/ChatWelcome'
 import { ChatComposer } from './components/chat/ChatComposer'
+import { ChatAttachmentTray } from './components/chat/ChatAttachments'
 import { ChatApprovalControl } from './components/chat/ChatApprovalControl'
 import { ChatMessageFrame } from './components/chat/ChatMessageFrame'
 import { IconButton } from './components/foundation/IconButton'
@@ -1610,32 +1611,6 @@ function App() {
         {/* 输入区 — Codex 风格居中卡片 */}
         {activeView === 'chat' && <div className={`relative shrink-0 ${LAYOUT_CLASSES.gutter} pb-5 pt-2`} style={{ ...layoutProfileStyle('chat'), background: 'var(--bg-primary)' }} data-testid="chat-composer-area">
           <div className="mx-auto w-full" style={{ maxWidth: 'var(--layout-width)' }}>
-            {/* 附件预览 */}
-            {attachedFiles.length > 0 && (
-              <div className="mb-1.5 flex flex-wrap gap-1">
-                {attachedFiles.map((f, i) => (
-                  <span key={i} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px]" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>
-                    <Paperclip size={11} /> {f.name}
-                    <button onClick={() => setAttachedFiles(prev => prev.filter((_, j) => j !== i))} className="transition" style={{ color: 'var(--text-muted)' }} onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--danger)')} onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}><X size={10} /></button>
-                  </span>
-                ))}
-              </div>
-            )}
-            {pendingImages.length > 0 && (
-              <div className="mb-1.5 flex gap-2">
-                {pendingImages.map((img, i) => (
-                  <div key={i} className="group relative">
-                    <ImagePreviewImage src={img.dataUrl} alt={img.fileName || 'image'} className="h-14 w-14 rounded-lg border object-cover" style={{ borderColor: 'var(--border-color)' }} />
-                    <button
-                      onClick={() => setPendingImages(prev => prev.filter((_, idx) => idx !== i))}
-                      className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full text-[10px] text-white group-hover:flex"
-                      style={{ background: 'var(--danger)' }}
-                    ><X size={10} /></button>
-                  </div>
-                ))}
-              </div>
-            )}
-
             {/* @mention 弹窗 */}
             {mentionOpen && (
               <MentionPopup
@@ -1720,25 +1695,23 @@ function App() {
                 setInput((current) => current.trim() || buildImageDraftPrompt())
                 setTimeout(() => inputRef.current?.focus(), 0)
               }}
-              prefix={mentionedFiles.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 px-3 pt-2">
-                  {mentionedFiles.map(f => (
-                    <span
-                      key={f.path}
-                      className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px]"
-                      style={{ background: 'var(--hover-bg)', color: 'var(--accent-color)' }}
-                    >
-                      <File size={11} />
-                      {f.name}
-                      <button
-                        onClick={() => setMentionedFiles(prev => prev.filter(x => x.path !== f.path))}
-                        className="ml-0.5 opacity-60 hover:opacity-100"
-                      >
-                        <X size={10} />
-                      </button>
-                    </span>
-                  ))}
-                </div>
+              prefix={(
+                <ChatAttachmentTray
+                  images={pendingImages.map((img, idx) => ({ id: `${img.fileName ?? 'image'}-${idx}`, src: img.dataUrl, fileName: img.fileName || 'image.png' }))}
+                  files={[
+                    ...attachedFiles.map((f, idx) => ({ id: `att-${f.name}-${idx}`, name: f.name, sizeBytes: f.content?.length })),
+                    ...mentionedFiles.map((f) => ({ id: `mention-${f.path}`, name: f.name })),
+                  ]}
+                  onRemoveImage={(idx) => setPendingImages(prev => prev.filter((_, i) => i !== idx))}
+                  onRemoveFile={(idx) => {
+                    if (idx < attachedFiles.length) {
+                      setAttachedFiles(prev => prev.filter((_, i) => i !== idx))
+                    } else {
+                      const target = mentionedFiles[idx - attachedFiles.length]
+                      if (target) setMentionedFiles(prev => prev.filter(x => x.path !== target.path))
+                    }
+                  }}
+                />
               )}
               approvalControl={<ChatApprovalControl value={approvalMode} onChange={async mode => {
                 if (!window.electronAPI) throw new Error('Settings unavailable')

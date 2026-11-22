@@ -5,7 +5,7 @@ import { buildImageDraftPrompt } from '../../shared/request-draft-prompts'
  */
 
 import { useMemo, useRef, useState, type Dispatch, type MouseEvent, type ReactNode, type SetStateAction } from 'react'
-import { ArrowRight, Check, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, Paperclip, RotateCcw, Search, X } from 'lucide-react'
+import { ArrowRight, Check, CircleAlert, Folder, MapPin, MessageCircle, PanelLeftOpen, PanelRight, RotateCcw, Search, X } from 'lucide-react'
 import { SettingsExperienceCandidate } from './SettingsExperienceCandidate'
 import { PlaygroundStateSwitcher } from './PlaygroundLayout'
 import { PlaygroundCandidateControls, PlaygroundCandidateControlsTarget, WorldCandidateControls, WorldCandidateControlsTarget, WorldCandidateRefresh } from './WorldCandidateControls'
@@ -23,6 +23,7 @@ import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
 import { ChatWelcome } from '../chat/ChatWelcome'
 import { CharacterShelfContent } from '../companion/CharacterShelfContent'
 import { ChatComposer } from '../chat/ChatComposer'
+import { ChatAttachmentTray, ChatFileChip, type ChatFileAttachmentView } from '../chat/ChatAttachments'
 import { ChatApprovalControl } from '../chat/ChatApprovalControl'
 import { ChatMessageFrame } from '../chat/ChatMessageFrame'
 import { MarkdownRenderer } from '../MarkdownRenderer'
@@ -318,9 +319,9 @@ const ATTACHMENT_PENDING_IMAGES = [
   { id: 'pending-img-2', src: homeOverviewBanner, fileName: 'room-overview.png' },
 ]
 
-const ATTACHMENT_PENDING_FILES = [
-  'content-layout.ts',
-  'frontend-guidelines.md',
+const ATTACHMENT_PENDING_FILES: ChatFileAttachmentView[] = [
+  { id: 'pending-file-1', name: 'content-layout.ts', sizeBytes: 4280 },
+  { id: 'pending-file-2', name: '产品视觉评审.pdf', sizeBytes: 1_840_000 },
 ]
 
 const STREAM_TOOL_FIXTURES: ToolCallbackItem[] = [
@@ -469,7 +470,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
   const [workTools, setWorkTools] = useState<ToolCallbackItem[]>(() => STREAM_WORK_TOOLS.map((item) => ({ ...item })))
   const [completedTools, setCompletedTools] = useState<ToolCallbackItem[]>(() => STREAM_COMPLETED_TOOLS.map((item) => ({ ...item })))
   const [pendingPreviewImages, setPendingPreviewImages] = useState(() => ATTACHMENT_PENDING_IMAGES.map((item) => ({ ...item })))
-  const [pendingAttachmentFiles, setPendingAttachmentFiles] = useState<string[]>(() => [...ATTACHMENT_PENDING_FILES])
+  const [pendingAttachmentFiles, setPendingAttachmentFiles] = useState<ChatFileAttachmentView[]>(() => ATTACHMENT_PENDING_FILES.map((item) => ({ ...item })))
   const toggleToolIn = (setter: Dispatch<SetStateAction<ToolCallbackItem[]>>) => (callId: string) => {
     setter((items) => items.map((item) => (item.callId === callId ? { ...item, collapsed: item.collapsed === false } : item)))
   }
@@ -684,56 +685,68 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                     </div>
                   ) : journey === 'attachments' ? (
                     <div className={`mx-auto w-full ${LAYOUT_CLASSES.section} py-4`} style={{ maxWidth: 'var(--layout-width)' }} data-testid="chat-surface-message-flow">
-                      {/* 1. 单图附件用户消息 */}
+                      {/* 1. 发出去的文件消息气泡 */}
                       <ChatMessageFrame role="user" showUserAvatar={false}>
-                        <div className="mb-2 flex flex-wrap gap-2" data-testid="chat-preview-sent-single-image">
-                          <ImagePreviewImage
-                            src={momentTeaByWindow}
-                            alt="window-tea.jpg"
-                            className="max-h-48 max-w-full rounded border"
-                            buttonClassName="max-w-full"
-                            style={{ borderColor: 'var(--border-color)' }}
-                          />
+                        <div className="mb-2 flex flex-wrap gap-2" data-testid="chat-preview-sent-files">
+                          <ChatFileChip file={{ name: 'content-layout.ts', sizeBytes: 4280 }} surface="bubble" />
+                          <ChatFileChip file={{ name: '产品视觉评审.pdf', sizeBytes: 1_840_000 }} surface="bubble" />
                         </div>
-                        <div className="whitespace-pre-wrap break-words">帮我看看这张窗边照片的光线和构图怎么样？</div>
+                        <div className="whitespace-pre-wrap break-words">帮我对照这两份文件，梳理一下页面边距和空态对齐的规则。</div>
                       </ChatMessageFrame>
 
                       <ChatMessageFrame role="assistant" name={persona.name} avatarSrc={visuals?.avatarSrc} previewTimeLabel="刚刚">
                         <p className="text-[14px] leading-7" style={{ color: 'var(--text-primary)' }}>
-                          光线很柔和，茶杯和笔记本的前后层次也刚好。你可以点击图片放大看细节，下面再试试多图和文件一起发送的效果。
-                        </p>
-                      </ChatMessageFrame>
-
-                      {/* 2. 多图 + 文件引用用户消息 */}
-                      <ChatMessageFrame role="user" showUserAvatar={false}>
-                        <div className="mb-2 flex flex-wrap gap-2" data-testid="chat-preview-sent-multi-image">
-                          <ImagePreviewImage
-                            src={homeOverviewBanner}
-                            alt="room-overview.png"
-                            className="max-h-36 max-w-full rounded border"
-                            buttonClassName="max-w-full"
-                            style={{ borderColor: 'var(--border-color)' }}
-                          />
-                          <ImagePreviewImage
-                            src={travelCanalBanner}
-                            alt="canal-view.png"
-                            className="max-h-36 max-w-full rounded border"
-                            buttonClassName="max-w-full"
-                            style={{ borderColor: 'var(--border-color)' }}
-                          />
-                        </div>
-                        <div className="whitespace-pre-wrap break-words">结合 @content-layout.ts 和 @frontend-guidelines.md，帮我核对这两张页面截图的边距。</div>
-                      </ChatMessageFrame>
-
-                      <ChatMessageFrame role="assistant" name={persona.name} avatarSrc={visuals?.avatarSrc} previewTimeLabel="刚刚">
-                        <p className="text-[14px] leading-7" style={{ color: 'var(--text-primary)' }}>
-                          已读取你附上的两份文件和截图，下方输入区也展示了待发送的文件胶囊与图片缩略图条，点击右上角可移除或点下方恢复示例。
+                          已经读完这两份文件了：列表与详情统一走 `contentGutterStyle()`，空态直接贴内容区全宽展示，不再额外包居中框。
                         </p>
                         <ToolCallbackList
                           tools={completedTools}
                           onToggleCollapse={toggleToolIn(setCompletedTools)}
                           className="mt-2.5"
                         />
+                      </ChatMessageFrame>
+
+                      {/* 2. 发出去的单图消息气泡 */}
+                      <ChatMessageFrame role="user" showUserAvatar={false}>
+                        <div className="mb-2 flex flex-wrap gap-2" data-testid="chat-preview-sent-single-image">
+                          <ImagePreviewImage
+                            src={momentTeaByWindow}
+                            alt="window-tea.jpg"
+                            className="max-h-48 max-w-full rounded-[var(--radius-md)] border"
+                            buttonClassName="max-w-full"
+                            style={{ borderColor: 'var(--border-subtle)' }}
+                          />
+                        </div>
+                        <div className="whitespace-pre-wrap break-words">帮我看看这张窗边照片的光线和构图怎么样？</div>
+                      </ChatMessageFrame>
+
+                      {/* 3. 发出去的多图 + 文件混合消息气泡 */}
+                      <ChatMessageFrame role="user" showUserAvatar={false}>
+                        <div className="mb-2 flex flex-wrap gap-2" data-testid="chat-preview-sent-multi-image">
+                          <ImagePreviewImage
+                            src={homeOverviewBanner}
+                            alt="room-overview.png"
+                            className="max-h-36 max-w-full rounded-[var(--radius-md)] border"
+                            buttonClassName="max-w-full"
+                            style={{ borderColor: 'var(--border-subtle)' }}
+                          />
+                          <ImagePreviewImage
+                            src={travelCanalBanner}
+                            alt="canal-view.png"
+                            className="max-h-36 max-w-full rounded-[var(--radius-md)] border"
+                            buttonClassName="max-w-full"
+                            style={{ borderColor: 'var(--border-subtle)' }}
+                          />
+                        </div>
+                        <div className="mb-2 flex flex-wrap gap-2">
+                          <ChatFileChip file={{ name: 'frontend-guidelines.md', sizeBytes: 18_400 }} surface="bubble" />
+                        </div>
+                        <div className="whitespace-pre-wrap break-words">结合规范文档，帮我核对这两张页面截图的留白和层级。</div>
+                      </ChatMessageFrame>
+
+                      <ChatMessageFrame role="assistant" name={persona.name} avatarSrc={visuals?.avatarSrc} previewTimeLabel="刚刚">
+                        <p className="text-[14px] leading-7" style={{ color: 'var(--text-primary)' }}>
+                          两张图和规范文档都收到了。下方输入卡片内部也展示了图片缩略图与文件卡片并排的待发送托盘，悬停可移除。
+                        </p>
                       </ChatMessageFrame>
                     </div>
                   ) : (
@@ -776,66 +789,18 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                   <div className="mx-auto w-full" style={{ maxWidth: 'var(--layout-width)' }}>
                     <input ref={previewFileRef} type="file" multiple hidden data-testid="chat-preview-file-input"
                       onChange={(event) => { setPreviewFiles(Array.from(event.target.files ?? []).map(file => file.name)); event.target.value = '' }} />
-                    {journey === 'attachments' && (
-                      <div className="mb-2 space-y-2" data-testid="chat-preview-pending-attachments">
-                        {pendingAttachmentFiles.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5">
-                            {pendingAttachmentFiles.map((fileName, idx) => (
-                              <span
-                                key={`${fileName}-${idx}`}
-                                className="inline-flex max-w-full items-center gap-1 rounded-[var(--radius-pill)] border px-2.5 py-0.5 text-[11px]"
-                                style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
-                              >
-                                <Paperclip size={11} className="shrink-0" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
-                                <span className="min-w-0 truncate">{fileName}</span>
-                                <IconButton
-                                  label={`移除文件 ${fileName}`}
-                                  size={24}
-                                  onClick={() => setPendingAttachmentFiles((list) => list.filter((_, i) => i !== idx))}
-                                >
-                                  <X size={10} />
-                                </IconButton>
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        {pendingPreviewImages.length > 0 && (
-                          <div className="flex flex-wrap items-center gap-2">
-                            {pendingPreviewImages.map((img) => (
-                              <div key={img.id} className="group relative">
-                                <ImagePreviewImage
-                                  src={img.src}
-                                  alt={img.fileName}
-                                  className="h-14 w-14 rounded-[var(--radius-md)] border object-cover"
-                                  style={{ borderColor: 'var(--border-color)' }}
-                                />
-                                <IconButton
-                                  label={`移除图片 ${img.fileName}`}
-                                  size={24}
-                                  onClick={() => setPendingPreviewImages((list) => list.filter((item) => item.id !== img.id))}
-                                  className="absolute -right-1.5 -top-1.5 rounded-full border shadow-sm"
-                                  style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}
-                                >
-                                  <X size={10} />
-                                </IconButton>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {(pendingAttachmentFiles.length === 0 || pendingPreviewImages.length === 0) && (
-                          <div>
-                            <ActionButton
-                              variant="plain"
-                              size="sm"
-                              onClick={() => {
-                                setPendingAttachmentFiles([...ATTACHMENT_PENDING_FILES])
-                                setPendingPreviewImages(ATTACHMENT_PENDING_IMAGES.map((item) => ({ ...item })))
-                              }}
-                            >
-                              <RotateCcw size={11} className="mr-1 inline" />恢复示例图片与文件
-                            </ActionButton>
-                          </div>
-                        )}
+                    {journey === 'attachments' && (pendingAttachmentFiles.length === 0 || pendingPreviewImages.length === 0) && (
+                      <div className="mb-1.5 flex justify-end">
+                        <ActionButton
+                          variant="plain"
+                          size="sm"
+                          onClick={() => {
+                            setPendingAttachmentFiles(ATTACHMENT_PENDING_FILES.map((item) => ({ ...item })))
+                            setPendingPreviewImages(ATTACHMENT_PENDING_IMAGES.map((item) => ({ ...item })))
+                          }}
+                        >
+                          <RotateCcw size={11} className="mr-1 inline" />恢复示例图片与文件
+                        </ActionButton>
                       </div>
                     )}
                     <ChatComposer
@@ -845,11 +810,32 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                       modelLabel="样张模型" sendDisabled={!previewInput.trim()} onSend={sendPreview}
                       onAttach={() => previewFileRef.current?.click()}
                       onImageGenerate={() => setPreviewInput(current => current.trim() || buildImageDraftPrompt())}
-                      prefix={previewFiles.length > 0 && <div className="flex flex-wrap gap-1" data-testid="chat-preview-attachments">
-                        {previewFiles.map((name, index) => <span key={index} className="inline-flex max-w-full items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                          <span className="min-w-0 truncate">{name}</span><IconButton label={`移除${name}`} size={24} onClick={() => setPreviewFiles(files => files.filter((_, item) => item !== index))}><X size={12} /></IconButton>
-                        </span>)}
-                      </div>}
+                      prefix={journey === 'attachments' ? (
+                        <ChatAttachmentTray
+                          testId="chat-preview-pending-attachments"
+                          images={pendingPreviewImages}
+                          files={[
+                            ...pendingAttachmentFiles,
+                            ...previewFiles.map((name, idx) => ({ id: `picked-${name}-${idx}`, name })),
+                          ]}
+                          onRemoveImage={(idx) => setPendingPreviewImages((list) => list.filter((_, i) => i !== idx))}
+                          onRemoveFile={(idx) => {
+                            if (idx < pendingAttachmentFiles.length) {
+                              setPendingAttachmentFiles((list) => list.filter((_, i) => i !== idx))
+                            } else {
+                              const pickedIdx = idx - pendingAttachmentFiles.length
+                              setPreviewFiles((files) => files.filter((_, i) => i !== pickedIdx))
+                            }
+                          }}
+                        />
+                      ) : previewFiles.length > 0 ? (
+                        <ChatAttachmentTray
+                          testId="chat-preview-attachments"
+                          images={[]}
+                          files={previewFiles.map((name, idx) => ({ id: `picked-${name}-${idx}`, name }))}
+                          onRemoveFile={(idx) => setPreviewFiles((files) => files.filter((_, i) => i !== idx))}
+                        />
+                      ) : undefined}
                       approvalControl={<ChatApprovalControl value="confirm-all" disabled />}
                       inputFocusRing="card"
                     />
