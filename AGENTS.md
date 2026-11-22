@@ -44,6 +44,7 @@ My Agent 是一个人格化桌面 AI Agent：有性格、有记忆、能成长�
 | 暂缓能力 / 可行性评估 / 重启旧方案 | `docs/deferred/README.md` → 对应评估笔记 → 必要时 `docs/wishlist.md` / `docs/requirements/` |
 | 深层设计研究 / 方法论沉淀 / 对照参考项目 | `methodology/README.md` → 对应理念章 → 对应 `-code.md` 代码走读章 |
 | 测试 / Eval 门禁 | `docs/quality.md` |
+| 前端 UI / 新增 Tab / 组件样式 | `agent-skills/frontend-guidelines.md` → `.agents/skills/playground-to-production/SKILL.md`（先在 Playground 对照相邻页面验收四态，再回流正式页） |
 | 小改（typo、单文件少量且意图明确） | 相关代码即可 |
 
 ### 文档路由模型

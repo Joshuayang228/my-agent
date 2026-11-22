@@ -1,5 +1,7 @@
 # 质量总控
 
+前端空态一致性与人物世界 AST 门禁加固（2026-11-22）：`foundation-enforcement-gate.test.ts` 扩展至 10 项门禁，新增 6 个人物世界正式面板（日记 / 礼物 / 通讯录 / 文化角 / 家居 / 足迹）Foundation `EmptyState` 真实绑定与 `auditEmptyStateWrapper` 外层居中包裹拦截（含负例 Fixture）；`empty-state-alignment.test.ts` 验证无 `action` 默认自动居中与显式关闭兼容。
+
 日记去脆弱卡片与只读礼物柜收口门禁（2026-11-22）：`world-profile-header.test.ts` 验证 `WorldJournalPanel` 不渲染 `vulnerability-card` 且空态与 `WorldKeepsakesPanel` 一致采用全宽贴顶 `EmptyState`、`WorldKeepsakesPanel` 仅展示「送出的礼物 / 收到的礼物」且零手动送礼按钮；`arch:check`（14 项）验证新增 `companion_receive_gift` 已 100% 纳入 Agent Host Manifest 与 12 切面注册表；全量单测、双进程 `tsc`、`npm run build`、`assets:check`（113 项）与 `docs:validate` 全部通过。
 
 人物世界顶栏与新 Tab 前端精调门禁（2026-11-22）：`world-profile-header.test.ts` 扩展至 4 项回归，验证 `WorldProfileHeader` 不再暴露「看数字」与裸数值、`VulnerabilityCard` 正式态无心事静默隐藏、`WorldKeepsakesPanel` 正式态隐藏「索取信物」、`GiftGivingModal` 零 RPG 数值且具备 `role="dialog"` 语义；全量单测、双进程 `tsc`、`arch:check`（14 项）、`assets:check`（113 项）与 `docs:validate` 全部通过。

@@ -19,6 +19,8 @@ const foundationComponents = [
   'src/components/foundation/SelectField.tsx',
   'src/components/foundation/TabStrip.tsx',
   'src/components/foundation/DiffViewer.tsx',
+  'src/components/foundation/EmptyState.tsx',
+  'src/components/foundation/ErrorState.tsx',
 ].map((file) => resolve(file))
 
 const candidateFiles = [
@@ -26,6 +28,15 @@ const candidateFiles = [
   'src/components/playground/SurfaceBaselinePanel.tsx',
   'src/components/playground/SettingsExperienceCandidate.tsx',
   'src/components/playground/LayoutLanguageSamples.tsx',
+].map((file) => resolve(file))
+
+const worldPanelFiles = [
+  'src/components/world/WorldJournalPanel.tsx',
+  'src/components/world/WorldKeepsakesPanel.tsx',
+  'src/components/world/WorldContactsGallery.tsx',
+  'src/components/world/WorldCultureGallery.tsx',
+  'src/components/world/WorldHomeGallery.tsx',
+  'src/components/world/WorldTravelGallery.tsx',
 ].map((file) => resolve(file))
 
 function createAstScanner(files: string[], virtualFiles: Record<string, string> = {}) {
@@ -139,6 +150,37 @@ function auditLayoutOverrides(sourceFile: ts.SourceFile) {
   return violations
 }
 
+function auditEmptyStateWrapper(sourceFile: ts.SourceFile) {
+  const violations: { line: number; tag: string; reason: string }[] = []
+  const visit = (node: ts.Node) => {
+    if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+      const tag = node.tagName.getText(sourceFile)
+      if (tag === 'EmptyState' || tag === 'ErrorState') {
+        // 检查直接父 JSX 元素是否把 EmptyState / ErrorState 包在居中且大留白容器中，破坏与其他 Tab 的全宽贴顶基线
+        const parent = ts.isJsxOpeningElement(node) ? node.parent?.parent : node.parent
+        if (parent && ts.isJsxElement(parent)) {
+          for (const prop of parent.openingElement.attributes.properties) {
+            if (ts.isJsxAttribute(prop) && prop.name.getText(sourceFile) === 'className' && prop.initializer && ts.isStringLiteral(prop.initializer)) {
+              const cls = prop.initializer.text
+              if (cls.includes('items-center') && cls.includes('justify-center') && /\bp-(6|8|10|12)\b/.test(cls)) {
+                const { line } = sourceFile.getLineAndCharacterOfPosition(parent.openingElement.getStart(sourceFile))
+                violations.push({
+                  line: line + 1,
+                  tag,
+                  reason: `<${tag}> 外层禁止包裹居中大留白容器（${cls}），应直接放入共享内容区全宽贴顶展示`,
+                })
+              }
+            }
+          }
+        }
+      }
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(sourceFile)
+  return violations
+}
+
 describe('Foundation 布局与控件复用自动门禁', () => {
   it('四大体验候选页面通过 AST 解析真实渲染 Foundation 控件，而非假导入或局部同名伪组件', () => {
     const { program, checker } = createAstScanner([...foundationComponents, ...candidateFiles])
@@ -190,6 +232,18 @@ describe('Foundation 布局与控件复用自动门禁', () => {
 
     expect(LAYOUT_CLASSES.gutter).toContain('px-[var(--layout-gutter-small,1rem)]')
     expect(LAYOUT_CLASSES.card).toContain('p-[var(--layout-card-small,1rem)]')
+  })
+
+  it('人物世界正式内容页真实复用 Foundation EmptyState 且不外包居中大留白容器', () => {
+    const { program, checker } = createAstScanner([...foundationComponents, ...worldPanelFiles])
+    for (const file of worldPanelFiles) {
+      const sourceFile = program.getSourceFile(file)!
+      const rendered = findRenderedFoundationComponents(sourceFile, checker)
+      expect(rendered.has('EmptyState'), `${file} 必须直接复用 Foundation EmptyState`).toBe(true)
+      expect(rendered.get('EmptyState')).toContain('src/components/foundation/EmptyState.tsx')
+      const violations = auditEmptyStateWrapper(sourceFile)
+      expect(violations, `${file} 发现空态/错误态外层包裹违规：${JSON.stringify(violations)}`).toEqual([])
+    }
   })
 
   describe('门禁失败用例与负例 Fixture 拦截验证 (Fail-Closed)', () => {
@@ -268,6 +322,27 @@ describe('Foundation 布局与控件复用自动门禁', () => {
       const violations = auditLayoutOverrides(sourceFile)
       expect(violations.length).toBe(1)
       expect(violations[0].reason).toContain('破坏左边界对齐基线')
+    })
+
+    it('空态外包居中大留白容器（Wrapped EmptyState）必定被门禁拒绝', () => {
+      const virtualPath = 'src/components/world/VirtualWrappedEmptyPanel.tsx'
+      const virtualSource = `
+        import { EmptyState } from '../foundation/EmptyState'
+        export function VirtualWrappedEmptyPanel() {
+          return (
+            <div className="flex flex-1 items-center justify-center p-8">
+              <EmptyState title="空态" description="不应被挤成局部小框" />
+            </div>
+          )
+        }
+      `
+      const { program } = createAstScanner([...foundationComponents], {
+        [virtualPath]: virtualSource,
+      })
+      const sourceFile = program.getSourceFile(resolve(virtualPath))!
+      const violations = auditEmptyStateWrapper(sourceFile)
+      expect(violations.length).toBe(1)
+      expect(violations[0].tag).toBe('EmptyState')
     })
 
     it('注册表声明不存在的 Foundation 组件 Key 必定被类型与注册表校验拦截', () => {
