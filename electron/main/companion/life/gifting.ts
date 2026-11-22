@@ -53,6 +53,7 @@ interface GiftDbRow {
   gift_key: string
   gift_name: string
   category: string
+  giver_name?: string | null
   user_note: string | null
   companion_reaction: string
   vitals_buff_json: string | null
@@ -74,6 +75,7 @@ function rowToRecord(row: GiftDbRow): CompanionGiftRecord {
     giftKey: row.gift_key,
     giftName: row.gift_name,
     category: row.category as GiftCategory,
+    giverName: row.giver_name || undefined,
     userNote: row.user_note || undefined,
     companionReaction: row.companion_reaction,
     createdAt: row.created_at,
@@ -152,8 +154,29 @@ export async function listAvailableGifts(roleId: string): Promise<CompanionGiftI
   }))
 }
 
+/**
+ * 幂等播种角色出厂自带的珍藏礼物（来自伙伴或重要之人的赠礼，按稳定 ID 去重）。
+ */
+async function ensureStarterReceivedGifts(roleId: string): Promise<void> {
+  const starters = loadRoleLifePresets(roleId).starterReceivedGifts
+  if (!starters?.length) return
+  const db = await getDatabase()
+  const now = Date.now()
+  for (const item of starters) {
+    const id = `starter-gift:${roleId}:${item.key}`
+    const createdAt = Math.max(1, now - (item.offsetMs ?? 0))
+    db.run(
+      `INSERT OR IGNORE INTO companion_received_gifts
+        (id, role_id, gift_key, gift_name, category, giver_name, user_note, companion_reaction, vitals_buff_json, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)`,
+      [id, roleId, item.key, item.giftName, item.category, item.giverName, item.giverNote ?? null, item.companionReaction, createdAt],
+    )
+  }
+}
+
 export async function listReceivedGifts(roleId: string, limit = 50): Promise<CompanionGiftRecord[]> {
   await ensureGiftTable()
+  await ensureStarterReceivedGifts(roleId)
   const db = await getDatabase()
   const stmt = db.prepare(`
     SELECT * FROM companion_received_gifts

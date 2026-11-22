@@ -45,7 +45,7 @@ const noteDate = (note: CultureReadingNote) => note.occurredAt !== undefined && 
 
 type ArtworkSource = { showPreviewImages?: boolean; readImage?: LivingAssetImageReader; revealImage?: LivingAssetImageRevealer }
 
-function Artwork({ asset, maximumHeight, showPreviewImages = false, readImage, revealImage }: { asset: LivingAsset; maximumHeight?: number } & ArtworkSource) {
+function Artwork({ asset, maximumHeight, cardTop = false, showPreviewImages = false, readImage, revealImage }: { asset: LivingAsset; maximumHeight?: number; cardTop?: boolean } & ArtworkSource) {
   const type = typeFor(asset)
   const photography = type === 'photography'
   const ratio = photography && typeof asset.payload.imageWidth === 'number' && typeof asset.payload.imageHeight === 'number'
@@ -54,9 +54,9 @@ function Artwork({ asset, maximumHeight, showPreviewImages = false, readImage, r
   const src = showPreviewImages ? text(asset, 'playgroundImageSrc') : ''
   const image = !showPreviewImages ? worldRecordImageReference(asset.payload) : null
   const Icon = categories.find((item) => item.id === type)?.icon ?? BookOpen
-  return <div className="w-full overflow-hidden rounded-md" data-testid="culture-artwork" style={{ aspectRatio: ratio, maxWidth: maximumHeight ? maximumHeight * ratio : undefined, background: 'var(--bg-secondary)' }}>
+  return <div className={cardTop ? 'w-full overflow-hidden' : 'w-full overflow-hidden rounded-md'} data-testid="culture-artwork" style={{ aspectRatio: ratio, maxWidth: maximumHeight ? maximumHeight * ratio : undefined, background: 'var(--bg-secondary)' }}>
     {image && readImage ? <WorldRecordImage assetId={asset.id} image={image} alt={asset.name} readImage={readImage} revealImage={revealImage} /> : src && !['pending', 'failed'].includes(text(asset, 'imageState'))
-      ? <ImagePreviewImage src={src} alt={`${asset.name}${photography ? '，虚构摄影作品' : '，示意配图'}`} className="block h-full w-full object-contain" buttonClassName="h-full w-full" />
+      ? <ImagePreviewImage src={src} alt={`${asset.name}${photography ? '，虚构摄影作品' : '，示意配图'}`} className="block h-full w-full object-cover" buttonClassName="h-full w-full" />
       : <div role="status" className="flex h-full flex-col items-center justify-center gap-3 px-3 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>
         <Icon size={20} /><span>{text(asset, 'imageState') === 'pending' ? '配图生成中' : text(asset, 'imageState') === 'failed' ? '配图生成失败，记录已保留' : '暂无配图'}</span>
       </div>}
@@ -160,34 +160,36 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
             </section> : text(selected, 'note') && <section><h4 className="mb-2 font-medium">笔记</h4><p>{text(selected, 'note')}</p></section>}
           </div>
         </section>
-        : items.length ? <div className="grid min-w-0 grid-cols-2 items-start gap-4 lg:grid-cols-3" data-testid="culture-grid">
-          {items.map((asset) => <article key={asset.id} aria-label={asset.name} className="min-w-0 space-y-2">
-            <Artwork asset={asset} {...artworkSource} />
-            <ActionButton variant="plain" ref={(node) => { if (node) triggers.current.set(asset.id, node); else triggers.current.delete(asset.id) }}
-              className="!block min-h-10 w-full !px-0 text-left" aria-label={`查看作品：${asset.name}`} title={asset.name}
-              onClick={() => { if (scroll.current) positions.current[category] = scroll.current.scrollTop; setSelectedId(asset.id) }}>
-              <span className="line-clamp-2 break-words text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{asset.name}</span>
-            </ActionButton>
-            {category !== 'reading' && (category === 'photography' ? photoMetadata(asset) : creator(asset)) && <div className="truncate text-[11px]" title={category === 'photography' ? photoMetadata(asset) : creator(asset)} style={{ color: 'var(--text-muted)' }}>{category === 'photography' ? photoMetadata(asset) : creator(asset)}</div>}
-            {category === 'reading' ? <>
-              {(creator(asset) || status(asset)) && <div className="flex flex-wrap items-center gap-2" data-testid="reading-author-status">
-                {creator(asset) && <span className="min-w-0 break-words text-[11px]" style={{ color: 'var(--text-muted)' }}>{creator(asset)}</span>}
-                {status(asset) && <Badge tone={text(asset, 'readingStatus') === 'reading' ? 'accent' : 'neutral'}>{status(asset)}</Badge>}
-              </div>}
-              {notesFor(asset)[0] && <div className="pt-3 text-[12px] leading-5" data-testid="reading-note-excerpt">
-                <div className="mb-1 flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}><BookOpen size={12} aria-hidden="true" />最新笔记</div>
-                <p className="line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{notesFor(asset)[0].text}</p>
-              </div>}
-            </> : <>
-              {category !== 'photography' && (formatLabel(asset) || status(asset)) && <div className="flex flex-wrap items-center gap-2">
-                {formatLabel(asset) && <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{formatLabel(asset)}</span>}
-                {status(asset) && <Badge tone={isEngaged(asset) ? 'accent' : 'neutral'}>{status(asset)}</Badge>}
-              </div>}
-              {reflectionExcerpt(asset) && <div className="pt-3 text-[12px] leading-5" data-testid="culture-reflection-excerpt">
-                {category !== 'photography' && <div className="mb-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>{category === 'film' ? '观后感' : '听感'}</div>}
-                <p className="line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{reflectionExcerpt(asset)}</p>
-              </div>}
-            </>}
+        : items.length ? <div className="grid min-w-0 grid-cols-2 items-stretch gap-4 lg:grid-cols-3" data-testid="culture-grid">
+          {items.map((asset) => <article key={asset.id} aria-label={asset.name} className="flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-card)] border transition-colors hover:bg-[var(--hover-overlay)]" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
+            <Artwork asset={asset} cardTop {...artworkSource} />
+            <div className="flex flex-1 flex-col gap-2 p-3.5">
+              <ActionButton variant="plain" ref={(node) => { if (node) triggers.current.set(asset.id, node); else triggers.current.delete(asset.id) }}
+                className="!block min-h-8 w-full !px-0 text-left" aria-label={`查看作品：${asset.name}`} title={asset.name}
+                onClick={() => { if (scroll.current) positions.current[category] = scroll.current.scrollTop; setSelectedId(asset.id) }}>
+                <span className="line-clamp-2 break-words text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>{asset.name}</span>
+              </ActionButton>
+              {category !== 'reading' && (category === 'photography' ? photoMetadata(asset) : creator(asset)) && <div className="truncate text-[11px]" title={category === 'photography' ? photoMetadata(asset) : creator(asset)} style={{ color: 'var(--text-muted)' }}>{category === 'photography' ? photoMetadata(asset) : creator(asset)}</div>}
+              {category === 'reading' ? <>
+                {(creator(asset) || status(asset)) && <div className="flex flex-wrap items-center gap-2" data-testid="reading-author-status">
+                  {creator(asset) && <span className="min-w-0 break-words text-[11px]" style={{ color: 'var(--text-muted)' }}>{creator(asset)}</span>}
+                  {status(asset) && <Badge tone={text(asset, 'readingStatus') === 'reading' ? 'accent' : 'neutral'}>{status(asset)}</Badge>}
+                </div>}
+                {notesFor(asset)[0] && <div className="mt-1 border-t pt-2.5 text-[12px] leading-5" style={{ borderColor: 'var(--border-subtle)' }} data-testid="reading-note-excerpt">
+                  <div className="mb-1 flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}><BookOpen size={12} aria-hidden="true" />最新笔记</div>
+                  <p className="line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{notesFor(asset)[0].text}</p>
+                </div>}
+              </> : <>
+                {category !== 'photography' && (formatLabel(asset) || status(asset)) && <div className="flex flex-wrap items-center gap-2">
+                  {formatLabel(asset) && <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{formatLabel(asset)}</span>}
+                  {status(asset) && <Badge tone={isEngaged(asset) ? 'accent' : 'neutral'}>{status(asset)}</Badge>}
+                </div>}
+                {reflectionExcerpt(asset) && <div className="mt-1 border-t pt-2.5 text-[12px] leading-5" style={{ borderColor: 'var(--border-subtle)' }} data-testid="culture-reflection-excerpt">
+                  {category !== 'photography' && <div className="mb-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>{category === 'film' ? '观后感' : '听感'}</div>}
+                  <p className="line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{reflectionExcerpt(asset)}</p>
+                </div>}
+              </>}
+            </div>
           </article>)}
         </div> : <EmptyState centerWithoutAction title={`还没有${categories.find((item) => item.id === category)?.label}记录`} description="可以在对话中聊聊你想一起读、看、听或创作的内容。" />}
     </div>

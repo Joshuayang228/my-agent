@@ -633,10 +633,28 @@ export async function ensureStarterWardrobe(roleId: string): Promise<{ created: 
   }
 
   const outfitAsset = await getAsset(outfitId)
-  if (outfitAsset && outfitAsset.roleId === roleId && !outfitAsset.payload.image && outfitAsset.payload.outfitVersion === 1) {
-    const outfitImage = materializeRoleVisualImage(roleId, outfitVisualPath)
-    if (outfitImage) {
-      await attachWorldAssetImage(outfitId, outfitImage, { expectedRoleId: roleId, expectedOutfitVersion: 1 })
+  if (outfitAsset && outfitAsset.roleId === roleId) {
+    const oldVisualPath = typeof outfitAsset.payload.visualPath === 'string' ? outfitAsset.payload.visualPath : ''
+    const needsInitialImage = !outfitAsset.payload.image && outfitAsset.payload.outfitVersion === 1
+    const needsStarterVisualUpgrade = oldVisualPath !== '' && oldVisualPath !== outfitVisualPath
+    if (needsInitialImage || needsStarterVisualUpgrade) {
+      const outfitImage = materializeRoleVisualImage(roleId, outfitVisualPath)
+      if (outfitImage) {
+        if (needsInitialImage) {
+          await attachWorldAssetImage(outfitId, outfitImage, { expectedRoleId: roleId, expectedOutfitVersion: 1 })
+        } else {
+          const nextOutfitPayload = { ...outfitAsset.payload, visualPath: outfitVisualPath, image: outfitImage }
+          db.run('UPDATE companion_assets SET payload_json = ? WHERE id = ? AND role_id = ?', [JSON.stringify(nextOutfitPayload), outfitId, roleId])
+          // 若当前穿着仍沿用旧出厂图，一并无损升级为新版人物立绘，不覆盖用户自生成的换装图
+          const allWardrobe = await listAssets(roleId, { kind: ASSET_KIND_WARDROBE })
+          const wearState = allWardrobe.find((item) => item.payload.recordType === 'wear-state')
+          if (wearState && wearState.payload.visualPath === oldVisualPath) {
+            const nextWearPayload = { ...wearState.payload, visualPath: outfitVisualPath, image: outfitImage }
+            db.run('UPDATE companion_assets SET payload_json = ? WHERE id = ? AND role_id = ?', [JSON.stringify(nextWearPayload), wearState.id, roleId])
+          }
+          persist()
+        }
+      }
     }
   }
 

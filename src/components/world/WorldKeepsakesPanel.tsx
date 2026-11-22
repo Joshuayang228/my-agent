@@ -18,6 +18,7 @@ import {
   ArrowLeft,
 } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
+import { Badge } from '../foundation/Badge'
 import { EmptyState } from '../foundation/EmptyState'
 import { ErrorState } from '../foundation/ErrorState'
 import { TabStrip } from '../foundation/TabStrip'
@@ -312,9 +313,14 @@ export function WorldKeepsakesPanel({
                         {renderGiftCategoryIcon(gift.category)}
                       </div>
                       <div>
-                        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                          {gift.giftName}
-                        </h3>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                            {gift.giftName}
+                          </h3>
+                          <Badge tone={gift.giverName && gift.giverName !== '你' ? 'neutral' : 'accent'}>
+                            来自 {gift.giverName || '你'}
+                          </Badge>
+                        </div>
                         <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
                           收到于 {formatDate(gift.createdAt)}
                         </span>

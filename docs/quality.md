@@ -1,5 +1,7 @@
 # 质量总控
 
+文化角卡片化、路飞全身穿衣立绘与伙伴赠礼门禁（2026-11-23）：`gifting.test.ts` 新增 Role Pack 预置伙伴赠礼（`红发香克斯` 草帽 / `可雅` 黄金梅丽号）与用户赠礼隔离回归（6 项）；`companion-assets.test.ts`（30 项）验证新版 `wardrobe-initial-outfit-v2.png` 合法 PNG 签名与挂载；`world-profile-header.test.ts`、`foundation-enforcement-gate.test.ts`、`npm run build`、`arch:check`、`assets:check` 与 `docs:validate` 全部通过。
+
 主对话输出预算与截断恢复门禁（2026-11-23）：根据生产日志复现 DeepSeek 请求 `promptTokens≈17K`、`completionTokens=4096`、`stopReason=length` 且无正文 / 工具调用的失败路径。主配置将旧版 4096 视为未显式设置，OpenAI-compatible 请求不再注入全局 `max_tokens`，由模型自身能力决定；Gemini 仅在有显式预算时写入 `maxOutputTokens`。Agent Loop 不再写入空 assistant 或发送非法续写消息，改为结构化 `LLM_OUTPUT_TRUNCATED` 终态；已有正文或工具调用仍走合法续写。新增 Loop、请求构造器和错误语气回归，42 项定向测试、双进程类型检查与生产构建通过。该修复不宣称所有供应商的实时输出上限已自动发现，模型能力目录仍是后续独立能力。
 
 人物世界详情居中、家居总览尺寸与通讯录头像门禁（2026-11-23）：`content-layout.test.ts` 更新为校验 `readingContentStyle()` 居中对齐（`marginInline: 'auto'`）且禁止局部覆盖；`world-contacts.test.ts` 新增配角 `avatarSrc` 投影断言；`home-gallery.test.ts`、`foundation-enforcement-gate.test.ts`、`npm run build`、`arch:check`、`assets:check` 与 `docs:validate` 全部通过。

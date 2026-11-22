@@ -110,10 +110,13 @@ describe('专属物品赠送与羁绊好感（Companion Gifting & Bond Progressi
     expect(record.companionReaction).toContain('大肉')
     expect(record.companionReaction).toContain('同伴')
 
-    // 检查落库
+    // 检查落库（含用户送出的礼物与角色出厂珍藏礼物）
     const list = await listReceivedGifts('luffy')
-    expect(list.length).toBe(1)
-    expect(list[0].id).toBe(record.id)
+    const userGifts = list.filter((item) => !item.giverName || item.giverName === '你')
+    expect(userGifts.length).toBe(1)
+    expect(userGifts[0].id).toBe(record.id)
+    expect(list.some((item) => item.giftKey === 'shanks-straw-hat' && item.giverName === '红发香克斯')).toBe(true)
+    expect(list.some((item) => item.giftKey === 'going-merry' && item.giverName === '可雅')).toBe(true)
 
     // 检查主会话留痕
     expect(ensureMainSessionForRoleMock).toHaveBeenCalledWith('luffy')
@@ -146,10 +149,11 @@ describe('专属物品赠送与羁绊好感（Companion Gifting & Bond Progressi
     expect((await getCompanionRuntimeState('luffy')).energy).toBe(95)
 
     const list = await listReceivedGifts('luffy')
-    expect(list.length).toBe(2)
+    const userGifts = list.filter((item) => !item.giverName || item.giverName === '你')
+    expect(userGifts.length).toBe(2)
     // 倒序排列：第 1 个是 treasure-map (now 2000)，第 2 个是 bone-meat (now 1000)
-    expect(list[0].giftKey).toBe('treasure-map')
-    expect(list[1].giftKey).toBe('bone-meat')
+    expect(userGifts[0].giftKey).toBe('treasure-map')
+    expect(userGifts[1].giftKey).toBe('bone-meat')
   })
 
   it('支持受控 Mock 模型响应并在主会话如实展现', async () => {
@@ -171,7 +175,8 @@ describe('专属物品赠送与羁绊好感（Companion Gifting & Bond Progressi
 
     // 角色隔离：查询 luffy 不应包含 lin 的记录
     const luffyList = await listReceivedGifts('luffy')
-    expect(luffyList.length).toBe(0)
+    expect(luffyList.some((item) => item.giftKey === 'warm-scarf')).toBe(false)
+    expect(luffyList.every((item) => item.roleId === 'luffy')).toBe(true)
 
     const linList = await listReceivedGifts('lin')
     expect(linList.length).toBe(1)

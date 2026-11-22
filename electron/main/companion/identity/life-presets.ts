@@ -107,6 +107,16 @@ export interface RoleReplanSlotSeed {
   type: 'activity' | 'moment'
 }
 
+export interface RoleStarterReceivedGift {
+  key: string
+  giftName: string
+  category: CompanionGiftItem['category']
+  giverName: string
+  giverNote?: string
+  companionReaction: string
+  offsetMs?: number
+}
+
 export interface RoleTravelAdventure {
   id: string
   name: string
@@ -146,6 +156,7 @@ export interface RoleLifePresets {
   giftPresets?: Array<Omit<CompanionGiftItem, 'roleAffinity'> & { affinity?: 'favorite' | 'liked' | 'neutral' }>
   giftAffinities?: Record<string, 'favorite' | 'liked' | 'neutral'>
   giftFallbackReactions?: Record<string, string>
+  starterReceivedGifts?: RoleStarterReceivedGift[]
   travelAdventures?: RoleTravelAdventure[]
   travelWishFallbackTemplate?: string
   chatResonanceFallback?: {

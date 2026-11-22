@@ -1573,6 +1573,7 @@ export interface CompanionGiftRecord {
   giftKey: string
   giftName: string
   category: GiftCategory
+  giverName?: string
   userNote?: string
   companionReaction: string
   createdAt: number

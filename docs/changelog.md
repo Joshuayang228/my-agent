@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 文化角卡片化、路飞完整穿衣立绘与礼物柜伙伴赠礼支持：`WorldCultureGallery` 书籍/影视/音乐/摄影列表统一封装为 `var(--card-bg)` 圆角卡片并改为 `object-cover` 贴顶封面，消除文字归属不清问题；为路飞生成完整人物全身穿搭立绘（`wardrobe-initial-outfit-v2.png`）替换无头衣架拆解图，并在 `assets.ts#ensureStarterWardrobe` 支持无损升级既有用户的出厂穿搭图（不覆盖用户自生成换装图）；`companion_received_gifts` 新增 `giver_name` 列与 `life-presets.json#starterReceivedGifts` 幂等播种，支持展示来自小伙伴与重要之人的礼物（路飞预置「红发香克斯的草帽」与可雅送的「黄金梅丽号」），`WorldKeepsakesPanel` 卡片同步显示「来自 xxx」徽标。
+
 2026-11-23 修复人物世界详情居中对齐、家居总览图尺寸上限与通讯录船员头像接入：`readingContentStyle()` 与日记/礼物详情统一居中（`marginInline: 'auto'`，同步更新 `frontend-guidelines.md` 与 `content-layout.test.ts`），解决宽屏下「和TA聊聊」按钮悬停中段与右侧大片留白；`WorldHomeGallery` 总览图改为 `16 / 9` 并限宽 `760px` 避免撑爆首屏；`companion/cast/contacts.ts#getContactsForRole` 通过 `getRoleVisuals` 补齐 `avatarSrc`，让 Role Pack 中已生成的船员头像正式在通讯录显示（同步补齐 `world-contacts.test.ts` 断言）。
 
 2026-11-22 修复非 Chat 视图收起侧栏后无法展开的 Bug 并落地 Chat/人物世界统一强磨砂透色侧栏与画廊去灰边：将 `App.tsx` 的「展开侧栏」按钮移出 `activeView === 'chat'` 分支，使其在人物世界、记忆、技能与 Chat 全部视图收起后均可一键展开（统一透明无底色图标样式，与右侧工具按钮一致）；Chat 与人物世界共享全宽 `CompanionSceneBackdrop` + `PrimarySidebar#frosted`（22% 轻雾 + `blur(20px) saturate(1.45)`）在左侧栏稳定透出柔和氛围色温（切页无跳变），人物世界右侧保持不透明 `var(--bg-primary)` 不与头图重影；`WorldRecordImage` 与 `WorldHomeGallery` 改用 `object-cover` 消除衣柜与家居图片的上下灰边。
