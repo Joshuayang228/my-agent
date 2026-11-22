@@ -108,11 +108,11 @@ export function PrimarySidebar({
 }) {
   return (
     <aside
-      className={`chat-shape-scope flex shrink-0 flex-col border-r ${collapseControlPlacement === 'header' ? 'relative' : ''}`}
+      className={`chat-shape-scope flex shrink-0 flex-col border-r backdrop-blur-[12px] ${collapseControlPlacement === 'header' ? 'relative' : ''}`}
       style={{
         width: width ?? 248,
-        background: 'var(--sidebar-bg)',
-        borderColor: 'var(--border-color)',
+        background: 'color-mix(in srgb, var(--card-bg) 82%, transparent)',
+        borderColor: 'var(--border-subtle)',
       }}
       data-testid="primary-sidebar"
     >

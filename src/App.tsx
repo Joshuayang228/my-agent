@@ -1137,7 +1137,11 @@ function App() {
 
   return (
     <>
-    <div className="app-shell flex h-screen select-none" style={{ display: standaloneView ? 'none' : undefined, background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+    <div className="app-shell relative flex h-screen select-none" style={{ display: standaloneView ? 'none' : undefined, background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+      {/* 全窗固定氛围底图：跨侧栏 + Chat / 人物世界，不随内容滚动位移 */}
+      {chatBackdropEnabled && (activeView === 'chat' || isWorldView(activeView)) ? (
+        <CompanionSceneBackdrop roleId={activeRoleId} bannerSrc={roleBanners[activeRoleId] ?? companionBanner} opacity={chatBackdropOpacity} />
+      ) : null}
       {/* ── Primary 侧栏（Alice 壳） ── */}
       {/*
        * 侧栏保留在 DOM 中，只动画外层轨道的宽度和位移。
@@ -1145,7 +1149,7 @@ function App() {
        */}
       <div
         ref={sidebarShellRef}
-        className="sidebar-transition flex min-h-0 shrink-0 overflow-hidden"
+        className="sidebar-transition relative z-[1] flex min-h-0 shrink-0 overflow-hidden"
         style={{
           width: sidebarOpen ? sidebarWidth + 1 : 0,
           opacity: sidebarOpen ? 1 : 0,
@@ -1252,7 +1256,7 @@ function App() {
       )}
 
       {/* ── 主区域 ── */}
-      <div className={`${activeView === 'chat' ? 'chat-shape-scope ' : ''}relative flex min-w-0 flex-1 flex-col overflow-hidden`} style={activeView === 'chat' ? layoutProfileStyle('chat') : undefined}>
+      <div className={`${activeView === 'chat' ? 'chat-shape-scope ' : ''}relative z-[1] flex min-w-0 flex-1 flex-col overflow-hidden`} style={activeView === 'chat' ? layoutProfileStyle('chat') : undefined}>
         {/* Chat 工具槽常驻，避免工作区入口随项目或聊天阶段消失；其它全页视图仍自带导航。 */}
         {activeView === 'chat' && (
           <div data-testid="chat-toolbar" className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-12 items-center justify-end px-3">
@@ -1319,7 +1323,7 @@ function App() {
         )}
 
         {activeView !== 'chat' && (
-          <div className="view-transition flex flex-1 flex-col overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
+          <div className="view-transition flex flex-1 flex-col overflow-hidden" style={{ background: isWorldView(activeView) ? 'transparent' : 'var(--bg-primary)' }}>
             {isWorldView(activeView) ? (
               <WorldHub
                 profile={{
@@ -1408,7 +1412,6 @@ function App() {
           onDragLeave={() => setDragOver(false)}
           onDrop={(e) => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) handleFileAttach(e.dataTransfer.files) }}
         >
-          {chatBackdropEnabled ? <CompanionSceneBackdrop roleId={activeRoleId} bannerSrc={roleBanners[activeRoleId] ?? companionBanner} opacity={chatBackdropOpacity} /> : null}
           <div className={`relative z-[1] flex min-h-full flex-col ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`}>
           <div className="mx-auto flex min-h-full w-full flex-1 flex-col" style={{ maxWidth: 'var(--layout-width)' }} data-testid="chat-content">
             {/* 欢迎屏 — 衬线问候 + 建议 pill（Phase 3） */}
@@ -1702,7 +1705,7 @@ function App() {
         </div>}
 
         {/* 输入区 — Codex 风格居中卡片 */}
-        {activeView === 'chat' && <div className={`relative shrink-0 ${LAYOUT_CLASSES.gutter} pb-5 pt-2`} style={{ ...layoutProfileStyle('chat'), background: 'var(--bg-primary)' }} data-testid="chat-composer-area">
+        {activeView === 'chat' && <div className={`relative shrink-0 ${LAYOUT_CLASSES.gutter} pb-5 pt-2`} style={{ ...layoutProfileStyle('chat'), background: 'transparent' }} data-testid="chat-composer-area">
           <div className="mx-auto w-full" style={{ maxWidth: 'var(--layout-width)' }}>
             {/* @mention 弹窗 */}
             {mentionOpen && (

@@ -20,9 +20,13 @@ export function formatSessionStamp(ts: number, now = Date.now()): string {
   return `${mm}/${dd}(${week}) ${time}`
 }
 
-/** 消息摘要一行：去换行、截断 */
+/** 消息摘要一行：过滤小声蛐蛐行（~>）、去换行、截断 */
 export function formatSessionPreview(text: string, max = 36): string {
-  const one = text.replace(/\s+/g, ' ').trim()
+  const withoutQuqu = text
+    .split(/\r?\n/)
+    .filter((line) => !/^\s*(?:[-*+]\s+)?~>/.test(line))
+    .join(' ')
+  const one = (withoutQuqu.trim() || text.replace(/^\s*(?:[-*+]\s+)?~>\s*/gm, '')).replace(/\s+/g, ' ').trim()
   if (!one) return ''
   return one.length > max ? `${one.slice(0, max)}…` : one
 }
