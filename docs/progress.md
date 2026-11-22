@@ -1,6 +1,6 @@
 # 项目进度
 
-Chat 过程流无框化、方案 B 思考行、轻磨砂代码块与纯净生图收口（2026-11-22）：移除过程展开区外层白底卡片，将 `ReasoningCallback.tsx`（`embedded`）收口为与工具行完全一致的首行 `✨ 思考过程`（单行预览 + 右侧常驻 `w-4` hover `>` 占位槽零跳动）；思考正文与工具详情统一采用左对齐 40% 轻磨砂圆角卡片，`MarkdownRenderer` 的 `CodeBlock` 同步调为 52% 轻磨砂底色与柔和顶栏消除硬切纯白感；`GeneratedImageResult.tsx` 移除底部 `<figcaption>` 技术栏，以纯净圆角图展示并支持点击全屏灯箱预览。
+Chat 过程流无框化、方案 B 思考行、轻磨砂代码块与纯净生图收口（2026-11-22）：移除过程展开区外层白底卡片，将 `ReasoningCallback.tsx`（`embedded`）收口为与工具行完全一致的首行 `✨ 思考过程`（单行预览 + 右侧常驻 `w-4` hover `>` 占位槽零跳动）；思考正文与工具详情统一采用左对齐 40% 轻磨砂圆角卡片，`MarkdownRenderer` 的 `CodeBlock` 同步调为 40% 轻磨砂底色与柔和顶栏消除硬切纯白感；`GeneratedImageResult.tsx` 移除底部 `<figcaption>` 技术栏，以纯净圆角图展示并支持点击全屏灯箱预览。
 
 Chat 极简留白过程流、代码块精修与壁纸透明度可调（2026-11-22）：收口 Chat 对话流 4 项细节——`CompanionSceneBackdrop` 默认透明度降至 12%，在 `settings-store.ts`、`data-export.ts`、`SettingsPanel.tsx`、`CompanionSettingsContent.tsx` 与 `App.tsx` 补齐 `companionChatBackdropOpacity`（0%–35%）滑块与备份恢复链；`MarkdownRenderer` 行内代码改为中性柔和浅灰底、代码块挂载 `.scrollbar-thin` 消除 Windows 粗灰箭头滚动条；`ReasoningCallback` 与 `ToolCallbackList` 统一为 `xxx >` 收起 + 88% 柔和浅雾磨砂展开卡（思考直接可读、无横线无「已完成」、右侧状态与「去查看」统一右对齐、按需点开看紧凑参数/结果），正式页与 Playground 同步生效。
 

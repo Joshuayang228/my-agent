@@ -124,8 +124,8 @@ export function CodeBlock({ code, language = 'text' }: { code: string; language?
   const surfaceRef = useRef<HTMLDivElement>(null)
   const theme = useSurfaceTheme(surfaceRef)
   return <div ref={surfaceRef} className="group relative my-3 min-w-0 overflow-hidden rounded-[var(--radius-md)] border backdrop-blur-[2px]"
-    data-testid="markdown-code-block" data-foundation="code-block" style={{ borderColor: 'var(--border-subtle)', background: 'color-mix(in srgb, var(--card-bg) 52%, transparent)' }}>
-    <div className="flex items-center justify-between gap-2 border-b px-3.5 py-1 text-[11px]" style={{ borderColor: 'var(--border-subtle)', background: 'color-mix(in srgb, var(--bg-secondary) 48%, transparent)' }}>
+    data-testid="markdown-code-block" data-foundation="code-block" style={{ borderColor: 'var(--border-subtle)', background: 'color-mix(in srgb, var(--card-bg) 40%, transparent)' }}>
+    <div className="flex items-center justify-between gap-2 border-b px-3.5 py-1 text-[11px]" style={{ borderColor: 'var(--border-subtle)', background: 'color-mix(in srgb, var(--bg-secondary) 28%, transparent)' }}>
       <span className="min-w-0 truncate font-mono" style={{ color: 'var(--text-muted)' }}>{language}</span>
       <CopyButton text={code} />
     </div>
