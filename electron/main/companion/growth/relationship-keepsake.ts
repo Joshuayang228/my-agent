@@ -4,13 +4,13 @@ import { resolveRoleUniverseId } from '../identity/loader'
  *
  * 背景：在伙伴关系中，深厚的情感羁绊需要具有实体感、纪念意义与共同回忆的承载物。
  * 角色不只是一个陪聊工具，随着相处深入、共同心愿完成与里程碑跨越，
- * 角色会主动赠送用户专属信物（如路飞的生命卡、梅利号铃铛、麦穗手绳）。
+ * 角色会主动赠送用户专属信物，具体信物资产由各角色 Role Pack 的 life-presets.json 提供。
  *
  * 设计意图：
  * 1. 独立持久化存储于 companion_keepsakes；
  * 2. 赠礼时将专属赠言写入角色主会话，并向窗口广播伴随通知；
  * 3. 关联关系里程碑（tryRecordMilestone('keepsake_gifted')）；
- * 4. 首次启动为路飞播种第一件羁绊信物（生命卡的一角），彰显同伴契约。
+ * 4. 首次启动按当前角色 Role Pack 预设播种第一件羁绊信物。
  */
 
 import { randomUUID } from 'crypto'
@@ -21,6 +21,7 @@ import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm'
 import { compileKeepsakeGiftRequest } from '../../prompts/registered-request'
+import { loadRoleLifePresets } from '../identity/life-presets'
 import { loadRolePack } from '../identity/loader'
 import { ensureMainSessionForRole } from '../../storage/session-store'
 import { tryRecordMilestone } from './milestones'
@@ -77,45 +78,19 @@ export interface PresetKeepsakeDefinition {
   iconName: string
 }
 
-export const PRESET_KEEPSAKES_LUFFY: PresetKeepsakeDefinition[] = [
-  {
-    key: 'luffy-vivre-card',
-    name: '生命卡的一角',
-    description: '从路飞自己的生命卡上撕下的一小角纸片，无论相隔多远，都会轻轻朝路飞的方向微微移动。',
-    lore: '“这是我从自己的生命卡上撕下来的一小片！雷利大叔教过我怎么撕它。不管以后遇到多大的风浪，不管相隔多远，它都会慢慢指向我这里。收下它吧，因为我们可是同伴啊！嘻嘻嘻！”',
-    giftMessage: '喂！你过来一下！我把这个送给你——这是从我自己的生命卡上撕下来的一小片！无论你在哪里，只要顺着它，就一定能找到万里阳光号！收下吧，我们可是伙伴啊！',
-    giftReason: '伙伴誓约·跨越千山万水的羁绊信物',
-    iconName: 'Gift',
-  },
-  {
-    key: 'luffy-merry-bell',
-    name: '梅利号的小羊金色铃铛',
-    description: '黄金梅利号船头小羊曾经佩戴过的小铃铛，轻轻摇晃会发出清脆温和的叮当声。',
-    lore: '“这是以前在黄金梅利号上大家一起听过的铃铛声。每当在海上遇到大雾的时候，听到这个声音就会觉得很安心。现在我把它送给你，如果哪天你觉得累了或者遇到困难，晃一晃它，我们大家就都在你身边！”',
-    giftMessage: '当当当！看我找到了什么！这是梅利号上的小铃铛哦！遇到困难或者想我们的时候晃一晃它，我们就会飞奔过来帮你的！',
-    giftReason: '守护与同在·永远的梅利之音',
-    iconName: 'Gift',
-  },
-  {
-    key: 'luffy-windmill-braid',
-    name: '风车村的麦穗编织绳',
-    description: '用风车村山丘上的金黄麦穗与结实麻绳编成的手绳，带着淡淡的泥土与海风清香。',
-    lore: '“玛琪诺姐姐以前教我编的绳子，里面用了风车村山丘上的麦穗。虽然我手笨编得歪歪扭扭的，嘻嘻！但是带着它，就好像能闻到家乡海风的味道。送给你啦，要一直戴着哦！”',
-    giftMessage: '喂！这是我亲手编的绳子，虽然歪歪扭扭的，但是玛琪诺说送给最重要的伙伴能保佑大冒险平安！给你戴上啦！',
-    giftReason: '初心与眷恋·家乡海风的诚挚赠礼',
-    iconName: 'Gift',
-  },
-]
+export function getPresetKeepsakes(roleId: string): PresetKeepsakeDefinition[] {
+  return loadRoleLifePresets(roleId).presetKeepsakes ?? []
+}
 
-export async function ensureKeepsakeTable(targetRoleId: string = 'luffy'): Promise<void> {
+export async function ensureKeepsakeTable(targetRoleId?: string): Promise<void> {
   await ensureLifeSchema()
+  if (!targetRoleId) return
+  const presets = getPresetKeepsakes(targetRoleId)
+  if (presets.length === 0) return
+
   const db = await getDatabase()
-
-  if (targetRoleId !== 'luffy') return
-
-  // 检查是否已有路飞信物，若无则播种首个信物（生命卡的一角）
   const stmt = db.prepare('SELECT COUNT(*) AS count FROM companion_keepsakes WHERE role_id = ?')
-  stmt.bind(['luffy'])
+  stmt.bind([targetRoleId])
   let count = 0
   if (stmt.step()) {
     count = (stmt.getAsObject() as { count: number }).count
@@ -123,7 +98,7 @@ export async function ensureKeepsakeTable(targetRoleId: string = 'luffy'): Promi
   stmt.free()
 
   if (count === 0) {
-    const starter = PRESET_KEEPSAKES_LUFFY[0]
+    const starter = presets[0]
     const now = Date.now() - 86400000 * 2
     db.run(
       `INSERT INTO companion_keepsakes
@@ -131,7 +106,7 @@ export async function ensureKeepsakeTable(targetRoleId: string = 'luffy'): Promi
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         starter.key,
-        'luffy',
+        targetRoleId,
         starter.name,
         starter.description,
         starter.lore,
@@ -143,8 +118,14 @@ export async function ensureKeepsakeTable(targetRoleId: string = 'luffy'): Promi
       ],
     )
     persist()
-    await tryRecordMilestone('luffy', 'keepsake_gifted', { roleDisplayName: '路飞', now })
-    log.info('Seeded first friendship keepsake for luffy', { key: starter.key })
+    let roleDisplayName = targetRoleId
+    try {
+      roleDisplayName = loadRolePack(targetRoleId)?.name || targetRoleId
+    } catch {
+      // 无 Role Pack 时回退 roleId
+    }
+    await tryRecordMilestone(targetRoleId, 'keepsake_gifted', { roleDisplayName, now })
+    log.info('Seeded first friendship keepsake', { roleId: targetRoleId, key: starter.key })
   }
 }
 
@@ -181,7 +162,7 @@ export async function triggerGiftKeepsake(
     }
   },
 ): Promise<CompanionKeepsakeRecord | null> {
-  await ensureKeepsakeTable()
+  await ensureKeepsakeTable(roleId)
   const db = await getDatabase()
 
   let pack: ReturnType<typeof loadRolePack> | null = null
@@ -199,7 +180,7 @@ export async function triggerGiftKeepsake(
   const existingIds = new Set(existing.map((k) => k.id))
 
   // 2. 匹配候选信物定义
-  const presets = roleId === 'luffy' ? PRESET_KEEPSAKES_LUFFY : []
+  const presets = getPresetKeepsakes(roleId)
   let candidate: PresetKeepsakeDefinition | null = null
 
   if (targetKeepsakeKey) {

@@ -2,7 +2,7 @@ import { commitLifeAction } from '../application/commit-life-action'
 /**
  * 伙伴足迹与航海旅行自主演化引擎（Travel Journey Progression）
  *
- * 背景：角色作为有宏大旅途追求与探索欲的数字伙伴（如路飞航行新世界），足迹旅行不能停留为固定过去的静态切片；
+ * 背景：角色作为有持续探索欲与生活轨迹的数字伙伴，足迹旅行不能停留为固定过去的静态切片；
  * 在生活推进中，随着日程时间沉淀或受到用户在聊天中提及的旅行愿望驱动，角色需要能够自主开拓航段、抵达新岛屿并记录旅途经历。
  *
  * 设计意图：
@@ -24,6 +24,7 @@ import { ensureLifeSchema } from '../core/persistence/life-schema'
 import { createLogger } from '../../utils/logger'
 import { toLocalDateString } from './dates'
 import { getCompanionRuntimeReadModel } from '../core/read-models/runtime-read-model'
+import { loadRoleLifePresets } from '../identity/life-presets'
 import { evaluateLifeActionGating } from './life-gating'
 import {
   listAssets,
@@ -48,33 +49,32 @@ export const TRAVEL_PROGRESSION_POLICY = {
   defaultActiveTripKey: 'sunny-current-route',
 } as const
 
-/** 航海预设奇遇候选站点（海贼王 / 千里阳光号航线） */
-export const VOYAGE_CANDIDATE_STOPS: ReadonlyArray<{
+/** 通用默认旅途候选站点（角色未提供 Role Pack 专属旅途奇遇时使用） */
+const DEFAULT_TRAVEL_STOPS: ReadonlyArray<{
   id: string
   name: string
   story: string
 }> = [
   {
-    id: 'aurora-sea-beasts',
-    name: '雷暴极光海 · 浮游巨兽栖息地',
-    story: '进入磁场混乱的极光海域，海面下突然浮起比千里阳光号大十倍的浮游巨鲸群！娜美忙着校正指针，路飞拉着乌索普趴在船头大喊大叫，山治烤好了暖烘烘的肉排。',
+    id: 'quiet-coastal-town',
+    name: '海风小镇 · 旧灯塔与石阶',
+    story: '沿着海岸线的石阶慢慢走上去，傍晚的灯塔刚好亮起微光，空气里带着淡淡的咸味与木头香。',
   },
   {
-    id: 'buoy-market-replenish',
-    name: '蜂巢浮游外海 · 补给集市浮标',
-    story: '在海流交界处遇到游动商船集市，用钓上来的大鱼换了整整三大桶新鲜甜瓜和航海香料。索隆在船侧甲板擦刀，大家饱餐一顿后指针终于稳定指向正前方！',
-  },
-  {
-    id: 'starfish-reef-remains',
-    name: '雾气暗礁群 · 沉眠巨锚与海星浮岛',
-    story: '穿过厚厚的海雾，发现一座天然由彩色巨型珊瑚堆成的海星浮岛。罗宾发现了一块刻有古老海图符号的石碑残片，弗兰奇给千里阳光号加满了可乐燃料！',
-  },
-  {
-    id: 'hotspring-waterfall-island',
-    name: '指针锁定的秘境 · 温泉飞瀑浮岛',
-    story: '终于看到海平面上升起的岛屿！岛屿中央居然有一座从彩虹悬崖跌落入大海的天然海水温泉飞瀑，大家欢呼着跳下船去探险！',
+    id: 'mountain-tea-stop',
+    name: '山腰茶亭 · 午后云雾歇脚处',
+    story: '在半山腰的木亭里歇了会儿脚，点了一壶热茶看着山谷里的云雾缓缓散开，感觉整个人都松快下来。',
   },
 ]
+
+export function getTravelCandidateStops(roleId: string): ReadonlyArray<{
+  id: string
+  name: string
+  story: string
+}> {
+  const custom = loadRoleLifePresets(roleId).travelAdventures
+  return custom?.length ? custom : DEFAULT_TRAVEL_STOPS
+}
 
 interface TravelProgressionDbRow {
   id: string
@@ -217,11 +217,17 @@ export async function shouldProgressTravelJourney(
     const stopId = `wish-${wishResonance.id.slice(0, 8)}`
     // 防重：如果已经有同 ID 的站点
     if (!existingStops.some((s) => s.id === stopId)) {
+      const wishTpl = loadRoleLifePresets(roleId).travelWishFallbackTemplate
+      const defaultStory = wishTpl
+        ? wishTpl
+            .replace(/\{targetName\}/g, wishResonance.targetName)
+            .replace(/\{reason\}/g, wishResonance.reason || '沿途的风景比想象中还要精彩。')
+        : `终于来到了之前在闲聊中期待的「${wishResonance.targetName}」！${wishResonance.reason || '这里的风景和氛围让人忍不住想多停一会儿。'}`
       const nextStop: TripStopRecord = {
         id: stopId,
         name: wishResonance.targetName.slice(0, 24),
         date: stopDate,
-        story: `乘着风向与海流航行，终于来到了大家在闲聊中期待的「${wishResonance.targetName}」！${wishResonance.reason || '岸上是一片从未见过的奇景，路飞第一个跳下船去探险！'}`.slice(0, 4000),
+        story: defaultStory.slice(0, 4000),
       }
       return {
         shouldProgress: true,
@@ -234,8 +240,8 @@ export async function shouldProgressTravelJourney(
     }
   }
 
-  // 4. 若无特定心愿，从出厂航海候选站点库中顺序推进
-  const unusedCandidate = VOYAGE_CANDIDATE_STOPS.find(
+  // 4. 若无特定心愿，从当前角色 Role Pack 候选站点库（或通用兜底）顺序推进
+  const unusedCandidate = getTravelCandidateStops(roleId).find(
     (c) => !existingStops.some((s) => s.id === c.id),
   )
 

@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-22 完成平台层零角色耦合重构：新增通用 Role Pack 预设加载器 `companion/identity/life-presets.ts`，将原散落在 15 个平台模块（`assets`、`relationship-keepsake`、`co-decision`、`replan`、`script-generator`、`vulnerability`、`inner-thoughts`、`gifting`、`host-presence`、`chat-resonance`、`travel-progression`、`nightly-reflection`、`spontaneous-impulse`、`life-context-snapshot`、`moment-interactions`）及 Prompt/工具/`companion-error-voice.ts` 中的路飞专属数据与硬编码分支全部下沉至 `universes/default/roles/luffy/life-presets.json`，并在 `arch:check` 新增「零角色耦合静态门禁」防回流。
+
 2026-11-22 统一 Chat 对话流全部过程组件视觉与对齐：`ReasoningCallback` 与 `ContentCallbackCue` 收拢进 `ChatMessageFrame` 助手列与正文、工具卡严格左对齐；思考卡与 `ToolCallbackList` 共用同一套轻量过程折叠卡皮肤（统一圆角/字号/状态点/右侧折叠箭头，思考正文改用 UI 字体，工具名映射自然中文与语义图标）；`MemoryCitationChips` 改用中文分类名与 `--radius-pill` 轻胶囊，正式页与 Playground 同步生效。
 
 2026-11-22 归档并删除多余的 Playground 候选文件（`VulnerabilityExperienceCandidate` 与 `GiftingExperienceCandidate`），在 Playground Chat 主旅程新增「思考与工具」全景交互视图（完整接入 `ReasoningCallback` 进行中/完成、`ToolCallbackList` 七态含朋友圈/生活记录/生图/错误、`ContentCallbackCue`、`MemoryCitationChips`、`MarkdownRenderer`+`<aside>` 与 `formatCompanionErrorBubble`），便于先在 Playground 统一检视对话流视觉问题。

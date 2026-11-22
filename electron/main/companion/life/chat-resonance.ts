@@ -24,6 +24,7 @@ import { getDatabase, persist } from '../../storage/database'
 import { ensureLifeSchema } from '../core/persistence/life-schema'
 import { getSession } from '../../storage/session-store'
 import { createLogger } from '../../utils/logger'
+import { loadRoleLifePresets } from '../identity/life-presets'
 import { loadRolePack } from '../identity/loader'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import {
@@ -441,20 +442,21 @@ export async function completeCultureResonance(
 
   // 规则保底（若 LLM 失败或未配 LLM）
   if (!parsedReview) {
-    const isLuffy = roleId === 'luffy'
+    const fallback = loadRoleLifePresets(roleId).chatResonanceFallback
     const verb = currentResonance.cultureType === 'film' ? '看完' : currentResonance.cultureType === 'music' ? '听完' : '读完'
-    const reviewText = isLuffy
-      ? `哈哈！终于把《${currentResonance.targetName}》给${verb}了！里面有些地方太有意思了，真是一场大冒险！`
+    const fill = (tpl: string) => tpl.replace(/\{targetName\}/g, currentResonance.targetName).replace(/\{verb\}/g, verb)
+    const reviewText = fallback?.reviewText
+      ? fill(fallback.reviewText)
       : `体验完了《${currentResonance.targetName}》，感觉很有收获。`
-    const chatOpener = isLuffy
-      ? `喂！你之前跟我推荐的《${currentResonance.targetName}》，我已经全${verb}了！快跟我聊聊！`
+    const chatOpener = fallback?.chatOpener
+      ? fill(fallback.chatOpener)
       : `之前你推荐的《${currentResonance.targetName}》我已经体验完了，下次聊聊感想吧。`
     parsedReview = {
       reviewText,
       chatOpener,
       shouldPostMoment: true,
-      momentText: isLuffy
-        ? `《${currentResonance.targetName}》超棒的！下次出海还要找更多好玩的！`
+      momentText: fallback?.momentText
+        ? fill(fallback.momentText)
         : `把之前记下的《${currentResonance.targetName}》体验完了，很充实。`,
     }
   }
@@ -535,13 +537,14 @@ export async function completeCultureResonance(
         })
         await linkCompanionExecutionEvent({ executionId: context.executionId, eventId: domainEvent.id })
         await recordCompanionProjection({ projectionName: 'legacy-culture-resonance', eventId: domainEvent.id })
-        if (roleId === 'luffy') {
+        const resonanceKeepsakeKey = loadRoleLifePresets(roleId).resonanceKeepsakeKey
+        if (resonanceKeepsakeKey) {
           await enqueueCompanionOutbox({
             roleId,
             eventId: domainEvent.id,
             kind: COMPANION_FOLLOWUP.cultureKeepsake,
             dedupeKey: `${COMPANION_FOLLOWUP.cultureKeepsake}:${domainEvent.id}`,
-            payload: { keepsakeKey: 'luffy-merry-bell' },
+            payload: { keepsakeKey: resonanceKeepsakeKey },
           })
         }
         const enqueueNotification = async () => {

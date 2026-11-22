@@ -155,3 +155,20 @@ it('life-schema.ts 中所有用户持久表必须纳入备份清单或显式登�
   expect(tableNames.length).toBeGreaterThanOrEqual(20)
   expect(unbacked).toEqual([])
 })
+
+it('平台生活引擎、成长模块、通用 Prompt 与共享错误承接禁止硬编码具体角色（零角色耦合门禁）', () => {
+  const dirs = [
+    path.join(root, 'companion/life'),
+    path.join(root, 'companion/growth'),
+    path.join(root, 'prompts'),
+  ]
+  const targetFiles = [
+    ...dirs.flatMap(dir => files(dir)),
+    path.resolve('src/shared/companion-error-voice.ts'),
+  ]
+  const forbidden = /roleId\s*===?\s*['"]luffy['"]|roleId\.includes\(['"]luffy['"]\)|LUFFY_|PRESET_KEEPSAKES_LUFFY|STARTER_THOUGHTS_LUFFY|千里阳光号/
+  const violations = targetFiles
+    .filter(file => forbidden.test(fs.readFileSync(file, 'utf8')))
+    .map(file => path.relative(process.cwd(), file).replace(/\\/g, '/'))
+  expect(violations).toEqual([])
+})

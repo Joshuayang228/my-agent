@@ -132,7 +132,7 @@ export const companionPostMomentTool = buildTool({
   ...POST_MOMENT_DEFINITION,
   metadata: { isReadOnly: false, isDestructive: false, isConcurrencySafe: false },
   inputExamples: [
-    { text: '甲板上的风把航线图吹得哗啦响，伙伴们已经找到下一段方向。', activity: '整理下一段航线', location: '千里阳光号甲板', participantIds: ['zoro'], relationshipPhase: 'bonding' },
+    { text: '午后窗边风很舒服，把今天想好的下一段计划随手记了下来。', activity: '整理接下来的计划', location: '窗边书桌', relationshipPhase: 'bonding' },
   ],
   execute: publishCompanionMoment,
 })
@@ -156,8 +156,8 @@ export const companionCreateAssetTool = buildTool({
   },
   metadata: { isReadOnly: false, isDestructive: false, isConcurrencySafe: false },
   inputExamples: [
-    { kind: 'furniture', name: '甲板望远镜架', payload: { description: '固定在千里阳光号甲板边，方便观察远处航线。' } },
-    { kind: 'home', name: '千里阳光号', payload: { recordType: 'residence', residence: '伙伴们共同生活和出发的船上空间。' } },
+    { kind: 'furniture', name: '窗边木质书架', payload: { description: '摆在窗边，用来放常翻的书和旅行纪念品。' } },
+    { kind: 'home', name: '日常住所', payload: { recordType: 'residence', residence: '平时生活和休息的空间。' } },
   ],
   execute: async (args, context) => {
     const roleId = context?.roleId?.trim()

@@ -58,7 +58,7 @@ const {
   ensureKeepsakeTable,
   listKeepsakes,
   triggerGiftKeepsake,
-  PRESET_KEEPSAKES_LUFFY,
+  getPresetKeepsakes,
 } = await import('../../electron/main/companion/growth/relationship-keepsake')
 const { getSession } = await import('../../electron/main/storage/session-store')
 const { listMilestoneKinds } = await import('../../electron/main/companion/growth/milestones')
@@ -97,7 +97,7 @@ describe('羁绊深度跃迁与专属信物馈赠（Relationship Keepsake Gifts�
   })
 
   it('表初始化为路飞自动播种首件羁绊信物（生命卡的一角）并记录里程碑', async () => {
-    await ensureKeepsakeTable()
+    await ensureKeepsakeTable('luffy')
     const keepsakes = await listKeepsakes('luffy')
     expect(keepsakes.length).toBe(1)
     expect(keepsakes[0].id).toBe('luffy-vivre-card')
@@ -110,7 +110,7 @@ describe('羁绊深度跃迁与专属信物馈赠（Relationship Keepsake Gifts�
   })
 
   it('triggerGiftKeepsake 赠送下一件信物、将赠言写入主会话并广播桌面事件', async () => {
-    await ensureKeepsakeTable()
+    await ensureKeepsakeTable('luffy')
     const now = Date.now()
 
     // 触发赠送第二件信物（梅利号小羊金色铃铛）
@@ -135,7 +135,7 @@ describe('羁绊深度跃迁与专属信物馈赠（Relationship Keepsake Gifts�
   })
 
   it('预设信物全部赠送后平滑生成定制专属信物，不阻塞流程', async () => {
-    await ensureKeepsakeTable()
+    await ensureKeepsakeTable('luffy')
     const now = Date.now()
 
     // 赠送梅利号铃铛
@@ -168,7 +168,7 @@ describe('羁绊深度跃迁与专属信物馈赠（Relationship Keepsake Gifts�
   })
 
   it('里程碑保存失败时信物仍存在，重开后补偿里程碑', async () => {
-    await ensureKeepsakeTable()
+    await ensureKeepsakeTable('luffy')
     settingsStore.delete('companionMilestonesByRole')
     vi.mocked(setSetting).mockRejectedValueOnce(new Error('fixture-milestone-write-failure'))
     const result = await triggerGiftKeepsake('luffy', 'luffy-merry-bell', '共同体验的纪念', Date.now(), {

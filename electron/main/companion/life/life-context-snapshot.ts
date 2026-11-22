@@ -48,7 +48,7 @@ export interface LifeContextSnapshot {
   activeTripSummary: string | null
 }
 
-const STATIC_PLACEHOLDER_TAGS = new Set(['首个人物', '千里阳光号', '草帽'])
+const STATIC_PLACEHOLDER_TAGS = new Set(['首个人物', '默认角色', '占位标签'])
 const WEEKDAY_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'] as const
 
 function stageLabel(stage: RelationshipStage): string {

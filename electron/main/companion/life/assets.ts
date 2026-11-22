@@ -13,6 +13,7 @@ import { createLogger } from '../../utils/logger'
 import type { CompanionAsset, GrantAssetSpec } from '../types'
 import type { GeneratedImageReference } from '../../../../src/shared/types'
 import { BACKUP_LIVING_ASSET_KINDS } from '../../../../src/shared/types'
+import { loadRoleLifePresets } from '../identity/life-presets'
 import { loadRoleWorldDefaults } from '../identity/loader'
 import { materializeRoleVisualImage } from '../adapters/starter-visual-media'
 import { normalizeGrantAsset } from './grant-asset'
@@ -434,108 +435,15 @@ export function getStarterAssetDefinitions(roleId: string): CompanionStarterAsse
 function startersFor(kind: AssetKind, roleId: string): StarterItem[] {
   if (kind === ASSET_KIND_HOME) return worldHomeStarters(roleId)
   if (kind === ASSET_KIND_FOOTPRINT) return worldFootprintStarters(roleId)
-  if (kind === ASSET_KIND_WARDROBE && roleId === 'luffy') return luffyWardrobeStarters()
-  if (kind === ASSET_KIND_CULTURE && roleId === 'luffy') return luffyCultureStarters()
+  const presets = loadRoleLifePresets(roleId)
+  if (kind === ASSET_KIND_WARDROBE && presets.starterWardrobe?.length) {
+    return presets.starterWardrobe.map((item) => ({ ...item, payload: structuredClone(item.payload) }))
+  }
+  if (kind === ASSET_KIND_CULTURE && presets.starterCulture?.length) {
+    return presets.starterCulture.map((item) => ({ ...item, payload: structuredClone(item.payload) }))
+  }
   // 无已确认 Role Pack 来源时保持空态；衣物、作品与阅读经历不能由服务默认值编造。
   return []
-}
-
-/**
- * 背景：首个人物需要一个可读、可撤回的出厂衣柜，供世界页和生图外观锚点使用。
- * 设计意图：只提供三件基础衣物与一套可组合穿搭，不把生成图片、穿着状态或作品细节伪装成运行时事实。
- * 关键约束：稳定 id 由 ensureStarterForKind 生成；每件衣物必须有明确分类，套装只能引用同一角色的衣物。
- */
-function luffyWardrobeStarters(): StarterItem[] {
-  return [
-    { key: 'red-vest', name: '轻便红色背心', payload: { recordType: 'garment', category: 'top', color: '红色', description: '无袖、便于活动的轻便上装；视觉锚点仍可由用户调整。', style: '轻快、耐用、适合行动', visualPath: 'visual/wardrobe-red-vest-v1.png', seededFrom: 'role-pack:luffy' } },
-    { key: 'blue-shorts', name: '深蓝短裤', payload: { recordType: 'garment', category: 'bottom', color: '深蓝色', description: '活动时保持轻松的短裤；长度与细节不固定为唯一版本。', style: '简洁、便于移动', visualPath: 'visual/wardrobe-blue-shorts-v1.png', seededFrom: 'role-pack:luffy' } },
-    { key: 'deck-sandals', name: '甲板凉鞋', payload: { recordType: 'garment', category: 'shoes', color: '棕色', description: '适合甲板和短途移动的耐用鞋履。', style: '实用、耐磨', visualPath: 'visual/wardrobe-deck-sandals-v1.png', seededFrom: 'role-pack:luffy' } },
-  ]
-}
-
-/**
- * 背景：路飞的人物世界文化角包含书籍、影视、音乐、摄影四个分类，出场时需呈现符合其冒险性格的真实作品记录。
- * 设计意图：由 Role Pack 提供四类初始文化体验与对应静态配图，并通过 readingNotes 为图鉴提供首条结构化笔记。
- * 关键约束：仅对 luffy 生效；通过 companion_asset_seeds 保证只播种一次，用户删除后不复活。
- */
-function luffyCultureStarters(): StarterItem[] {
-  return [
-    {
-      key: 'sea-beasts-atlas',
-      name: '伟大航路奇异生物与岛屿图鉴',
-      payload: {
-        type: 'reading',
-        author: '罗宾帮忙标过重点的航海图册',
-        readingStatus: 'reading',
-        currentPage: 48,
-        totalPages: 120,
-        summary: '不爱读密密麻麻的长篇文字，但只要翻到长着翅膀的鱼、会喷火的甲虫和没去过的奇怪岛屿插画，就能趴在甲板上看半天。',
-        detail: '图鉴里画满了伟大航路各海域的巨型海王类、空岛云贝和珍奇甲虫。每次翻到没见过的怪物，第一反应都是先问山治能不能烤着吃，再问乌索普要不要去抓一只。',
-        note: '看到独角仙和奇怪海兽那一页折了角，下次靠岸想亲眼去找！',
-        readingNotes: [
-          {
-            id: 'culture:luffy:sea-beasts-atlas:note-1',
-            text: '第 48 页画着比船还大的金鱼和全身发亮的七角独角仙！下次指针指到这种岛，一定要第一个跳下船去找！',
-            author: 'companion',
-            page: 48,
-            chapter: '奇异海兽与巨虫篇',
-            occurredAt: 1770000000000,
-            createdAt: 1770000000000,
-          },
-        ],
-        visualPath: 'visual/culture-reading-atlas-v1.png',
-        seededFrom: 'role-pack:luffy',
-      },
-    },
-    {
-      key: 'skypiea-vision-dial',
-      name: '空岛黄金钟与云海巨影（映像贝纪录）',
-      payload: {
-        type: 'film',
-        director: '乌索普与伙伴们用映像贝录下的冒险影像',
-        mediaKind: 'movie',
-        watchStatus: 'finished',
-        summary: '把冲上白白海、篝火晚会和敲响黄金钟的瞬间收进映像贝，每次在船舱放出来大家都会跟着大喊大笑。',
-        detail: '乌索普整理的空岛冒险映像贝。画面从冲天海流一直晃到阿帕亚多森林的篝火，最后定格在雷云散开、黄金钟震响和云海巨大投影的瞬间。',
-        note: '篝火跳舞那段不管回放多少次都超有趣！',
-        visualPath: 'visual/culture-film-skypiea-v1.png',
-        seededFrom: 'role-pack:luffy',
-      },
-    },
-    {
-      key: 'binks-sake-chorus',
-      name: '宾克斯的美酒（甲板大合唱版）',
-      payload: {
-        type: 'music',
-        artist: '布鲁克领唱 · 草帽一伙甲板合唱',
-        musicKind: 'track',
-        listeningStatus: 'revisiting',
-        albumTitle: '千里阳光号宴会歌单',
-        summary: '只要小提琴和「哟霍霍霍」一响起来，整艘船就会立刻变成端着烤肉和木杯的大宴会。',
-        detail: '最喜欢的船歌没有之一！不管刚经历过多大的风浪，只要大家围在甲板上一起唱起「去送宾克斯的美酒」，力气和笑声就会立刻满回来。',
-        note: '唱到副歌时要把手里的烤肉举到最高！',
-        visualPath: 'visual/culture-music-binks-sake-v1.png',
-        seededFrom: 'role-pack:luffy',
-      },
-    },
-    {
-      key: 'sunny-sunset-straw-hat',
-      name: '千里阳光号船头的夕阳与草帽',
-      payload: {
-        type: 'photography',
-        locationName: '千里阳光号 · 狮子船头特等席',
-        depictedAt: '傍晚起风时',
-        workStatus: 'published',
-        imageWidth: 1200,
-        imageHeight: 896,
-        summary: '傍晚海面变成金橙色时留在船头的一张照片：草帽压在木栏边，前面就是下一座还没去过的岛。',
-        detail: '最喜欢的特等席视角。夕阳把千里阳光号的狮子船头和海浪都染成亮金色，海风吹过来的时候，感觉什么无聊的规矩都能甩在身后。',
-        note: '娜美说那天晚霞预示第二天是顺风好天气。',
-        visualPath: 'visual/culture-photo-sunny-sunset-v1.png',
-        seededFrom: 'role-pack:luffy',
-      },
-    },
-  ]
 }
 
 function withMaterializedStarterImage(roleId: string, payload: Record<string, unknown>): Record<string, unknown> {
@@ -548,7 +456,7 @@ function withMaterializedStarterImage(roleId: string, payload: Record<string, un
 }
 
 /**
- * 背景：出厂 starter 资产会把 Role Pack 静态 visual/*.png 物化到 companion-media/images 并挂到 payload.image，而路飞 8 张出厂原图合计超过 16MB 备份媒体上限。
+ * 背景：出厂 starter 资产会把 Role Pack 静态 visual/*.png 物化到 companion-media/images 并挂到 payload.image，而出厂原图合计可能超过 16MB 备份媒体上限。
  * 设计意图：按角色与 visualPath 的真实文件 SHA-256 摘要识别未改动的出厂静态配图，使数据导出只打包用户/运行时生成的媒体。
  * 关键约束：仅当 visualPath 对应出厂原图且摘要完全一致时返回 true；用户后续重新生成过的资产配图摘要不同，仍必须随备份导出。
  */
@@ -665,52 +573,53 @@ export async function ensureStarterForKind(
 }
 
 /**
- * 背景：路飞的出厂衣柜除三件单品外，还拥有《草帽冒险日常装》视觉参考（visual/wardrobe-initial-v1.png），但不能直接生成 wear-state 当前穿着。
- * 设计意图：单品播种后，为路飞初始化一套可一键换上的 starter-outfit 并绑定出厂配图，同时为旧库无损补齐单品图片。
+ * 背景：角色出厂衣柜除基础单品外，还可由 Role Pack 提供初始套装视觉参考，但不能直接生成 wear-state 当前穿着。
+ * 设计意图：单品播种后，按 Role Pack 预设初始化一套可一键换上的初始穿搭 并绑定出厂配图，同时为旧库无损补齐单品图片。
  * 关键约束：使用 companion_asset_seeds 标记，用户删除套装后绝不复活；绝不自动写入 recordType=wear-state。
  */
 export async function ensureStarterWardrobe(roleId: string): Promise<{ created: number }> {
   const result = await ensureStarterForKind(roleId, ASSET_KIND_WARDROBE)
-  if (roleId !== 'luffy') return result
+  const presets = loadRoleLifePresets(roleId)
+  const wardrobeStarters = presets.starterWardrobe ?? []
+  const starterOutfit = presets.starterOutfit
+  if (wardrobeStarters.length === 0 && !starterOutfit) return result
 
   const db = await getDatabase()
   let backfilled = false
-  for (const item of luffyWardrobeStarters()) {
+  for (const item of wardrobeStarters) {
     const id = `${ASSET_KIND_WARDROBE}:${roleId}:${item.key}`
     if (backfillRowStarterImage(db, roleId, id, item.payload.visualPath)) backfilled = true
   }
   if (backfilled) persist()
 
-  const seedKind = `${ASSET_KIND_WARDROBE}:starter-outfit`
-  const outfitId = `${ASSET_KIND_WARDROBE}:${roleId}:starter-outfit`
-  const outfitVisualPath = 'visual/wardrobe-initial-v1.png'
+  if (!starterOutfit) return result
+
+  const seedKind = `${ASSET_KIND_WARDROBE}:${starterOutfit.idSuffix}`
+  const outfitId = `${ASSET_KIND_WARDROBE}:${roleId}:${starterOutfit.idSuffix}`
+  const outfitVisualPath = starterOutfit.visualPath
   const seeded = db.exec('SELECT 1 FROM companion_asset_seeds WHERE role_id = ? AND kind = ?', [roleId, seedKind])
   let createdOutfit = 0
   if (!seeded.length) {
     const garments = await listAssets(roleId, { kind: ASSET_KIND_WARDROBE })
-    const requiredIds = [
-      `${ASSET_KIND_WARDROBE}:${roleId}:red-vest`,
-      `${ASSET_KIND_WARDROBE}:${roleId}:blue-shorts`,
-      `${ASSET_KIND_WARDROBE}:${roleId}:deck-sandals`,
-    ]
+    const requiredIds = starterOutfit.requiredGarmentKeys.map((k) => `${ASSET_KIND_WARDROBE}:${roleId}:${k}`)
     const hasAllGarments = requiredIds.every((id) => garments.some((asset) => asset.id === id))
     if (hasAllGarments && !garments.some((asset) => asset.id === outfitId)) {
       await addAsset({
         id: outfitId,
         roleId,
         kind: ASSET_KIND_WARDROBE,
-        name: '草帽冒险日常装',
+        name: starterOutfit.name,
         payload: {
           recordType: 'outfit',
           slots: {
-            top: requiredIds[0],
-            bottom: requiredIds[1],
-            shoes: requiredIds[2],
+            top: `${ASSET_KIND_WARDROBE}:${roleId}:${starterOutfit.slots.top}`,
+            bottom: `${ASSET_KIND_WARDROBE}:${roleId}:${starterOutfit.slots.bottom}`,
+            shoes: `${ASSET_KIND_WARDROBE}:${roleId}:${starterOutfit.slots.shoes}`,
           },
-          style: '轻快、耐造、随时能出发',
-          description: '路飞的出厂日常穿搭组合：轻便红色背心、深蓝短裤与甲板凉鞋。',
+          style: starterOutfit.style,
+          description: starterOutfit.description,
           visualPath: outfitVisualPath,
-          seededFrom: 'role-pack:luffy',
+          seededFrom: `role-pack:${roleId}`,
         },
         acquiredAt: Date.now() + 10,
         sourceEventId: null,
@@ -803,7 +712,7 @@ function worldTripStarters(roleId: string): StarterItem[] {
 }
 
 /**
- * 背景：路飞的文化角出厂包含书籍、影视、音乐、摄影四类初始作品，且需支持旧库无损升级与删除不复活。
+ * 背景：角色文化角出厂可包含书籍、影视、音乐、摄影四类初始作品，且需支持旧库无损升级与删除不复活。
  * 设计意图：结合 companion_asset_seeds 一次性补齐缺失的出厂文化记录，并为既有记录回填静态配图。
  * 关键约束：仅对拥有文化种子的角色生效；标记写入后若用户删除作品，绝不再次自动补种。
  */
@@ -983,12 +892,13 @@ export async function ensureWorldDefaultPossessions(roleId: string): Promise<{ c
 }
 
 /**
- * 背景：路飞作为首个完整人物，首次打开「人物世界 · 朋友圈」时不能呈现空白列表，需自带已发布的出厂动态、配图与草帽一伙互动。
- * 设计意图：仅在路飞尚无任何动态且未写入 moments:starter 标记时，在单事务中写入确定性 ID 的 published 事件、动态与关联边（含配图与卡司同框），并把发布时间设为昨日以避免消耗今日自动发帖配额或触发 4 小时冷却。
+ * 背景：角色首次打开「人物世界 · 朋友圈」时，若 Role Pack 提供了 starterMoments 预设，则自动播种出厂动态、配图与卡司互动。
+ * 设计意图：仅在当前角色尚无任何动态且未写入 moments:starter 标记时，在单事务中写入确定性 ID 的 published 事件、动态与关联边（含配图与卡司同框），并把发布时间设为昨日以避免消耗今日自动发帖配额或触发 4 小时冷却。
  * 关键约束：底层 store.listMoments 不自动触发，以免污染单测空库断言；若已有动态（如先导入了备份）则只记标记不补种。
  */
 export async function ensureStarterMoments(roleId: string): Promise<{ created: number }> {
-  if (roleId !== 'luffy') return { created: 0 }
+  const starterDefs = loadRoleLifePresets(roleId).starterMoments ?? []
+  if (starterDefs.length === 0) return { created: 0 }
   await ensureTables()
   const db = await getDatabase()
   const seedKind = 'moments:starter'
@@ -1007,96 +917,32 @@ export async function ensureStarterMoments(roleId: string): Promise<{ created: n
     return { created: 0 }
   }
 
-  const sunnyImage = materializeRoleVisualImage(roleId, 'visual/thousand-sunny-crew-scene-v1.png')
-  const lookoutImage = materializeRoleVisualImage(roleId, 'visual/lookout-viewpoint-v1.png')
   const now = Date.now()
-  const deckPublishedAt = Math.max(1, now - 30 * 60 * 60 * 1000)
-  const lookoutPublishedAt = Math.max(2, now - 26 * 60 * 60 * 1000)
-
-  const starters = [
-    {
-      eventId: 'event:luffy:starter-deck-breeze',
-      momentId: 'moment:luffy:starter-deck-breeze',
-      publishedAt: deckPublishedAt,
-      text: '千里阳光号的草坪甲板风超舒服！山治刚端出烤肉，娜美在旁边画航线图，乌索普又在吹嘘他的新发明了——吃饱了就准备向下一座岛出发！',
+  const starters = starterDefs.map((def, idx) => {
+    const image = def.visualPath ? materializeRoleVisualImage(roleId, def.visualPath) : null
+    const publishedAt = Math.max(idx + 1, now - def.hoursAgo * 60 * 60 * 1000)
+    return {
+      eventId: `event:${roleId}:${def.key}`,
+      momentId: `moment:${roleId}:${def.key}`,
+      publishedAt,
+      text: def.text,
       eventPayload: {
-        activity: '在草坪甲板吹海风、等山治的烤肉出锅',
-        story: '千里阳光号的草坪甲板风超舒服！山治刚端出烤肉，娜美在旁边画航线图，乌索普又在吹嘘他的新发明了——吃饱了就准备向下一座岛出发！',
-        mood: '畅快期待',
-        moodIntensity: 85,
-        location: '千里阳光号 · 共享甲板',
-        theme: '出海前的甲板日常',
-        assetId: 'wardrobe:luffy:starter-outfit',
-        participantIds: ['nami', 'usopp', 'sanji'],
-        ...(sunnyImage ? { imageId: sunnyImage.id, imageIds: [sunnyImage.id] } : {}),
-        seededFrom: 'role-pack:luffy',
+        ...def.eventPayload,
+        ...(image ? { imageId: image.id, imageIds: [image.id] } : {}),
       },
-      momentMeta: {
-        type: 'moment',
-        mood: '畅快期待',
-        location: '千里阳光号 · 共享甲板',
-        theme: '出海前的甲板日常',
-        assetId: 'wardrobe:luffy:starter-outfit',
-        outfit: '草帽冒险日常装',
-        textSource: 'template',
-        participantIds: ['nami', 'usopp', 'sanji'],
-        interactions: [
-          { kind: 'coframe', castId: 'nami', castName: '娜美' },
-          { kind: 'comment', castId: 'sanji', castName: '山治', text: '别直接上手抓！刚出锅的烤肉还烫着呢，先把盘子端稳！' },
-          { kind: 'comment', castId: 'usopp', castName: '乌索普', text: '喂路飞，听我把超强新弹弓讲完再抢肉啊！' },
-        ],
-      },
+      momentMeta: def.momentMeta,
       links: [
-        { id: 'link:luffy:starter-deck-breeze:wears', targetType: 'asset', targetId: 'wardrobe:luffy:starter-outfit', relation: 'wears', metadata: { name: '草帽冒险日常装' } },
-        { id: 'link:luffy:starter-deck-breeze:coframe:nami', targetType: 'cast', targetId: 'nami', relation: 'coframe', metadata: { name: '娜美' } },
-        { id: 'link:luffy:starter-deck-breeze:coframe:usopp', targetType: 'cast', targetId: 'usopp', relation: 'coframe', metadata: { name: '乌索普' } },
-        { id: 'link:luffy:starter-deck-breeze:coframe:sanji', targetType: 'cast', targetId: 'sanji', relation: 'coframe', metadata: { name: '山治' } },
-        ...(sunnyImage ? [{ id: 'link:luffy:starter-deck-breeze:image:0', targetType: 'image', targetId: sunnyImage.id, relation: 'depicts', metadata: { position: 0 } }] : []),
+        ...def.links.map((l) => ({
+          id: `link:${roleId}:${def.key}:${l.idSuffix}`,
+          targetType: l.targetType,
+          targetId: l.targetId,
+          relation: l.relation,
+          metadata: l.metadata,
+        })),
+        ...(image ? [{ id: `link:${roleId}:${def.key}:image:0`, targetType: 'image' as const, targetId: image.id, relation: 'depicts', metadata: { position: 0 } }] : []),
       ],
-    },
-    {
-      eventId: 'event:luffy:starter-lookout-horizon',
-      momentId: 'moment:luffy:starter-lookout-horizon',
-      publishedAt: lookoutPublishedAt,
-      text: '爬到能看见远处的高处吹了会儿海风，顺便翻了翻奇异生物图鉴。海平线那头的云团长得好奇怪，感觉下一座岛一定藏着没见过的大家伙！',
-      eventPayload: {
-        activity: '在高处眺望海平线上的新云团',
-        story: '爬到能看见远处的高处吹了会儿海风，顺便翻了翻奇异生物图鉴。海平线那头的云团长得好奇怪，感觉下一座岛一定藏着没见过的大家伙！',
-        mood: '好奇兴奋',
-        moodIntensity: 88,
-        location: '能看见远处的高处',
-        theme: '确认下一段航向',
-        assetId: 'wardrobe:luffy:red-vest',
-        bookAssetId: 'culture:luffy:sea-beasts-atlas',
-        participantIds: ['zoro'],
-        ...(lookoutImage ? { imageId: lookoutImage.id, imageIds: [lookoutImage.id] } : {}),
-        seededFrom: 'role-pack:luffy',
-      },
-      momentMeta: {
-        type: 'moment',
-        mood: '好奇兴奋',
-        location: '能看见远处的高处',
-        theme: '确认下一段航向',
-        assetId: 'wardrobe:luffy:red-vest',
-        outfit: '轻便红色背心',
-        bookAssetId: 'culture:luffy:sea-beasts-atlas',
-        book: '伟大航路奇异生物与岛屿图鉴',
-        textSource: 'template',
-        participantIds: ['zoro'],
-        interactions: [
-          { kind: 'coframe', castId: 'zoro', castName: '索隆' },
-          { kind: 'comment', castId: 'zoro', castName: '索隆', text: '看好脚下，别风一吹连人带草帽一起从瞭望台滚下来。' },
-          { kind: 'comment', castId: 'nami', castName: '娜美', text: '那是积帝云的边缘，别看图鉴看入迷了，快下来准备收帆！' },
-        ],
-      },
-      links: [
-        { id: 'link:luffy:starter-lookout-horizon:wears', targetType: 'asset', targetId: 'wardrobe:luffy:red-vest', relation: 'wears', metadata: { name: '轻便红色背心' } },
-        { id: 'link:luffy:starter-lookout-horizon:references', targetType: 'asset', targetId: 'culture:luffy:sea-beasts-atlas', relation: 'references', metadata: { name: '伟大航路奇异生物与岛屿图鉴' } },
-        { id: 'link:luffy:starter-lookout-horizon:coframe:zoro', targetType: 'cast', targetId: 'zoro', relation: 'coframe', metadata: { name: '索隆' } },
-        ...(lookoutImage ? [{ id: 'link:luffy:starter-lookout-horizon:image:0', targetType: 'image', targetId: lookoutImage.id, relation: 'depicts', metadata: { position: 0 } }] : []),
-      ],
-    },
-  ]
+    }
+  })
 
   let created = 0
   db.run('SAVEPOINT ensure_starter_moments')
@@ -1244,7 +1090,7 @@ const ACTIVE_CULTURE_STATUS: Record<string, { field: string; values: string[]; v
 }
 
 /**
- * 背景：主对话原先只读旧 bookshelf 分类，路飞的文化角（在读/在看/在听）、当前穿着和进行中的旅行都不在 Prompt 里，
+ * 背景：主对话原先只读旧 bookshelf 分类，角色的文化角（在读/在看/在听）、当前穿着和进行中的旅行都不在 Prompt 里，
  * 用户问「你今天穿什么 / 最近在看什么 / 现在航行到哪了」时角色只能编造或回避。
  * 设计意图：把三类「此刻正在进行」的生活事实压成一段有界摘要；只摘当前态，不灌历史作品，也不复制资产正文。
  * 关键约束：衣物名只取同角色 wear-state 槽位引用的有效 garment；文化条目最多 LIFE_ASSETS_PROMPT_LIMIT 条；

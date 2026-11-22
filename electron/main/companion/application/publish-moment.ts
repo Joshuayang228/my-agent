@@ -36,7 +36,7 @@ export const POST_MOMENT_DEFINITION: Pick<ToolDefinition, 'description' | 'param
     properties: {
       text: { type: 'string', description: '朋友圈正文，最多 2000 字。' },
       activity: { type: 'string', description: '这次生活事件的短标题，最多 120 字。' },
-      location: { type: 'string', description: '发生地点，例如千里阳光号甲板；可省略。' },
+      location: { type: 'string', description: '发生地点，例如阳台、咖啡馆或当前所在位置；可省略。' },
       imageIds: { type: 'array', description: '可选：本会话已生成图片的摘要 ID，最多 9 个。' },
       participantIds: { type: 'array', description: '可选：共同在场的关系对象 ID，必须来自当前人物关系表，最多 4 个。' },
       relationshipPhase: { type: 'string', description: '可选：这次关系事件处于建立、摩擦、修复或里程碑阶段。', enum: [...RELATION_PHASES] },

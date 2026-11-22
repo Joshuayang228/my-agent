@@ -25,6 +25,7 @@ import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm/index'
 import { compileHostCareRequest } from '../../prompts/registered-request'
+import { loadRoleLifePresets } from '../identity/life-presets'
 import { loadRolePack, resolveRoleUniverseId } from '../identity/loader'
 import { listRecentCompanionDomainEvents } from '../core/events/domain-events'
 import * as sessionStore from '../../storage/session-store'
@@ -96,32 +97,33 @@ function getFallbackCareMessage(
   kind: HostCareKind,
   continuousMinutes: number,
 ): { careMessage: string; suggestedAction: string } {
-  const isLuffy = roleId === 'luffy' || roleId.includes('luffy')
+  const presets = loadRoleLifePresets(roleId).hostCare
+  const custom = presets?.[kind]
+  if (custom) {
+    return {
+      careMessage: custom.careMessage.replace(/\{minutes\}/g, String(continuousMinutes)),
+      suggestedAction: custom.suggestedAction,
+    }
+  }
 
   if (kind === 'fatigue_break') {
     return {
-      careMessage: isLuffy
-        ? `喂！你从刚才开始就一直坐在那一动不动的，键盘都要敲出火星啦！已经忙了 ${continuousMinutes} 分钟了，快站起来伸个大大的懒腰，去吃点好吃的补充体力！`
-        : `你已经连续专注工作了 ${continuousMinutes} 分钟，稍微站起来活动活动肩膀，眺望一下窗外吧。`,
-      suggestedAction: isLuffy ? '站起来大跳两下伸伸懒腰，去倒杯温水！' : '离开工位走动 3 分钟，深呼吸放松肩膀',
+      careMessage: `你已经连续专注工作了 ${continuousMinutes} 分钟，稍微站起来活动活动肩膀，眺望一下窗外吧。`,
+      suggestedAction: '离开工位走动 3 分钟，深呼吸放松肩膀',
     }
   }
 
   if (kind === 'late_night_sleep') {
     return {
-      careMessage: isLuffy
-        ? '哈欠……都这～么晚了你怎么还在忙啊！再不睡觉明天可就没力气去大海上冒险了，赶紧把电脑合上钻进被窝，明天我再陪你！'
-        : '夜已经很深了，身体比待办事项更重要。今天就先停在这里，好好休息吧。',
-      suggestedAction: isLuffy ? '立刻合上屏幕，钻进温暖被窝呼呼大睡！' : '保存手头工作，准备洗漱入睡',
+      careMessage: '夜已经很深了，身体比待办事项更重要。今天就先停在这里，好好休息吧。',
+      suggestedAction: '保存手头工作，准备洗漱入睡',
     }
   }
 
   // welcome_back
   return {
-    careMessage: isLuffy
-      ? '哦！你可算回工位啦！刚才去哪探险了？快坐下歇歇，今天也要元气满满地开工啊！'
-      : '欢迎回来，休息得还好吗？随时准备好接续刚才的任务。',
-    suggestedAction: isLuffy ? '喝一大口水，精神饱满地出发！' : '整理手头思路，轻松进入状态',
+    careMessage: '欢迎回来，休息得还好吗？随时准备好接续刚才的任务。',
+    suggestedAction: '整理手头思路，轻松进入状态',
   }
 }
 

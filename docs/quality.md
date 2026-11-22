@@ -1,5 +1,7 @@
 # 质量总控
 
+平台层零角色耦合门禁（2026-11-22）：`architecture-boundaries.test.ts` 扩展至 11 项静态门禁（`arch:check` 合计 15 项），强制校验 `companion/life`、`companion/growth`、`prompts` 与 `src/shared/companion-error-voice.ts` 不含任何具体角色硬编码（`roleId === 'luffy'` / `LUFFY_` / `千里阳光号` 等）；全量单测（293 文件 / 1894 用例）、双进程 `tsc`、`npm run build`、`assets:check` 与 `docs:validate` 全部通过。
+
 Playground 冗余清理与 Chat 对话流全景补齐门禁（2026-11-22）：`playground-world-candidates.test.ts` 对齐「礼物柜 / 空礼物柜」故事断言，`scripts/asset-governance.mjs` 移除已归档的 `VulnerabilityExperienceCandidate.tsx` 与 `GiftingExperienceCandidate.tsx`；`assets:check`（115 项零警告）、`tsc --noEmit` 与全量单测（293 文件 / 1893 用例）全部通过。
 
 前端空态一致性与人物世界 AST 门禁加固（2026-11-22）：`foundation-enforcement-gate.test.ts` 扩展至 10 项门禁，新增 6 个人物世界正式面板（日记 / 礼物 / 通讯录 / 文化角 / 家居 / 足迹）Foundation `EmptyState` 真实绑定与 `auditEmptyStateWrapper` 外层居中包裹拦截（含负例 Fixture）；`empty-state-alignment.test.ts` 验证无 `action` 默认自动居中与显式关闭兼容。

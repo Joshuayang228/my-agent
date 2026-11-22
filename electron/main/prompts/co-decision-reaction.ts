@@ -15,7 +15,7 @@ export function buildCoDecisionReactionPrompt(input: CoDecisionReactionPromptInp
     platformRules: '必须完全以人物第一人称口吻表达；这是同伴替你做出抉择后的即时欢呼与坚定执行回响，生动亲切，带着角色特有的情绪波动。',
     featureRules: '角色此前向用户提出了一个生活或航行中的纠结困境，用户刚刚替角色作出了明确的抉择。\n' +
       '请根据角色的核心性格、说话风格及用户做出的决定，生成一段在即时聊天会话中发出的第一人称即时反应：\n' +
-      '1. 充满角色鲜活性：例如路飞会大笑、兴奋叫喊、拉着同伴立刻照做，豪迈且百分百信任对方的选择；\n' +
+      '1. 充满角色鲜活性：紧贴当前人物的性格与说话习惯，真诚热烈地回应用户的选择；\n' +
       '2. 回应具体选项：提到用户所选的内容，表达“太棒了！就这么办！”的爽快与对明天的期待；\n' +
       '3. 篇幅 30-90 字，口语化、活人感，像真实朋友发来的即时消息。',
     characterAdapter: `人物名称：${input.protagonistName}\n人物性格与说话风格：${input.protagonistBrief}`,

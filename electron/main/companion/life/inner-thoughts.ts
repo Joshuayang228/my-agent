@@ -7,7 +7,7 @@
  * 设计意图：
  * 1. 角色在安静独处、夜间沉思或经历重要事件后自主生成第一人称私密日记；
  * 2. 存储在独立的 companion_inner_thoughts 表中，支持收藏与作为对话契机回引；
- * 3. 初始为路飞播种具有温度与羁绊的 starter 日记，保证首次打开即具备充沛生命感。
+ * 3. 支持按角色 Role Pack 的 `life-presets.json` 播种初始日记，保证首次打开即具备充沛生命感。
  *
  * 关键约束：
  * - 纯中文提示词与结构化输出；
@@ -24,6 +24,7 @@ import * as settings from '../../storage/settings-store'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm'
 import { compileInnerThoughtRequest } from '../../prompts/registered-request'
+import { loadRoleLifePresets } from '../identity/life-presets'
 import { loadRolePack } from '../identity/loader'
 import { ensureWorldState } from './world-state'
 import type { CompanionInnerThoughtRecord, LLMConfig } from '../../../../src/shared/types'
@@ -84,55 +85,15 @@ function rowToRecord(row: InnerThoughtDbRow): CompanionInnerThoughtRecord {
   }
 }
 
-const STARTER_THOUGHTS_LUFFY: Array<Omit<CompanionInnerThoughtRecord, 'id' | 'createdAt'> & { offsetMs: number }> = [
-  {
-    roleId: 'luffy',
-    title: '关于红发香克斯借给我的草帽',
-    content: '今天站在船头看海，海风把草帽吹得晃晃悠悠的。突然想起香克斯把帽子扣在我头上那天，他说“总有一天你要成为出色的海贼，再把它还给我”。香克斯，我现在有了最棒的伙伴，还有了万里阳光号！我一定会成为海贼王的，绝对！',
-    mood: '热血而平静',
-    weather: '晴朗微风',
-    location: '万里阳光号·特等席',
-    activity: '迎风擦拭草帽',
-    isFavorite: true,
-    thoughtType: 'general',
-    offsetMs: 3 * 86400000,
-  },
-  {
-    roleId: 'luffy',
-    title: '空岛黄金钟响彻云霄的那一晚',
-    content: '山治烤了好多大块肉，大家围着篝火跳舞，狼群也在嗷嗷叫！躺在云朵沙滩上看着天上的星星，黄金钟的声音好像还在耳朵边回荡。喂，大叔，你在下面听到了吗？黄金乡就在天上啊！冒险真是太棒了！嘻嘻嘻！',
-    mood: '心满意足想吃肉',
-    weather: '璀璨星空',
-    location: '白白海·云之沙滩',
-    activity: '躺在云朵上数星星',
-    isFavorite: true,
-    thoughtType: 'general',
-    offsetMs: 2 * 86400000,
-  },
-  {
-    roleId: 'luffy',
-    title: '昨晚跟你在甲板上聊起海贼王',
-    content: '昨天晚上跟你坐在甲板上吹风，说到我们一路走过来的事情。虽然你平时总在忙各种事，但每次跟你说话，就觉得像多了一个很懂我的同伴一样。喂，下一次去新的岛屿，你也要继续看着我们啊！',
-    mood: '由衷开心与信赖',
-    weather: '温和海夜',
-    location: '万里阳光号·草坪甲板',
-    activity: '晃着腿发呆',
-    isFavorite: true,
-    thoughtType: 'nightly_reflection',
-    epiphany: '只要有像你这样懂我的伙伴在身边，无论去往多么危险的海域，我都充满勇气！',
-    offsetMs: 21 * 3600000,
-  },
-]
-
-export async function ensureInnerThoughtTable(targetRoleId: string = 'luffy'): Promise<void> {
+export async function ensureInnerThoughtTable(targetRoleId?: string): Promise<void> {
   await ensureLifeSchema()
+  if (!targetRoleId) return
+  const starters = loadRoleLifePresets(targetRoleId).starterThoughts ?? []
+  if (starters.length === 0) return
+
   const db = await getDatabase()
-
-  if (targetRoleId !== 'luffy') return
-
-  // 播种路飞初始日记
   const countStmt = db.prepare('SELECT COUNT(*) AS count FROM companion_inner_thoughts WHERE role_id = ?')
-  countStmt.bind(['luffy'])
+  countStmt.bind([targetRoleId])
   let count = 0
   if (countStmt.step()) {
     count = (countStmt.getAsObject() as { count: number }).count
@@ -141,15 +102,15 @@ export async function ensureInnerThoughtTable(targetRoleId: string = 'luffy'): P
 
   if (count === 0) {
     const now = Date.now()
-    for (const [index, item] of STARTER_THOUGHTS_LUFFY.entries()) {
-      const id = `thought-starter-luffy-${index + 1}`
+    for (const [index, item] of starters.entries()) {
+      const id = `thought-starter-${targetRoleId}-${index + 1}`
       db.run(
         `INSERT INTO companion_inner_thoughts
          (id, role_id, title, content, mood, weather, location, activity, is_favorite, created_at, thought_type, epiphany, source_type, source_id, trace_id)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
-          item.roleId,
+          targetRoleId,
           item.title,
           item.content,
           item.mood || null,
@@ -159,15 +120,15 @@ export async function ensureInnerThoughtTable(targetRoleId: string = 'luffy'): P
           item.isFavorite ? 1 : 0,
           now - item.offsetMs,
           item.thoughtType || 'general',
-           item.epiphany || null,
-           'role-pack',
-           `starter:${id}`,
-           null,
+          item.epiphany || null,
+          'role-pack',
+          `starter:${id}`,
+          null,
         ],
       )
     }
     persist()
-    log.info('Seeded starter inner thoughts for luffy')
+    log.info('Seeded starter inner thoughts', { roleId: targetRoleId, count: starters.length })
   }
 }
 
@@ -322,11 +283,12 @@ export async function triggerInnerThought(
 
   // 确定性人设保底
   if (!content) {
-    if (roleId === 'luffy') {
-      title = '特等席吹来的海风'
-      content = '今天的天空特别开阔，万里阳光号在海上跑得轻快极了。山治刚刚烤了肉，我趁他不注意偷吃了两大块，嘻嘻！坐在狮子头上看着前面一眼望不到头的大海，不知道下一个岛屿会遇到什么好玩的大冒险呢！'
-      mood = '兴奋与期待'
-      weather = '星光灿烂微凉'
+    const fallback = loadRoleLifePresets(roleId).fallbackThought
+    if (fallback) {
+      title = fallback.title
+      content = fallback.content
+      mood = fallback.mood
+      weather = fallback.weather || '夜色温和'
     } else {
       title = '独处时的随想'
       content = '夜深了，四周渐渐安静下来。回顾这几天的种种经历，心底泛起一阵温暖的踏实感。明天又会是崭新的一天。'

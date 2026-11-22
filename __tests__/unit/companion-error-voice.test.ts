@@ -27,8 +27,8 @@ describe('Companion Error Voice（WISH-016 人格化错误承接）', () => {
     }
   })
 
-  it('路飞与自定义通用角色使用各自自然语气，且不向通用角色泄漏路飞专属台词', () => {
-    const luffy = formatCompanionErrorBubble({
+  it('默认保持角色中立的通用伙伴口吻，并支持通过 customVoice 注入角色定制语气', () => {
+    const generic = formatCompanionErrorBubble({
       code: AgentErrorCode.CONFIG_MISSING_API_KEY,
       message: '请先在设置中添加可用连接。',
       roleId: 'luffy',
@@ -37,14 +37,20 @@ describe('Companion Error Voice（WISH-016 人格化错误承接）', () => {
       code: AgentErrorCode.CONFIG_MISSING_API_KEY,
       message: '请先在设置中添加可用连接。',
       roleId: 'custom-role',
+      customVoice: {
+        CONFIG_MISSING_API_KEY: {
+          lead: '自定义伙伴承接语：先去把连接配好吧！',
+          notice: '自定义提示',
+        },
+      },
     })
 
-    expect(luffy.displayMarkdown).toContain('电话虫')
-    expect(custom.displayMarkdown).not.toContain('电话虫')
-    expect(luffy.displayMarkdown).toContain('请先在设置中添加可用连接。')
+    expect(generic.displayMarkdown).not.toContain('电话虫')
+    expect(generic.displayMarkdown).toContain('请先在设置中添加可用连接。')
+    expect(custom.displayMarkdown).toContain('自定义伙伴承接语')
     expect(custom.displayMarkdown).toContain('请先在设置中添加可用连接。')
-    expect(luffy.noticeText).toBeTruthy()
-    expect(custom.noticeText).toBeTruthy()
+    expect(generic.noticeText).toBeTruthy()
+    expect(custom.noticeText).toBe('自定义提示')
   })
 
   it('未知或缺失错误码优雅降级到 UNKNOWN 承接且保留原始消息', () => {

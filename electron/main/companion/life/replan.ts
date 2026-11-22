@@ -23,6 +23,7 @@ import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm/index'
 import { compileReplanSlotsRequest } from '../../prompts/registered-request'
+import { loadRoleLifePresets } from '../identity/life-presets'
 import { loadRolePack } from '../identity/loader'
 import { toLocalDateString } from './dates'
 import { ensureWorldState } from './world-state'
@@ -50,70 +51,49 @@ interface AdaptedSlot {
   location?: string
 }
 
-/** 规则兜底：依据诱因与时间槽提供自然可信的修养/调理活动 */
+/** 规则兜底：优先从当前角色 Role Pack 的 life-presets 读取重排模板，未配置时使用平台中性兜底 */
 function getFallbackAdaptedSlots(
   roleId: string,
   trigger: string,
   slots: Array<{ hour: number; minute: number; originalActivity: string }>,
 ): AdaptedSlot[] {
-  const isLuffy = roleId === 'luffy' || roleId.includes('luffy')
+  const presets = loadRoleLifePresets(roleId)
+  const exhaustionPool = presets.replan?.exhaustion
+  const vulnerabilityPool = presets.replan?.vulnerability
+  const defaultLocation = presets.replan?.defaultLocation || presets.defaultLocation || '休息区'
 
   if (trigger === 'vitals_exhaustion') {
+    const generic = [
+      { activity: '在安静处闭目深呼吸静养片刻', mood: '疲惫恢复中', location: '休息区' },
+      { activity: '喝下一大杯温水整理呼吸', mood: '温饱安心', location: '茶水间' },
+      { activity: '安静整理桌面放慢节奏', mood: '平静放松', location: '窗边' },
+    ]
     return slots.map((s, idx) => {
-      if (idx === 0) {
-        return {
-          hour: s.hour,
-          minute: s.minute,
-          activity: isLuffy ? '在船舱阴凉处裹着毯子大睡特睡' : '在工位旁闭目深呼吸静养片刻',
-          mood: '疲惫恢复中',
-          location: isLuffy ? '医务室/船舱' : '休息区',
-        }
-      }
-      if (idx === 1) {
-        return {
-          hour: s.hour,
-          minute: s.minute,
-          activity: isLuffy ? '大口喝下山治特调的热骨头浓汤' : '喝下一大杯温水整理呼吸',
-          mood: '温饱安心',
-          location: isLuffy ? '厨房角落' : '茶水间',
-        }
-      }
+      const picked = exhaustionPool?.[Math.min(idx, (exhaustionPool.length || 1) - 1)] ?? generic[Math.min(idx, generic.length - 1)]
       return {
         hour: s.hour,
         minute: s.minute,
-        activity: isLuffy ? '坐在甲板台阶上发呆吹微风' : '安静整理桌面放慢节奏',
-        mood: '平静放松',
-        location: isLuffy ? '甲板阴凉处' : '窗边',
+        activity: picked.activity,
+        mood: picked.mood,
+        location: picked.location,
       }
     })
   }
 
   if (trigger === 'vulnerability') {
+    const generic = [
+      { activity: '独自站在窗边看远处的夜色', mood: '沉静释怀', location: '阳台' },
+      { activity: '翻看过去的笔记与备忘', mood: '若有所思', location: '书桌前' },
+      { activity: '听一段轻缓温暖的纯音乐', mood: '温暖安心', location: '沙发上' },
+    ]
     return slots.map((s, idx) => {
-      if (idx === 0) {
-        return {
-          hour: s.hour,
-          minute: s.minute,
-          activity: isLuffy ? '一个人坐在狮子头船首静静看海浪' : '独自站在阳台看远处的夜色',
-          mood: '沉静释怀',
-          location: isLuffy ? '千里阳光号船首' : '阳台',
-        }
-      }
-      if (idx === 1) {
-        return {
-          hour: s.hour,
-          minute: s.minute,
-          activity: isLuffy ? '低头默默抚平草帽上的细小磨痕' : '翻看过去的笔记与备忘',
-          mood: '若有所思',
-          location: isLuffy ? '甲板角落' : '书桌前',
-        }
-      }
+      const picked = vulnerabilityPool?.[Math.min(idx, (vulnerabilityPool.length || 1) - 1)] ?? generic[Math.min(idx, generic.length - 1)]
       return {
         hour: s.hour,
         minute: s.minute,
-        activity: isLuffy ? '听着同伴们在厨房喧闹的声音感到心安' : '听一段轻缓温暖的纯音乐',
-        mood: '温暖安心',
-        location: isLuffy ? '船舱外廊' : '沙发上',
+        activity: picked.activity,
+        mood: picked.mood,
+        location: picked.location,
       }
     })
   }
@@ -122,9 +102,9 @@ function getFallbackAdaptedSlots(
   return slots.map((s, idx) => ({
     hour: s.hour,
     minute: s.minute,
-    activity: idx === 0 ? '按照商量好的方向调整准备' : '整理随身探险装备',
+    activity: idx === 0 ? '按照商量好的方向调整准备' : '整理随身物品与接下来的安排',
     mood: '专注认真',
-    location: isLuffy ? '甲板' : '工位',
+    location: defaultLocation,
   }))
 }
 

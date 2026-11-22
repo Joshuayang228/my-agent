@@ -2,7 +2,7 @@
 
 命令领取确认保存后才执行。点赞、日记删除及朋友圈发布在本地事务中提交事实与成功回执，事务在写入前复核主角与运行所有者。
 
-主对话回复与生命体征、心愿共鸣和反馈收讫任务在同一事务登记。恢复共鸣使用原回复及其之前的会话消息，结算已提交后重投复用记录。2026-11-21 新增当日聊天共鸣单槽微调（`adaptNextUpcomingSlotForResonance`）：刚沉淀的美食/文化/日常活动心愿会即时轻度编入当日首个未改写的未来 `planned` 槽位并同步标记 `absorbed_in_script`，跳过已因体征透支重排的槽位与跨日 `travel_wish`；角色自定义头像/封面覆写（`visual-overrides.ts`）已纳入 `data:export` / `data:import` 备份恢复与失败回滚链。2026-11-22 新增伙伴专属拍照工具 `companion_take_photo`、聊天收礼工具 `companion_receive_gift`（对应只读礼物柜「送出的礼物 / 收到的礼物」）与受控「绘画导演」扩写层（`companionImageDirector`），并纳入 12 切面投影注册表；日记面移除 `VulnerabilityCard` 保持纯净阅读。
+主对话回复与生命体征、心愿共鸣和反馈收讫任务在同一事务登记。恢复共鸣使用原回复及其之前的会话消息，结算已提交后重投复用记录。2026-11-21 新增当日聊天共鸣单槽微调（`adaptNextUpcomingSlotForResonance`）：刚沉淀的美食/文化/日常活动心愿会即时轻度编入当日首个未改写的未来 `planned` 槽位并同步标记 `absorbed_in_script`，跳过已因体征透支重排的槽位与跨日 `travel_wish`；角色自定义头像/封面覆写（`visual-overrides.ts`）已纳入 `data:export` / `data:import` 备份恢复与失败回滚链。2026-11-22 新增伙伴专属拍照工具 `companion_take_photo`、聊天收礼工具 `companion_receive_gift`（对应只读礼物柜「送出的礼物 / 收到的礼物」）与受控「绘画导演」扩写层（`companionImageDirector`），并纳入 12 切面投影注册表；日记面移除 `VulnerabilityCard` 保持纯净阅读；新增 `identity/life-presets.ts` 将全部角色专属预设（衣柜/文化角/朋友圈/日记/信物/共同决策/脆弱心境/日剧本/重排/礼物/旅途奇遇/宿主关怀/聊天共鸣/深夜反思/即兴搭话）下沉至 `universes/<id>/roles/<roleId>/life-presets.json`，平台层实现零角色硬编码。
 
 日记感悟、信物里程碑和文化体验奖励有持久后续任务。已提交的日记、信物与体验可以立即读取，后续动作由应用启动及生活时钟恢复。文化奖励只在来源人物和世界观下领取，领取后再次确认执行权，已有同一件信物时复用原记录。通过人物命令入口的在途生成随人物或世界观切换失效。
 

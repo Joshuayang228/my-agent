@@ -12,6 +12,7 @@ import type { LLMConfig } from '../../../../src/shared/types'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm/index'
 import { createLogger } from '../../utils/logger'
+import { loadRoleLifePresets } from '../identity/life-presets'
 import { loadRolePack } from '../identity/loader'
 import { compileDayRequest } from '../../prompts/registered-request'
 import {
@@ -95,17 +96,6 @@ const XIA_ACTIVITIES: ActivitySeed[] = [
   { activity: '晚饭后关灯听雨或静坐', mood: '困倦', location: '家', type: 'activity' },
 ]
 
-/** 路飞：以千里阳光号、伙伴协作和可验证的小探索为中心的出厂日剧本。 */
-const LUFFY_ACTIVITIES: ActivitySeed[] = [
-  { activity: '坐上狮子船头吹海风，盯着海平线找新岛屿', mood: '兴奋', location: '狮子船头特等席', type: 'moment' },
-  { activity: '冲进山治的厨房抢刚出锅的带骨烤肉', mood: '开心', location: '山治的厨房餐厅', type: 'activity' },
-  { activity: '靠在甲板边甩杆钓海鱼，和乌索普打赌谁先上钩', mood: '好奇', location: '千里阳光号 · 草坪甲板', type: 'moment' },
-  { activity: '爬上瞭望台看远处变幻的云团和风向', mood: '来劲', location: '船顶瞭望台', type: 'activity' },
-  { activity: '躺在草坪甲板晒太阳打个盹，把草帽盖在脸上', mood: '松弛', location: '千里阳光号 · 草坪甲板', type: 'moment' },
-  { activity: '傍晚闻着烤肉香，把今天最好玩的事记下来发条动态', mood: '明亮', location: '千里阳光号 · 甲板', type: 'moment' },
-  { activity: '晚饭后靠在船舷吹晚风，看星空和海浪', mood: '平和', location: '千里阳光号 · 船舷', type: 'activity' },
-]
-
 const ROLE_POOL: Record<string, { themes: string[]; activities: ActivitySeed[] }> = {
   hang: {
     themes: ['行为人格验收日', '故事待定', '确认一个小步骤'],
@@ -123,12 +113,7 @@ const ROLE_POOL: Record<string, { themes: string[]; activities: ActivitySeed[] }
     themes: ['安静的一天', '观察与留白', '宅家充电', '散步与咖啡', ...DEFAULT_THEMES],
     activities: XIA_ACTIVITIES,
   },
-  luffy: {
-    themes: ['甲板上的新方向', '和伙伴一起出发', '发现一个值得记住的地方', '先做下一步', '千里阳光号的一天'],
-    activities: LUFFY_ACTIVITIES,
-  },
 }
-
 
 function hashSeed(roleId: string, date: string): number {
   const s = `${roleId}:${date}`
@@ -141,6 +126,13 @@ function hashSeed(roleId: string, date: string): number {
 }
 
 function poolFor(roleId: string): { themes: string[]; activities: ActivitySeed[] } {
+  const presets = loadRoleLifePresets(roleId)
+  if (presets.scriptActivities?.length) {
+    return {
+      themes: presets.scriptThemes?.length ? presets.scriptThemes : DEFAULT_THEMES,
+      activities: presets.scriptActivities,
+    }
+  }
   return ROLE_POOL[roleId] ?? { themes: DEFAULT_THEMES, activities: DEFAULT_ACTIVITIES }
 }
 

@@ -2,7 +2,7 @@
  * 专属物品赠送与羁绊好感（Companion Gifting & Bond Progression）
  *
  * 背景：同伴关系是双向的情感连接；角色不仅会主动赠送用户专属信物（relationship-keepsake），
- * 用户也应当能在日常相伴中主动挑选或定制礼物赠予角色（如路飞的最爱带骨大肉、神秘藏宝图、便当、手织围巾）。
+ * 用户也应当能在日常相伴中主动赠予角色喜欢的礼物或小物件。
  * 角色收到礼物后，依据自身性格与喜好偏好产生真实、生动的第一人称回响，恢复生命体征并沉淀为长久羁绊。
  *
  * 设计意图：
@@ -26,6 +26,7 @@ import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm'
 import { compileGiftReactionRequest } from '../../prompts/registered-request'
+import { loadRoleLifePresets } from '../identity/life-presets'
 import { loadRolePack } from '../identity/loader'
 import { ensureMainSessionForRole } from '../../storage/session-store'
 import { tryRecordMilestone } from '../growth/milestones'
@@ -86,63 +87,56 @@ export const PRESET_GIFTS: CompanionGiftItem[] = [
     name: '特制带骨烤肉',
     category: 'food',
     iconName: 'Utensils',
-    description: '烤得滋滋冒油的超大块带骨烤肉，肉香扑鼻，在海风中格外诱人！',
+    description: '烤得滋滋冒油的超大块带骨烤肉，肉香扑鼻，格外诱人！',
     vitalsBuff: { satiety: 30, mood: 25, energy: 15 },
-    roleAffinity: { luffy: 'favorite' },
   },
   {
     key: 'treasure-map',
-    name: '泛黄的神秘海图',
+    name: '泛黄的神秘地图',
     category: 'collectible',
     iconName: 'Map',
-    description: '边缘略微磨损的古老羊皮纸航海图，标注着未知的神秘海域与危险航标。',
+    description: '边缘略微磨损的古老羊皮纸地图，标注着未知的远方与探索路线。',
     vitalsBuff: { mood: 20, energy: 10 },
-    roleAffinity: { luffy: 'favorite' },
   },
   {
     key: 'handmade-bento',
-    name: '山治风特制便当',
+    name: '手作特选便当',
     category: 'food',
     iconName: 'Utensils',
-    description: '荤素搭配、极为讲究的现做海上便当，打开还冒着腾腾热气。',
+    description: '荤素搭配、极为讲究的现做便当，打开还冒着腾腾热气。',
     vitalsBuff: { satiety: 25, mood: 15, energy: 10 },
-    roleAffinity: { luffy: 'liked' },
   },
   {
     key: 'star-compass',
     name: '星光探险罗盘',
     category: 'practical',
     iconName: 'Compass',
-    description: '黄铜外壳、指针泛着微光的航海罗盘，无论风浪多大都坚定指引航向。',
+    description: '黄铜外壳、指针泛着微光的便携罗盘，无论风浪多大都坚定指引方向。',
     vitalsBuff: { mood: 15, energy: 10 },
-    roleAffinity: { luffy: 'liked' },
   },
   {
     key: 'warm-scarf',
     name: '手织温暖围巾',
     category: 'emotional',
     iconName: 'Heart',
-    description: '用柔软绒线亲手织成的红蓝两色围巾，在甲板夜航的风暴中格外暖和。',
+    description: '用柔软绒线亲手织成的温暖围巾，在起风的夜晚格外贴心。',
     vitalsBuff: { mood: 20 },
-    roleAffinity: { luffy: 'liked' },
   },
   {
     key: 'sunny-postcard',
-    name: '万里阳光号海景明信片',
+    name: '手绘海景明信片',
     category: 'emotional',
     iconName: 'Sparkles',
-    description: '手绘的阳光号破浪前行风景明信片，带着阳光与海盐的清新气息。',
+    description: '手绘的晴朗海景明信片，带着阳光与海风的清新气息。',
     vitalsBuff: { mood: 15 },
-    roleAffinity: { luffy: 'liked' },
   },
   {
     key: 'remedy-kit',
     name: '随身急救草药包',
     category: 'practical',
     iconName: 'Coffee',
-    description: '便携的航海急救包，里面装有止血草药与结实绷带，探险必备。',
+    description: '便携的随身急救包，里面装有常用草药与绷带，远行必备。',
     vitalsBuff: { energy: 15, mood: 10 },
-    roleAffinity: { luffy: 'neutral' },
   },
 ]
 
@@ -150,14 +144,15 @@ export async function ensureGiftTable(): Promise<void> {
   await ensureLifeSchema()
 }
 
-export async function listAvailableGifts(roleId = 'luffy'): Promise<CompanionGiftItem[]> {
+export async function listAvailableGifts(roleId: string): Promise<CompanionGiftItem[]> {
+  const affinities = loadRoleLifePresets(roleId).giftAffinities ?? {}
   return PRESET_GIFTS.map((gift) => ({
     ...gift,
-    roleAffinity: gift.roleAffinity ? { [roleId]: gift.roleAffinity[roleId] || 'liked' } : undefined,
+    roleAffinity: { [roleId]: affinities[gift.key] || 'liked' },
   }))
 }
 
-export async function listReceivedGifts(roleId = 'luffy', limit = 50): Promise<CompanionGiftRecord[]> {
+export async function listReceivedGifts(roleId: string, limit = 50): Promise<CompanionGiftRecord[]> {
   await ensureGiftTable()
   const db = await getDatabase()
   const stmt = db.prepare(`
@@ -176,18 +171,13 @@ export async function listReceivedGifts(roleId = 'luffy', limit = 50): Promise<C
   return records
 }
 
-function getFallbackReaction(roleId: string, giftKey: string, protagonistName: string, userNote?: string): string {
-  if (roleId === 'luffy') {
-    if (giftKey === 'bone-meat') {
-      return '哇啊啊啊！是大肉！大块带骨烤肉！太棒啦——！你怎么知道我正好肚子饿得咕咕叫了！我要开动啦——！嚼嚼嚼……超级好吃！你果然是最好的同伴！肉也分你一小口……不行，还是我全吃啦！嘻嘻嘻！'
+function getFallbackReaction(roleId: string, giftKey: string, giftName: string, userNote?: string): string {
+  const reactions = loadRoleLifePresets(roleId).giftFallbackReactions
+  if (reactions) {
+    const custom = reactions[giftKey] ?? reactions.default
+    if (custom) {
+      return custom.replace(/\{giftName\}/g, giftName).replace(/\{giftKey\}/g, giftKey)
     }
-    if (giftKey === 'treasure-map') {
-      return '喂喂喂！这难道是……藏宝图吗？！好厉害！上面画的小岛看起来好危险又好好玩！看这个骷髅标记，明天我们就向着这个岛全速前进！'
-    }
-    if (giftKey === 'warm-scarf') {
-      return '哇！红色的围巾！虽然海上跑步的时候会有点热，不过系在脖子上当海贼披风超级帅气啊！谢谢你啦！'
-    }
-    return `哇！这是送给我的《${giftKey}》吗？！太棒了！谢谢你！无论收到什么我都超级开心，因为这可是同伴的心意啊！嘻嘻嘻！`
   }
   return `收到你送的礼物啦！真的太贴心了，心里暖洋洋的。${userNote ? `看到你的留言「${userNote}」，感觉整个人都被治愈了。` : ''}谢谢你一直以来的陪伴！`
 }
@@ -212,7 +202,8 @@ export async function sendGiftToCompanion(
   const giftDef = PRESET_GIFTS.find((g) => g.key === giftKey)
   if (!giftDef) throw new Error('礼物不存在，请从可用礼物中选择。')
 
-  const affinity = (giftDef.roleAffinity && giftDef.roleAffinity[roleId]) || 'liked'
+  const affinities = loadRoleLifePresets(roleId).giftAffinities ?? {}
+  const affinity = affinities[giftKey] || 'liked'
 
   let pack: ReturnType<typeof loadRolePack> | null = null
   try {
@@ -220,10 +211,10 @@ export async function sendGiftToCompanion(
   } catch {
     // 允许测试或无 Role Pack 时降级
   }
-  const protagonistName = pack?.name || (roleId === 'luffy' ? '路飞' : '伙伴')
-  const protagonistBrief = `${pack?.description || '热血、真诚、极度珍视同伴的海贼'}\n${pack?.voice || ''}`.trim()
+  const protagonistName = pack?.name || '伙伴'
+  const protagonistBrief = `${pack?.description || '真诚珍视彼此陪伴的数字伙伴'}\n${pack?.voice || ''}`.trim()
 
-  let reactionText = getFallbackReaction(roleId, giftKey, protagonistName, userNote)
+  let reactionText = getFallbackReaction(roleId, giftKey, giftDef.name, userNote)
 
   if (opts?.mockResponse) {
     reactionText = opts.mockResponse.reactionText

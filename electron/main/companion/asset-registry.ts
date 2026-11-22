@@ -79,7 +79,7 @@ function buildLifeAssets(universeId: string, roleId: string, rolePack: RolePack)
       purpose: `角色${label}的生产 starter 定义`,
       role: `role-pack:${roleId}`,
       description: rolePack.description,
-      source: worldDerived ? sourceForRole(roleId, 'world.default.json', universeId) : 'electron/main/companion/life/assets.ts#starter-definitions',
+      source: worldDerived ? sourceForRole(roleId, 'world.default.json', universeId) : sourceForRole(roleId, 'life-presets.json', universeId),
       version: 'starter-v1',
       assetType: 'companion-life',
       contentKind: 'static',

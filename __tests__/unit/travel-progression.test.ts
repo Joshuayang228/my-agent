@@ -52,7 +52,7 @@ const {
   checkAndProgressTravelJourney,
   triggerTravelProgression,
   TRAVEL_PROGRESSION_POLICY,
-  VOYAGE_CANDIDATE_STOPS,
+  getTravelCandidateStops,
 } = await import('../../electron/main/companion/life/travel-progression')
 
 const {

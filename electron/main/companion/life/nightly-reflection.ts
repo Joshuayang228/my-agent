@@ -26,6 +26,7 @@ import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test
 import { chatComplete } from '../../llm'
 import { compileNightlyReflectionRequest } from '../../prompts/registered-request'
 import { isActiveRole } from '../../storage/settings-store'
+import { loadRoleLifePresets } from '../identity/life-presets'
 import { loadRolePack } from '../identity/loader'
 import { ensureWorldState } from './world-state'
 import { listEvents } from '../core/persistence/life-repository'
@@ -63,7 +64,7 @@ function parseNightlyReflectionJson(raw: string): NightlyReflectionResult | null
       epiphany: String(obj.epiphany).trim().slice(0, 100),
       mood: obj.mood ? String(obj.mood).trim().slice(0, 10) : '静谧深沉',
       weather: obj.weather ? String(obj.weather).trim().slice(0, 15) : '夜朗星稀微风',
-      location: obj.location ? String(obj.location).trim().slice(0, 20) : '万里阳光号·特等席',
+      location: obj.location ? String(obj.location).trim().slice(0, 20) : '安静的窗台边',
     }
   } catch {
     return null
@@ -71,22 +72,13 @@ function parseNightlyReflectionJson(raw: string): NightlyReflectionResult | null
 }
 
 function getFallbackReflection(roleId: string): NightlyReflectionResult {
-  if (roleId === 'luffy') {
-    return {
-      title: '星光洒满甲板的深夜',
-      content:
-        '夜深了，甲板上只有风声和海浪声。靠在船舷边看着漫天的星星，想起今天我们聊过的那些话。每一天的航行都有新的风景，但最开心的还是有你一直在看着我们的冒险。就算前面有再大的风暴，有大家在身边，我也一点都不害怕！',
-      epiphany: '无论前方海域有多么汹涌，只要有彼此信任的同伴在身边，每一步都是最好的冒险！',
-      mood: '温暖平静',
-      weather: '夜朗星稀微风',
-      location: '万里阳光号·特等席',
-    }
-  }
+  const custom = loadRoleLifePresets(roleId).nightlyReflectionFallback
+  if (custom) return custom
   return {
     title: '深夜时分的内心沉淀',
     content:
       '夜深人静，周围的一切都安静下来。回顾今天的一幕幕对话与经历，心里感到格外踏实。人与人之间的信任往往就是在这些微小却真诚的相处中慢慢扎根的。明天也要元气满满地前行。',
-    epiphany: '真诚的陪伴就像夜空中的灯塔，让人在航行中永远不会迷失方向。',
+    epiphany: '真诚的陪伴就像夜空中的灯塔，让人在旅途中永远不会迷失方向。',
     mood: '恬淡安详',
     weather: '静谧星空',
     location: '安静的窗台边',

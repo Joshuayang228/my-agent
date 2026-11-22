@@ -26,6 +26,7 @@ import { ensureLifeSchema } from '../core/persistence/life-schema'
 import * as settings from '../../storage/settings-store'
 import { deleteMessage, ensureMainSessionForRole } from '../../storage/session-store'
 import { createLogger } from '../../utils/logger'
+import { loadRoleLifePresets } from '../identity/life-presets'
 import { loadRolePack } from '../identity/loader'
 import { recordCompanionEventAndNotify } from '../application/record-event-notify'
 import { enqueueCompanionSessionMessage } from '../application/session-outbox'
@@ -194,20 +195,13 @@ async function runSpontaneousImpulse(
 
   // 确定性规则保底
   if (!generatedText) {
-    const isLuffy = roleId === 'luffy'
-    if (isLuffy) {
-      if (topicKind === 'activity') {
-        generatedText = `喂！我刚在甲板上发现了一只超大的海鸥，你要不要来看看！`
-        generatedHint = '甲板上的新奇发现'
-      } else if (topicKind === 'vitals') {
-        generatedText = `肚子好饿啊——不知道山治烤肉做好了没有！你今天吃了什么好吃的吗？`
-        generatedHint = '肚子饿时的碎碎念'
-      } else {
-        generatedText = `喂！你在忙什么呢？今天海上的风吹得太舒服了，快来跟我聊聊！`
-        generatedHint = '航海闲暇时的主动搭话'
-      }
+    const customMap = loadRoleLifePresets(roleId).spontaneousImpulseFallback
+    const picked = customMap?.[topicKind] ?? customMap?.default
+    if (picked) {
+      generatedText = picked.text
+      generatedHint = picked.hint
     } else {
-      generatedText = `此刻有些闲暇，想起之前聊到的事情，你今天过得还顺利吗？`
+      generatedText = '此刻有些闲暇，想起之前聊到的事情，你今天过得还顺利吗？'
       generatedHint = '日常随想搭话'
     }
   }

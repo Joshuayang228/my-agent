@@ -5,8 +5,8 @@
  * 会瞬间打破伙伴陪伴感；但若完全吞掉真实错误原因，又会让用户无法排查配置或权限问题。
  * 设计意图：按 AgentErrorCode 将冷冰冰的系统报错映射为「当前伙伴的一句自然第一人称承接 + 真实原因引用块」，
  * 既保护关系体验，又完整保留原始脱敏错误文案与可执行下一步提示。
- * 关键约束：纯前端/共享映射，绝不掩盖或篡改原始错误原因；支持 `luffy` 等角色语气覆写并内置通用伙伴兜底，
- * 不在平台层写死单一角色才能工作；Debug 事件流继续保留原始未包装的 `ev.message`。
+ * 关键约束：纯前端/共享映射，绝不掩盖或篡改原始错误原因；平台层保持角色中立，
+ * 不在共享模块硬编码单一角色台词（需要角色定制时通过可选 `customVoice` 参数由 Role Pack 注入）；Debug 事件流继续保留原始未包装的 `ev.message`。
  */
 
 export interface CompanionErrorPresentation {
@@ -72,57 +72,6 @@ const GENERIC_VOICE: Record<string, ErrorVoiceTemplate> = {
   },
 }
 
-const LUFFY_VOICE: Partial<Record<string, ErrorVoiceTemplate>> = {
-  CONFIG_MISSING_API_KEY: {
-    lead: '喂！电话虫还没接通呢，先去设置里把模型连接配好，我马上就来找你！',
-    notice: '尚未配置可用模型连接，可在设置 → 模型连接中完成配置。',
-  },
-  SESSION_BUSY: {
-    lead: '等等等等，我上一句还没说完呢！等这下跑完或者先点停，咱们马上接着聊。',
-  },
-  BUDGET_EXCEEDED: {
-    lead: '唔，今天的对话额度用光啦！先歇会儿，或者去设置里把额度放宽点再来找我。',
-    notice: '已达到当前 Token 预算上限，可在设置中调整预算。',
-  },
-  CONTEXT_TOO_LONG: {
-    lead: '哈哈，咱们这回聊得太长、塞不下啦！新开个对话继续吧，记住的事不会丢的。',
-    notice: '当前会话上下文超限，建议新建对话继续。',
-  },
-  MAX_TURNS_REACHED: {
-    lead: '这一步折腾了好几轮还没到头，我先刹个车，免得越绕越远——你指个方向，咱们换招试！',
-  },
-  ABORTED: {
-    lead: '好嘞，先停在这儿！有事随时喊我。',
-    suppressDetail: true,
-  },
-  LLM_RATE_LIMITED: {
-    lead: '风浪太大信号挤住了，歇两秒再喊我一声试试！',
-    notice: '请求触发限流，稍后重试即可。',
-  },
-  LLM_REQUEST_FAILED: {
-    lead: '咦，刚才电话虫突然断线了，话没传过去——你再发一次，或者检查下网络和模型连接？',
-    notice: '请求暂时失败，可以稍后重试。',
-  },
-  TOOL_TIMEOUT: {
-    lead: '刚才那一下等太久没动静，我先收手了，别干耗着！',
-    notice: '工具执行超时，可以稍后重试或缩小操作范围。',
-  },
-  TOOL_EXECUTION_FAILED: {
-    lead: '刚才试着动手弄了一下，结果没跑通——卡在哪儿我写下面了，咱们换个法子？',
-  },
-  PERMISSION_DENIED: {
-    lead: '这一步被权限挡在门外了，我没硬闯——你放心的话就在下面调下审批模式，或者咱们换个稳妥点的路子。',
-    notice: '操作被权限策略拒绝。可以在输入区切换审批模式，或让伙伴尝试更安全的替代方案。',
-  },
-  UNKNOWN: {
-    lead: '哎呀，刚才出了点岔子没接上你的话，具体情况我记在下面了。',
-  },
-}
-
-const ROLE_VOICES: Record<string, Partial<Record<string, ErrorVoiceTemplate>>> = {
-  luffy: LUFFY_VOICE,
-}
-
 /**
  * 将 Agent 错误事件格式化为伙伴承接文案 + 真实错误原因引用。
  */
@@ -130,11 +79,10 @@ export function formatCompanionErrorBubble(params: {
   code?: string
   message: string
   roleId?: string
+  customVoice?: Partial<Record<string, ErrorVoiceTemplate>>
 }): CompanionErrorPresentation {
   const codeKey = (params.code || 'UNKNOWN').trim().toUpperCase()
-  const roleKey = (params.roleId || '').trim().toLowerCase()
-  const roleMap = ROLE_VOICES[roleKey]
-  const template = roleMap?.[codeKey] ?? GENERIC_VOICE[codeKey] ?? GENERIC_VOICE.UNKNOWN
+  const template = params.customVoice?.[codeKey] ?? GENERIC_VOICE[codeKey] ?? GENERIC_VOICE.UNKNOWN
   const cleanMessage = params.message.trim()
 
   if (template.suppressDetail || !cleanMessage) {
