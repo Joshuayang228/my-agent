@@ -1,4 +1,4 @@
-import { Children, isValidElement, memo, useState, useEffect, useRef, type ReactNode } from 'react'
+import { Children, isValidElement, memo, useCallback, useState, useEffect, useRef, type ClipboardEvent, type ReactNode } from 'react'
 import { Check, Copy } from 'lucide-react'
 import { IconButton } from './foundation/IconButton'
 import { ImagePreviewImage } from './foundation/ImagePreviewImage'
@@ -21,7 +21,7 @@ import java from 'react-syntax-highlighter/dist/esm/languages/prism/java'
 import c from 'react-syntax-highlighter/dist/esm/languages/prism/c'
 import cpp from 'react-syntax-highlighter/dist/esm/languages/prism/cpp'
 import diff from 'react-syntax-highlighter/dist/esm/languages/prism/diff'
-import { splitAside } from '../shared/aside'
+import { parseAsideSegments } from '../shared/aside'
 import { isSafeMarkdownImageSource } from '../shared/markdown-security'
 import { useSurfaceTheme } from './foundation/useSurfaceTheme'
 import { renderMermaid } from './foundation/mermaid-renderer'
@@ -163,112 +163,142 @@ function MermaidBlock({ code }: { code: string }) {
   </div>
 }
 
+/**
+ * 背景：小声蛐蛐（内心独白）需要原位穿插在正文中，同时不可选中、复制正文时自动剔除。
+ * 设计意图：对齐 Alice .ququ-line 方案——💭 前缀 + 行内 Markdown 渲染 + data-ququ 标记。
+ * 关键约束：aria-hidden 与 data-ququ 必须保留，供 MarkdownRenderer onCopy 过滤。
+ */
+function QuquLine({ text }: { text: string }) {
+  return (
+    <span className="ququ-line" aria-hidden="true" data-ququ="true" data-testid="markdown-aside">
+      <span className="ququ-prefix">{'💭\u00A0'}</span>
+      <span className="ququ-md">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+      </span>
+    </span>
+  )
+}
+
+const MARKDOWN_COMPONENTS: React.ComponentProps<typeof ReactMarkdown>['components'] = {
+  img({ src, alt }) {
+    return <MarkdownImage src={src} alt={alt} />
+  },
+  pre({ children }) {
+    const child = Children.toArray(children).find(isValidElement<{ className?: string; children?: ReactNode }>)
+    const language = /language-([^\s]+)/.exec(child?.props.className ?? '')?.[1] ?? 'text'
+    const codeString = String(child?.props.children ?? '').replace(/\n$/, '')
+    if (language === 'mermaid') {
+      return <MermaidBlock code={codeString} />
+    }
+    return <CodeBlock code={codeString} language={language} />
+  },
+  code({ children }) {
+    return (
+      <code
+        className="rounded px-1.5 py-0.5 text-[0.8125rem]"
+        style={{ background: 'var(--bg-inset)', color: 'var(--accent-fg)' }}
+      >
+        {children}
+      </code>
+    )
+  },
+
+  // 表格
+  table({ children }) {
+    return (
+      <div className="my-3 overflow-x-auto">
+        <table className="w-full border-collapse text-sm">{children}</table>
+      </div>
+    )
+  },
+  thead({ children }) {
+    return <thead className="border-b" style={{ borderColor: 'var(--border-color)' }}>{children}</thead>
+  },
+  th({ children }) {
+    return <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{children}</th>
+  },
+  td({ children }) {
+    return <td className="border-t px-3 py-2" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>{children}</td>
+  },
+
+  // 块元素
+  p({ children }) {
+    return <p className="my-2 leading-relaxed">{children}</p>
+  },
+  h1({ children }) {
+    return <h1 className="mb-3 mt-6 text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{children}</h1>
+  },
+  h2({ children }) {
+    return <h2 className="mb-2 mt-5 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{children}</h2>
+  },
+  h3({ children }) {
+    return <h3 className="mb-2 mt-4 text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{children}</h3>
+  },
+  ul({ children }) {
+    return <ul className="my-2 ml-5 list-disc space-y-1">{children}</ul>
+  },
+  ol({ children }) {
+    return <ol className="my-2 ml-5 list-decimal space-y-1">{children}</ol>
+  },
+  li({ children }) {
+    return <li style={{ color: 'var(--text-primary)' }}>{children}</li>
+  },
+  blockquote({ children }) {
+    return <blockquote className="md-blockquote">{children}</blockquote>
+  },
+  hr() {
+    return <hr className="my-4" style={{ borderColor: 'var(--border-color)' }} />
+  },
+  a({ href, children }) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline transition"
+        style={{ color: 'var(--accent-fg)', textDecorationColor: 'var(--accent-subtle)' }}
+      >
+        {children}
+      </a>
+    )
+  },
+  strong({ children }) {
+    return <strong className="font-semibold" style={{ color: 'var(--text-primary)' }}>{children}</strong>
+  },
+}
+
 export const MarkdownRenderer = memo(function MarkdownRenderer({ content }: MarkdownRendererProps) {
-  const { main, asides } = splitAside(content)
+  const segments = parseAsideSegments(content)
+  const hasAside = segments.some((seg) => seg.type === 'aside')
+
+  const handleCopy = useCallback((event: ClipboardEvent<HTMLDivElement>) => {
+    if (!hasAside) return
+    const selection = window.getSelection()
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0) return
+    const fragment = selection.getRangeAt(0).cloneContents()
+    fragment.querySelectorAll('[data-ququ]').forEach((node) => node.remove())
+    const text = (fragment.textContent ?? '').replace(/\n{3,}/g, '\n\n').trim()
+    if (text) {
+      event.preventDefault()
+      event.clipboardData.setData('text/plain', text)
+    }
+  }, [hasAside])
 
   return (
-    <div className="markdown-body">
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      components={{
-        img({ src, alt }) {
-          return <MarkdownImage src={src} alt={alt} />
-        },
-        pre({ children }) {
-          const child = Children.toArray(children).find(isValidElement<{ className?: string; children?: ReactNode }>)
-          const language = /language-([^\s]+)/.exec(child?.props.className ?? '')?.[1] ?? 'text'
-          const codeString = String(child?.props.children ?? '').replace(/\n$/, '')
-          if (language === 'mermaid') {
-            return <MermaidBlock code={codeString} />
-          }
-          return <CodeBlock code={codeString} language={language} />
-        },
-        code({ children }) {
-          return (
-            <code
-              className="rounded px-1.5 py-0.5 text-[0.8125rem]"
-              style={{ background: 'var(--bg-inset)', color: 'var(--accent-fg)' }}
-            >
-              {children}
-            </code>
-          )
-        },
-
-        // 表格
-        table({ children }) {
-          return (
-            <div className="my-3 overflow-x-auto">
-              <table className="w-full border-collapse text-sm">{children}</table>
-            </div>
-          )
-        },
-        thead({ children }) {
-          return <thead className="border-b" style={{ borderColor: 'var(--border-color)' }}>{children}</thead>
-        },
-        th({ children }) {
-          return <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{children}</th>
-        },
-        td({ children }) {
-          return <td className="border-t px-3 py-2" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>{children}</td>
-        },
-
-        // 块元素
-        p({ children }) {
-          return <p className="my-2 leading-relaxed">{children}</p>
-        },
-        h1({ children }) {
-          return <h1 className="mb-3 mt-6 text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{children}</h1>
-        },
-        h2({ children }) {
-          return <h2 className="mb-2 mt-5 text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{children}</h2>
-        },
-        h3({ children }) {
-          return <h3 className="mb-2 mt-4 text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{children}</h3>
-        },
-        ul({ children }) {
-          return <ul className="my-2 ml-5 list-disc space-y-1">{children}</ul>
-        },
-        ol({ children }) {
-          return <ol className="my-2 ml-5 list-decimal space-y-1">{children}</ol>
-        },
-        li({ children }) {
-          return <li style={{ color: 'var(--text-primary)' }}>{children}</li>
-        },
-        blockquote({ children }) {
-          return <blockquote className="md-blockquote">{children}</blockquote>
-        },
-        hr() {
-          return <hr className="my-4" style={{ borderColor: 'var(--border-color)' }} />
-        },
-        a({ href, children }) {
-          return (
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline transition"
-              style={{ color: 'var(--accent-fg)', textDecorationColor: 'var(--accent-subtle)' }}
-            >
-              {children}
-            </a>
-          )
-        },
-        strong({ children }) {
-          return <strong className="font-semibold" style={{ color: 'var(--text-primary)' }}>{children}</strong>
-        },
-      }}
-    >
-      {main}
-    </ReactMarkdown>
-    {asides.length > 0 && (
-      <div className="mt-2 space-y-1">
-        {asides.map((text, i) => (
-          <p key={i} className="text-[11px] italic" style={{ color: 'var(--text-muted)' }}>
-            {text}
-          </p>
-        ))}
-      </div>
-    )}
+    <div className="markdown-body" onCopy={handleCopy}>
+      {segments.map((seg, index) =>
+        seg.type === 'aside' ? (
+          <QuquLine key={`aside-${index}`} text={seg.text} />
+        ) : (
+          <ReactMarkdown
+            key={`md-${index}`}
+            remarkPlugins={[remarkGfm]}
+            components={MARKDOWN_COMPONENTS}
+          >
+            {seg.text}
+          </ReactMarkdown>
+        ),
+      )}
     </div>
   )
 })

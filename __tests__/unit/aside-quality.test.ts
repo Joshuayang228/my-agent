@@ -5,16 +5,47 @@
 import { describe, it, expect } from 'vitest'
 import {
   splitAside,
+  parseAsideSegments,
+  shouldSuppressAside,
   evaluateAsideTurn,
   evaluateAsideSequence,
   ASIDE_OILY_STREAK,
 } from '../../src/shared/aside'
 
 describe('aside quality (M27-G2)', () => {
-  it('splitAside 拆主答与旁白', () => {
-    const { main, asides } = splitAside('修好了。<aside>这报错眼熟</aside>')
-    expect(main).toBe('修好了。')
-    expect(asides).toEqual(['这报错眼熟'])
+  it('splitAside 拆主答与旁白（兼容 <aside> 与 ~> 独立行）', () => {
+    const legacy = splitAside('修好了。<aside>这报错眼熟</aside>')
+    expect(legacy.main).toBe('修好了。')
+    expect(legacy.asides).toEqual(['这报错眼熟'])
+
+    const ququ = splitAside('~>又要写正则了\n\n好的，帮你写一个匹配邮箱的正则。\n\n~>希望这次一次过')
+    expect(ququ.main).toBe('好的，帮你写一个匹配邮箱的正则。')
+    expect(ququ.asides).toEqual(['又要写正则了', '希望这次一次过'])
+  })
+
+  it('parseAsideSegments 保持原位顺序且不误切代码块', () => {
+    const md = [
+      '~>开头蛐蛐',
+      '正文第一段',
+      '```md',
+      '~>代码块里的波浪线不能被切走',
+      '<aside>代码块里的标签不能被切走</aside>',
+      '```',
+      '~>结尾蛐蛐',
+    ].join('\n')
+    const segs = parseAsideSegments(md)
+    expect(segs.map((s) => s.type)).toEqual(['aside', 'markdown', 'aside'])
+    expect(segs[0].text).toBe('开头蛐蛐')
+    expect(segs[1].text).toContain('~>代码块里的波浪线不能被切走')
+    expect(segs[1].text).toContain('<aside>代码块里的标签不能被切走</aside>')
+    expect(segs[2].text).toBe('结尾蛐蛐')
+  })
+
+  it('shouldSuppressAside 在冷却窗口内返回 true', () => {
+    expect(shouldSuppressAside([])).toBe(false)
+    expect(shouldSuppressAside(['普通回复一', '普通回复二'])).toBe(false)
+    expect(shouldSuppressAside(['普通回复', '搞定了\n~>三点了还在改代码'])).toBe(true)
+    expect(shouldSuppressAside(['搞定了\n~>旧旁白', '普通回复一', '普通回复二'], 2)).toBe(false)
   })
 
   it('合格短旁白通过', () => {

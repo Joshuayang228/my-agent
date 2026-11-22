@@ -18,24 +18,170 @@ export const ASIDE_OILY_WINDOW = 5
 /** 有 aside 时主答最短长度（按码元；中文一句约 4–6 字即可） */
 export const MAIN_MIN_CHARS_WITH_ASIDE = 4
 
+/** 连续带 aside 的冷却轮数：最近 N 轮助手回复只要出现过旁白，本轮硬冷却不注入旁白指令 */
+export const ASIDE_COOLDOWN_TURNS = 2
+
+export interface AsideSegment {
+  type: 'markdown' | 'aside'
+  text: string
+}
+
 export interface SplitAsideResult {
   main: string
   asides: string[]
 }
 
-export function splitAside(raw: string): SplitAsideResult {
-  const re = /<aside>([\s\S]*?)<\/aside>/gi
-  const asides: string[] = []
-  let match: RegExpExecArray | null
-  while ((match = re.exec(raw)) !== null) {
-    const text = match[1].trim()
-    if (text) asides.push(text)
+const RE_QUQU_LINE = /^\s*(?:[-*+]\s+)?~>\s*(.*)$/
+const RE_FENCE_LINE = /^\s*(`{3,}|~{3,})/
+
+/**
+ * 背景：小声蛐蛐（内心独白）需要兼容 Alice 的 `~>` 独立行（流式零闪跳、原位呈现）
+ *       以及历史会话中的 `<aside>...</aside>` 标签，同时不能误切 Markdown 代码围栏内的内容。
+ * 设计意图：按顺序切分为 markdown / aside 片段，UI 可原位渲染，splitAside / 质量门禁共用同一解析真相。
+ * 关键约束：纯函数无 IO；代码块内的 `~>` 与 `<aside>` 必须原样保留；未闭合的 `<aside>` 尾部按流式旁白处理以防跳动。
+ */
+export function parseAsideSegments(raw: string): AsideSegment[] {
+  if (!raw) return []
+  const segments: AsideSegment[] = []
+  const mdLines: string[] = []
+  const flushMd = () => {
+    if (mdLines.length === 0) return
+    const joined = mdLines.join('\n')
+    mdLines.length = 0
+    if (joined.trim()) {
+      segments.push({ type: 'markdown', text: joined })
+    }
   }
-  const main = raw
-    .replace(re, '')
-    .replace(/<\/?aside\b[^>]*>/gi, '')
-    .trim()
-  return { main, asides }
+  const pushAside = (text: string) => {
+    const cleaned = text.trim()
+    if (!cleaned) return
+    segments.push({ type: 'aside', text: cleaned })
+  }
+
+  // 先按行扫描，追踪外层代码围栏，并对非围栏行同时识别 `~>` 行和 `<aside>...</aside>`
+  const lines = raw.split(/\r?\n/)
+  let fenceChar: '`' | '~' | null = null
+  let fenceLen = 0
+  let inLegacyAside = false
+  let legacyBuf: string[] = []
+
+  const flushInlineLegacyAside = (line: string) => {
+    // 处理同一行内可能存在的 <aside>...</aside> 或未闭合 <aside>
+    let cursor = 0
+    const openRe = /<aside\b[^>]*>/gi
+    while (cursor < line.length) {
+      openRe.lastIndex = cursor
+      const openMatch = openRe.exec(line)
+      if (!openMatch) {
+        const rest = line.slice(cursor).replace(/<\/aside>/gi, '')
+        if (rest) mdLines.push(rest)
+        return
+      }
+      const before = line.slice(cursor, openMatch.index).replace(/<\/aside>/gi, '')
+      if (before) mdLines.push(before)
+      const afterOpen = openMatch.index + openMatch[0].length
+      const closeIdx = line.slice(afterOpen).search(/<\/aside>/i)
+      if (closeIdx !== -1) {
+        flushMd()
+        pushAside(line.slice(afterOpen, afterOpen + closeIdx))
+        const closeLen = line.slice(afterOpen + closeIdx).match(/^<\/aside>/i)?.[0].length ?? 8
+        cursor = afterOpen + closeIdx + closeLen
+      } else {
+        // 跨行或流式未闭合的 <aside>
+        flushMd()
+        inLegacyAside = true
+        legacyBuf = [line.slice(afterOpen)]
+        return
+      }
+    }
+  }
+
+  for (const line of lines) {
+    if (inLegacyAside) {
+      const closeIdx = line.search(/<\/aside>/i)
+      if (closeIdx !== -1) {
+        legacyBuf.push(line.slice(0, closeIdx))
+        pushAside(legacyBuf.join('\n'))
+        legacyBuf = []
+        inLegacyAside = false
+        const closeLen = line.slice(closeIdx).match(/^<\/aside>/i)?.[0].length ?? 8
+        const tail = line.slice(closeIdx + closeLen)
+        if (tail.trim()) flushInlineLegacyAside(tail)
+      } else {
+        legacyBuf.push(line)
+      }
+      continue
+    }
+
+    const fenceMatch = line.match(RE_FENCE_LINE)
+    if (fenceMatch) {
+      const marker = fenceMatch[1]
+      const ch = marker[0] as '`' | '~'
+      if (!fenceChar) {
+        fenceChar = ch
+        fenceLen = marker.length
+      } else if (fenceChar === ch && marker.length >= fenceLen && /^\s*$/.test(line.slice(fenceMatch[0].length))) {
+        fenceChar = null
+        fenceLen = 0
+      }
+      mdLines.push(line)
+      continue
+    }
+
+    if (fenceChar) {
+      mdLines.push(line)
+      continue
+    }
+
+    const ququMatch = line.match(RE_QUQU_LINE)
+    if (ququMatch) {
+      flushMd()
+      pushAside(ququMatch[1])
+      continue
+    }
+
+    if (/<\/?aside\b/i.test(line)) {
+      flushInlineLegacyAside(line)
+      continue
+    }
+
+    mdLines.push(line)
+  }
+
+  if (inLegacyAside && legacyBuf.length > 0) {
+    // 流式输出中尚未闭合的 <aside> 尾部：直接作为旁白段渲染，避免先闪成正文再跳动
+    pushAside(legacyBuf.join('\n'))
+  }
+  flushMd()
+  return segments
+}
+
+export function splitAside(raw: string): SplitAsideResult {
+  const segments = parseAsideSegments(raw)
+  const mainParts: string[] = []
+  const asides: string[] = []
+  for (const seg of segments) {
+    if (seg.type === 'aside') asides.push(seg.text)
+    else mainParts.push(seg.text)
+  }
+  return {
+    main: mainParts.join('\n\n').trim(),
+    asides,
+  }
+}
+
+/**
+ * 背景：仅在 Prompt 里口头提醒「不要每轮都有」对 LLM 约束力弱，极易连续刷屏。
+ * 设计意图：结合最近若干轮助手回复做确定性冷却判断，冷却期内主进程直接不注入旁白指令。
+ * 关键约束：纯函数；只检查最近 cooldownTurns 轮非空助手回复。
+ */
+export function shouldSuppressAside(
+  recentAssistantTurns?: string[],
+  cooldownTurns = ASIDE_COOLDOWN_TURNS,
+): boolean {
+  if (!recentAssistantTurns || recentAssistantTurns.length === 0 || cooldownTurns <= 0) return false
+  const window = recentAssistantTurns.slice(-cooldownTurns)
+  return window.some((turn) => splitAside(turn).asides.length > 0)
 }
 
 export interface AsideTurnVerdict {

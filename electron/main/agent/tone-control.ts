@@ -7,6 +7,7 @@
  */
 
 import type { ReplyStance } from './reply-stance'
+import { shouldSuppressAside } from '../../../src/shared/aside'
 
 export type ToneRegister = 'tight' | 'soft' | 'neutral'
 export type AsidePolicy = 'discourage' | 'optional' | 'encourage-once'
@@ -23,17 +24,11 @@ const RE_ERROR_CLIMAX =
 
 const GUIDANCE: Record<ToneRegister, string> = {
   tight:
-    '主答：紧、短、可执行（结论→步骤→验证）；少铺垫。aside：本轮尽量不要，除非一句能减压且不占事实。',
+    '主答：紧、短、可执行（结论→步骤→验证）；少铺垫。',
   soft:
-    '主答：可软一点接住情绪，但仍给一个轻量下一步；别写成小作文鸡汤。aside：最多一句，点到为止。',
+    '主答：可软一点接住情绪，但仍给一个轻量下一步；别写成小作文鸡汤。',
   neutral:
-    '主答：按人设自然回应。aside：可选一句，勿连续多轮都有。',
-}
-
-const ASIDE_LINE: Record<AsidePolicy, string> = {
-  discourage: '旁白策略：discourage（本轮优先无旁白）',
-  optional: '旁白策略：optional（自然才写）',
-  'encourage-once': '旁白策略：encourage-once（可一句心疼或吐槽，勿夺主答）',
+    '主答：按人设自然回应，直率清晰。',
 }
 
 export interface ResolveToneControlInput {
@@ -41,11 +36,14 @@ export interface ResolveToneControlInput {
   executionMode?: string
   sessionKind?: 'main' | 'summon'
   userText?: string
+  /** 最近若干轮助手回复原文，用于内心独白硬冷却 */
+  recentAssistantTurns?: string[]
 }
 
 /**
  * 解析本轮语气收放。
  * 优先级信号：报错高潮/confirm|plan/act → tight；comfort → soft；其余中性。
+ * 冷却期内强制 discourage，让运行时直接省略内心独白格式段，避免反复提醒导致刷屏。
  */
 export function resolveToneControl(input: ResolveToneControlInput): ToneControlResult {
   const signals: string[] = []
@@ -83,9 +81,14 @@ export function resolveToneControl(input: ResolveToneControlInput): ToneControlR
     signals.push('summon-soft-bound')
   }
 
+  // 最近几轮已出现过内心独白 → 硬冷却，本轮不再注入内心独白格式说明
+  if (asidePolicy !== 'discourage' && shouldSuppressAside(input.recentAssistantTurns)) {
+    asidePolicy = 'discourage'
+    signals.push('aside-cooldown')
+  }
+
   const guidance = [
     `语气档位：${register}`,
-    ASIDE_LINE[asidePolicy],
     `行动指引：${GUIDANCE[register]}`,
   ].join('\n')
 

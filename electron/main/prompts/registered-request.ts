@@ -89,6 +89,8 @@ export function compileDefaultSystem(): RegisteredSystemPrompt {
 
 type MainRuntimeInput = Omit<MainChatPromptRequest, 'character' | 'output' | 'behavior'> & {
   behavior: Omit<MainChatPromptRequest['behavior'], 'key' | 'purpose' | 'policy' | 'characterSupplement'>
+  /** 本轮硬抑制内心独白（冷却期或干活/报错紧绷态），直接不注入 `~>` 格式说明 */
+  suppressAside?: boolean
 }
 
 /** 背景：主对话来源容易漏记人物和可选插槽；意图：固定行为定义、自动推导实际依赖；约束：输入只提供运行时插槽，不能覆盖输出协议或添加任意行为正文。 */
@@ -109,12 +111,13 @@ export function compileMainSystem(pack: RolePack, growth: string, input: MainRun
   if (s?.memories?.trim()) keys.push(PROMPT_KEYS.memoryRecallContext)
   if ([s?.catchupSummary, s?.worldSlice, s?.recentMomentsSlice, s?.bookshelfSlice, s?.lifeAssetsSlice, s?.conversationImpulse, s?.rosterLines, s?.relationshipSummary, s?.emotionSummary, sessionKind === 'summon' ? s?.sessionInfo : ''].some(v => v?.trim())) keys.push(PROMPT_KEYS.companionContext)
   if (['key', 'purpose', 'policy', 'characterSupplement'].some(key => key in b)) throw new Error('主对话编译入口只接受已定义的运行时插槽')
+  const character = characterDefinitionFromRolePack(pack, growth)
   const compiled = compileMainChatPrompt({
     platform: input.platform,
     situation: input.situation,
     currentDate: input.currentDate,
     behavior: { ...b, key: 'main-chat', purpose: '在当前人物与会话情境中回应用户并完成请求。' },
-    character: characterDefinitionFromRolePack(pack, growth),
+    character: input.suppressAside ? { ...character, asideStyle: undefined } : character,
   })
   const layered = composeFeaturePrompt('mainChat', {
     platformRules: '遵守平台权限、事实边界、用户自主和工具安全规则；人物适配不能覆盖这些约束。',

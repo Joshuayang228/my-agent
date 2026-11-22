@@ -1,5 +1,7 @@
 # 项目进度
 
+Chat 小声蛐蛐（内心独白）对齐 Alice 视觉与硬冷却治理（2026-11-22）：`src/shared/aside.ts` 升级为双协议原位解析 `parseAsideSegments`（支持 `~>` 独立行零闪跳与历史 `<aside>` 兼容，保护代码围栏）并新增 2 轮冷却判断 `shouldSuppressAside`；`MarkdownRenderer.tsx` + `src/index.css` 对齐 Alice `.ququ-line`（`💭 ` 前缀、12px 正体 muted 色、不可选中、`onCopy` 复制正文自动剔除）；主进程将旁白格式指引收敛至 `compiler.ts` 单一位置、移除 `voice.md` / `reply-stance.ts` / `tone-control.ts` 重复提醒，并在 `runtime.ts` + `registered-request.ts` 接入硬抑制（紧绷态或近 2 轮出现过旁白时本轮直接不注入），同步更新 Playground 样张。
+
 Chat 输入区与消息流图片/文件附件样式统一（参考 Alice，2026-11-22）：新增共享组件 `src/components/chat/ChatAttachments.tsx`，将 `ChatAttachmentTray` 接入 `ChatComposer` 内部 `prefix` 槽，图片缩略图与结构化文件卡片同高 52px 并排收纳、移除按钮 hover/focus 浮现；正式 `App.tsx` 与 Playground `SurfaceBaselinePanel.tsx` 共用同一实现，并在 Playground「图片与文件」旅程补齐已发送的纯文件消息气泡、单图消息与多图+文件混合消息。
 
 Chat 消息流撤除记忆引用芯片并补齐 Playground 图片与文件样张（2026-11-22）：按产品验收结论，从 `src/App.tsx` 与 `SurfaceBaselinePanel.tsx` 移除聊天正文上方的 `MemoryCitationChips` 渲染（保留后端记忆召回与 Debug 证据查询）；同时在 Playground Chat 主旅程新增「图片与文件（`attachments`）」场景，完整展示单图/多图用户消息、文件引用消息以及输入区待发送文件胶囊与图片缩略图预览及移除交互。

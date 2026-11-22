@@ -489,9 +489,9 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
           <StoryBlock title="原始代码与围栏" source="src/components/MarkdownRenderer.tsx · CodeBlock" edge adopted>
             <CodeBlock language="text" code={'```markdown\n# 原样标题\n<aside>保留在文件内</aside>\n[原样链接](https://example.invalid/)\n```'} />
           </StoryBlock>
-          <StoryBlock title="内心独白与长文" source="src/components/MarkdownRenderer.tsx · aside guard" edge adopted>
+          <StoryBlock title="小声蛐蛐与长文" source="src/components/MarkdownRenderer.tsx · ququ-line" edge adopted>
             <div className="max-w-xl text-[13px] leading-6" style={{ color: 'var(--text-primary)' }}>
-              <MarkdownRenderer content={'我先给你一个可以直接执行的版本。<aside>这是一段故意拉长的内心独白，用来检查窄栏换行、正文层级和弱化后的可读性，不能盖过真正的回答。</aside>'} />
+              <MarkdownRenderer content={'~>先小声嘀咕一句：拖选复制正文时，这行内心独白不会被带进剪贴板\n\n我先给你一个可以直接执行的版本。\n\n~>这是一段故意拉长的内心独白，用来检查窄栏换行、原位穿插层级和弱化后的可读性，不能盖过真正的回答\n\n同时兼容旧会话里的 `<aside>` 标签写法。<aside>历史消息中的旁白也会自动渲染成同款样式</aside>'} />
             </div>
           </StoryBlock>
           <StoryBlock title="局部四主题与图表" source="src/components/MarkdownRenderer.tsx · foundation/mermaid-renderer.ts" edge adopted>

@@ -729,7 +729,7 @@ Playground 产品体验显式使用 `content-layout.ts` 的场景密度：Chat �
   → assertSessionRole(session.role_id)          # 禁止偷换人设
   → loadRoleAssembleInput(roleId)               # Pack + MUTABLE + catchup + worldSlice + recentMoments + roster
   → detectReplyStance(lastUser)                 # M27-G1 问/做/安慰/推回 hint
-  → resolveToneControl(stance, mode, text)      # M27-G3 紧/软/中性 + aside 策略
+  → resolveToneControl(stance, mode, text, recentAssistantTurns)  # M27-G3 紧/软/中性 + 2 轮硬冷却抑制 aside 注入
   → resolveRelationshipStageForRole(...)        # M28-G1/G2 阶段 + 交心/干活 lean
   → memory.buildUserProfile()                   # 结构化画像
   → safeVectorSearch(lastUser)                  # 向量语义召回 → 情境上下文 memories

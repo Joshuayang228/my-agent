@@ -637,7 +637,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                           content={[
                             '都帮你过了一遍，关键点先列在下面：',
                             '',
-                            '<aside>（小声嘀咕：先把窗边光线和刚刚查到的结果对齐一下，免得又漏掉空态边距。）</aside>',
+                            '~>先把窗边光线和刚刚查到的结果对齐一下，免得又漏掉空态边距',
                             '',
                             '- 共享间距来自 `src/shared/content-layout.ts` 的 `SPACING`；',
                             '- 朋友圈动态、文化角书架和配图都已挂在下方工具卡里，点击每张卡可展开/收起参数和结果。',

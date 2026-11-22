@@ -125,7 +125,9 @@ function buildCharacterModules(character: PromptCharacterDefinition): PromptSema
     character.profile?.trim() ? `## 人物档案\n${character.profile.trim()}\n（当前地点、心情和活动以运行时情境为准。）` : undefined,
     character.worldDefault?.trim() ? `## 默认生活世界\n${character.worldDefault.trim()}\n（当前状态和已发生事件以运行时情境为准。）` : undefined,
     character.voice?.trim() ? `## 表达基线\n${character.voice.trim()}\n（只约束表达倾向，不改变事实、权限和稳定身份。）` : undefined,
-    character.asideStyle?.trim() ? `## 回复格式\n回复可包含主回复和一句 <aside>...</aside> 旁白；${character.asideStyle.trim()}。旁白最多一句，只在自然合适时出现，不得代替主答。` : undefined,
+    character.asideStyle?.trim()
+      ? `## 回复格式\n你可以在回复中偶尔穿插一句内心独白（小声蛐蛐），格式为单独一行，以 \`~>\` 开头（波浪线加大于号，不要用 Markdown 的 \`>\` 引用块）。\n风格参考：${character.asideStyle.trim()}。\n规则：可在正文前、中、后任意位置出现，也可完全不写；一轮最多一句且简短自然（不超过 35 字），不要刻意堆砌省略号；关键信息和结论必须写在正文里，内心独白不得代替主答。`
+      : undefined,
     '[/PROTECTED]',
   ])
   const growth = moduleBlock('character-growth', 'session', [

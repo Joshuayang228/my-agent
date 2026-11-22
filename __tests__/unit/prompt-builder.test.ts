@@ -44,7 +44,7 @@ describe('buildSystemPrompt', () => {
     const prompt = buildSystemPrompt(makeCtx({ persona }))
 
     expect(prompt).toContain('## 回复格式')
-    expect(prompt).toContain('<aside>')
+    expect(prompt).toContain('~>')
     expect(prompt).toContain('温柔碎碎念')
   })
 

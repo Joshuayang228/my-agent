@@ -966,3 +966,45 @@ html[data-font-scale="lg"] {
 .resize-handle:active {
   background: color-mix(in srgb, var(--accent) 45%, transparent);
 }
+
+
+/* ── 小声蛐蛐（内心独白，对齐 Alice .ququ-line） ──
+ * 背景：内心独白应轻盈克制，不抢正文视觉权重，且在用户拖选复制正文时不可被带入剪贴板。
+ * 设计意图：12px 正体 muted 色 + 透明选区高亮 + 内部行内 Markdown 展平。
+ * 关键约束：依赖 data-ququ 属性配合 MarkdownRenderer 的 onCopy 过滤。
+ */
+.ququ-line,
+.ququ-line * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+.ququ-line::selection,
+.ququ-line *::selection {
+  background: transparent !important;
+  color: inherit !important;
+}
+.ququ-line {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  opacity: 0.78;
+  margin: 0.5rem 0;
+  line-height: 1.6;
+}
+.ququ-prefix {
+  display: inline;
+}
+.ququ-md {
+  display: inline;
+}
+.ququ-md p {
+  display: inline;
+  margin: 0;
+}
+.ququ-md strong {
+  font-weight: 600;
+  color: inherit;
+}
+.ququ-md em {
+  font-style: italic;
+}

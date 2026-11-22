@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-22 参考 Alice 的「蛐蛐（`.ququ-line` / `~>`）」重构小声蛐蛐样式与频次控制：`src/shared/aside.ts` 新增 `parseAsideSegments` 与 `shouldSuppressAside`（同时兼容 `~>` 独立行与历史 `<aside>...</aside>`，跳过代码围栏且支持流式未闭合不跳动）；`MarkdownRenderer.tsx` 与 `src/index.css` 落地 `💭 ` 前缀、12px 正体 muted 原位渲染及 `user-select: none` + `onCopy` 自动剔除；主进程收敛 Prompt 单一事实源（消除 4 处重复提及）并接入 2 轮硬冷却与紧绷态静默抑制，Playground 同步更新样张。
+
 2026-11-22 参考 Alice 输入卡内一体化附件托盘，新增共享 `ChatAttachments.tsx`（`ChatAttachmentTray` / `ChatFileChip` / `ChatImageThumb`）：将待发送图片缩略图（52×52，移除角标仅 hover/focus 浮现）与结构化文件卡片（同高 52px，类型图标 + 文件名 + 扩展名与大小）统一收纳进 `ChatComposer` 卡片内部 `prefix` 托盘，并在 Playground Chat「图片与文件」旅程补齐发出去的纯文件消息气泡、单图消息气泡与多图+文件混合消息气泡，正式页 `App.tsx` 同步切换为同一组件。
 
 2026-11-22 从正式 Chat 消息流与 Playground 旅程中撤掉正上方 `MemoryCitationChips` 记忆引用芯片（后端召回与 Debug 记录保持不变）；并在 Playground Chat 新增「图片与文件」主旅程，补齐已发送单图/多图与文件引用消息样式以及输入区待发送图片缩略图、文件胶囊预览交互。

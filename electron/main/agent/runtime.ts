@@ -363,6 +363,10 @@ class AgentRuntime {
 
       // M27-G1/G3：立场 + 语气收放（不拦 Loop）
       const userText = lastUserMsg?.content ?? ''
+      const recentAssistantTurns = messages
+        .filter((m) => m.role === 'assistant' && Boolean(m.content?.trim()))
+        .slice(-4)
+        .map((m) => m.content || '')
       const stance = detectReplyStance(userText, { executionMode })
       const replyStanceHint = formatReplyStanceForPrompt(stance) || undefined
       const tone = resolveToneControl({
@@ -370,6 +374,7 @@ class AgentRuntime {
         executionMode,
         sessionKind: isSummon ? 'summon' : 'main',
         userText,
+        recentAssistantTurns,
       })
       const toneControlHint = formatToneControlForPrompt(tone)
       // M28-G1：关系阶段（召唤强制陌生客人）
@@ -456,6 +461,7 @@ class AgentRuntime {
           contextEvidence: promptContext.prompt.contextEvidence,
         },
         currentDate: new Date().toLocaleDateString('sv-SE'),
+        suppressAside: tone.asidePolicy === 'discourage',
       }, isSummon ? 'summon' : isWorkspace ? 'workspace' : 'main')
 
       // ── 运行 Agent Loop ──

@@ -35,6 +35,16 @@ describe('resolveToneControl', () => {
     expect(t.register).toBe('tight')
   })
 
+  it('最近两轮出现过旁白时触发硬冷却 → discourage + aside-cooldown', () => {
+    const t = resolveToneControl({
+      stance: 'balanced',
+      userText: '今天天气不错',
+      recentAssistantTurns: ['普通回复', '是呀\n~>海风吹得挺舒服'],
+    })
+    expect(t.asidePolicy).toBe('discourage')
+    expect(t.signals).toContain('aside-cooldown')
+  })
+
   it('注入 prompt-builder', () => {
     const pack = loadRolePack('lin')
     const tone = resolveToneControl({ stance: 'comfort' })
