@@ -17,6 +17,11 @@ describe('World Frontend Polish（顶栏与新 Tab 去数值化与克制交互�
       },
     }))
     expect(html).toContain('心情不错，和你越来越有默契')
+    expect(html).toContain('world-profile-vitals')
+    expect(html).toContain('心情')
+    expect(html).toContain('精力')
+    expect(html).toContain('兴致')
+    expect(html).not.toContain('ring-4')
     expect(html).not.toContain('看数字')
     expect(html).not.toContain('心情 82/100')
     expect(html).not.toContain('关系信号')

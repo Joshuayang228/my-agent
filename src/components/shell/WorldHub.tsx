@@ -161,10 +161,10 @@ export function WorldHub({
         </IconButton>
       </div>)}
 
-      <div className="flex min-w-0 shrink-0 items-center gap-2 border-b px-5 pt-0.5" style={{ borderColor: 'var(--border-subtle)' }}>
+      <div className="flex min-w-0 shrink-0 items-center gap-2 border-b px-5 py-1.5" style={{ borderColor: 'var(--border-subtle)' }}>
         <TabStrip
           label="人物世界分区"
-          variant={previewPanels ? previewTabVariant ?? 'underline' : 'underline'}
+          variant={previewPanels ? previewTabVariant ?? 'pill' : 'pill'}
           items={visibleTabs.map(item => ({
             id: item.id,
             label: labelFor(item),

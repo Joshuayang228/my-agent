@@ -1,9 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
-import { Image as ImageIcon, MessageSquareShare, RotateCcw, X } from 'lucide-react'
+import { Image as ImageIcon, MapPin, MessageSquareShare, RotateCcw, X } from 'lucide-react'
 import { IconButton } from '../foundation/IconButton'
 import { ActionButton } from '../foundation/ActionButton'
 import { CompanionAvatar } from '../CompanionAvatar'
 import type { CompanionTodayTimeline } from '../../shared/types'
+
+function clampPercent(value: number): number {
+  if (!Number.isFinite(value)) return 50
+  return Math.max(6, Math.min(100, Math.round(value)))
+}
+
+function describeVitalLevel(kind: 'mood' | 'energy' | 'social', value: number): string {
+  if (kind === 'mood') return value >= 75 ? '明亮有劲' : value >= 45 ? '还算平稳' : '有点低落'
+  if (kind === 'energy') return value >= 75 ? '精力充沛' : value >= 45 ? '精力还够用' : '有点累了'
+  return value >= 70 ? '想找人聊聊' : value >= 40 ? '随缘聊两句' : '更想安静待会儿'
+}
 
 export interface WorldProfile {
   name: string
@@ -140,7 +151,7 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
           </div>
         )}
 
-        {/* 角色专属大头像 */}
+        {/* 角色专属大头像（纸白细边，避免默认 currentColor 黑圈） */}
         <div className="relative z-10 shrink-0">
           <CompanionAvatar
             src={profile.avatarSrc}
@@ -149,21 +160,20 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
             size="lg"
             shape="rounded"
             themeColor={profile.themeColor}
-            className="ring-4 shadow-md !border-2"
+            className="!border-2 shadow-sm"
           />
         </div>
 
         <div className="relative z-10 min-w-0 flex-1 pb-0.5">
-          <h1 className="text-[16px] font-semibold leading-6 [overflow-wrap:anywhere]" style={{ color: 'var(--text-primary)' }}>{name}</h1>
-          {profile.description.trim() && (
-            <p
-              className="mt-0.5 truncate text-[12px] leading-5"
-              title={profile.description.trim()}
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              {profile.description.trim()}
-            </p>
-          )}
+          <div className="flex flex-wrap items-baseline gap-2">
+            <h1 className="text-[17px] font-semibold leading-6 [overflow-wrap:anywhere]" style={{ color: 'var(--text-primary)' }}>{name}</h1>
+            {currentSlot?.location && (
+              <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                <MapPin size={11} />
+                {currentSlot.location}
+              </span>
+            )}
+          </div>
           {currentSlot ? (
             <div className="mt-1.5 flex items-center" data-testid="world-profile-status">
               {onTakeToChat ? (
@@ -208,6 +218,46 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
             </p>
           ) : null}
         </div>
+
+        {/* 右下角极简无数字状态微条（心情 / 精力 / 兴致），悬停展示自然语言解读 */}
+        {profile.statusMetrics && (
+          <div
+            className="relative z-10 hidden shrink-0 items-center gap-3 rounded-full border px-3 py-1.5 sm:flex"
+            data-testid="world-profile-vitals"
+            aria-label="当前状态"
+            style={{
+              background: 'color-mix(in srgb, var(--card-bg) 82%, transparent)',
+              borderColor: 'var(--border-subtle)',
+            }}
+          >
+            {([
+              { key: 'mood', label: '心情', value: profile.statusMetrics.mood },
+              { key: 'energy', label: '精力', value: profile.statusMetrics.energy },
+              { key: 'social', label: '兴致', value: profile.statusMetrics.socialNeed },
+            ] as const).map((vital) => (
+              <div
+                key={vital.key}
+                className="flex items-center gap-1.5"
+                title={`${vital.label}：${describeVitalLevel(vital.key, vital.value)}`}
+              >
+                <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{vital.label}</span>
+                <span
+                  className="block h-1.5 w-11 overflow-hidden rounded-full"
+                  style={{ background: 'color-mix(in srgb, var(--border-subtle) 85%, transparent)' }}
+                >
+                  <span
+                    className="block h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${clampPercent(vital.value)}%`,
+                      background: 'var(--accent-fg)',
+                      opacity: 0.85,
+                    }}
+                  />
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* 右上角收敛操作：轻量外观菜单 + 返回聊天 */}
         <div ref={menuRef} className="absolute right-4 top-3 z-20 flex items-center gap-1">

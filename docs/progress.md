@@ -1,5 +1,7 @@
 # 项目进度
 
+人物世界页头精修与主 Tab 柔和胶囊选中态（2026-11-23）：修复头像 `ring-4` 黑圈问题，头图移除重复人设长简介并加入「心情 / 精力 / 兴致」无数字状态微条；`TabStrip` 新增 `pill` 变体并在 `WorldHub` 替换底部横线选中态。
+
 修复「聊一聊」带回 Chat 输入框光标默认在最左侧（2026-11-23）：`src/App.tsx` 的 `onTakeToChat` 与 `onGenerateAssetImage` 在视图切回并写入草稿后调用 `setSelectionRange(end, end)`，将光标精准定位至文本末尾。
 
 人物世界顶部去「全天日程」轻量化与礼物柜全量配图（2026-11-23）：`WorldProfileHeader.tsx` 撤除剧透未来槽位且占屏的「今日轨迹 / 全天日程」独立通栏，将当前活动收敛为头图内一行可点击直通 Chat 的「此刻」轻胶囊并收紧头图高度；为路飞 4 件预置礼物/信物生成 Role Pack 插画并写入 `life-presets.json`，`gifting.ts` 与 `relationship-keepsake.ts` 统一支持静态 Role Pack 图解析及新礼物的非阻塞后台生图，`WorldKeepsakesPanel.tsx` 对齐基础层 3 列 `4/3` 卡片与详情灯箱预览。

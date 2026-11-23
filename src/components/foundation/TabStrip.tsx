@@ -18,7 +18,7 @@ interface TabStripProps {
   onSelect: (id: string) => void
   onClose?: (id: string) => void
   itemTestId?: string
-  variant?: 'underline' | 'surface'
+  variant?: 'underline' | 'surface' | 'pill'
 }
 
 /**
@@ -49,14 +49,26 @@ export function TabStrip({ label, items, activeId, onSelect, onClose, itemTestId
       return <Fragment key={item.id}>
         {item.separatorBefore && <span aria-hidden="true" className="flex h-8 shrink-0 items-center px-1" style={{ color: 'var(--text-muted)' }}>|</span>}
         <div role="presentation" data-testid={itemTestId}
-        className="flex shrink-0 items-center rounded-md px-1 hover:bg-[var(--bg-secondary)]"
-        style={{ background: variant === 'surface' && active ? 'var(--bg-secondary)' : undefined }}>
+        className={`flex shrink-0 items-center transition-colors ${variant === 'pill' ? 'rounded-full' : 'rounded-md px-1 hover:bg-[var(--bg-secondary)]'}`}
+        style={{
+          background: variant === 'surface' && active
+            ? 'var(--bg-secondary)'
+            : variant === 'pill' && active
+              ? 'var(--accent-subtle)'
+              : undefined,
+        }}>
         <button ref={(node) => { if (node) buttons.current.set(item.id, node); else buttons.current.delete(item.id) }}
           id={prefix + '-tab-' + index} type="button" role="tab" aria-selected={active}
           aria-controls={item.panelId} tabIndex={active || (!items.some((entry) => entry.id === activeId) && index === 0) ? 0 : -1}
           title={item.label} data-testid={item.testId} data-instance-id={item.id}
-          className="inline-flex h-8 min-w-0 max-w-52 items-center gap-2 rounded px-2 text-[12px] outline-offset-[-2px]"
-          style={{ color: active ? 'var(--text-primary)' : 'var(--text-muted)', borderBottom: variant === 'underline' ? '2px solid' : undefined, borderColor: active ? 'var(--accent-fg)' : 'transparent' }}
+          className={`inline-flex h-8 min-w-0 max-w-52 items-center gap-1.5 text-[12px] outline-offset-[-2px] transition-colors ${variant === 'pill' ? `rounded-full px-3 ${active ? 'font-medium' : 'hover:bg-[var(--hover-overlay)]'}` : 'gap-2 rounded px-2'}`}
+          style={{
+            color: variant === 'pill'
+              ? (active ? 'var(--accent-fg)' : 'var(--text-muted)')
+              : (active ? 'var(--text-primary)' : 'var(--text-muted)'),
+            borderBottom: variant === 'underline' ? '2px solid' : undefined,
+            borderColor: variant === 'underline' ? (active ? 'var(--accent-fg)' : 'transparent') : undefined,
+          }}
           onClick={() => onSelect(item.id)}
           onKeyDown={(event) => {
             const offset = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
