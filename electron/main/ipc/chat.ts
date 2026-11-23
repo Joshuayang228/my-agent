@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { runtime } from '../agent/runtime'
 import { ToolRegistry } from '../tools/registry'
 import { createLogger } from '../utils/logger'
+import { MAX_DOCUMENT_ATTACHMENT_BYTES, parseDocumentAttachment } from '../utils/document-parser'
 import { toAgentError } from '../errs'
 import type { ChatMessage, WorkspaceChatContext } from '../../../src/shared/types'
 import { recordUserActivity } from '../companion/life/host-presence'
@@ -70,6 +71,22 @@ function readWorkspaceChatContext(value: unknown): WorkspaceChatContext | undefi
 export function registerChatIPC(toolRegistry: ToolRegistry): void {
   const handle = registerSecureIpcHandler
   handle('ping', () => 'pong')
+
+  handle('chat:parseAttachment', async (_event, rawPayload: unknown) => {
+    if (!rawPayload || typeof rawPayload !== 'object') {
+      return { ok: false as const, error: '附件参数无效' }
+    }
+    const { fileName, dataBase64 } = rawPayload as Record<string, unknown>
+    if (typeof fileName !== 'string' || !fileName.trim() || fileName.length > 260) {
+      return { ok: false as const, error: '文件名无效' }
+    }
+    // base64 编码后体积约为原文 4/3，提前拦截超大载荷避免无谓解码
+    if (typeof dataBase64 !== 'string' || !dataBase64 || dataBase64.length > Math.ceil(MAX_DOCUMENT_ATTACHMENT_BYTES * 1.4)) {
+      return { ok: false as const, error: '文档超过 10MB 限制' }
+    }
+    const buffer = Buffer.from(dataBase64, 'base64')
+    return parseDocumentAttachment(fileName, buffer)
+  })
 
   handle('chat:abort', (event, sessionId?: string) => {
     const normalizedSessionId = typeof sessionId === 'string' && sessionId.length <= MAX_CHAT_ID_LENGTH ? sessionId : undefined

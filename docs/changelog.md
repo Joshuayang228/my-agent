@@ -16,6 +16,8 @@
 
 2026-11-23 重构 Chat 左侧轮次跳转轨为极简圆点 + 单条悬停预览卡并补齐礼物配图断言：`ChatScrollNavigator.tsx` 彻底移除白底补丁背景，改为纵向极简圆点轨；鼠标悬停单个圆点时仅在对应位置浮现该条单轮预览卡（用户发言加粗 + 伙伴回复摘录 + `idx / total` 与时间），点击精准跳转；`App.tsx` 为 `userTurns` 同步组装 `replyPreview` 与 `timestamp`；`__tests__/unit/gifting.test.ts` 补齐 `shanks-straw-hat` 与 `going-merry` 返回真实 `data:image/png;base64,` 的端到端断言。
 
+2026-11-23 补齐聊天图片与文档附件全链路：点击回形针或拖拽图片现已统一走多模态视觉通道（不再当纯文本读成乱码）；新增主进程 `chat:parseAttachment`（`unpdf` / `mammoth` / `xlsx`）支持直接解析 PDF、Word（`.docx`）与 Excel（`.xlsx`/`.xls`）正文；允许仅附带文件或图片不输入文字直接发送，并对不支持的二进制文件给出友好提示。
+
 2026-11-23 修复聊天发送图片后 AI 看不到图且回复结束图片消失的 Bug：`database.ts`（v28→v29）与 `session-store.ts` 为 `messages` 表新增 `images` 列并在保存、读取与分支复制中完整持久化用户图片附件；`App.tsx` 允许不输入文字直接发送图片；`request-builders.ts` 在纯文本模型降级去图时提供明确的中文不支持视觉提示。
 
 2026-11-23 优化严格格式约束下的语气与旁白收放：`electron/main/agent/tone-control.ts` 新增严格输出格式约束信号识别（`strict-format`），在用户明确要求纯文本、字数、大小写、禁用词或精确结构时自动抑制 `~>` 内心独白与多余首尾过渡语，Google IFEval（有效 23 题）Prompt-Strict 从 78.3% 提升至 91.3%（与 Loose 持平），`general-agent-bench` 达 20/20 满分；常规聊天与情绪陪伴人设表现保持不变。

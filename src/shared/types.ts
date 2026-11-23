@@ -13,6 +13,10 @@ export interface ImageAttachment {
   fileName?: string
 }
 
+export type ChatAttachmentParseResult =
+  | { ok: true; text: string; truncated: boolean }
+  | { ok: false; error: string }
+
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant' | 'system' | 'tool'

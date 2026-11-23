@@ -909,6 +909,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     /** 只传本轮用户消息；完整历史由主进程 session-store 加载 */
     send: (sessionId: string, userMessage: ChatMessage, context?: import('../../src/shared/types').WorkspaceChatContext) =>
       ipcRenderer.invoke('chat:send', sessionId, userMessage, context),
+    parseAttachment: (payload: { fileName: string; dataBase64: string }) =>
+      ipcRenderer.invoke('chat:parseAttachment', payload),
     abort: (sessionId?: string) => ipcRenderer.invoke('chat:abort', sessionId),
     onEvent: (callback: (event: AgentStreamEvent) => void) => {
       const handler = (_e: Electron.IpcRendererEvent, ev: AgentStreamEvent) => callback(ev)
