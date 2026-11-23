@@ -1,5 +1,7 @@
 # 项目进度
 
+恢复侧栏「+ 新对话」胶囊按钮与修复 hover、移除角色名下拉箭头及修正路飞台词（2026-11-23）：`PrimarySidebar.tsx` 恢复浅绿胶囊「+ 新对话」与右侧搜索按钮并修复 hover，移除角色名旁误导性 `▾` 箭头；路飞 `manifest.json` 招牌台词修正为「我是要成为海贼王的男人！」。
+
 左导轨 20px 图标体系统一与去重收口（2026-11-23）：`NavigationRail.tsx` 全员放大至 `20px`（`38×38` 热区），底部 `Debug` / `Playground` 换为简洁几何图标 `Terminal` / `Layers`，并去除与「朋友圈」重复的常驻「人物世界」图标（仅在 0 快捷项时兜底）。
 
 右侧工作区富文档渲染与批注回传 Phase P0（Playground 隔离候选）就绪（2026-11-23）：新增施工合同 `docs/requirements/workspace-rich-preview-and-annotations-v1.md`，实现共享批注纯函数与 4 个富预览组件（`SpreadsheetPreview` 多 Sheet + 拖拽选区、`HtmlAnnotatePreview` 沙箱 `allow-scripts` + 随机 token `postMessage` 拾取元素、`DocxPreview` 白名单清洗富文本 + 划词、`PdfPreview` 按页翻页缩放）及统一 `AnnotationBar`，接入 `Playground → 产品体验 → 工作区` 四个新场景并与模拟主对话壳打通「发送到对话」；未改动任何正式生产页面，待用户验收 P0 后进入 P1 正式回流与主进程真实解析。

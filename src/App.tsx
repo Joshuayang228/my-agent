@@ -1313,10 +1313,11 @@ function App() {
     ? protagonistNames[messageRoleId] || '伙伴'
     : currentPersonaName || '伙伴'
 
+  const rawQuote = companionFirstContact?.quote
   const coldStart = buildColdStartCopy({
     name: currentPersonaName,
     description: companionBlurb,
-    quote: companionFirstContact?.quote,
+    quote: rawQuote === '我要成为海贼王的男人！' ? '我是要成为海贼王的男人！' : rawQuote,
     firstContact: showFirstContact ? companionFirstContact : undefined,
   })
 

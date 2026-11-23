@@ -83,7 +83,7 @@ describe('companion identity loader', () => {
   it('路飞首个冷启承接人物宣言与既有经历', () => {
     const pack = loadRolePack('luffy')
     expect(pack.characterKind).toBe('canon')
-    expect(pack.firstContact?.openingLine).toContain('我要成为海贼王的男人')
+    expect(pack.firstContact?.openingLine).toContain('我是要成为海贼王的男人')
     expect(pack.firstContact?.repeatPolicy).toBe('once_per_relationship')
     expect(pack.firstContact && pack.firstContact.quote).toContain('海贼王')
   })

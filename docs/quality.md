@@ -1,6 +1,6 @@
 # 质量总控
 
-左导轨 20px 图标与快捷入口去重回归（2026-11-23）：`navigation-rail.test.ts` 同步校验有快捷入口时不重复渲染 `rail-nav-world`、清空快捷入口时兜底渲染 `rail-nav-world`；定向单测与 `tsc --noEmit` 全绿。
+左导轨 20px 图标与快捷入口去重回归（2026-11-23）：`navigation-rail.test.ts` 同步校验有快捷入口时不重复渲染 `rail-nav-world`、清空快捷入口时兜底渲染 `rail-nav-world`；`companion-identity.test.ts` 同步更新路飞 `firstContact` 台词断言；定向单测与 `tsc --noEmit` 全绿。
 
 右侧工作区富文档渲染与批注回传 P0 单元测试（2026-11-23）：新增 `__tests__/unit/workspace-rich-preview.test.ts`（5 项），覆盖 Excel 列字母换算/反向矩形选区规范化与 Markdown 表格切片、HTML 拾取脚本按需注入与随机 `channelToken` 防伪造拦截、Word HTML 白名单清洗（剥离 `<script>`/`<iframe>`/`on*`/`javascript:`/非图片 `data:`）及四类批注格式化输出；`typecheck`、`assets:check`（120/120）与 `vite build` 全绿通过。
 

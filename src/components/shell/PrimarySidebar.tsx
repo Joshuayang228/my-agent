@@ -6,7 +6,7 @@
 import type { RefObject, ReactNode, MouseEvent, ChangeEvent, KeyboardEvent } from 'react'
 import {
   Plus, Search, X, Pin, Sparkles, Settings,
-  Bug, FlaskConical, PanelLeftClose, ChevronDown,
+  Bug, FlaskConical, PanelLeftClose,
 } from 'lucide-react'
 import type { ShellView } from './SecondaryNav'
 import { isWorldView } from './WorldHub'
@@ -129,15 +129,12 @@ export function PrimarySidebar({
       }}
       data-testid="primary-sidebar"
     >
-      <div className={collapseControlPlacement === 'header' ? 'flex shrink-0 items-center justify-between gap-1 px-2.5 pt-2.5' : 'contents'}>
-      {/* 品牌 / 主角：双栏模式下收敛为 Codex 同款单行「路飞 ▾」，右侧并排搜索与收起图标 */}
+      <div className={collapseControlPlacement === 'header' ? 'flex shrink-0 items-center justify-between gap-1 px-3 pt-3' : 'contents'}>
+      {/* 品牌 / 主角：干净展示主角名（不加误导性的下拉小箭头），右侧放置收起侧栏按钮 */}
       <ActionButton
         onClick={onOpenShelf}
         size="sm"
-        className={`w-auto justify-start gap-2 border-0 px-2 py-1.5 text-left ${collapseControlPlacement === 'header' ? 'min-w-0' : 'mx-3 mt-4'}`}
-        style={{ background: 'transparent' }}
-        onMouseEnter={(event) => { event.currentTarget.style.background = 'var(--sidebar-hover)' }}
-        onMouseLeave={(event) => { event.currentTarget.style.background = 'transparent' }}
+        className={`w-auto justify-start gap-2.5 border-0 px-2 py-1.5 text-left transition hover:bg-[var(--sidebar-hover)] ${collapseControlPlacement === 'header' ? 'min-w-0 flex-1' : 'mx-3 mt-4'}`}
         title="打开角色架"
       >
         {showBrandAvatar && (
@@ -150,9 +147,8 @@ export function PrimarySidebar({
           />
         )}
         <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-1 truncate text-[14px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-            <span className="truncate">{personaName || '伙伴'}</span>
-            <ChevronDown size={13} strokeWidth={1.8} className="shrink-0" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
+          <span className="block truncate text-[15px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+            {personaName || '伙伴'}
           </span>
           {showBrandAvatar && personaBlurb && (
             <span className="mt-0.5 block truncate text-[11px] font-normal" style={{ color: 'var(--text-muted)' }}>
@@ -162,38 +158,24 @@ export function PrimarySidebar({
         </span>
       </ActionButton>
       {collapseControlPlacement === 'header' && (
-        <div className="flex shrink-0 items-center gap-0.5">
-          {!sidebarSearchOpen && (
-            <IconButton
-              size={28}
-              onClick={onToggleSearch}
-              className="rounded-[var(--radius-md)] transition hover:bg-[var(--sidebar-hover)]"
-              style={{ color: 'var(--text-muted)' }}
-              label="搜索会话"
-              title="搜索会话"
-            >
-              <Search size={14} strokeWidth={1.7} />
-            </IconButton>
-          )}
-          <IconButton
-            size={28}
-            onClick={onCollapse}
-            label="收起侧栏"
-            title="收起侧栏 Ctrl+B"
-            className="rounded-[var(--radius-md)] transition hover:bg-[var(--sidebar-hover)]"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            <PanelLeftClose size={14} strokeWidth={1.7} />
-          </IconButton>
-        </div>
+        <IconButton
+          size={32}
+          onClick={onCollapse}
+          label="收起侧栏"
+          title="收起侧栏 Ctrl+B"
+          className="rounded-[var(--radius-md)] transition hover:bg-[var(--sidebar-hover)]"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          <PanelLeftClose size={16} strokeWidth={1.7} />
+        </IconButton>
       )}
       </div>
 
-      {/* 新对话 / 搜索：采用 Codex 同款无底色左对齐轻量菜单行，告别沉重实心大药丸 */}
-      <div className="mt-1.5 flex items-center gap-1 px-2" data-testid="sidebar-toolbar">
+      {/* 新对话 / 搜索：保留柔和浅绿胶囊大按钮 + 右侧搜索图标，修复 hover 亮度与底色反馈 */}
+      <div className="mt-2.5 flex items-center gap-1.5 px-3" data-testid="sidebar-toolbar">
         {sidebarSearchOpen ? (
           <div
-            className="flex h-8 min-w-0 flex-1 self-start items-center gap-2 rounded-[var(--radius-md)] border px-2.5 focus-within:outline-1 focus-within:outline-[var(--accent)]"
+            className="flex h-9 min-w-0 flex-1 self-start items-center gap-2 rounded-[var(--radius-lg)] border px-2.5 focus-within:outline-1 focus-within:outline-[var(--accent)]"
             style={{
               background: 'var(--input-bg)',
               borderColor: 'var(--input-border)',
@@ -225,41 +207,41 @@ export function PrimarySidebar({
           </div>
         ) : (
           <ActionButton
-            variant="plain"
-            size="sm"
+            size="md"
             onClick={onCreateSession}
-            className="h-8 min-w-0 flex-1 !justify-start gap-2 rounded-[var(--radius-md)] border-0 !px-2.5 text-[13px] !font-normal transition hover:bg-[var(--sidebar-hover)]"
+            className="h-10 min-w-0 flex-1 gap-1.5 rounded-[var(--radius-lg)] border-0 text-[13px] font-medium transition hover:brightness-95 active:scale-[0.99]"
             style={{
-              background: 'transparent',
-              color: 'var(--text-primary)',
+              background: 'var(--accent-subtle)',
+              color: 'var(--accent-fg)',
             }}
             title="新对话 Ctrl+N"
           >
-            <Plus size={15} strokeWidth={1.7} style={{ color: 'var(--text-secondary)' }} />
+            <Plus size={16} strokeWidth={2} />
             <span>新对话</span>
           </ActionButton>
         )}
-        {collapseControlPlacement === 'toolbar' && !sidebarSearchOpen && (
+        {!sidebarSearchOpen && (
           <IconButton
-            size={32}
+            size={40}
             onClick={onToggleSearch}
-            className="rounded-[var(--radius-md)] transition hover:bg-[var(--sidebar-hover)]"
+            className="rounded-[var(--radius-lg)] transition hover:bg-[var(--sidebar-hover)]"
             style={{ color: 'var(--text-muted)' }}
             label="搜索会话"
+            title="搜索会话"
           >
-            <Search size={15} />
+            <Search size={16} strokeWidth={1.7} />
           </IconButton>
         )}
         {collapseControlPlacement === 'toolbar' && (
           <IconButton
-            size={32}
+            size={40}
             onClick={onCollapse}
-            className="rounded-[var(--radius-md)] transition hover:bg-[var(--sidebar-hover)]"
+            className="rounded-[var(--radius-lg)] transition hover:bg-[var(--sidebar-hover)]"
             style={{ color: 'var(--text-muted)' }}
             label="收起侧栏"
             title="收起侧栏 Ctrl+B"
           >
-            <PanelLeftClose size={15} />
+            <PanelLeftClose size={16} />
           </IconButton>
         )}
       </div>

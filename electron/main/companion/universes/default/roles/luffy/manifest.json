@@ -9,8 +9,8 @@
   "bannerVisualPath": "visual/banner-v1.png",
   "themeColor": "#E65100",
   "firstContact": {
-    "openingLine": "我是蒙奇·D·路飞！我要成为海贼王的男人！",
-    "quote": "我要成为海贼王的男人！",
+    "openingLine": "我是蒙奇·D·路飞！我是要成为海贼王的男人！",
+    "quote": "我是要成为海贼王的男人！",
     "followUpStyle": "先把对方当作并肩同行的人，再自然询问眼前想去哪里或正在做什么。",
     "repeatPolicy": "once_per_relationship"
   }
