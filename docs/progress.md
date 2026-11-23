@@ -1,5 +1,7 @@
 # 项目进度
 
+Playground 基础层同步展示 `SurfaceCard` / `DetailHeader` / `TabStrip#pill` 与 `MEDIA_FRAME_PRESETS`（2026-11-23）：`UiControlsPanel.tsx` 与 `LayoutLanguageSamples.tsx` 直连新落地的容器原语与布局档位，确保 Playground 基础层与生产代码完全一致。
+
 Foundation 容器原语收敛（`SurfaceCard` / `DetailHeader` / `CompanionAvatar#framed`）与防拖延/防裁切门禁（2026-11-23）：`AGENTS.md` 确立禁止“以后再说”铁律；新增并采用 `SurfaceCard` 与 `DetailHeader`，`CompanionAvatar` 收口 `framed` 语义描边；`foundation-enforcement-gate.test.ts` 扩展至 13 项全仓静态门禁。
 
 全仓清零裸 `ring-*` 黑框并落地静态防退化门禁（2026-11-23）：一锅端修复 `ChatWelcome`、`PrimarySidebar`、`GiftGivingModal` 与 `App` 共 5 处裸 `ring-*`，在 `foundation-enforcement-gate.test.ts` 接入全仓扫描门禁并沉淀 `docs/pitfalls.md`。

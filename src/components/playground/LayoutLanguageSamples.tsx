@@ -4,7 +4,7 @@ import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
 import { TabStrip } from '../foundation/TabStrip'
 import { TextField } from '../foundation/TextField'
-import { CONTENT_LAYOUT, LAYOUT_CLASSES, LAYOUT_DENSITIES, layoutDensityStyle, readingContentStyle, type LayoutDensityId } from '../../shared/content-layout'
+import { CONTENT_LAYOUT, LAYOUT_CLASSES, LAYOUT_DENSITIES, MEDIA_FRAME_PRESETS, layoutDensityStyle, mediaFrameStyle, readingContentStyle, type LayoutDensityId, type MediaFramePreset } from '../../shared/content-layout'
 import canal from '../../assets/playground/travel-canal.png'
 
 const controls = [
@@ -64,7 +64,11 @@ export function LayoutLanguageSamples() {
     <div className={`${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`} data-testid="layout-preview-gutter">
     <div className={LAYOUT_CLASSES.section} style={{ width: '100%', maxWidth: density.width }} data-testid="layout-preview-width">
     {section('text', '文字', <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,240px),1fr))]" style={{ gap: density.section }}>{[false, true].map(long => <div key={String(long)} className={sampleClass} style={surface}>{caption(long ? '长正文' : '短正文')}{content(long)}</div>)}</div>)}
-    {section('images', '图片', <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,160px),1fr))] items-start" style={{ gap: density.section }}>{[{ label: '横图', ratio: '3 / 2' }, { label: '竖图', ratio: '2 / 3' }, { label: '方图', ratio: '1 / 1' }].map(({ label, ratio }) => <figure key={label} className={sampleClass} style={surface}><img data-testid="layout-ratio-image" src={canal} alt={`古镇运河 · ${label}`} className="block w-full object-cover" style={{ aspectRatio: ratio }} /><figcaption className="text-xs" style={{ color: 'var(--text-muted)' }}>{label} · {ratio}</figcaption></figure>)}</div>)}
+    {section('images', '图片与统一图框档位（MEDIA_FRAME_PRESETS）', <div className={LAYOUT_CLASSES.cardGrid}>{([
+      { preset: 'card', label: '画廊卡片 · card' },
+      { preset: 'portrait', label: '立绘穿搭 · portrait' },
+      { preset: 'overview', label: '宽幅总览 · overview' },
+    ] as const satisfies readonly { preset: MediaFramePreset; label: string }[]).map(({ preset, label }) => <figure key={preset} className={sampleClass} style={surface}><div className="w-full overflow-hidden rounded-md" style={mediaFrameStyle(preset)}><img data-testid="layout-ratio-image" src={canal} alt={`古镇运河 · ${label}`} className="block h-full w-full object-cover" /></div><figcaption className="text-xs" style={{ color: 'var(--text-muted)' }}>{label} · {MEDIA_FRAME_PRESETS[preset].aspectRatio}</figcaption></figure>)}</div>)}
     {section('combinations', '图文组合', <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))]" style={{ gap: density.section }}>
       <div className={sampleClass} style={surface}>{caption('上图下文')}<img src={canal} alt="运河与石桥" className="block aspect-[3/2] w-full object-cover" />{content()}</div>
       <div className={sampleClass} style={surface}>{caption('左图右文')}<div className="grid min-w-0 grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-start" style={{ gap: density.section }}><img src={canal} alt="河畔树影" className="block aspect-[2/3] w-full object-cover" />{content()}</div></div>

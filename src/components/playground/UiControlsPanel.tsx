@@ -12,6 +12,9 @@ import { FileBrowser, type FileBrowserPreviewData } from '../FileBrowser'
 import { ResizeHandle } from '../shell/ResizeHandle'
 import { TabStrip } from '../foundation/TabStrip'
 import { Badge } from '../foundation/Badge'
+import { DetailHeader } from '../foundation/DetailHeader'
+import { SurfaceCard } from '../foundation/SurfaceCard'
+import { LAYOUT_CLASSES } from '../../shared/content-layout'
 import type { ToolCallbackItem } from '../chat/callbacks/types'
 import { MemoryCitationChips } from '../chat/MemoryCitationChips'
 import { PermissionConfirmCard } from '../chat/PermissionConfirmCard'
@@ -160,23 +163,24 @@ function IconButtonStory() {
 }
 
 function CardStory() {
+  const [clicked, setClicked] = useState(false)
   return (
-    <div className="grid gap-3 md:grid-cols-3">
-      <article data-shape="card" className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
+    <div className={LAYOUT_CLASSES.cardGrid}>
+      <SurfaceCard as="article" padding="sm" data-testid="foundation-card-static">
         <h5 className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>静态卡片</h5>
-        <p className="mt-1 text-[11px] leading-4" style={{ color: 'var(--text-muted)' }}>只承载一组相关信息，不附加业务状态。</p>
-      </article>
-      <button data-shape="card" type="button" className="rounded-lg border p-3 text-left transition hover:bg-[var(--hover-overlay)]" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
-        <span className="flex items-center justify-between gap-2">
+        <p className="mt-1 text-[11px] leading-4" style={{ color: 'var(--text-muted)' }}>只承载一组相关信息，统一使用 SurfaceCard 圆角与纸白底色。</p>
+      </SurfaceCard>
+      <SurfaceCard as="button" padding="sm" onClick={() => setClicked((v) => !v)} aria-label="可交互卡片示例" data-testid="foundation-card-interactive">
+        <span className="flex w-full items-center justify-between gap-2">
           <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>可交互卡片</span>
-          <Check size={14} style={{ color: 'var(--accent-fg)' }} aria-hidden="true" />
+          <Check size={14} style={{ color: clicked ? 'var(--accent-fg)' : 'var(--text-muted)' }} aria-hidden="true" />
         </span>
-        <span className="mt-1 block text-[11px] leading-4" style={{ color: 'var(--text-muted)' }}>整体可点击时，卡片需要有清晰名称。</span>
-      </button>
-      <article data-shape="card" className="rounded-lg border p-3" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }}>
+        <span className="mt-1 block text-[11px] leading-4" style={{ color: 'var(--text-muted)' }}>整体可点击，自带统一 hover 与焦点轮廓。</span>
+      </SurfaceCard>
+      <SurfaceCard as="article" padding="sm" style={{ background: 'var(--bg-secondary)' }} data-testid="foundation-card-long">
         <h5 className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>长内容</h5>
         <p className="mt-1 text-[11px] leading-4" style={{ color: 'var(--text-secondary)' }}>卡片可以容纳较长的说明，但不能依靠阴影或额外色条制造层级，内容仍应通过字重、留白和底色自然分层。</p>
-      </article>
+      </SurfaceCard>
     </div>
   )
 }
@@ -339,11 +343,22 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
 
       {effectiveSub === 'card' && (
         <div className="space-y-3">
-          <StoryBlock title="通用卡片" source="src/components/playground/UiControlsPanel.tsx · Card fixture">
+          <StoryBlock title="通用卡片（SurfaceCard）" source="src/components/foundation/SurfaceCard.tsx" adopted>
             <CardStory />
           </StoryBlock>
-          <StoryBlock title="卡片边界" source="src/components/playground/UiControlsPanel.tsx · card hierarchy" edge>
-            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>卡片只提供容器和交互层级；朋友圈事件卡、角色卡、记忆卡等业务结构仍属于产品体验。</p>
+          <StoryBlock title="详情顶栏（DetailHeader）" source="src/components/foundation/DetailHeader.tsx" adopted>
+            <div className="rounded-lg border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
+              <DetailHeader
+                backLabel="返回列表"
+                onBack={() => undefined}
+                alignReading={false}
+                className="mb-0"
+                action={<Badge tone="accent">右侧操作槽</Badge>}
+              />
+            </div>
+          </StoryBlock>
+          <StoryBlock title="卡片边界" source="src/components/foundation/SurfaceCard.tsx · card hierarchy" edge>
+            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>SurfaceCard 只提供容器和交互层级；朋友圈事件卡、角色卡、记忆卡等业务结构仍属于产品体验。</p>
           </StoryBlock>
         </div>
       )}
@@ -441,6 +456,17 @@ export function UiControlsPanel({ initialSub }: { initialSub?: UiControlsSubId }
                 {tabSample === '产品体验' && '产品体验只负责语义、数据和页面组合。'}
                 {tabSample === 'Agent 实验' && 'Agent 实验用于隔离验证对话、模型和工具。'}
               </div>
+            </div>
+          </StoryBlock>
+          <StoryBlock title="柔和胶囊标签（variant=pill）" source="src/components/foundation/TabStrip.tsx · pill" adopted>
+            <div className="max-w-md rounded-xl border px-3 py-2" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
+              <TabStrip
+                label="胶囊标签样张"
+                variant="pill"
+                items={['基础', '产品体验', 'Agent 实验'].map((label) => ({ id: label, label }))}
+                activeId={tabSample}
+                onSelect={setTabSample}
+              />
             </div>
           </StoryBlock>
           <StoryBlock title="窄宽标签" source="src/components/playground/UiControlsPanel.tsx · overflow-x-auto" edge adopted>
