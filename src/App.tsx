@@ -1345,13 +1345,25 @@ function App() {
                 onTakeToChat={({ text }: { text: string }) => {
                   setActiveView('chat')
                   setInput(text)
-                  setTimeout(() => inputRef.current?.focus(), 0)
+                  requestAnimationFrame(() => {
+                    const el = inputRef.current
+                    if (!el) return
+                    el.focus()
+                    const end = el.value.length
+                    el.setSelectionRange(end, end)
+                  })
                 }}
                 allowAssetEditing={false}
                 onGenerateAssetImage={(asset) => {
                   setActiveView('chat')
                   setInput(buildWorldAssetImageDraftPrompt(asset))
-                  setTimeout(() => inputRef.current?.focus(), 0)
+                  requestAnimationFrame(() => {
+                    const el = inputRef.current
+                    if (!el) return
+                    el.focus()
+                    const end = el.value.length
+                    el.setSelectionRange(end, end)
+                  })
                 }}
                 tab={activeView === 'world' ? worldTab : worldTabFromView(activeView)}
                 onTabChange={(t) => {
@@ -1964,7 +1976,13 @@ function App() {
             onTakeToChat={({ text }) => {
               setActiveView('chat')
               setInput(text)
-              setTimeout(() => inputRef.current?.focus(), 0)
+              requestAnimationFrame(() => {
+                const el = inputRef.current
+                if (!el) return
+                el.focus()
+                const end = el.value.length
+                el.setSelectionRange(end, end)
+              })
             }}
           />
         </>

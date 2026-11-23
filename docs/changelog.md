@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 修复从人物世界/右侧面板带内容回到 Chat 时输入框光标落在最左侧：`App.tsx` 的 `onTakeToChat` 与 `onGenerateAssetImage` 改为在 `requestAnimationFrame` 中聚焦并调用 `setSelectionRange(end, end)`，光标自动定位到文案末尾方便直接续写。
+
 2026-11-23 人物世界顶部减负去「全天日程」剧透与礼物柜全量配图升级：`WorldProfileHeader.tsx` 移除前台独立「今日轨迹 / 全天日程」展开面板，将「此刻正在做什么」收敛为头图内一行可点击聊天的轻状态胶囊并压实封面渐变底衬；为路飞 4 件预置礼物与信物（香克斯草帽、黄金梅丽号、梅利号金色铃铛、生命卡一角）生成 Role Pack 静态插画，并在 `life-schema.ts`、`companion-backup.ts`、`gifting.ts` 与 `relationship-keepsake.ts` 补齐 `image_url` 解析与新礼物后台静默生图（`category: 'gift'`，4:3）；`WorldKeepsakesPanel.tsx` 同步接入 `LAYOUT_CLASSES.cardGrid` 与 `mediaFrameStyle('card')`，实现列表 3 列 `4/3` 封面与详情居中灯箱大图。
 
 2026-11-23 统一人物世界各画廊卡片列数与图片实际尺寸：`content-layout.ts` 新增 `LAYOUT_CLASSES.cardGrid`（`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`），同步接入 `WorldTravelGallery`、`WorldCultureGallery` 与 `WorldHomeGallery`（`content-layout.test.ts` 门禁锁定），修复足迹此前 2 列导致卡片图片比文化角/家居大 1.5 倍的问题。
