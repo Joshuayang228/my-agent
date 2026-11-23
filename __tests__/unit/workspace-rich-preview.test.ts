@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   buildHtmlPickerSrcDoc,
   columnIndexToLetter,
+  formatAnnotationQueueForChat,
   formatCellRange,
   formatDocxSelectionAnnotation,
   formatHtmlElementAnnotation,
   formatPdfPageAnnotation,
+  formatPptxSlideAnnotation,
   formatSpreadsheetAnnotation,
   isCellInRange,
   parseHtmlPickerMessage,
@@ -131,5 +133,45 @@ describe('workspace rich preview & annotation formatters', () => {
     expect(pdfMsg).toContain('[PDF 批注]')
     expect(pdfMsg).toContain('第 2 / 5 页')
     expect(pdfMsg).toContain('提炼这一页的三个核心指标')
+
+    const pptxMsg = formatPptxSlideAnnotation({
+      filePath: 'decks/roadmap.pptx',
+      slideNumber: 2,
+      totalSlides: 3,
+      slideTitle: 'Batch A 规划',
+      comment: '补充一行风险说明',
+    })
+    expect(pptxMsg).toContain('[幻灯片批注]')
+    expect(pptxMsg).toContain('第 2 / 3 页（Batch A 规划）')
+    expect(pptxMsg).toContain('补充一行风险说明')
+  })
+
+  it('merges multiple queued annotations into a numbered summary', () => {
+    expect(formatAnnotationQueueForChat([])).toBe('')
+    const single = [{
+      id: '1',
+      filePath: 'a.xlsx',
+      anchorLabel: 'Sheet1!B2',
+      comment: '核对数值',
+      formattedText: '[表格批注] 文件：`a.xlsx` · 选区：`Sheet1!B2`',
+      createdAt: 1,
+    }]
+    expect(formatAnnotationQueueForChat(single)).toBe(single[0].formattedText)
+
+    const merged = formatAnnotationQueueForChat([
+      single[0],
+      {
+        id: '2',
+        filePath: 'b.html',
+        anchorLabel: '#cta',
+        comment: '改色',
+        formattedText: '[HTML 元素批注] 文件：`b.html` · 元素：`#cta`',
+        createdAt: 2,
+      },
+    ])
+    expect(merged).toContain('请依次处理以下 2 条工作区批注：')
+    expect(merged).toContain('### 批注 1')
+    expect(merged).toContain('### 批注 2')
+    expect(merged).toContain('#cta')
   })
 })

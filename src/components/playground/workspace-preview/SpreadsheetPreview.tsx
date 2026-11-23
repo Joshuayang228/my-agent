@@ -9,6 +9,7 @@ import {
   formatSpreadsheetAnnotation,
   isCellInRange,
   normalizeCellRange,
+  type AnnotationQueueItem,
   type CellRange,
   type SpreadsheetSheetData,
 } from './annotation-format'
@@ -17,6 +18,7 @@ interface SpreadsheetPreviewProps {
   filePath: string
   sheets: SpreadsheetSheetData[]
   onSendToChat?: (text: string) => void
+  onQueueAnnotation?: (item: Omit<AnnotationQueueItem, 'id' | 'createdAt'>) => void
 }
 
 /**
@@ -25,7 +27,7 @@ interface SpreadsheetPreviewProps {
  * 选中后通过底部 AnnotationBar 将坐标与 Markdown 切片结构化发送到对话。
  * 关键约束：拖拽态在 window mouseup 自动收口，避免拖出表外后锁死选区；大表截断状态必须显式提示用户。
  */
-export function SpreadsheetPreview({ filePath, sheets, onSendToChat }: SpreadsheetPreviewProps) {
+export function SpreadsheetPreview({ filePath, sheets, onSendToChat, onQueueAnnotation }: SpreadsheetPreviewProps) {
   const [sheetIndex, setSheetIndex] = useState(0)
   const [range, setRange] = useState<CellRange | null>(null)
   const [dragging, setDragging] = useState(false)
@@ -185,7 +187,7 @@ export function SpreadsheetPreview({ filePath, sheets, onSendToChat }: Spreadshe
         </table>
       </div>
 
-      {onSendToChat && (
+      {(onSendToChat || onQueueAnnotation) && (
         <AnnotationBar
           testId="spreadsheet-annotation-bar"
           anchorLabel={anchorLabel}
@@ -193,9 +195,25 @@ export function SpreadsheetPreview({ filePath, sheets, onSendToChat }: Spreadshe
           emptyHint="点击单元格或拖拽框选区域（支持 Shift 扩选），即可针对该区域写批注发送到对话"
           placeholder="例如：帮我核对这几行公式或异常值…"
           onClearAnchor={() => setRange(null)}
+          onAddToQueue={onQueueAnnotation ? (comment) => {
+            if (!range || !anchorLabel) return
+            onQueueAnnotation({
+              filePath,
+              anchorLabel,
+              excerpt,
+              comment,
+              formattedText: formatSpreadsheetAnnotation({
+                filePath,
+                sheetName: activeSheet.name,
+                range,
+                rows: activeSheet.rows,
+                comment,
+              }),
+            })
+          } : undefined}
           onSubmit={(comment) => {
             if (!range) return
-            onSendToChat(formatSpreadsheetAnnotation({
+            onSendToChat?.(formatSpreadsheetAnnotation({
               filePath,
               sheetName: activeSheet.name,
               range,

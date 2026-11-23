@@ -14,14 +14,21 @@ import { SpreadsheetPreview } from './workspace-preview/SpreadsheetPreview'
 import { HtmlAnnotatePreview } from './workspace-preview/HtmlAnnotatePreview'
 import { DocxPreview } from './workspace-preview/DocxPreview'
 import { PdfPreview, type PdfPreviewPage } from './workspace-preview/PdfPreview'
-import type { SpreadsheetSheetData } from './workspace-preview/annotation-format'
+import { PptxPreview } from './workspace-preview/PptxPreview'
+import { AnnotationQueueDrawer } from './workspace-preview/AnnotationQueueDrawer'
+import {
+  formatAnnotationQueueForChat,
+  type AnnotationQueueItem,
+  type PptxSlideData,
+  type SpreadsheetSheetData,
+} from './workspace-preview/annotation-format'
 import teaImage from '../../assets/playground/moment-tea-by-window.jpg'
 import { LAYOUT_CLASSES, layoutProfileStyle } from '../../shared/content-layout'
 
 const VIEWS = [
   { id: 'review', label: '审阅', icon: GitCompare, scenes: ['行内差异', '并排差异', '多文件', '无变更'] },
   { id: 'browser', label: '浏览器', icon: Globe, scenes: ['网页', '窄屏网页', '加载中', '加载失败'] },
-  { id: 'files', label: '文件', icon: FileText, scenes: ['Excel 表格', 'HTML 批注', 'Word 文档', 'PDF 文档', 'Markdown', '代码', '图片', '空目录', '无法预览'] },
+  { id: 'files', label: '文件', icon: FileText, scenes: ['Excel 表格', 'HTML 批注', 'Word 文档', 'PDF 文档', 'PPT 幻灯片', 'Markdown', '代码', '图片', '空目录', '无法预览'] },
   { id: 'terminal', label: '终端', icon: TerminalSquare, scenes: ['输出', '运行中', '报错', '多终端'] },
   { id: 'chat', label: '侧边聊天', icon: MessageCircle, scenes: ['空态', '对话', '生成中', '发送失败'] },
 ] as const
@@ -127,6 +134,38 @@ const samplePdfPages: PdfPreviewPage[] = [
   },
 ]
 
+const samplePptxSlides: PptxSlideData[] = [
+  {
+    slideNumber: 1,
+    title: 'My Agent 右侧工作区演进路线',
+    bullets: [
+      '从「只读代码/文本预览」升级为「全媒介阅读 + 精准指代批注闭环」',
+      '对标 Codex 桌面端工作区：富文档渲染、元素/选区批注、多条批注草稿篮与行级 Diff 审阅',
+      '坚持 Playground P0 隔离验收 → 确认 → P1 正式回流门禁',
+    ],
+    notes: '开场用 1 分钟强调：重点不是堆砌编辑器，而是缩短「发现问题 → 精准告诉 AI 改哪里」的距离。',
+  },
+  {
+    slideNumber: 2,
+    title: 'Batch A：五类文档内嵌渲染与批注草稿篮',
+    bullets: [
+      'Excel/CSV：多 Sheet + 拖拽框选矩形区域，自动输出坐标与 Markdown 表格切片',
+      'HTML：保持 sandbox=allow-scripts 安全边界，点选 DOM 提取 CSS Selector',
+      'Word / PDF / PPT：清晰语义阅读 + 划词/按页批注，支持先攒多条再一键汇总发送',
+    ],
+    notes: '重点演示 Excel 框选 B2:D4 和跨文件批注草稿篮一键汇总发送。',
+  },
+  {
+    slideNumber: 3,
+    title: 'Batch B / C：浏览器视觉试调与 Diff 行级审阅',
+    bullets: [
+      'Batch B：HTML 区域框选 + Adjust 样式临时试调 + localhost 受控预览批注',
+      'Batch C：Git 未提交/分支 Diff 切换、行级 + 号批注、单文件与单 Hunk 级 Stage/Revert',
+    ],
+    notes: '强调每一批都是独立可验收、完整闭环的版本交付。',
+  },
+]
+
 /**
  * 背景：工作区用于检查内容，任务进度和结束状态不属于这五个工具的导航。
  * 设计意图：固定功能与直接场景选择分层，正式组件仅通过只读夹具参与预览。
@@ -150,7 +189,9 @@ export function WorkspaceDock({
   const [tabs, setTabs] = useState<WorkspaceTab[]>([{ id: 0, view: initialView, scene: initialScene, ordinal: 1 }])
   const [active, setActive] = useState(0)
   const [chatDraft, setChatDraft] = useState('')
+  const [annotationQueue, setAnnotationQueue] = useState<AnnotationQueueItem[]>([])
   const nextId = useRef(1)
+  const nextQueueId = useRef(1)
   const addTab = (nextView: View) => {
     const id = nextId.current++
     const nextScene = nextView === 'files' ? '文件列表' : VIEWS.find((item) => item.id === nextView)!.scenes[0]
@@ -163,6 +204,16 @@ export function WorkspaceDock({
   }
   const handleSendToChat = (text: string) => {
     setChatDraft((prev) => (prev.trim() ? `${prev.trim()}\n\n${text}` : text))
+  }
+  const handleQueueAnnotation = (item: Omit<AnnotationQueueItem, 'id' | 'createdAt'>) => {
+    const id = `ann-${nextQueueId.current++}`
+    setAnnotationQueue((prev) => [...prev, { ...item, id, createdAt: Date.now() }])
+  }
+  const handleSendQueue = () => {
+    if (annotationQueue.length === 0) return
+    const merged = formatAnnotationQueueForChat(annotationQueue)
+    handleSendToChat(merged)
+    setAnnotationQueue([])
   }
   return <div className="flex h-full min-h-0 min-w-0 flex-col" data-testid="workspace-dock-candidate" data-layout-profile="workspace" style={layoutProfileStyle('workspace')}>
     <div className="flex h-full min-h-0 min-w-0 overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
@@ -182,7 +233,17 @@ export function WorkspaceDock({
         {tabs.map((tab) => <div key={tab.id} role="tabpanel" aria-label={`${VIEWS.find((item) => item.id === tab.view)!.label} ${tab.ordinal}`} className={active === tab.id ? 'flex min-h-0 min-w-0 flex-1 flex-col' : 'hidden'}>
           {tab.view === 'review' && <ReviewSample scene={tab.scene} />}
           {tab.view === 'browser' && <BrowserSample scene={tab.scene} />}
-          {tab.view === 'files' && <FilesSample scene={tab.scene} onSendToChat={handleSendToChat} />}
+          {tab.view === 'files' && (
+            <FilesSample
+              scene={tab.scene}
+              onSendToChat={handleSendToChat}
+              annotationQueue={annotationQueue}
+              onQueueAnnotation={handleQueueAnnotation}
+              onRemoveQueued={(id) => setAnnotationQueue((prev) => prev.filter((item) => item.id !== id))}
+              onClearQueue={() => setAnnotationQueue([])}
+              onSendQueue={handleSendQueue}
+            />
+          )}
           {tab.view === 'terminal' && <TerminalSample scene={tab.scene} />}
           {tab.view === 'chat' && <SideChatSample scene={tab.scene} />}
         </div>)}
@@ -236,16 +297,42 @@ function BrowserSample({ scene }: { scene: string }) {
 }
 
 /** fixture 只在故事层生成；正式组合负责布局、读取状态和多预览交互。 */
-function FilesSample({ scene, onSendToChat }: { scene: string; onSendToChat?: (text: string) => void }) {
+function FilesSample({
+  scene,
+  onSendToChat,
+  annotationQueue = [],
+  onQueueAnnotation,
+  onRemoveQueued,
+  onClearQueue,
+  onSendQueue,
+}: {
+  scene: string
+  onSendToChat?: (text: string) => void
+  annotationQueue?: AnnotationQueueItem[]
+  onQueueAnnotation?: (item: Omit<AnnotationQueueItem, 'id' | 'createdAt'>) => void
+  onRemoveQueued?: (id: string) => void
+  onClearQueue?: () => void
+  onSendQueue?: () => void
+}) {
   const [lastDispatched, setLastDispatched] = useState<string | null>(null)
   const handleSend = (text: string) => {
     setLastDispatched(text)
     onSendToChat?.(text)
   }
 
-  if (scene === 'Excel 表格' || scene === 'HTML 批注' || scene === 'Word 文档' || scene === 'PDF 文档') {
+  if (scene === 'Excel 表格' || scene === 'HTML 批注' || scene === 'Word 文档' || scene === 'PDF 文档' || scene === 'PPT 幻灯片') {
     return (
       <div className="flex h-full min-h-0 flex-col">
+        <AnnotationQueueDrawer
+          items={annotationQueue}
+          onRemove={(id) => onRemoveQueued?.(id)}
+          onClear={() => onClearQueue?.()}
+          onSendAll={() => {
+            const merged = formatAnnotationQueueForChat(annotationQueue)
+            if (merged) setLastDispatched(merged)
+            onSendQueue?.()
+          }}
+        />
         {lastDispatched && (
           <div
             className="shrink-0 border-b px-3 py-1.5 text-[11px]"
@@ -257,7 +344,12 @@ function FilesSample({ scene, onSendToChat }: { scene: string; onSendToChat?: (t
         )}
         <div className="min-h-0 flex-1">
           {scene === 'Excel 表格' && (
-            <SpreadsheetPreview filePath="reports/Q4-budget.xlsx" sheets={sampleSheets} onSendToChat={handleSend} />
+            <SpreadsheetPreview
+              filePath="reports/Q4-budget.xlsx"
+              sheets={sampleSheets}
+              onSendToChat={handleSend}
+              onQueueAnnotation={onQueueAnnotation}
+            />
           )}
           {scene === 'HTML 批注' && (
             <HtmlAnnotatePreview
@@ -265,6 +357,7 @@ function FilesSample({ scene, onSendToChat }: { scene: string; onSendToChat?: (t
               htmlContent={sampleHtmlDocument}
               defaultPickerActive
               onSendToChat={handleSend}
+              onQueueAnnotation={onQueueAnnotation}
             />
           )}
           {scene === 'Word 文档' && (
@@ -273,10 +366,24 @@ function FilesSample({ scene, onSendToChat }: { scene: string; onSendToChat?: (t
               htmlContent={sampleDocxHtml}
               notices={['语义富文本预览模式；如需校对原始分页排版，可点击右上角用系统应用打开。']}
               onSendToChat={handleSend}
+              onQueueAnnotation={onQueueAnnotation}
             />
           )}
           {scene === 'PDF 文档' && (
-            <PdfPreview filePath="docs/my-agent-whitepaper.pdf" pages={samplePdfPages} onSendToChat={handleSend} />
+            <PdfPreview
+              filePath="docs/my-agent-whitepaper.pdf"
+              pages={samplePdfPages}
+              onSendToChat={handleSend}
+              onQueueAnnotation={onQueueAnnotation}
+            />
+          )}
+          {scene === 'PPT 幻灯片' && (
+            <PptxPreview
+              filePath="decks/workspace-roadmap.pptx"
+              slides={samplePptxSlides}
+              onSendToChat={handleSend}
+              onQueueAnnotation={onQueueAnnotation}
+            />
           )}
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FileText } from 'lucide-react'
 import { AnnotationBar } from './AnnotationBar'
-import { formatDocxSelectionAnnotation, sanitizeDocxHtml } from './annotation-format'
+import { formatDocxSelectionAnnotation, sanitizeDocxHtml, type AnnotationQueueItem } from './annotation-format'
 
 interface DocxPreviewProps {
   filePath: string
@@ -9,6 +9,7 @@ interface DocxPreviewProps {
   /** 转换过程中的温和提示（例如未支持的高级样式） */
   notices?: string[]
   onSendToChat?: (text: string) => void
+  onQueueAnnotation?: (item: Omit<AnnotationQueueItem, 'id' | 'createdAt'>) => void
 }
 
 /**
@@ -17,7 +18,7 @@ interface DocxPreviewProps {
  * 通过监听容器内 mouseup/keyup 捕获当前划词片段，供底部 AnnotationBar 发送到对话。
  * 关键约束：严禁跳过 sanitizeDocxHtml 直接注入原始 HTML；仅捕获归属本容器内的划词，避免误抓聊天区文字。
  */
-export function DocxPreview({ filePath, htmlContent, notices, onSendToChat }: DocxPreviewProps) {
+export function DocxPreview({ filePath, htmlContent, notices, onSendToChat, onQueueAnnotation }: DocxPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [selectedText, setSelectedText] = useState('')
 
@@ -76,7 +77,7 @@ export function DocxPreview({ filePath, htmlContent, notices, onSendToChat }: Do
         />
       </div>
 
-      {onSendToChat && (
+      {(onSendToChat || onQueueAnnotation) && (
         <AnnotationBar
           testId="docx-annotation-bar"
           anchorLabel={selectedText ? `已划选 ${selectedText.length} 字` : '整篇文档'}
@@ -84,8 +85,21 @@ export function DocxPreview({ filePath, htmlContent, notices, onSendToChat }: Do
           emptyHint="划选正文片段即可批注发送到对话"
           placeholder="例如：帮我把这段表述改得更简洁专业…"
           onClearAnchor={selectedText ? () => setSelectedText('') : undefined}
+          onAddToQueue={onQueueAnnotation ? (comment) => {
+            onQueueAnnotation({
+              filePath,
+              anchorLabel: selectedText ? `已划选 ${selectedText.length} 字` : '整篇文档',
+              excerpt: selectedText || undefined,
+              comment,
+              formattedText: formatDocxSelectionAnnotation({
+                filePath,
+                selectedText,
+                comment,
+              }),
+            })
+          } : undefined}
           onSubmit={(comment) => {
-            onSendToChat(formatDocxSelectionAnnotation({
+            onSendToChat?.(formatDocxSelectionAnnotation({
               filePath,
               selectedText,
               comment,

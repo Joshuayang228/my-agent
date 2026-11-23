@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight, FileWarning, ZoomIn, ZoomOut } from 'lucide-react'
 import { IconButton } from '../../foundation/IconButton'
 import { AnnotationBar } from './AnnotationBar'
-import { formatPdfPageAnnotation } from './annotation-format'
+import { formatPdfPageAnnotation, type AnnotationQueueItem } from './annotation-format'
 
 export interface PdfPreviewPage {
   pageNumber: number
@@ -18,6 +18,7 @@ interface PdfPreviewProps {
   /** 损坏/加密等错误态 */
   error?: string
   onSendToChat?: (text: string) => void
+  onQueueAnnotation?: (item: Omit<AnnotationQueueItem, 'id' | 'createdAt'>) => void
 }
 
 const ZOOM_STEPS = [75, 100, 125, 150] as const
@@ -28,7 +29,7 @@ const ZOOM_STEPS = [75, 100, 125, 150] as const
  * P0 接受隔离页面图像/文本样张，P1 可直接由主进程/PDF.js 逐页渲染喂入同一接口。
  * 关键约束：页码始终钳制在 [1, pages.length]；错误态和空页态必须清晰提示，不渲染空白黑框。
  */
-export function PdfPreview({ filePath, pages, error, onSendToChat }: PdfPreviewProps) {
+export function PdfPreview({ filePath, pages, error, onSendToChat, onQueueAnnotation }: PdfPreviewProps) {
   const [pageIndex, setPageIndex] = useState(0)
   const [zoomIndex, setZoomIndex] = useState(1)
 
@@ -135,15 +136,29 @@ export function PdfPreview({ filePath, pages, error, onSendToChat }: PdfPreviewP
         </div>
       </div>
 
-      {onSendToChat && (
+      {(onSendToChat || onQueueAnnotation) && (
         <AnnotationBar
           testId="pdf-annotation-bar"
           anchorLabel={`第 ${current.pageNumber} 页`}
           excerpt={`共 ${pages.length} 页 · ${filePath.split(/[/\\]/).pop() || filePath}`}
           emptyHint="翻到目标页即可针对该页写批注发送到对话"
           placeholder="例如：帮我总结这一页的核心结论和待办项…"
+          onAddToQueue={onQueueAnnotation ? (comment) => {
+            onQueueAnnotation({
+              filePath,
+              anchorLabel: `第 ${current.pageNumber} 页`,
+              excerpt: `共 ${pages.length} 页`,
+              comment,
+              formattedText: formatPdfPageAnnotation({
+                filePath,
+                pageNumber: current.pageNumber,
+                totalPages: pages.length,
+                comment,
+              }),
+            })
+          } : undefined}
           onSubmit={(comment) => {
-            onSendToChat(formatPdfPageAnnotation({
+            onSendToChat?.(formatPdfPageAnnotation({
               filePath,
               pageNumber: current.pageNumber,
               totalPages: pages.length,

@@ -1,101 +1,114 @@
-# 施工合同：右侧工作区富文档渲染与元素/选区批注回传（v1）
+# 施工合同：右侧工作区全能力升级 — 富文档渲染、可视化批注与代码审阅闭环（v2 全量版）
 
-- **状态**：进行中（待用户确认后进入 Phase P0 Playground 候选）
-- **创建日期**：2026-11-23
-- **关联模块卡**：`docs/modules/agent-runtime.md`、`docs/modules/ui-and-workspace.md`（若存在则收口至对应工作区/前端文档）
+- **状态**：进行中（Batch A 的 P0 初版已完成；升级为对标 Codex 桌面端的完整右侧工作区合同，待用户确认后按批次推进）
+- **创建日期**：2026-11-23（同日升级为全量版）
+- **关联模块卡**：`docs/modules/agent-runtime.md`、`docs/architecture.md`、`docs/quality.md`
 - **前置基线**：`docs/requirements/playground-workspace-five-tools-v1.md`（已完成施工快照）
 
 ---
 
 ## 1. 需求背景（Why）
 
-当前右侧工作区的文件预览（`ChatRightDock` → `WorkspaceFilesPanel` → `FileBrowser` → `project:readFile`）仅支持纯文本/Markdown/代码、图片以及只读 HTML `iframe`：
+对标 OpenAI Codex 桌面端右侧工作区，当前 My Agent 右侧五工具工作区（文件 / 审阅 / 浏览器 / 终端 / 侧边聊天）虽然骨架齐全，但在「**看结果 → 精准指代 → 发回对话让 AI 改**」的协作闭环上仍有明显代差：
 
-1. **Office / PDF 无法内嵌阅读**：`.xlsx` / `.xls` / `.docx` / `.pdf` 全部在主进程被归为 `externalOnly`，仅提示「用系统应用打开」，割裂了在工作区内边看文件边与 AI 协作的体验。
-2. **HTML 无法精准指代元素**：用户看到页面渲染细节想让 AI 修改某个按钮、卡片或标题时，只能手工口述位置，缺乏「点选 DOM 元素 + 写批注直接发送到对话」的闭环。
-3. **Excel 无法精准指代数据区域**：用户查看表格时无法在右侧框选 `Sheet1!B3:D8` 这类单元格区域并附带批注发回对话，且 `WorkspaceFilesPanel` 尚未接入 `ChatRightDock` 的 `onTakeToChat` 回调。
+1. **办公文档无法内嵌预览**：`.xlsx / .xls / .docx / .pdf / .pptx` 全部被主进程归为 `externalOnly`，只能外开系统应用。
+2. **缺乏统一的跨媒介批注回传机制**：HTML 不能点选元素/框选区域或试调样式，Excel 不能框选单元格区域，Diff 不能悬停单行 `+` 写行级评论，也缺乏把多条批注攒在一起统一发给 AI 的「批注草稿篮」。
+3. **浏览器与审阅深度不足**：`BrowserPanel` 目前是只读静态抓取，无法预览本地 `localhost` 前端热更新页面并直接批注；`ReviewPanel` 仅看本会话整体 Diff，缺少 Git 未提交/分支视图以及单文件/单 Hunk 级 Stage/Revert。
 
-## 2. 功能目标（What）
+## 2. 功能目标与分批边界（What）
 
-按 **Playground → 生产两阶段硬门** 分两阶段推进：
+为保证**每批都是完整可用的独立闭环（绝不分期烂尾）**，全量能力按 4 个独立可验收批次推进，且每批严格遵守 **Phase P0（Playground 隔离候选）→ 用户验收确认 → Phase P1（正式生产回流）** 两阶段硬门：
 
-### Phase P0 · Playground 隔离候选（本合同第一阶段，不改动正式生产默认行为）
+---
 
-在 `Playground → 产品体验 → 工作区`（`WorkspaceExperienceCandidate`）中提供完整可交互的隔离候选与边缘态，并与左侧模拟对话壳联动，供用户验收：
+### Batch A：全格式办公文档内嵌渲染 + 多条批注草稿篮（当前优先）
 
-1. **Excel 预览与选区批注（`.xlsx` / `.xls` / `.csv`）**
-   - 多 Sheet 切换、列字母（`A/B/C...`）与行号（`1/2/3...`）粘性表头；
-   - 支持单击单元格、拖拽框选矩形区域（如 `Sheet1!B2:D5`）并高亮选区；
-   - 底部批注栏显示当前选区坐标胶囊、批注输入框与「发送到对话」按钮；发送后生成包含**文件路径 + Sheet 名 + 坐标范围 + Markdown 表格切片 + 用户批注**的结构化文本注入左侧对话壳。
-   - 边缘态：大表行/列截断提示、空表态、超限/损坏文件降级提示。
+1. **5 类文档内嵌渲染**（含 P0 已落地的 4 类 + 新增 PPT）：
+   - **Excel / CSV（`.xlsx` / `.xls` / `.csv`）**：多 Sheet 切换、粘性列标（`A/B/C`）与行号（`1/2/3`）、单击/拖拽框选/Shift 扩选矩形区域（如 `Sheet1!B2:D5`），生成带坐标与 Markdown 表格切片的结构化批注。
+   - **HTML（`.html` / `.htm`）**：预览/源码切换 + 「选元素批注」开关（保持 `sandbox="allow-scripts"`，不放开同源，随机 `channelToken` 白名单 `postMessage`）。
+   - **Word（`.docx`）**：语义富文本白名单清洗渲染 + 划选正文片段捕获批注（老 `.doc` 保持降级系统外开）。
+   - **PDF（`.pdf`）**：按页浏览 + 翻页/缩放控制 + 按页批注（P1 接入渲染层真实逐页绘制，同时保留纯文本/空白页兜底）。
+   - **PPT（`.pptx`）**：纯 JS 解析幻灯片 XML（提取每页标题、正文要点、演讲者备注），按页卡片化浏览与按页批注（复杂动效/像素排版提供一键系统应用打开）。
+2. **统一批注草稿篮（Annotation Queue）**：
+   - 在 `AnnotationBar` 基础上支持两种动作：「**加入批注篮**」（连续攒多条，支持跨 Sheet / 跨元素 / 跨页 / 跨文件）与「**立即发送到对话**」；
+   - 批注篮顶部/底部展示已攒条数，可展开查看、删除单条或「**一键汇总发送到对话**」（生成编号结构化 Markdown 列表发往主对话输入框）。
+3. **Batch A 正式回流（P1）**：
+   - 主进程 `electron/main/ipc/project.ts` + `electron/main/utils/document-parser.ts` 扩展 `project:readFile` 返回结构化联合类型（`spreadsheet` / `docx` / `pdf` / `pptx`），维持 `resolveCurrentProjectFile` `realpath` 防穿越与防 OOM 体积/行列上限；
+   - 严格执行 **IPC 四处同步**（`src/shared/types.ts`、`electron/preload/index.ts`、`electron/main/ipc/project.ts`、`src/vite-env.d.ts`）；
+   - 将预览与批注篮回流正式 `FileBrowser.tsx`、`WorkspaceFilesPanel.tsx` 与 `ChatRightDock.tsx`，打通 `onTakeToChat` 到正式 Chat 输入框。
 
-2. **HTML 预览与元素拾取批注（`.html` / `.htm`）**
-   - 保留现有「预览 / 源码」切换；在预览模式下新增「选元素批注」开关；
-   - 开启后仅在沙箱 `iframe`（保持 `sandbox="allow-scripts"`，**不开启 `allow-same-origin`**）内启用轻量拾取脚本：悬浮高亮节点并显示标签/选择器提示，点击锁定元素并通过白名单 `postMessage` 回传 `selector`、`tagName`、文本摘要与精简 HTML 片段；
-   - 底部批注栏填写修改意图并「发送到对话」，自动带入文件路径 + 元素选择器 + 元素摘要 + 批注内容。
-   - 边缘态：关闭批注模式恢复正常点击交互、切换源码模式自动退出拾取态。
+---
 
-3. **Word 富文本渲染与划词批注（`.docx`）**
-   - 内嵌展示经清洗的安全富文本 HTML（标题、段落、表格、列表、图片），采用文档阅读排版宽度与深浅主题兼容底色；
-   - 支持鼠标划选正文中一段文字后在底部批注栏填入引用摘要 + 批注并「发送到对话」；
-   - 边缘态：不支持的老 `.doc` 格式或空文档给出清晰提示与「系统应用打开」回退。
+### Batch B：HTML 与内置浏览器视觉批注升级（对标 Codex Browser Annotation）
 
-4. **PDF 按页内嵌预览与按页批注（`.pdf`）**
-   - 内嵌按页渲染预览（支持上一页/下一页、页码指示、缩放比例调节）；
-   - 支持针对当前页填写批注并「发送到对话」（自动附带文件路径 + 页码，如 `第 2 页` + 批注）；
-   - 边缘态：加密/损坏 PDF 报错与重试、扫描版/空白页提示。
+1. **HTML / 网页「区域框选（Region Select）」**：
+   - 除单元素拾取外，新增拖拽画框选定一块视觉区域，记录区域相对坐标/尺寸及落入区域内的主要节点摘要。
+2. **「样式试调（Adjust）」所见即所得微调**：
+   - 选中元素后点击「试调」，可在隔离预览内临时调整该元素的**文案、字号、内外边距、文字色、背景色**（绝不写回原文件），发送批注时自动附带 `styleDiff`（改前 → 改后对比）作为 AI 改码的精确参考。
+3. **内置浏览器（`BrowserPanel`）受控升级**：
+   - 支持本地开发服务（`http://127.0.0.1:*` / `http://localhost:*`）交互式预览与同套「选元素 / 框选 / Adjust 批注」；
+   - 安全约束：独立隔离 partition、不共享用户主浏览器 Cookie/密码、非 localhost 外站仍走显式授权边界。
 
-### Phase P1 · 正式回流（须用户明确批准 P0 验收后方可启动）
+---
 
-- 后端真实解析 IPC 升级：扩展 `project:readFile` 返回联合类型，复用并扩展 `electron/main/utils/document-parser.ts` 提供：
-  - `kind: 'spreadsheet'`（`xlsx` 解析多 Sheet 二维表格，单表上限如 500 行 × 50 列并标注是否截断，单文件上限 10MB）；
-  - `kind: 'docx'`（`mammoth.convertToHtml()` 输出 HTML + 前端白名单 DOM 清洗，单文件上限 10MB）；
-  - `kind: 'pdf'`（主进程校验路径与大小上限 15MB 后返回受控二进制/base64 载荷交由渲染层 PDF 渲染器按页绘制，不走任意文件协议）；
-- 严格执行 **IPC 四处同步**（`src/shared/types.ts`、`electron/preload/index.ts`、`electron/main/ipc/project.ts`、`src/vite-env.d.ts`）；
-- 将 P0 验收通过的预览器与批注栏回流至正式 `FileBrowser.tsx`、`WorkspaceFilesPanel.tsx` 与 `ChatRightDock.tsx`，打通 `onTakeToChat` 到正式 Chat 输入框；
-- 保留 `.doc` / `.pptx` / 压缩包 / 可执行文件等为 `unsupported` +「用系统应用打开」。
+### Batch C：Diff 审阅行级内联批注 + Git 多视图与 Hunk 级控制（对标 Codex Review）
 
-## 3. 技术方案（How）
+1. **审阅范围切换**：
+   - 支持在 `ReviewPanel` 顶栏切换：`本会话变更`（现有） / `Git 未提交（Uncommitted）` / `相对主分支（Branch Diff）`。
+2. **行级 `+` 号内联批注**：
+   - 在 `DiffViewer` 悬停任意变更行显示 `+` 图标，点击就地展开行级批注输入框；
+   - 提交后自动并入工作区统一「批注草稿篮」（携带 `filePath:lineNumber` 与对应 diff 上下文行），可批量攒多条后一键发给 AI 修复。
+3. **单文件 / 单 Hunk 级 Stage 与 Revert**：
+   - 主进程新增受控 Git 审阅 IPC（严格参数化 `execFile('git', [...])`，禁止 shell 拼接，校验工作区根目录）；
+   - 支持按单文件或单个 Hunk 执行 Stage / Unstage / Revert（Revert 属于破坏性操作，必须二次确认）。
 
-### 3.1 组件与分层边界
+---
 
-- **P0 新增独立预览与批注组件（不修改生产 `FileBrowser` / `WorkspaceFilesPanel` 默认行为）**：
-  - `src/components/playground/workspace-preview/SpreadsheetPreview.tsx`：Excel/CSV 多 Sheet 渲染 + 单元格拖拽选区 + 坐标/Markdown 切片序列化 + 批注条；
-  - `src/components/playground/workspace-preview/HtmlAnnotatePreview.tsx`：沙箱 `iframe` + 受控注入拾取脚本 + `postMessage` 白名单校验 + 元素批注条；
-  - `src/components/playground/workspace-preview/DocxPreview.tsx`：白名单安全清洗后的 Word 富文本渲染 + 划词捕获 + 批注条；
-  - `src/components/playground/workspace-preview/PdfPreview.tsx`：按页渲染与翻页/缩放控件 + 按页批注条（P0 使用确定性隔离样张页/canvas；P1 接真实 PDF 字节流）；
-  - `src/components/playground/workspace-preview/AnnotationBar.tsx`：统一复用 Foundation 控件（`TextField`、`ActionButton`、`IconButton`、`Badge`）的紧凑底部批注栏与结构化消息拼装纯函数（`formatAnnotationForChat.ts`）。
-- **Playground 集成**：
-  - 在 `src/components/playground/WorkspaceExperienceCandidate.tsx` 的 `files` 场景列表新增 `Excel 表格`、`HTML 批注`、`Word 文档`、`PDF 文档` 隔离场景；
-  - 将候选预览器的 `onSendToChat` 接到 `WorkspaceChatShell`（模拟主对话输入框），让用户在 Playground 内完成端到端交互验收；
-  - 绝不修改生产 `ChatRightDock.tsx`、`WorkspaceFilesPanel.tsx`、`FileBrowser.tsx` 或 `electron/main/ipc/project.ts`（直到 P1 获批）。
+### Batch D：产出物摘要面板与双向焦点引用
 
-### 3.2 安全与架构红线
+1. **会话产出物与引用摘要**：在右栏轻量汇总当前会话新建/修改的文件、生成的图片与未发出的批注篮，一键点击跳转对应预览标签；
+2. **对话侧显式引用**：在 Chat 输入区支持一键带入当前右栏焦点（如当前预览文件/选区/网页），与 `SideChatPanel` 共享同一焦点模型。
 
-- **HTML 沙箱不降级**：`HtmlAnnotatePreview` 的 `iframe` 始终维持 `sandbox="allow-scripts"`，禁止添加 `allow-same-origin`；`postMessage` 仅校验明确 `source === iframeRef.current?.contentWindow` 与固定协议字段（`type === 'my-agent:html-pick'`），忽略未知消息。
-- **Word HTML 安全清洗**：禁止直接 `dangerouslySetInnerHTML` 渲染未清洗 HTML；渲染前统一剥离 `<script>`、`<iframe>`、`<object>`、`<embed>`、`on*` 事件属性及 `javascript:` 协议链接（或使用独立沙箱 `iframe sandbox=""` 渲染）。
-- **主进程边界（P1）**：仍走 `resolveCurrentProjectFile` 做 `realpath` + 项目根防穿越校验；严禁放开项目外路径读取；限制体积与解析行列上限防 OOM。
-- **无新增重型依赖原则**：优先复用已安装的 `xlsx`、`mammoth`、`unpdf`（`pdfjs`）；若 P1 PDF 按页 Canvas 渲染需要直接使用 `pdfjs-dist` worker，届时明确声明依赖。
+---
 
-## 4. 影响范围评估
+## 3. 技术方案与安全边界（How）
 
-- **Phase P0**：
-  - 仅新增 `src/components/playground/workspace-preview/*` 与更新 `src/components/playground/WorkspaceExperienceCandidate.tsx` 及对应单元测试；
-  - **不碰**：`src/App.tsx`、`ChatRightDock.tsx`、`WorkspaceFilesPanel.tsx`、`FileBrowser.tsx`、主进程 IPC 与存储。
-- **Phase P1（待审批）**：
-  - 涉及 `src/shared/types.ts`、`electron/preload/index.ts`、`electron/main/ipc/project.ts`、`electron/main/utils/document-parser.ts`、`src/vite-env.d.ts`、`src/components/FileBrowser.tsx`、`src/components/chat/right-dock/WorkspaceFilesPanel.tsx`、`src/components/chat/right-dock/ChatRightDock.tsx`；
-  - 需同步更新 `docs/modules/agent-runtime.md`、`docs/architecture.md`、`docs/progress.md`、`docs/changelog.md`、`docs/quality.md`。
+### 3.1 目录与分层演进
 
-## 5. 实施步骤
+- **P0 隔离候选阶段**：所有未回流组件统一放在 `src/components/playground/workspace-preview/`，在 `src/shared/ui-component-registry.ts` 登记为 `status: 'playground'`；通过 `WorkspaceExperienceCandidate.tsx` 与左侧 `WorkspaceChatShell` 验证完整闭环，绝不修改正式页面默认行为。
+- **P1 正式回流阶段**：按 `.agents/skills/playground-to-production/SKILL.md` 逐项审计后，迁入 `src/components/chat/right-dock/preview/`（或对应正式目录）并更新 `ui-component-registry.ts` 生命周期为 `adopted`；Playground 样张继续复用同一正式组件 + 隔离夹具。
 
-1. **Step 0（当前）**：用户确认本施工合同范围、交互形态与 P0 → P1 节奏。
-2. **Step 1（Phase P0）**：实现共享批注拼装纯函数与四个隔离预览组件，接入 `WorkspaceExperienceCandidate` 四个新场景并与左侧 `WorkspaceChatShell` 打通「发送到对话」。
-3. **Step 2（Phase P0 验证）**：补齐单元测试（坐标换算、矩形选区 Markdown 序列化、HTML 拾取协议校验、Word HTML 清洗、批注格式化），通过 `typecheck` / `vitest` / `vite build` / `assets:check`，在 Playground 交付截图/交互验收。
-4. **Step 3（用户确认门）**：用户验收 Playground 候选并明确批准回流范围。
-5. **Step 4（Phase P1）**：主进程真实解析 IPC + IPC 四处同步 + 正式 `FileBrowser` / `WorkspaceFilesPanel` / `ChatRightDock` 回流 + 全套回归测试与文档收口。
+### 3.2 核心安全与性能红线
 
-## 6. 风险与权衡
+- **路径防穿越**：所有文件读取、解析与 Git 操作必须走 `resolveCurrentProjectFile` / `getCurrentProjectRoot` 的 `realpath` 边界校验，严禁越出当前工作区。
+- **HTML 沙箱与消息校验**：本地 HTML 预览 `iframe` 始终保持 `sandbox="allow-scripts"`（绝不开启 `allow-same-origin`）；`postMessage` 强制校验 `event.source === iframe.contentWindow` 与会话级随机 `channelToken`。
+- **Word HTML XSS 清洗**：强制经 `sanitizeDocxHtml` 剥离 `<script>`、`<iframe>`、`<object>`、`<embed>`、`on*` 事件与 `javascript:` / 非图片 `data:` 协议。
+- **防 OOM 与大文件保护**：
+  - Excel：单文件 ≤ 10MB，每 Sheet 预览上限 500 行 × 50 列并标注截断提示；
+  - Word / PPT：单文件 ≤ 10MB，PPT 预览上限 80 页；
+  - PDF：单文件 ≤ 15MB，按需逐页渲染不一次性全页解码进内存；
+  - Git Diff / Hunk：使用 `execFile` 参数数组调用 `git`，严禁字符串拼接命令，大 Diff 超限自动截断并提示。
 
-- **大 Excel 表格性能**：直接 DOM 渲染上万行会卡顿；首版主进程硬上限（如每 Sheet 最多 500 行 × 50 列并显示截断提示）可兼顾流畅度与真实办公场景，后续按需再评估虚拟滚动。
-- **HTML 页面自身拦截点击事件**：页面脚本可能调用 `stopPropagation`；拾取脚本在开启批注模式时使用捕获阶段（`capture: true`）拦截点击并 `preventDefault()`，关闭模式立即还原。
-- **Word 复杂样式保真度**：`mammoth` 偏语义转换（非像素级分页排版），优先保证文字、表格、标题、列表清晰可读与划词批注流畅；需要像素级校版时一键「用系统应用打开」。
+### 3.3 依赖评估
+
+- **Batch A**：完全复用现有 `xlsx`、`mammoth`、`unpdf`（`.pptx` 可直接用 `jszip` 或 Node 内置/轻量 zip 解析，若需新增 `jszip` 或 `pdfjs-dist` 在动手前明确声明）。
+- **Batch B / C / D**：优先复用 Electron 原生能力、Foundation 控件与本地 `git` CLI，不引入重型第三方编辑器框架。
+
+---
+
+## 4. 实施路线与验收门禁
+
+| 批次 | 范围 | P0 状态 | P1 状态 | 独立验收标准 |
+|---|---|---|---|---|
+| **Batch A** | Excel / HTML / Word / PDF / PPT 渲染 + 批注草稿篮 | ✅ P0 全部完成（待验收） | ⬜ 待 P0 验收确认 | Playground 5 类文档可渲染交互 + 多条批注汇总发送；P1 真实项目文件打开与批注直达 Chat 输入框；单测 + `assets:check` + `arch:check` + `vite build` 全绿 |
+| **Batch B** | HTML 区域框选 + Adjust 样式试调 + 受控本地浏览器批注 | ⬜ 未开始 | ⬜ 未开始 | 区域框选坐标准确；Adjust 试调不改源文件且输出 `styleDiff`；本地 `localhost` 页面可预览并批注 |
+| **Batch C** | Diff 行级 `+` 批注 + Git 多视图 + 单文件/Hunk Stage/Revert | ⬜ 未开始 | ⬜ 未开始 | 悬停行写批注并入批注篮；Uncommitted / Branch 视图切换正常；单 Hunk Stage/Revert（含二次确认）真实生效且有单测回归 |
+| **Batch D** | 产出物摘要 + 对话侧显式焦点引用 | ⬜ 未开始 | ⬜ 未开始 | 会话产物一键定位预览；Chat 输入区可显式引用右栏焦点 |
+
+---
+
+## 5. 风险与权衡
+
+- **PPT / Word 保真度**：纯 JS 解析偏向「清晰可读 + 高效批注」，而非像素级 Office 排版引擎；每类文档右上角保留「用系统应用打开」兜底。
+- **内置浏览器安全边界**：Electron 内直接加载任意外部网页存在登录态与安全面扩张风险，Batch B 严格隔离独立 session partition，优先服务本地开发预览（`localhost`）与显式授权页面，不默认共享主浏览器凭据。
+- **范围控制**：四个批次彼此解耦，每完成一批的 P0 → 确认 → P1 都是一次完整可用的正式版本交付，避免一次性铺开过大导致半成品积压。

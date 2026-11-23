@@ -8,6 +8,7 @@ import {
   buildHtmlPickerSrcDoc,
   formatHtmlElementAnnotation,
   parseHtmlPickerMessage,
+  type AnnotationQueueItem,
   type HtmlPickedElement,
 } from './annotation-format'
 
@@ -17,6 +18,7 @@ interface HtmlAnnotatePreviewProps {
   /** 默认是否开启选元素批注模式 */
   defaultPickerActive?: boolean
   onSendToChat?: (text: string) => void
+  onQueueAnnotation?: (item: Omit<AnnotationQueueItem, 'id' | 'createdAt'>) => void
 }
 
 /**
@@ -30,6 +32,7 @@ export function HtmlAnnotatePreview({
   htmlContent,
   defaultPickerActive = false,
   onSendToChat,
+  onQueueAnnotation,
 }: HtmlAnnotatePreviewProps) {
   const [viewMode, setViewMode] = useState<'preview' | 'source'>('preview')
   const [pickerActive, setPickerActive] = useState(defaultPickerActive)
@@ -81,7 +84,7 @@ export function HtmlAnnotatePreview({
           ]}
         />
 
-        {viewMode === 'preview' && onSendToChat && (
+        {viewMode === 'preview' && (onSendToChat || onQueueAnnotation) && (
           <ActionButton
             size="sm"
             tone={pickerActive ? 'accent' : 'neutral'}
@@ -117,7 +120,7 @@ export function HtmlAnnotatePreview({
         )}
       </div>
 
-      {viewMode === 'preview' && onSendToChat && (
+      {viewMode === 'preview' && (onSendToChat || onQueueAnnotation) && (
         <AnnotationBar
           testId="html-annotation-bar"
           anchorLabel={picked ? picked.selector : null}
@@ -125,9 +128,23 @@ export function HtmlAnnotatePreview({
           emptyHint={pickerActive ? '请在上方页面中点击任意元素以锁定批注目标' : '点击上方「选元素批注」后，即可点选页面任意元素并发送到对话'}
           placeholder="例如：把这个按钮改成次要样式并减小上下边距…"
           onClearAnchor={() => setPicked(null)}
+          onAddToQueue={onQueueAnnotation ? (comment) => {
+            if (!picked) return
+            onQueueAnnotation({
+              filePath,
+              anchorLabel: picked.selector,
+              excerpt: picked.textSnippet || `<${picked.tagName}>`,
+              comment,
+              formattedText: formatHtmlElementAnnotation({
+                filePath,
+                element: picked,
+                comment,
+              }),
+            })
+          } : undefined}
           onSubmit={(comment) => {
             if (!picked) return
-            onSendToChat(formatHtmlElementAnnotation({
+            onSendToChat?.(formatHtmlElementAnnotation({
               filePath,
               element: picked,
               comment,

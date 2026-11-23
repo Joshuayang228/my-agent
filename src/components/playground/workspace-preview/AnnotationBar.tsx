@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
-import { Send, X } from 'lucide-react'
+import { ListPlus, Send, X } from 'lucide-react'
 import { ActionButton } from '../../foundation/ActionButton'
 import { Badge } from '../../foundation/Badge'
 import { IconButton } from '../../foundation/IconButton'
@@ -15,14 +15,16 @@ interface AnnotationBarProps {
   placeholder?: string
   onClearAnchor?: () => void
   onSubmit: (comment: string) => void
+  /** 可选：加入批注草稿篮（支持连续攒多条再一键汇总发送） */
+  onAddToQueue?: (comment: string) => void
   testId?: string
 }
 
 /**
- * 背景：Excel 选区、HTML 元素、Word 划词和 PDF 页面都需要把「选中锚点 + 批注说明」发送到对话。
+ * 背景：Excel 选区、HTML 元素、Word 划词、PDF/PPT 页面都需要把「选中锚点 + 批注说明」发送到对话或先攒入草稿篮。
  * 设计意图：收拢为一个统一的紧凑底栏，全部复用 Foundation 的 Badge / TextField / ActionButton / IconButton，
- * 避免四种预览器各自拼接不一致的输入表单。
- * 关键约束：没有有效锚点或未填写批注时禁用发送；发送成功后清空输入框并给出短暂反馈。
+ * 支持单条直发与多条暂存两种节奏。
+ * 关键约束：没有有效锚点或未填写批注时禁用发送与入篮；提交后清空输入框并给出短暂状态反馈。
  */
 export function AnnotationBar({
   anchorLabel,
@@ -31,20 +33,32 @@ export function AnnotationBar({
   placeholder = '输入批注或修改要求，回车发送到对话…',
   onClearAnchor,
   onSubmit,
+  onAddToQueue,
   testId = 'workspace-annotation-bar',
 }: AnnotationBarProps) {
   const [comment, setComment] = useState('')
-  const [justSent, setJustSent] = useState(false)
+  const [feedback, setFeedback] = useState<string | null>(null)
 
   const canSend = Boolean(anchorLabel && comment.trim())
+
+  const showFeedback = (text: string) => {
+    setFeedback(text)
+    window.setTimeout(() => setFeedback(null), 1600)
+  }
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!canSend) return
     onSubmit(comment.trim())
     setComment('')
-    setJustSent(true)
-    window.setTimeout(() => setJustSent(false), 1600)
+    showFeedback('已发送到对话')
+  }
+
+  const handleQueue = () => {
+    if (!canSend || !onAddToQueue) return
+    onAddToQueue(comment.trim())
+    setComment('')
+    showFeedback('已加入批注篮')
   }
 
   return (
@@ -82,9 +96,9 @@ export function AnnotationBar({
             {emptyHint}
           </span>
         )}
-        {justSent && (
+        {feedback && (
           <span className="ml-auto shrink-0 text-[10px]" style={{ color: 'var(--success)' }} role="status">
-            已发送到对话
+            {feedback}
           </span>
         )}
       </div>
@@ -99,6 +113,20 @@ export function AnnotationBar({
           className="h-7 min-w-0 flex-1 rounded-[var(--radius-input)] px-2 text-[11px]"
           onChange={(event: ChangeEvent<HTMLInputElement>) => setComment(event.target.value)}
         />
+        {onAddToQueue && (
+          <ActionButton
+            type="button"
+            tone="neutral"
+            size="sm"
+            disabled={!canSend}
+            className="gap-1"
+            data-testid={`${testId}-queue`}
+            onClick={handleQueue}
+          >
+            <ListPlus size={12} />
+            加入批注篮
+          </ActionButton>
+        )}
         <ActionButton
           type="submit"
           tone="accent"

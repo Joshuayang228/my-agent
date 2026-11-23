@@ -41,6 +41,23 @@ export interface HtmlPickedElement {
   rect?: { width: number; height: number }
 }
 
+export interface PptxSlideData {
+  slideNumber: number
+  title: string
+  bullets: string[]
+  notes?: string
+}
+
+export interface AnnotationQueueItem {
+  id: string
+  filePath: string
+  anchorLabel: string
+  excerpt?: string
+  comment: string
+  formattedText: string
+  createdAt: number
+}
+
 const PICKER_MESSAGE_TYPE = 'my-agent:html-element-pick'
 
 /** 将 0 起始列下标转换为 Excel 列字母（0 -> A, 25 -> Z, 26 -> AA）。 */
@@ -186,6 +203,31 @@ export function formatPdfPageAnnotation(opts: {
     '',
     `批注说明：${note}`,
   ].join('\n')
+}
+
+export function formatPptxSlideAnnotation(opts: {
+  filePath: string
+  slideNumber: number
+  totalSlides: number
+  slideTitle?: string
+  comment: string
+}): string {
+  const note = opts.comment.trim()
+  const titlePart = opts.slideTitle?.trim() ? `（${opts.slideTitle.trim()}）` : ''
+  return [
+    `[幻灯片批注] 文件：\`${opts.filePath}\` · 第 ${opts.slideNumber} / ${opts.totalSlides} 页${titlePart}`,
+    '',
+    `批注说明：${note}`,
+  ].join('\n')
+}
+
+/** 将工作区批注草稿篮中的多条批注合并为结构化编号清单，便于 AI 一次性逐条处理。 */
+export function formatAnnotationQueueForChat(items: AnnotationQueueItem[]): string {
+  if (items.length === 0) return ''
+  if (items.length === 1) return items[0].formattedText
+  const header = `请依次处理以下 ${items.length} 条工作区批注：`
+  const body = items.map((item, idx) => `### 批注 ${idx + 1}\n${item.formattedText}`).join('\n\n---\n\n')
+  return `${header}\n\n${body}`
 }
 
 /**
