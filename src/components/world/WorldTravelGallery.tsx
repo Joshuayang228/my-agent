@@ -3,7 +3,7 @@ import { ArrowLeft, ImageOff, MessageSquareShare, MapPin } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { Badge } from '../foundation/Badge'
 import { EmptyState } from '../foundation/EmptyState'
-import { contentGutterStyle, mediaFrameStyle, readingContentStyle } from '../../shared/content-layout'
+import { LAYOUT_CLASSES, contentGutterStyle, mediaFrameStyle, readingContentStyle } from '../../shared/content-layout'
 
 export interface TravelRecordView {
   id: string; title: string; destination: string; start: string | null; end: string | null;
@@ -78,7 +78,7 @@ export function WorldTravelGallery({ trips: input, renderImage, renderEditor, to
           {trip.stops.length > 0 && <section className="space-y-4" aria-label="旅途经历"><h3 className="text-sm font-medium">旅途经历</h3>{trip.stops.map(stop => <div key={stop.id} className="border-t pt-3" style={{ borderColor: 'var(--border-color)' }}><div className="flex flex-wrap items-baseline justify-between gap-2"><h4 className="text-sm font-medium">{stop.name}</h4>{stop.date && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{stop.date}</span>}</div><p className="mt-1 whitespace-pre-wrap text-sm leading-6" style={{ color: 'var(--text-secondary)' }}>{stop.story}</p></div>)}</section>}
           {renderEditor?.(trip.id)}
         </article>
-      </div> : trips.length ? <ul className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2" aria-label="旅行记录">{trips.map(item => <li key={item.id} className="min-w-0">
+      </div> : trips.length ? <ul className={`${LAYOUT_CLASSES.cardGrid} items-stretch`} aria-label="旅行记录">{trips.map(item => <li key={item.id} className="min-w-0">
         <ActionButton padding="none" ref={button => { if (button) buttons.current.set(item.id, button); else buttons.current.delete(item.id) }} aria-label={`查看旅行 ${item.title}`} onClick={() => { savedScroll.current = scroller.current?.scrollTop ?? 0; target.current = item.id; setSelected(item.id) }} className="h-full w-full flex-col items-stretch overflow-hidden rounded-lg text-left hover:bg-[var(--hover-overlay)]">
           {picture(item, true)}
           <div className="w-full space-y-2 p-3 [overflow-wrap:anywhere]"><div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-medium">{item.title}</h3>{item.status === 'active' && <Badge tone="accent">旅行中</Badge>}</div><p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{item.destination}</p><p className="text-xs" style={{ color: 'var(--text-muted)' }}>{tripDates(item)}</p></div>

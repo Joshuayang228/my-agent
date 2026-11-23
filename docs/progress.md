@@ -1,5 +1,7 @@
 # 项目进度
 
+统一人物世界各画廊卡片网格列数与图片尺寸（2026-11-23）：`src/shared/content-layout.ts` 新增 `LAYOUT_CLASSES.cardGrid`（`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`）并在 `WorldTravelGallery`、`WorldCultureGallery` 与 `WorldHomeGallery` 统一应用，消除足迹 2 列与其他画廊 3 列导致的卡片图片大小不一致问题。
+
 注册表驱动的人物世界全切面 AI 读取、朋友圈主角评论修复与基础层媒体图框统一（2026-11-23）：在 `surface-registry.ts` 新增 `readView` 与派生常量 `COMPANION_WORLD_READ_VIEWS` 并纳入 `companion-surface-registry.test.ts`（`arch:check`）强制门禁，以后新增任何世界切面都会在编译与提交期自动校验 AI 读取同步；`companion_read_world` 补齐 `journal` / `gifts` / `contacts` / `timeline` 并在 `moments` 返回点赞与评论；`moments.ts` 新增 `addProtagonistMomentCommentForRole` 供 `companion_comment_moment` 以当前伙伴真实身份评论，不再冒充用户账号；`src/shared/content-layout.ts` 收口 `MEDIA_FRAME_PRESETS` / `mediaFrameStyle()` 统一文化角、家居与足迹画廊媒体比例。
 
 右下角 Toast 自适应时长与悬停暂停（2026-11-23）：`src/components/Toast.tsx` 根据消息字数动态计算停留时间（4s–8.5s，错误至少 6.5s），并在鼠标悬停时暂停自动消失倒计时。

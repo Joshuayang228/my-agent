@@ -1,5 +1,7 @@
 # 质量总控
 
+人物世界画廊卡片网格与媒体图框统一门禁（2026-11-23）：`content-layout.test.ts` 新增校验强制 `WorldTravelGallery`、`WorldCultureGallery` 与 `WorldHomeGallery` 共同引用 `LAYOUT_CLASSES.cardGrid` 与 `mediaFrameStyle()`，杜绝列数与图片尺寸再次漂移。
+
 注册表驱动世界读取门禁与朋友圈主角评论回归（2026-11-23）：`companion-surface-registry.test.ts` 扩展至 5 项静态门禁（强制所有世界切面声明 `readView` 并与 `companion_read_world` 枚举同步）；`companion-life-tools.test.ts` 更新 `companion_comment_moment` 为主角身份断言并新增 `moments` 评论、`journal`、`gifts`、`contacts`、`timeline` 读取回归；`arch:check`（16 项）、`assets:check`（115 项）与 `docs:validate` 全部通过。
 
 人物世界交互收口与配角头像/穿搭升级门禁（2026-11-23）：`world-contacts.test.ts` 验证配角无 `protected.md` 时经 `getRoleVisualDataUrl` 正确返回 `avatarSrc`；`companion-assets.test.ts`、`world-profile-header.test.ts`、`foundation-enforcement-gate.test.ts`、`npm run build`、`arch:check`、`assets:check` 与 `docs:validate` 全部通过。

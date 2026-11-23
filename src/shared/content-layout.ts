@@ -61,6 +61,7 @@ export const LAYOUT_CLASSES = {
   block: 'py-[var(--layout-block,1rem)]',
   section: 'space-y-[var(--layout-section,1rem)]',
   grid: 'gap-[var(--layout-list,0.75rem)]',
+  cardGrid: 'grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3',
   list: 'space-y-[var(--layout-list,0.75rem)]',
   card: 'p-[var(--layout-card-small,1rem)] sm:p-[var(--layout-card-large,1.25rem)]',
 } as const

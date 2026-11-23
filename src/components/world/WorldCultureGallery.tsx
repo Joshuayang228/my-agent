@@ -163,7 +163,7 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
             </section> : text(selected, 'note') && <section><h4 className="mb-2 font-medium">笔记</h4><p>{text(selected, 'note')}</p></section>}
           </div>
         </section>
-        : items.length ? <div className="grid min-w-0 grid-cols-2 items-stretch gap-4 lg:grid-cols-3" data-testid="culture-grid">
+        : items.length ? <div className={`${LAYOUT_CLASSES.cardGrid} items-stretch`} data-testid="culture-grid">
           {items.map((asset) => <article key={asset.id} aria-label={asset.name} className="flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-card)] border transition-colors hover:bg-[var(--hover-overlay)]" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
             <Artwork asset={asset} cardTop {...artworkSource} />
             <div className="flex flex-1 flex-col gap-2 p-3.5">

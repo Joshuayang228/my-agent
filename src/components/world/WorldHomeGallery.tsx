@@ -99,7 +99,7 @@ export function WorldHomeGallery({ overviewImage, spaces, objects, imageState = 
           {space && picture(space.id, 'scene', space.image, `${space.name}场景`)}
           {space?.description && <p className="break-words text-[12px] leading-5" style={{ color: 'var(--text-muted)' }}>{space.description}</p>}
           {space && renderEditor?.(space.id)}
-          {items.length ? <div className="grid grid-cols-2 items-start gap-4 lg:grid-cols-3" data-testid="home-object-grid">
+          {items.length ? <div className={`${LAYOUT_CLASSES.cardGrid} items-start`} data-testid="home-object-grid">
             {items.map(item => <article key={item.id} aria-label={item.name} className="min-w-0 space-y-2" data-testid="home-object-card">
               {picture(item.id, 'object', item.image, item.name)}
               <ActionButton variant="plain" ref={node => { if (node) triggers.current.set(item.id, node); else triggers.current.delete(item.id) }}
