@@ -1,5 +1,7 @@
 # 质量总控
 
+Chat 长对话导航回归（2026-11-23）：新增 `chat-scroll-navigator.test.ts`（3 项）覆盖 `formatTurnPreview`、`ChatTurnRail` 少于 2 轮隐藏与多轮跳转轨、`ChatScrollToBottomButton` 显隐与无障碍标签；全套 Foundation 门禁与 `tsc --noEmit` 全部通过。
+
 通讯录空 `universeId` 头像回退回归（2026-11-23）：`world-contacts.test.ts` 新增 `getContactsForRole(roleId, '')` 空串回归校验强制归一为 `'default'` 并返回配角 `avatarSrc`；`world-profile-header.test.ts` 同步校验页头不输出冗余「此刻 ·」。
 
 全局滚动条基线静态门禁（2026-11-23）：`foundation-enforcement-gate.test.ts` 扩展至 14 项门禁，强制 `src/index.css` 维持全局 `*::-webkit-scrollbar` 与 `.scrollbar-stable` 基线且禁止混写 `scrollbar-width: thin`。

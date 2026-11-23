@@ -238,12 +238,12 @@ export function ToolCallbackList({
                 }}
               >
                 {hasStreamingArgs && (
-                  <pre className="scrollbar-thin max-h-24 overflow-auto" style={{ color: 'var(--text-muted)' }}>
+                  <pre className="scrollbar-thin max-h-24 overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-all" style={{ color: 'var(--text-muted)' }}>
                     {tool.streamingArgs}
                   </pre>
                 )}
                 {hasArgs && (
-                  <pre className="scrollbar-thin max-h-28 overflow-auto" style={{ color: 'var(--text-muted)' }}>
+                  <pre className="scrollbar-thin max-h-28 overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-all" style={{ color: 'var(--text-muted)' }}>
                     {JSON.stringify(tool.args, null, 2)}
                   </pre>
                 )}

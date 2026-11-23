@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Image as ImageIcon, MapPin, MessageSquareShare, RotateCcw } from 'lucide-react'
+import { Image as ImageIcon, MessageSquareShare, RotateCcw } from 'lucide-react'
 import { IconButton } from '../foundation/IconButton'
 import { ActionButton } from '../foundation/ActionButton'
 import { CompanionAvatar } from '../CompanionAvatar'
@@ -271,20 +271,8 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
           </div>
         )}
 
-        {/* 右上角位置轻胶囊 + 收敛外观菜单 */}
+        {/* 右上角收敛外观菜单（悬停头图时轻显，平时保持封面右上角纯净留白） */}
         <div ref={menuRef} className="absolute right-4 top-3 z-20 flex items-center gap-1.5">
-          {currentSlot?.location && (
-            <span
-              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] backdrop-blur-sm"
-              style={{
-                background: hasBanner ? 'rgba(0,0,0,0.32)' : 'var(--bg-secondary)',
-                color: hasBanner ? 'rgba(255,255,255,0.92)' : 'var(--text-secondary)',
-              }}
-            >
-              <MapPin size={11} />
-              {currentSlot.location}
-            </span>
-          )}
           {canEditVisuals ? (
             <div className={`relative transition-opacity ${menuOpen ? 'opacity-100' : 'opacity-0 group-hover/banner:opacity-100 focus-within:opacity-100'}`}>
               <IconButton

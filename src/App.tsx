@@ -1,5 +1,5 @@
 import { buildImageDraftPrompt, buildWorldAssetImageDraftPrompt } from './shared/request-draft-prompts'
-import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react'
 import type {
   ChatMessage,
   AgentStreamEvent,
@@ -63,6 +63,7 @@ import {
   type WorldTab,
 } from './components/shell'
 import { ResizeHandle } from './components/shell/ResizeHandle'
+import { ChatScrollToBottomButton, ChatTurnRail, formatTurnPreview } from './components/chat/ChatScrollNavigator'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from './shared/panel-layout'
 import { LAYOUT_CLASSES, layoutProfileStyle } from './shared/content-layout'
 import { normalizeThemeId } from './shared/design-asset-registry'
@@ -737,11 +738,59 @@ function App() {
     return () => document.removeEventListener('click', handler)
   }, [projectMenuOpen])
 
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false)
+  const [activeTurnId, setActiveTurnId] = useState<string | null>(null)
+  const isNearBottomRef = useRef(true)
+
   const scrollToBottom = useCallback(() => {
+    isNearBottomRef.current = true
+    setShowScrollToBottom(false)
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
-  useEffect(scrollToBottom, [messages, activeTools, scrollToBottom])
+  useEffect(() => {
+    if (isNearBottomRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages, activeTools])
+
+  const handleChatScroll = useCallback(() => {
+    const el = chatContainerRef.current
+    if (!el) return
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+    isNearBottomRef.current = distanceFromBottom <= 100
+    setShowScrollToBottom(distanceFromBottom > 120)
+
+    const nodes = el.querySelectorAll<HTMLElement>('[data-chat-turn-id]')
+    if (nodes.length === 0) return
+    const containerTop = el.getBoundingClientRect().top
+    const anchorOffset = el.clientHeight * 0.35
+    let currentId: string | null = nodes[0].dataset.chatTurnId ?? null
+    for (const node of nodes) {
+      if (node.getBoundingClientRect().top - containerTop <= anchorOffset) {
+        currentId = node.dataset.chatTurnId ?? currentId
+      } else {
+        break
+      }
+    }
+    setActiveTurnId((prev) => (prev === currentId ? prev : currentId))
+  }, [])
+
+  const jumpToTurn = useCallback((turnId: string) => {
+    const el = chatContainerRef.current
+    if (!el) return
+    const target = el.querySelector<HTMLElement>(`[data-chat-turn-id="${CSS.escape(turnId)}"]`)
+    if (!target) return
+    isNearBottomRef.current = false
+    setActiveTurnId(turnId)
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
+
+  useEffect(() => {
+    isNearBottomRef.current = true
+    setShowScrollToBottom(false)
+    setActiveTurnId(null)
+  }, [activeSessionId])
 
   useEffect(() => {
     const normalizedTheme = normalizeThemeId(theme)
@@ -1098,6 +1147,12 @@ function App() {
   })
 
   const liveToolHostId = findLiveToolHostId(messages, activeTools, isStreaming)
+  const userTurns = useMemo(
+    () => visibleMessages
+      .filter((m) => m.role === 'user')
+      .map((m) => ({ id: m.id, preview: formatTurnPreview(m.content) })),
+    [visibleMessages],
+  )
 
   const toggleToolCollapse = useCallback((callId: string) => {
     setToolCollapse((prev) => {
@@ -1421,10 +1476,17 @@ function App() {
           </div>
         )}
 
-        {/* 消息列表 */}
-        {activeView === 'chat' && <div
+        {/* 消息列表 + 左侧轮次跳转导航轨 */}
+        {activeView === 'chat' && <div className="relative flex min-h-0 flex-1 flex-col">
+        <ChatTurnRail
+          turns={userTurns}
+          activeTurnId={activeTurnId ?? userTurns[userTurns.length - 1]?.id ?? null}
+          onJumpToTurn={jumpToTurn}
+        />
+        <div
           ref={chatContainerRef}
           data-testid="chat-messages"
+          onScroll={handleChatScroll}
           className={`scrollbar-thin scrollbar-stable relative flex-1 select-text overflow-y-auto ${dragOver ? 'ring-2 ring-inset ring-[var(--accent)]' : ''}`}
           style={dragOver ? { ['--tw-ring-color' as string]: 'var(--accent)' } as React.CSSProperties : {}}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
@@ -1483,6 +1545,7 @@ function App() {
                 return (
                   <div
                     key={msg.id}
+                    data-chat-turn-id={isUser ? msg.id : undefined}
                     className={`animate-fade-in-up group ${dimmed ? 'opacity-20' : ''} ${isSearchMatch ? 'rounded-md ring-1 ring-[var(--accent)]' : ''}`}
                     style={isSearchMatch ? { ['--tw-ring-color' as string]: 'var(--accent)', ['--tw-ring-opacity' as string]: '0.3' } as React.CSSProperties : {}}
                   >
@@ -1722,10 +1785,12 @@ function App() {
           </div>
           </div>
 
+        </div>
         </div>}
 
         {/* 输入区 — Codex 风格居中卡片 */}
         {activeView === 'chat' && <div className={`relative shrink-0 ${LAYOUT_CLASSES.gutter} pb-5 pt-2`} style={{ ...layoutProfileStyle('chat'), background: 'transparent' }} data-testid="chat-composer-area">
+          <ChatScrollToBottomButton visible={showScrollToBottom} onClick={scrollToBottom} />
           <div className="mx-auto w-full" style={{ maxWidth: 'var(--layout-width)' }}>
             {/* @mention 弹窗 */}
             {mentionOpen && (

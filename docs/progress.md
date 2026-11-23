@@ -1,5 +1,7 @@
 # 项目进度
 
+Chat 长对话导航（居中回底按钮 + 左侧轮次跳转轨）与细节收口（2026-11-23）：新增 `src/components/chat/ChatScrollNavigator.tsx` 并接入 `App.tsx`，提供上滑浮现的居中向下回底按钮、左侧极简小横杠与悬停发言目录跳转，同时修复上滑看历史时被流式刷新拉回底部的问题；`ToolCallbackList.tsx` 参数区补齐自动换行消除横滚条，`WorldProfileHeader.tsx` 移除右上角重复地点胶囊。
+
 修复通讯录配角头像空 `universeId` 回退 Bug 与页头微精修（2026-11-23）：修复 `settings.getSetting('universeId')` 返回空串 `''` 绕过默认参数导致配角头像路径失效的根因，并在 `world-contacts.test.ts` 补齐空串回归；页头移除冗余「心情/此刻」前缀并改换图按钮为悬停显现。
 
 统一全站滚动条基线与主视口 `scrollbar-gutter: stable` 防抖动（2026-11-23）：`src/index.css` 全局收口为 6px 悬停显现圆角细条并移除 `scrollbar-width: thin` 冲突，Chat / 人物世界 / Playground 主滚动区统一接入 `.scrollbar-stable`，同步沉淀规范与静态门禁。
