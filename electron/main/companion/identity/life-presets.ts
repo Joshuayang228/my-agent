@@ -55,6 +55,7 @@ export interface RolePresetKeepsake {
   giftMessage: string
   giftReason: string
   iconName: string
+  visualPath?: string
 }
 
 export interface RoleCoDecisionPreset {
@@ -114,6 +115,7 @@ export interface RoleStarterReceivedGift {
   giverName: string
   giverNote?: string
   companionReaction: string
+  visualPath?: string
   offsetMs?: number
 }
 

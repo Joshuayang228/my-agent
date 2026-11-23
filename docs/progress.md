@@ -1,5 +1,7 @@
 # 项目进度
 
+人物世界顶部去「全天日程」轻量化与礼物柜全量配图（2026-11-23）：`WorldProfileHeader.tsx` 撤除剧透未来槽位且占屏的「今日轨迹 / 全天日程」独立通栏，将当前活动收敛为头图内一行可点击直通 Chat 的「此刻」轻胶囊并收紧头图高度；为路飞 4 件预置礼物/信物生成 Role Pack 插画并写入 `life-presets.json`，`gifting.ts` 与 `relationship-keepsake.ts` 统一支持静态 Role Pack 图解析及新礼物的非阻塞后台生图，`WorldKeepsakesPanel.tsx` 对齐基础层 3 列 `4/3` 卡片与详情灯箱预览。
+
 统一人物世界各画廊卡片网格列数与图片尺寸（2026-11-23）：`src/shared/content-layout.ts` 新增 `LAYOUT_CLASSES.cardGrid`（`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`）并在 `WorldTravelGallery`、`WorldCultureGallery` 与 `WorldHomeGallery` 统一应用，消除足迹 2 列与其他画廊 3 列导致的卡片图片大小不一致问题。
 
 注册表驱动的人物世界全切面 AI 读取、朋友圈主角评论修复与基础层媒体图框统一（2026-11-23）：在 `surface-registry.ts` 新增 `readView` 与派生常量 `COMPANION_WORLD_READ_VIEWS` 并纳入 `companion-surface-registry.test.ts`（`arch:check`）强制门禁，以后新增任何世界切面都会在编译与提交期自动校验 AI 读取同步；`companion_read_world` 补齐 `journal` / `gifts` / `contacts` / `timeline` 并在 `moments` 返回点赞与评论；`moments.ts` 新增 `addProtagonistMomentCommentForRole` 供 `companion_comment_moment` 以当前伙伴真实身份评论，不再冒充用户账号；`src/shared/content-layout.ts` 收口 `MEDIA_FRAME_PRESETS` / `mediaFrameStyle()` 统一文化角、家居与足迹画廊媒体比例。

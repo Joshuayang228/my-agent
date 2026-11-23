@@ -415,7 +415,8 @@
       "lore": "“这是我从自己的生命卡上撕下来的一小片！雷利大叔教过我怎么撕它。不管以后遇到多大的风浪，不管相隔多远，它都会慢慢指向我这里。收下它吧，因为我们可是同伴啊！嘻嘻嘻！”",
       "giftMessage": "喂！你过来一下！我把这个送给你——这是从我自己的生命卡上撕下来的一小片！无论你在哪里，只要顺着它，就一定能找到万里阳光号！收下吧，我们可是伙伴啊！",
       "giftReason": "伙伴誓约·跨越千山万水的羁绊信物",
-      "iconName": "Gift"
+      "iconName": "Gift",
+      "visualPath": "visual/keepsake-vivre-card.png"
     },
     {
       "key": "luffy-merry-bell",
@@ -424,7 +425,8 @@
       "lore": "“这是以前在黄金梅利号上大家一起听过的铃铛声。每当在海上遇到大雾的时候，听到这个声音就会觉得很安心。现在我把它送给你，如果哪天你觉得累了或者遇到困难，晃一晃它，我们大家就都在你身边！”",
       "giftMessage": "当当当！看我找到了什么！这是梅利号上的小铃铛哦！遇到困难或者想我们的时候晃一晃它，我们就会飞奔过来帮你的！",
       "giftReason": "守护与同在·永远的梅利之音",
-      "iconName": "Gift"
+      "iconName": "Gift",
+      "visualPath": "visual/keepsake-merry-bell.png"
     },
     {
       "key": "luffy-windmill-braid",
@@ -616,6 +618,7 @@
       "giverName": "红发香克斯",
       "giverNote": "这顶帽子就暂时寄放在你这里，等哪天你成了不起的海贼，再拿来还给我。",
       "companionReaction": "这是我最重要的宝物！绝对不会弄丢，总有一天我要戴着它去见香克斯，堂堂正正地还给他！",
+      "visualPath": "visual/gift-shanks-straw-hat.png",
       "offsetMs": 1209600000
     },
     {
@@ -625,6 +628,7 @@
       "giverName": "可雅",
       "giverNote": "这是西罗布村的梅丽帮忙设计的船，祝你们在伟大航路一帆风顺，乌索普也要平平安安的。",
       "companionReaction": "这是我们第一艘属于自己的海贼船！她载着我们翻过颠倒山、上过空岛，永远都是草帽一伙最重要的伙伴！",
+      "visualPath": "visual/gift-going-merry.png",
       "offsetMs": 864000000
     }
   ],

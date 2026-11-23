@@ -19,15 +19,18 @@
  */
 
 import { randomUUID } from 'crypto'
-import { getDatabase } from '../../storage/database'
+import { getDatabase, persist } from '../../storage/database'
 import { ensureLifeSchema } from '../core/persistence/life-schema'
 import { createLogger } from '../../utils/logger'
-import { loadAuxLLMConfig } from '../../llm/aux-config'
+import { loadAuxLLMConfig, loadImageGenerationConfig } from '../../llm/aux-config'
 import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test'
 import { chatComplete } from '../../llm'
-import { compileGiftReactionRequest } from '../../prompts/registered-request'
+import { requestGeneratedImage } from '../../llm/image-generation'
+import { compileGiftReactionRequest, compileImageGenerationRequest } from '../../prompts/registered-request'
+import { normalizeGeneratedImage } from '../../utils/generated-image-codec'
+import { prepareCompanionImageGen } from './image-gen-prep'
 import { loadRoleLifePresets } from '../identity/life-presets'
-import { loadRolePack } from '../identity/loader'
+import { getRoleVisualDataUrl, loadRolePack, resolveRoleUniverseId } from '../identity/loader'
 import { ensureMainSessionForRole } from '../../storage/session-store'
 import { tryRecordMilestone } from '../growth/milestones'
 import { recordRelationshipEvent } from '../core/persistence/life-repository'
@@ -57,7 +60,44 @@ interface GiftDbRow {
   user_note: string | null
   companion_reaction: string
   vitals_buff_json: string | null
+  image_url?: string | null
   created_at: number
+}
+
+function resolveReceivedGiftImageUrl(roleId: string, rawUrl: string | null | undefined, giftKey: string): string | undefined {
+  const candidate = rawUrl?.trim()
+    || loadRoleLifePresets(roleId).starterReceivedGifts?.find((item) => item.key === giftKey)?.visualPath
+  if (!candidate) return undefined
+  if (candidate.startsWith('data:image/')) return candidate
+  if (candidate.startsWith('visual/')) {
+    return getRoleVisualDataUrl(roleId, candidate, resolveRoleUniverseId(roleId)) ?? undefined
+  }
+  return candidate
+}
+
+async function scheduleReceivedGiftImageGeneration(roleId: string, giftId: string, giftName: string, userNote?: string): Promise<void> {
+  try {
+    const config = await loadImageGenerationConfig()
+    if (!config) return
+    const prepared = await prepareCompanionImageGen({
+      roleId,
+      description: `特写静物插画：一件收到的心意礼物「${giftName}」${userNote ? `（寄语背景：${userNote.slice(0, 60)}）` : ''}，温暖柔和光线，干净画面，无文字水印。`,
+      category: 'gift',
+    })
+    const response = await requestGeneratedImage(
+      config,
+      compileImageGenerationRequest(prepared.prompt, prepared.visualAnchor),
+      undefined,
+      { referenceImages: prepared.referenceImages, aspectRatio: '4:3' },
+    )
+    const normalized = await normalizeGeneratedImage(response.bytes)
+    const dataUrl = `data:image/png;base64,${normalized.bytes.toString('base64')}`
+    const db = await getDatabase()
+    db.run('UPDATE companion_received_gifts SET image_url = ? WHERE id = ? AND role_id = ?', [dataUrl, giftId, roleId])
+    persist()
+  } catch (err) {
+    log.warn('Async received gift image generation skipped', { roleId, giftId, error: String(err) })
+  }
 }
 
 function rowToRecord(row: GiftDbRow): CompanionGiftRecord {
@@ -78,6 +118,7 @@ function rowToRecord(row: GiftDbRow): CompanionGiftRecord {
     giverName: row.giver_name || undefined,
     userNote: row.user_note || undefined,
     companionReaction: row.companion_reaction,
+    imageUrl: resolveReceivedGiftImageUrl(row.role_id, row.image_url, row.gift_key),
     createdAt: row.created_at,
     vitalsBuff,
   }
@@ -167,9 +208,9 @@ async function ensureStarterReceivedGifts(roleId: string): Promise<void> {
     const createdAt = Math.max(1, now - (item.offsetMs ?? 0))
     db.run(
       `INSERT OR IGNORE INTO companion_received_gifts
-        (id, role_id, gift_key, gift_name, category, giver_name, user_note, companion_reaction, vitals_buff_json, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)`,
-      [id, roleId, item.key, item.giftName, item.category, item.giverName, item.giverNote ?? null, item.companionReaction, createdAt],
+        (id, role_id, gift_key, gift_name, category, giver_name, user_note, companion_reaction, vitals_buff_json, image_url, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
+      [id, roleId, item.key, item.giftName, item.category, item.giverName, item.giverNote ?? null, item.companionReaction, item.visualPath ?? null, createdAt],
     )
   }
 }
@@ -378,6 +419,9 @@ export async function sendGiftToCompanion(
     log.warn('Failed to record gift milestone', { roleId, error: String(err) })
   }
 
+  if (!opts?.mockResponse) {
+    void scheduleReceivedGiftImageGeneration(roleId, record.id, record.giftName, record.userNote)
+  }
   return record
 }
 
@@ -510,5 +554,6 @@ export async function recordGiftFromChat(input: ChatGiftInput): Promise<Companio
     log.warn('Failed to record chat gift milestone', { roleId: input.roleId, error: String(err) })
   }
 
+  void scheduleReceivedGiftImageGeneration(input.roleId, record.id, record.giftName, record.userNote)
   return record
 }

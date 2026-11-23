@@ -280,10 +280,12 @@ export async function ensureLifeSchema(): Promise<void> {
       companion_reaction TEXT NOT NULL,
       vitals_buff_json   TEXT,
       giver_name         TEXT,
+      image_url          TEXT,
       created_at         INTEGER NOT NULL
     )
   `)
   try { db.run('ALTER TABLE companion_received_gifts ADD COLUMN giver_name TEXT') } catch { /* 列已存在 */ }
+  try { db.run('ALTER TABLE companion_received_gifts ADD COLUMN image_url TEXT') } catch { /* 列已存在 */ }
   db.run(`
     CREATE INDEX IF NOT EXISTS idx_companion_received_gifts_role_time
       ON companion_received_gifts(role_id, created_at DESC)

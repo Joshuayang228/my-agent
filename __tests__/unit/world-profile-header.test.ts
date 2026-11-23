@@ -22,6 +22,31 @@ describe('World Frontend Polish（顶栏与新 Tab 去数值化与克制交互�
     expect(html).not.toContain('关系信号')
   })
 
+  it('WorldProfileHeader 仅在头图内展示轻量「此刻」状态，不再渲染「全天日程」或剧透未来槽位', () => {
+    const html = renderToStaticMarkup(createElement(WorldProfileHeader, {
+      profile: {
+        name: '路飞',
+        description: '自由、直率。',
+        statusSummary: '兜底状态不应覆盖此刻',
+      },
+      initialTimeline: {
+        roleId: 'luffy',
+        date: '2026-11-23',
+        theme: '雾礁后的松弛一天',
+        currentSlotIndex: 0,
+        slots: [
+          { hour: 9, minute: 0, timeStr: '09:00', activity: '坐在狮子船头吹海风', mood: '好奇', location: '狮子船头', type: 'activity', status: 'current' },
+          { hour: 20, minute: 0, timeStr: '20:00', activity: '未来不该剧透的夜宵', mood: '兴奋', location: '厨房', type: 'activity', status: 'upcoming' },
+        ],
+      },
+      onTakeToChat: () => {},
+    }))
+    expect(html).toContain('此刻 · 坐在狮子船头吹海风')
+    expect(html).not.toContain('全天日程')
+    expect(html).not.toContain('今日轨迹')
+    expect(html).not.toContain('未来不该剧透的夜宵')
+  })
+
   it('WorldJournalPanel 保持纯粹日记册视图，不再渲染脆弱心境卡片', () => {
     const html = renderToStaticMarkup(createElement(WorldJournalPanel, {
       roleId: 'luffy',

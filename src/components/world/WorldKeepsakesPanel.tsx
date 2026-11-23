@@ -11,13 +11,15 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   MessageSquareShare,
   ArrowLeft,
+  Gift,
 } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { Badge } from '../foundation/Badge'
 import { EmptyState } from '../foundation/EmptyState'
 import { ErrorState } from '../foundation/ErrorState'
+import { ImagePreviewImage } from '../foundation/ImagePreviewImage'
 import { TabStrip } from '../foundation/TabStrip'
-import { contentGutterStyle } from '../../shared/content-layout'
+import { LAYOUT_CLASSES, contentGutterStyle, mediaFrameStyle } from '../../shared/content-layout'
 import type {
   CompanionKeepsakeRecord,
   CompanionGiftRecord,
@@ -54,6 +56,41 @@ function formatDate(timestamp: number): string {
   } catch {
     return new Date(timestamp).toLocaleDateString()
   }
+}
+
+function GiftCoverImage({ src, alt, detail = false }: { src?: string; alt: string; detail?: boolean }) {
+  if (detail) {
+    if (!src) return null
+    return (
+      <div
+        className="mb-5 w-full overflow-hidden rounded-[var(--radius-md)]"
+        style={{ ...mediaFrameStyle('card'), maxWidth: 460 }}
+        data-testid="gift-detail-image"
+      >
+        <ImagePreviewImage
+          src={src}
+          alt={alt}
+          className="block h-full w-full object-cover"
+          buttonClassName="h-full w-full"
+        />
+      </div>
+    )
+  }
+  return (
+    <div className="w-full overflow-hidden" style={mediaFrameStyle('card')} data-testid="gift-card-image">
+      {src ? (
+        <img src={src} alt={alt} className="block h-full w-full object-cover" />
+      ) : (
+        <div
+          className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-[12px]"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          <Gift size={20} strokeWidth={1.6} />
+          <span>暂无配图</span>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function WorldKeepsakesPanel({
@@ -207,6 +244,7 @@ export function WorldKeepsakesPanel({
             style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}
             data-testid={`keepsake-detail-${selected.id}`}
           >
+            <GiftCoverImage src={selected.imageUrl} alt={selected.name} detail />
             <h2 className="break-words font-display text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
               {selected.name}
             </h2>
@@ -243,7 +281,7 @@ export function WorldKeepsakesPanel({
             )}
           </article>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="keepsake-shelf">
+          <div className={`${LAYOUT_CLASSES.cardGrid} items-stretch`} data-testid="keepsake-shelf">
             {keepsakes.map((item) => (
               <button
                 key={item.id}
@@ -251,16 +289,19 @@ export function WorldKeepsakesPanel({
                 onClick={() => setSelectedId(item.id)}
                 aria-label={`查看礼物：${item.name}`}
                 data-testid={`keepsake-card-${item.id}`}
-                className="flex min-w-0 flex-col gap-2.5 overflow-hidden rounded-[var(--radius-card)] border p-4 text-left transition-colors hover:bg-[var(--hover-overlay)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
+                className="flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-card)] border text-left transition-colors hover:bg-[var(--hover-overlay)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
                 style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}
               >
-                <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{formatDate(item.acquiredAt)}</span>
-                <span className="break-words font-display text-base font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
-                  {item.name}
-                </span>
-                <span className="line-clamp-3 break-words text-[12px] leading-6" style={{ color: 'var(--text-secondary)' }}>
-                  {item.description}
-                </span>
+                <GiftCoverImage src={item.imageUrl} alt={item.name} />
+                <div className="flex flex-1 flex-col gap-2 p-3.5">
+                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{formatDate(item.acquiredAt)}</span>
+                  <span className="break-words font-display text-[15px] font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
+                    {item.name}
+                  </span>
+                  <span className="line-clamp-2 break-words text-[12px] leading-5" style={{ color: 'var(--text-secondary)' }}>
+                    {item.description}
+                  </span>
+                </div>
               </button>
             ))}
           </div>
@@ -279,6 +320,7 @@ export function WorldKeepsakesPanel({
             style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}
             data-testid={`received-gift-detail-${selectedGift.id}`}
           >
+            <GiftCoverImage src={selectedGift.imageUrl} alt={selectedGift.giftName} detail />
             <div className="flex flex-wrap items-center gap-2.5">
               <h2 className="break-words font-display text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
                 {selectedGift.giftName}
@@ -311,7 +353,7 @@ export function WorldKeepsakesPanel({
             )}
           </article>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="received-gift-shelf">
+          <div className={`${LAYOUT_CLASSES.cardGrid} items-stretch`} data-testid="received-gift-shelf">
             {gifts.map((gift) => (
               <button
                 key={gift.id}
@@ -319,21 +361,24 @@ export function WorldKeepsakesPanel({
                 onClick={() => setSelectedId(gift.id)}
                 aria-label={`查看礼物：${gift.giftName}`}
                 data-testid={`received-gift-card-${gift.id}`}
-                className="flex min-w-0 flex-col gap-2.5 overflow-hidden rounded-[var(--radius-card)] border p-4 text-left transition-colors hover:bg-[var(--hover-overlay)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
+                className="flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-card)] border text-left transition-colors hover:bg-[var(--hover-overlay)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
                 style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}
               >
-                <span className="flex items-center justify-between gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                  <span>{formatDate(gift.createdAt)}</span>
-                  <Badge tone={gift.giverName && gift.giverName !== '你' ? 'neutral' : 'accent'}>
-                    来自 {gift.giverName || '你'}
-                  </Badge>
-                </span>
-                <span className="break-words font-display text-base font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
-                  {gift.giftName}
-                </span>
-                <span className="line-clamp-3 break-words text-[12px] leading-6" style={{ color: 'var(--text-secondary)' }}>
-                  {gift.userNote || gift.companionReaction}
-                </span>
+                <GiftCoverImage src={gift.imageUrl} alt={gift.giftName} />
+                <div className="flex flex-1 flex-col gap-2 p-3.5">
+                  <span className="flex items-center justify-between gap-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    <span>{formatDate(gift.createdAt)}</span>
+                    <Badge tone={gift.giverName && gift.giverName !== '你' ? 'neutral' : 'accent'}>
+                      来自 {gift.giverName || '你'}
+                    </Badge>
+                  </span>
+                  <span className="break-words font-display text-[15px] font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
+                    {gift.giftName}
+                  </span>
+                  <span className="line-clamp-2 break-words text-[12px] leading-5" style={{ color: 'var(--text-secondary)' }}>
+                    {gift.userNote || gift.companionReaction}
+                  </span>
+                </div>
               </button>
             ))}
           </div>

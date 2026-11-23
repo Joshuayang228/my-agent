@@ -94,9 +94,9 @@ describe('共享内容布局候选', () => {
     expect(mediaButton).toContain('p-0')
     expect(mediaButton).not.toContain('px-2.5')
   })
-  it('足迹、文化角、家居物件画廊统一使用 LAYOUT_CLASSES.cardGrid 与 mediaFrameStyle', () => {
+  it('足迹、文化角、家居物件与礼物柜画廊统一使用 LAYOUT_CLASSES.cardGrid 与 mediaFrameStyle', () => {
     expect(LAYOUT_CLASSES.cardGrid).toContain('lg:grid-cols-3')
-    for (const rel of ['world/WorldTravelGallery', 'world/WorldCultureGallery', 'world/WorldHomeGallery']) {
+    for (const rel of ['world/WorldTravelGallery', 'world/WorldCultureGallery', 'world/WorldHomeGallery', 'world/WorldKeepsakesPanel']) {
       const source = readFileSync(new URL(`../../src/components/${rel}.tsx`, import.meta.url), 'utf8')
       expect(source).toContain('LAYOUT_CLASSES.cardGrid')
       expect(source).toContain('mediaFrameStyle(')

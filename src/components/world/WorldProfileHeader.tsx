@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Image as ImageIcon, RotateCcw, X } from 'lucide-react'
+import { Image as ImageIcon, MessageSquareShare, RotateCcw, X } from 'lucide-react'
 import { IconButton } from '../foundation/IconButton'
 import { ActionButton } from '../foundation/ActionButton'
 import { CompanionAvatar } from '../CompanionAvatar'
-import { WorldTodayTimeline } from './WorldTodayTimeline'
 import type { CompanionTodayTimeline } from '../../shared/types'
 
 export interface WorldProfile {
@@ -17,15 +16,16 @@ export interface WorldProfile {
 }
 
 /**
- * 人物世界顶部主页头图与状态栏。
+ * 人物世界顶部主页头图与轻状态栏。
  *
- * 背景：顶部曾内置「看数字」RPG 数值切换并把今日轨迹卡片硬塞进封面内部，导致展开日程时拉扯封面图且暴露调试数值；
- * 同时右上角常驻 3 个换图按钮遮挡封面，且并发调用两次重置会被 visualBusy 锁吞掉第二次。
- * 设计意图：封面区仅保留纯净头图、头像、名称与自然语言状态；外观编辑收敛为点击展开的轻量菜单并串行重置；
- * 今日轨迹独立置于封面下方，展开时互不干扰。
- * 关键约束：不向正式产品界面暴露 0-100 数值条（数值留在 Debug）；缺省内容不编造人设。
+ * 背景：顶部曾并置封面、机械拼接的四维状态摘要与可展开 8 张日程卡的「今日轨迹」通栏，
+ * 既提前剧透未来日程破坏活人感，又在展开时挤占 60%+ 视口高度。
+ * 设计意图：移除前台「全天日程」面板与独立轨迹通栏（完整日程留在后台/Debug）；
+ * 封面区收敛为纯净头图、头像、名称、一行简介与极简「此刻」轻状态胶囊（点击即可去聊天），
+ * 大幅降低顶部高度并强化渐变底衬可读性。
+ * 关键约束：不向正式产品界面暴露 0-100 数值条与未来日程剧透；缺省内容不编造人设。
  */
-export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToChat, onViewMoment, onClose, testId = 'world-profile' }: {
+export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToChat, onClose, testId = 'world-profile' }: {
   profile: WorldProfile
   roleId?: string
   initialTimeline?: CompanionTodayTimeline
@@ -37,8 +37,35 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
   const name = profile.name.trim() || '伙伴'
   const [visualBusy, setVisualBusy] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [timeline, setTimeline] = useState<CompanionTodayTimeline | null>(initialTimeline ?? null)
   const menuRef = useRef<HTMLDivElement>(null)
   const canEditVisuals = Boolean(roleId && window.electronAPI?.companion?.pickRoleVisual)
+
+  useEffect(() => {
+    if (initialTimeline) {
+      setTimeline(initialTimeline)
+      return
+    }
+    let cancelled = false
+    const refresh = () => {
+      window.electronAPI?.companion?.getTodayTimeline?.(roleId)
+        .then((data) => {
+          if (!cancelled && data) setTimeline(data)
+        })
+        .catch(() => {})
+    }
+    refresh()
+    const unsub = window.electronAPI?.companion?.onTimelineUpdated?.((payload) => {
+      if (roleId && payload.roleId && payload.roleId !== roleId) return
+      refresh()
+    })
+    const minuteInterval = setInterval(refresh, 60_000)
+    return () => {
+      cancelled = true
+      unsub?.()
+      clearInterval(minuteInterval)
+    }
+  }, [roleId, initialTimeline])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -82,11 +109,14 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
   }
 
   const hasBanner = Boolean(profile.bannerSrc)
+  const currentSlot = timeline?.slots?.length
+    ? (timeline.slots[timeline.currentSlotIndex] ?? timeline.slots[0])
+    : null
 
   return (
     <div className="shrink-0">
       <section
-        className={`relative flex min-h-[9.5rem] items-end gap-3.5 px-5 pb-4 pt-14 overflow-hidden ${hasBanner ? 'shadow-inner' : ''}`}
+        className={`relative flex min-h-[7.75rem] items-end gap-3.5 px-5 pb-3.5 pt-10 overflow-hidden ${hasBanner ? 'shadow-inner' : ''}`}
         data-testid={testId}
         style={{
           background: 'var(--bg-primary)',
@@ -104,7 +134,7 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
             <div
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(180deg, rgba(0,0,0,0.06) 0%, color-mix(in srgb, var(--bg-primary) 72%, transparent) 55%, var(--bg-primary) 100%)',
+                background: 'linear-gradient(180deg, rgba(0,0,0,0.04) 0%, color-mix(in srgb, var(--bg-primary) 80%, transparent) 46%, var(--bg-primary) 100%)',
               }}
             />
           </div>
@@ -124,21 +154,59 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
         </div>
 
         <div className="relative z-10 min-w-0 flex-1 pb-0.5">
-          <h1 className="text-[15px] font-semibold [overflow-wrap:anywhere]" style={{ color: 'var(--text-primary)' }}>{name}</h1>
+          <h1 className="text-[16px] font-semibold leading-6 [overflow-wrap:anywhere]" style={{ color: 'var(--text-primary)' }}>{name}</h1>
           {profile.description.trim() && (
-            <p className="mt-1 whitespace-pre-wrap text-[11px] leading-5 [overflow-wrap:anywhere]" style={{ color: 'var(--text-secondary)' }}>
-              {profile.description}
+            <p
+              className="mt-0.5 truncate text-[12px] leading-5"
+              title={profile.description.trim()}
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {profile.description.trim()}
             </p>
           )}
-          {profile.statusSummary?.trim() && (
+          {currentSlot ? (
+            <div className="mt-1.5 flex items-center" data-testid="world-profile-status">
+              {onTakeToChat ? (
+                <button
+                  type="button"
+                  onClick={() => onTakeToChat({ text: `听说你现在${currentSlot.location ? `在「${currentSlot.location}」` : ''}${currentSlot.activity}：` })}
+                  data-testid="world-profile-current-activity"
+                  className="group inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] leading-4 transition-colors hover:brightness-95"
+                  style={{
+                    background: 'color-mix(in srgb, var(--card-bg) 88%, transparent)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                  title="点击和TA聊聊此刻"
+                >
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent-fg)]" />
+                  <span className="truncate">此刻 · {currentSlot.activity}</span>
+                  <MessageSquareShare size={11} className="shrink-0 opacity-55 transition-opacity group-hover:opacity-100" style={{ color: 'var(--accent-fg)' }} />
+                </button>
+              ) : (
+                <span
+                  data-testid="world-profile-current-activity"
+                  className="inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] leading-4"
+                  style={{
+                    background: 'color-mix(in srgb, var(--card-bg) 88%, transparent)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent-fg)]" />
+                  <span className="truncate">此刻 · {currentSlot.activity}</span>
+                </span>
+              )}
+            </div>
+          ) : profile.statusSummary?.trim() ? (
             <p
-              className="mt-1 text-[11px] leading-4 [overflow-wrap:anywhere]"
+              className="mt-1 truncate text-[11px] leading-4"
               data-testid="world-profile-status"
               style={{ color: 'var(--accent-fg)' }}
             >
               {profile.statusSummary}
             </p>
-          )}
+          ) : null}
         </div>
 
         {/* 右上角收敛操作：轻量外观菜单 + 返回聊天 */}
@@ -202,9 +270,6 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
           {onClose ? <IconButton label="返回聊天" onClick={onClose} style={{ color: 'var(--text-muted)' }}><X size={14} /></IconButton> : null}
         </div>
       </section>
-
-      {/* 今日轨迹独立置于封面下方，展开全天日程时不再拉扯头图 */}
-      <WorldTodayTimeline roleId={roleId} initialTimeline={initialTimeline} onTakeToChat={onTakeToChat} onViewMoment={onViewMoment} />
     </div>
   )
 }

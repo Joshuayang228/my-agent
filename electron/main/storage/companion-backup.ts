@@ -138,9 +138,11 @@ export interface BackupReceivedGiftRecord {
   giftKey: string
   giftName: string
   category: string
+  giverName?: string | null
   userNote: string | null
   companionReaction: string
   vitalsBuffJson: string | null
+  imageUrl?: string | null
   createdAt: number
 }
 
@@ -460,9 +462,11 @@ export function collectCompanionBackupSnapshot(db: Database): {
         giftKey: String(r.gift_key),
         giftName: String(r.gift_name),
         category: String(r.category),
+        giverName: r.giver_name == null ? null : String(r.giver_name),
         userNote: r.user_note == null ? null : String(r.user_note),
         companionReaction: String(r.companion_reaction),
         vitalsBuffJson: r.vitals_buff_json == null ? null : String(r.vitals_buff_json),
+        imageUrl: r.image_url == null ? null : String(r.image_url),
         createdAt: Number(r.created_at) || 0,
       }))
     : []
@@ -710,9 +714,11 @@ function ensureCompanionBackupTables(db: Database): void {
       gift_key            TEXT NOT NULL,
       gift_name           TEXT NOT NULL,
       category            TEXT NOT NULL,
+      giver_name          TEXT,
       user_note           TEXT,
       companion_reaction  TEXT NOT NULL,
       vitals_buff_json    TEXT,
+      image_url           TEXT,
       created_at          INTEGER NOT NULL
     );
     CREATE TABLE IF NOT EXISTS companion_vulnerability_moments (
@@ -874,9 +880,9 @@ export function importCompanionBackupSnapshot(
     if (exists('SELECT 1 FROM companion_received_gifts WHERE id = ?', [row.id])) continue
     db.run(
       `INSERT INTO companion_received_gifts
-         (id, role_id, gift_key, gift_name, category, user_note, companion_reaction, vitals_buff_json, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [row.id, row.roleId, row.giftKey, row.giftName, row.category, row.userNote, row.companionReaction, row.vitalsBuffJson, row.createdAt],
+         (id, role_id, gift_key, gift_name, category, giver_name, user_note, companion_reaction, vitals_buff_json, image_url, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [row.id, row.roleId, row.giftKey, row.giftName, row.category, row.giverName ?? null, row.userNote, row.companionReaction, row.vitalsBuffJson, row.imageUrl ?? null, row.createdAt],
     )
     undo.push(() => { db.run('DELETE FROM companion_received_gifts WHERE id = ?', [row.id]) })
   }

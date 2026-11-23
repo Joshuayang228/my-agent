@@ -1584,6 +1584,7 @@ export interface CompanionGiftRecord {
   giverName?: string
   userNote?: string
   companionReaction: string
+  imageUrl?: string
   createdAt: number
   vitalsBuff?: {
     satiety?: number

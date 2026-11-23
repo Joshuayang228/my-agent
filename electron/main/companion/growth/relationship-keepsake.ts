@@ -1,4 +1,4 @@
-import { resolveRoleUniverseId } from '../identity/loader'
+// 羁绊深度跃迁与专属信物馈赠
 /**
  * 羁绊深度跃迁与专属信物馈赠（Relationship Progression & Keepsake Gifts）
  *
@@ -22,7 +22,12 @@ import { hasLLMAuthentication } from '../../../../src/shared/llm-connection-test
 import { chatComplete } from '../../llm'
 import { compileKeepsakeGiftRequest } from '../../prompts/registered-request'
 import { loadRoleLifePresets } from '../identity/life-presets'
-import { loadRolePack } from '../identity/loader'
+import { getRoleVisualDataUrl, loadRolePack, resolveRoleUniverseId } from '../identity/loader'
+import { loadImageGenerationConfig } from '../../llm/aux-config'
+import { requestGeneratedImage } from '../../llm/image-generation'
+import { compileImageGenerationRequest } from '../../prompts/registered-request'
+import { normalizeGeneratedImage } from '../../utils/generated-image-codec'
+import { prepareCompanionImageGen } from '../life/image-gen-prep'
 import { ensureMainSessionForRole } from '../../storage/session-store'
 import { tryRecordMilestone } from './milestones'
 import { recordRelationshipEvent } from '../core/persistence/life-repository'
@@ -53,6 +58,42 @@ interface KeepsakeDbRow {
   acquired_at: number
 }
 
+function resolveKeepsakeImageUrl(roleId: string, rawUrl: string | null | undefined, keepsakeId: string, name: string): string | undefined {
+  const candidate = rawUrl?.trim()
+    || getPresetKeepsakes(roleId).find((item) => item.key === keepsakeId || item.name === name)?.visualPath
+  if (!candidate) return undefined
+  if (candidate.startsWith('data:image/')) return candidate
+  if (candidate.startsWith('visual/')) {
+    return getRoleVisualDataUrl(roleId, candidate, resolveRoleUniverseId(roleId)) ?? undefined
+  }
+  return candidate
+}
+
+async function scheduleKeepsakeImageGeneration(roleId: string, keepsakeId: string, name: string, description: string): Promise<void> {
+  try {
+    const config = await loadImageGenerationConfig()
+    if (!config) return
+    const prepared = await prepareCompanionImageGen({
+      roleId,
+      description: `特写静物插画：一件珍贵的纪念信物「${name}」，${description}，温暖柔和的光线，干净背景，无文字水印。`,
+      category: 'gift',
+    })
+    const response = await requestGeneratedImage(
+      config,
+      compileImageGenerationRequest(prepared.prompt, prepared.visualAnchor),
+      undefined,
+      { referenceImages: prepared.referenceImages, aspectRatio: '4:3' },
+    )
+    const normalized = await normalizeGeneratedImage(response.bytes)
+    const dataUrl = `data:image/png;base64,${normalized.bytes.toString('base64')}`
+    const db = await getDatabase()
+    db.run('UPDATE companion_keepsakes SET image_url = ? WHERE id = ? AND role_id = ?', [dataUrl, keepsakeId, roleId])
+    persist()
+  } catch (err) {
+    log.warn('Async keepsake image generation skipped', { roleId, keepsakeId, error: String(err) })
+  }
+}
+
 function rowToRecord(row: KeepsakeDbRow): CompanionKeepsakeRecord {
   return {
     id: row.id,
@@ -63,7 +104,7 @@ function rowToRecord(row: KeepsakeDbRow): CompanionKeepsakeRecord {
     giftMessage: row.gift_message,
     giftReason: row.gift_reason,
     iconName: row.icon_name,
-    imageUrl: row.image_url || undefined,
+    imageUrl: resolveKeepsakeImageUrl(row.role_id, row.image_url, row.id, row.name),
     acquiredAt: row.acquired_at,
   }
 }
@@ -76,6 +117,7 @@ export interface PresetKeepsakeDefinition {
   giftMessage: string
   giftReason: string
   iconName: string
+  visualPath?: string
 }
 
 export function getPresetKeepsakes(roleId: string): PresetKeepsakeDefinition[] {
@@ -113,7 +155,7 @@ export async function ensureKeepsakeTable(targetRoleId?: string): Promise<void> 
         starter.giftMessage,
         starter.giftReason,
         starter.iconName,
-        null,
+        starter.visualPath ?? null,
         now,
       ],
     )
@@ -280,7 +322,7 @@ export async function triggerGiftKeepsake(
         `INSERT OR REPLACE INTO companion_keepsakes
          (id, role_id, name, description, lore, gift_message, gift_reason, icon_name, image_url, acquired_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [keepsakeRecord.id, keepsakeRecord.roleId, keepsakeRecord.name, keepsakeRecord.description, keepsakeRecord.lore, keepsakeRecord.giftMessage, keepsakeRecord.giftReason, keepsakeRecord.iconName, null, now],
+        [keepsakeRecord.id, keepsakeRecord.roleId, keepsakeRecord.name, keepsakeRecord.description, keepsakeRecord.lore, keepsakeRecord.giftMessage, keepsakeRecord.giftReason, keepsakeRecord.iconName, candidate.visualPath ?? null, now],
       )
 
       const domainEvent = await appendCompanionDomainEvent({
@@ -335,6 +377,9 @@ export async function triggerGiftKeepsake(
     await dispatchCompanionSessionOutbox()
     // 恢复消费者稍后统一处理新生成的里程碑，避免在消费中递归进入恢复队列。
     if (!opts?.assertClaim) await recoverCompanionFollowups()
+    if (!candidate.visualPath && !opts?.mockResponse) {
+      void scheduleKeepsakeImageGeneration(roleId, committed.id, committed.name, committed.description)
+    }
     log.info('Keepsake gifted successfully', { roleId, keepsakeId: committed.id, name: committed.name })
     return committed
   } catch (err) {
