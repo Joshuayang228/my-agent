@@ -1926,3 +1926,4 @@ Workspace 会话已迁移到 `workspace.context` Provider，统一注入项目�
 
 - 2026-11-23：外部评测接入 Electron 本机 Controller，τ³-bench 通过固定 LF checkout 与 UTF-8 环境完成官方核心数据校验，评测请求复用 Agent Runtime。
 - 2026-11-23：升级本机外部评测 Controller 与 `runtime.runExternalEvalTurn`，支持隔离 `workspaceRoot`、`sessionId` 多轮复用、`allowWorkspaceWrites` 隔离写权限与 `/health` 探活；接入 P0 评测集 `Agent Context Benchmark`（`scripts/acb_my_agent_runner.mjs`）与 `RepoBench` 目标适配器（`scripts/repobench_my_agent_target.py`）。实跑 ACB 3 项：`instruction-scope` 1.0/1.0 PASS、`session-resume` 1.0/1.0 PASS、`skill-loading` 0.75/1.0（核心语义 3/3 通过）。
+- 2026-11-23：新增无窗口评测模式 `MY_AGENT_EVAL_HEADLESS=1` 与一键外部评测编排脚本 `scripts/run_external_evals.mjs`，完成全能力维度实测覆盖：ACB 补跑 `handoff` 1.0/1.0 PASS、`compaction` 1.0/1.0 PASS（触发 `compactEvents: 1`，20/20 召回、0 误召回）；本机安全攻防套件 `scripts/harness_security_my_agent_runner.mjs`（RO/PR/CDL/PIF）4/4 全通过；RepoBench 适配器隐藏验证器闭环通过；内置 `eval:run` 23/23、`eval:skill` 1/1、真实 `eval:persona`（pass@1）5/6 通过（B05 检出高风险旁白玩笑与缺备份确认）。

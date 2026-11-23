@@ -56,7 +56,13 @@ if (VITE_DEV_SERVER_URL) {
   log.info('Remote debugging enabled on localhost:9222')
 }
 
-if (!app.requestSingleInstanceLock()) {
+const isExternalEvalHeadlessMode =
+  process.env.MY_AGENT_EVAL_CONTROLLER === '1' && process.env.MY_AGENT_EVAL_HEADLESS === '1'
+
+// 背景：用户桌面可能已打开正常的 My Agent 单实例窗口；外部评测需要无窗口并行拉起独立本机 Controller。
+// 设计意图：仅在显式开启 MY_AGENT_EVAL_CONTROLLER=1 且 MY_AGENT_EVAL_HEADLESS=1 时跳过单实例锁。
+// 关键约束：普通桌面模式仍强制单实例锁，避免多窗口并发写库与快捷键冲突。
+if (!isExternalEvalHeadlessMode && !app.requestSingleInstanceLock()) {
   app.quit()
   process.exit(0)
 }
@@ -288,10 +294,25 @@ function setupAutoUpdater() {
 // ── App 生命周期 ──
 
 app.whenReady().then(async () => {
-  startExternalEvalController()
-  registerHostPresenceIdleReader(() => powerMonitor.getSystemIdleTime())
   const database = await getDatabase()
   startDiagnosticHistory(database, persist)
+  if (isExternalEvalHeadlessMode) {
+    initSkillSystem(toolRegistry).then(() => {
+      syncAgentHostSkills(getLoadedSkills())
+    }).catch(err => log.warn('Skill init failed', { error: String(err) }))
+    try {
+      const { loadRules } = await import('./sandbox/permission-engine')
+      const rulesJson = await settings.getSetting('permissionRules')
+      loadRules(rulesJson || '[]')
+    } catch (err) {
+      log.warn('Permission rules load failed', { error: String(err) })
+    }
+    startExternalEvalController()
+    log.info('External eval headless controller ready')
+    return
+  }
+  startExternalEvalController()
+  registerHostPresenceIdleReader(() => powerMonitor.getSystemIdleTime())
   startProactiveEvidence(database, persist)
   try { recoverPendingBackupMedia(database, app.getPath('userData')) }
   catch { log.warn('Backup media startup reconciliation deferred') }

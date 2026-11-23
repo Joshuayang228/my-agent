@@ -1800,4 +1800,4 @@ Playground 提示词管理器 v3 候选：调整文字职责与阅读比例，�
 
 2026-11-23：工作区 HTML 预览启用隔离脚本执行，生成的 SVG/Canvas 动画可直接预览。
 
-2026-11-23：新增显式开启的本机外部评测 Controller，外部评测器可通过 HTTP 调用 Electron Runtime 并获取统一任务终态；扩展支持隔离工作区、多轮会话复用与轨迹/Token/压缩指标返回，接入 `Agent Context Benchmark` 与 `RepoBench` 外部评测适配器。
+2026-11-23：新增显式开启的本机外部评测 Controller，外部评测器可通过 HTTP 调用 Electron Runtime 并获取统一任务终态；扩展支持隔离工作区、多轮会话复用、无窗口并行评测模式（`MY_AGENT_EVAL_HEADLESS=1`）与轨迹/Token/压缩指标返回，接入 `Agent Context Benchmark`、`RepoBench` 与本机安全攻防套件（RO/PR/CDL/PIF）并通过 `scripts/run_external_evals.mjs` 一键编排。
