@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 人物世界头图通透化与双色状态微条精修：`WorldProfileHeader.tsx` 去掉洗白画面的 80% 浅色渐变，改用原画 + 底部轻暗角与白字高对比层级；右上角收敛为半透明地点胶囊，右下角状态微条精简为「心情（翠绿）+ 精力（天蓝）」双色无数字细条，兼顾原画美感与随时感知状态。
+
 2026-11-23 人物世界头图与 Tab 选中态精修：`WorldProfileHeader.tsx` 移除默认渲染黑圈的 `ring-4` 改为纸白细边，去掉与侧栏重复的长篇人设简介（仅留名字、当前地点与可点击聊天的「此刻」轻状态），并在右下角新增无数字极简状态微条（心情 / 精力 / 兴致，悬停显示自然语言解读）；`TabStrip.tsx` 新增 `variant="pill"` 柔和胶囊选中态，`WorldHub.tsx` 主导航撤掉底部横线切为柔和胶囊。
 
 2026-11-23 修复从人物世界/右侧面板带内容回到 Chat 时输入框光标落在最左侧：`App.tsx` 的 `onTakeToChat` 与 `onGenerateAssetImage` 改为在 `requestAnimationFrame` 中聚焦并调用 `setSelectionRange(end, end)`，光标自动定位到文案末尾方便直接续写。

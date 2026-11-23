@@ -10,10 +10,17 @@ function clampPercent(value: number): number {
   return Math.max(6, Math.min(100, Math.round(value)))
 }
 
-function describeVitalLevel(kind: 'mood' | 'energy' | 'social', value: number): string {
+function describeMoodShort(value?: number): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return ''
+  if (value >= 80) return '很开心'
+  if (value >= 60) return '不错'
+  if (value >= 40) return '平静'
+  return '有点低落'
+}
+
+function describeVitalLevel(kind: 'mood' | 'energy', value: number): string {
   if (kind === 'mood') return value >= 75 ? '明亮有劲' : value >= 45 ? '还算平稳' : '有点低落'
-  if (kind === 'energy') return value >= 75 ? '精力充沛' : value >= 45 ? '精力还够用' : '有点累了'
-  return value >= 70 ? '想找人聊聊' : value >= 40 ? '随缘聊两句' : '更想安静待会儿'
+  return value >= 75 ? '精力充沛' : value >= 45 ? '精力还够用' : '有点累了'
 }
 
 export interface WorldProfile {
@@ -123,29 +130,29 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
   const currentSlot = timeline?.slots?.length
     ? (timeline.slots[timeline.currentSlotIndex] ?? timeline.slots[0])
     : null
+  const moodWord = describeMoodShort(profile.statusMetrics?.mood)
 
   return (
     <div className="shrink-0">
       <section
-        className={`relative flex min-h-[7.75rem] items-end gap-3.5 px-5 pb-3.5 pt-10 overflow-hidden ${hasBanner ? 'shadow-inner' : ''}`}
+        className={`relative flex min-h-[8.5rem] items-end gap-3.5 px-5 pb-4 pt-12 overflow-hidden ${hasBanner ? 'shadow-inner' : ''}`}
         data-testid={testId}
         style={{
           background: 'var(--bg-primary)',
         }}
       >
-        {/* 顶部宽幅生活场景 Banner 封面 */}
+        {/* 顶部宽幅生活场景 Banner 封面（保留原画色彩 + 底部轻暗角，不再发白发灰） */}
         {hasBanner && (
           <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
             <img
               src={profile.bannerSrc!}
               alt=""
               className="h-full w-full object-cover object-[center_22%] transition-transform duration-700 ease-out"
-              style={{ filter: 'brightness(0.95)' }}
             />
             <div
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(180deg, rgba(0,0,0,0.04) 0%, color-mix(in srgb, var(--bg-primary) 80%, transparent) 46%, var(--bg-primary) 100%)',
+                background: 'linear-gradient(180deg, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0.10) 42%, rgba(0,0,0,0.52) 100%)',
               }}
             />
           </div>
@@ -165,92 +172,110 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
         </div>
 
         <div className="relative z-10 min-w-0 flex-1 pb-0.5">
-          <div className="flex flex-wrap items-baseline gap-2">
-            <h1 className="text-[17px] font-semibold leading-6 [overflow-wrap:anywhere]" style={{ color: 'var(--text-primary)' }}>{name}</h1>
-            {currentSlot?.location && (
-              <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                <MapPin size={11} />
-                {currentSlot.location}
-              </span>
-            )}
-          </div>
+          <h1
+            className="text-[17px] font-semibold leading-6 [overflow-wrap:anywhere]"
+            style={{
+              color: hasBanner ? '#ffffff' : 'var(--text-primary)',
+              textShadow: hasBanner ? '0 1px 4px rgba(0,0,0,0.35)' : undefined,
+            }}
+          >
+            {name}
+          </h1>
           {currentSlot ? (
-            <div className="mt-1.5 flex items-center" data-testid="world-profile-status">
+            <div className="mt-1 flex items-center" data-testid="world-profile-status">
               {onTakeToChat ? (
                 <button
                   type="button"
                   onClick={() => onTakeToChat({ text: `听说你现在${currentSlot.location ? `在「${currentSlot.location}」` : ''}${currentSlot.activity}：` })}
                   data-testid="world-profile-current-activity"
-                  className="group inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] leading-4 transition-colors hover:brightness-95"
+                  className="group inline-flex max-w-full items-center gap-1.5 rounded-md py-0.5 text-[12px] leading-4 transition-opacity hover:opacity-100"
                   style={{
-                    background: 'color-mix(in srgb, var(--card-bg) 88%, transparent)',
-                    borderColor: 'var(--border-subtle)',
-                    color: 'var(--text-primary)',
+                    color: hasBanner ? 'rgba(255,255,255,0.92)' : 'var(--text-secondary)',
+                    textShadow: hasBanner ? '0 1px 3px rgba(0,0,0,0.35)' : undefined,
                   }}
                   title="点击和TA聊聊此刻"
                 >
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent-fg)]" />
-                  <span className="truncate">此刻 · {currentSlot.activity}</span>
-                  <MessageSquareShare size={11} className="shrink-0 opacity-55 transition-opacity group-hover:opacity-100" style={{ color: 'var(--accent-fg)' }} />
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: hasBanner ? '#6ee7b7' : 'var(--accent-fg)' }} />
+                  <span className="truncate">
+                    {moodWord ? `${moodWord} · ` : ''}此刻 · {currentSlot.activity}
+                  </span>
+                  <MessageSquareShare size={11} className="shrink-0 opacity-70 transition-opacity group-hover:opacity-100" />
                 </button>
               ) : (
                 <span
                   data-testid="world-profile-current-activity"
-                  className="inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] leading-4"
+                  className="inline-flex max-w-full items-center gap-1.5 text-[12px] leading-4"
                   style={{
-                    background: 'color-mix(in srgb, var(--card-bg) 88%, transparent)',
-                    borderColor: 'var(--border-subtle)',
-                    color: 'var(--text-primary)',
+                    color: hasBanner ? 'rgba(255,255,255,0.92)' : 'var(--text-secondary)',
+                    textShadow: hasBanner ? '0 1px 3px rgba(0,0,0,0.35)' : undefined,
                   }}
                 >
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent-fg)]" />
-                  <span className="truncate">此刻 · {currentSlot.activity}</span>
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: hasBanner ? '#6ee7b7' : 'var(--accent-fg)' }} />
+                  <span className="truncate">
+                    {moodWord ? `${moodWord} · ` : ''}此刻 · {currentSlot.activity}
+                  </span>
                 </span>
               )}
             </div>
           ) : profile.statusSummary?.trim() ? (
             <p
-              className="mt-1 truncate text-[11px] leading-4"
+              className="mt-1 truncate text-[12px] leading-4"
               data-testid="world-profile-status"
-              style={{ color: 'var(--accent-fg)' }}
+              style={{
+                color: hasBanner ? 'rgba(255,255,255,0.92)' : 'var(--accent-fg)',
+                textShadow: hasBanner ? '0 1px 3px rgba(0,0,0,0.35)' : undefined,
+              }}
             >
               {profile.statusSummary}
             </p>
           ) : null}
         </div>
 
-        {/* 右下角极简无数字状态微条（心情 / 精力 / 兴致），悬停展示自然语言解读 */}
+        {/* 右下角极简无数字双色状态微条（心情翠绿 / 精力天蓝），悬停展示自然语言解读 */}
         {profile.statusMetrics && (
           <div
-            className="relative z-10 hidden shrink-0 items-center gap-3 rounded-full border px-3 py-1.5 sm:flex"
+            className="relative z-10 hidden shrink-0 items-center gap-3 rounded-full px-3 py-1.5 backdrop-blur-sm sm:flex"
             data-testid="world-profile-vitals"
             aria-label="当前状态"
             style={{
-              background: 'color-mix(in srgb, var(--card-bg) 82%, transparent)',
-              borderColor: 'var(--border-subtle)',
+              background: hasBanner ? 'rgba(0,0,0,0.30)' : 'var(--card-bg)',
+              border: hasBanner ? '1px solid rgba(255,255,255,0.16)' : '1px solid var(--border-subtle)',
             }}
           >
             {([
-              { key: 'mood', label: '心情', value: profile.statusMetrics.mood },
-              { key: 'energy', label: '精力', value: profile.statusMetrics.energy },
-              { key: 'social', label: '兴致', value: profile.statusMetrics.socialNeed },
+              {
+                key: 'mood',
+                label: '心情',
+                value: profile.statusMetrics.mood,
+                fill: 'linear-gradient(90deg, #6ee7b7 0%, #34d399 100%)',
+              },
+              {
+                key: 'energy',
+                label: '精力',
+                value: profile.statusMetrics.energy,
+                fill: 'linear-gradient(90deg, #93c5fd 0%, #60a5fa 100%)',
+              },
             ] as const).map((vital) => (
               <div
                 key={vital.key}
                 className="flex items-center gap-1.5"
                 title={`${vital.label}：${describeVitalLevel(vital.key, vital.value)}`}
               >
-                <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{vital.label}</span>
                 <span
-                  className="block h-1.5 w-11 overflow-hidden rounded-full"
-                  style={{ background: 'color-mix(in srgb, var(--border-subtle) 85%, transparent)' }}
+                  className="text-[11px]"
+                  style={{ color: hasBanner ? 'rgba(255,255,255,0.88)' : 'var(--text-muted)' }}
+                >
+                  {vital.label}
+                </span>
+                <span
+                  className="block h-1.5 w-14 overflow-hidden rounded-full"
+                  style={{ background: hasBanner ? 'rgba(255,255,255,0.22)' : 'var(--border-subtle)' }}
                 >
                   <span
                     className="block h-full rounded-full transition-all duration-500"
                     style={{
                       width: `${clampPercent(vital.value)}%`,
-                      background: 'var(--accent-fg)',
-                      opacity: 0.85,
+                      background: vital.fill,
                     }}
                   />
                 </span>
@@ -259,8 +284,20 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
           </div>
         )}
 
-        {/* 右上角收敛操作：轻量外观菜单 + 返回聊天 */}
-        <div ref={menuRef} className="absolute right-4 top-3 z-20 flex items-center gap-1">
+        {/* 右上角位置轻胶囊 + 收敛外观菜单 */}
+        <div ref={menuRef} className="absolute right-4 top-3 z-20 flex items-center gap-1.5">
+          {currentSlot?.location && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] backdrop-blur-sm"
+              style={{
+                background: hasBanner ? 'rgba(0,0,0,0.32)' : 'var(--bg-secondary)',
+                color: hasBanner ? 'rgba(255,255,255,0.92)' : 'var(--text-secondary)',
+              }}
+            >
+              <MapPin size={11} />
+              {currentSlot.location}
+            </span>
+          )}
           {canEditVisuals ? (
             <div className="relative">
               <IconButton
@@ -268,7 +305,7 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
                 disabled={visualBusy}
                 onClick={() => setMenuOpen((open) => !open)}
                 aria-expanded={menuOpen}
-                style={{ color: 'var(--text-muted)' }}
+                style={{ color: hasBanner ? 'rgba(255,255,255,0.88)' : 'var(--text-muted)' }}
               >
                 <ImageIcon size={14} />
               </IconButton>

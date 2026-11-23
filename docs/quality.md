@@ -1,5 +1,7 @@
 # 质量总控
 
+人物世界头图双色微条门禁（2026-11-23）：`world-profile-header.test.ts` 更新为校验「心情 / 精力」双色微条（不含「兴致」与裸数字），定向单测与 `tsc --noEmit` 全部通过。
+
 人物世界页头精修与无数字状态微条门禁（2026-11-23）：`world-profile-header.test.ts` 补齐无 `ring-4` 黑圈与 `world-profile-vitals`（心情 / 精力 / 兴致无裸数字）断言；`foundation-enforcement-gate.test.ts` 与 `tsc --noEmit` 全部通过。
 
 人物世界顶部轻量化与礼物柜配图门禁（2026-11-23）：`world-profile-header.test.ts` 新增断言校验头图仅展示「此刻」轻状态、不渲染「全天日程 / 今日轨迹」或未来日程槽位；`content-layout.test.ts` 将 `WorldKeepsakesPanel` 纳入 `LAYOUT_CLASSES.cardGrid` + `mediaFrameStyle()` 统一门禁；定向 7 文件 68 项回归与 `tsc --noEmit` 全部通过。
