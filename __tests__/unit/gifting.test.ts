@@ -115,8 +115,12 @@ describe('专属物品赠送与羁绊好感（Companion Gifting & Bond Progressi
     const userGifts = list.filter((item) => !item.giverName || item.giverName === '你')
     expect(userGifts.length).toBe(1)
     expect(userGifts[0].id).toBe(record.id)
-    expect(list.some((item) => item.giftKey === 'shanks-straw-hat' && item.giverName === '红发香克斯')).toBe(true)
-    expect(list.some((item) => item.giftKey === 'going-merry' && item.giverName === '可雅')).toBe(true)
+    const shanksHat = list.find((item) => item.giftKey === 'shanks-straw-hat' && item.giverName === '红发香克斯')
+    const goingMerry = list.find((item) => item.giftKey === 'going-merry' && item.giverName === '可雅')
+    expect(shanksHat).toBeDefined()
+    expect(goingMerry).toBeDefined()
+    expect(shanksHat?.imageUrl).toMatch(/^data:image\/png;base64,/)
+    expect(goingMerry?.imageUrl).toMatch(/^data:image\/png;base64,/)
 
     // 检查主会话留痕
     expect(ensureMainSessionForRoleMock).toHaveBeenCalledWith('luffy')

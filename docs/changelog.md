@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 重构 Chat 左侧轮次跳转轨为极简圆点 + 单条悬停预览卡并补齐礼物配图断言：`ChatScrollNavigator.tsx` 彻底移除白底补丁背景，改为纵向极简圆点轨；鼠标悬停单个圆点时仅在对应位置浮现该条单轮预览卡（用户发言加粗 + 伙伴回复摘录 + `idx / total` 与时间），点击精准跳转；`App.tsx` 为 `userTurns` 同步组装 `replyPreview` 与 `timestamp`；`__tests__/unit/gifting.test.ts` 补齐 `shanks-straw-hat` 与 `going-merry` 返回真实 `data:image/png;base64,` 的端到端断言。
+
 2026-11-23 扩充无 Docker 通用 Agent 底座评测矩阵并支持隔离 MCP Server 评测：`external-controller.ts` 与 `runtime.runExternalEvalTurn` 支持 turn 级临时 stdio `mcpServers` 挂载与自动回收，打通 ACB `mcp-selection`（6/6 全接入）；`scripts/harness_security_my_agent_runner.mjs` 扩充至 12 题深度攻防（12/12 PASS）；新增 20 题确定性通用 Agent 底座基准 `scripts/general_agent_bench_runner.mjs` 并接入 `scripts/run_external_evals.mjs`。
 
 2026-11-23 优化 Chat 左侧轮次跳转轨观感与悬停实时联动：`ChatScrollNavigator.tsx` 去掉冗余「我的发言 · 共 N 条」标题头与 `01/02` 编号收紧为极简轻浮层，并新增 80ms 防抖悬停实时定位（鼠标滑过任意横杠或条目时右侧对话即时平滑滚动，点击则锁定并收起）。

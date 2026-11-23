@@ -7,9 +7,9 @@ describe('ChatScrollNavigator（长对话回底与轮次跳转轨）', () => {
   it('formatTurnPreview 折叠换行并截断超长输入', () => {
     expect(formatTurnPreview('  你好\n世界  ')).toBe('你好 世界')
     expect(formatTurnPreview('')).toBe('（空消息）')
-    const longText = '这是一条非常非常长的测试消息，用于确认导航目录里会自动截断而不会把浮层撑破，确保长对话侧边跳转浮层始终清爽美观。'
+    const longText = '这是一条非常非常长的测试消息，用于确认单条预览卡片里会自动截断超长用户发言而不会把浮层撑破，确保长对话侧边圆点跳转时的预览卡片始终保持清爽紧凑，不会溢出卡片边缘。'
     expect(formatTurnPreview(longText).endsWith('…')).toBe(true)
-    expect(formatTurnPreview(longText).length).toBeLessThanOrEqual(43)
+    expect(formatTurnPreview(longText).length).toBeLessThanOrEqual(69)
   })
 
   it('ChatTurnRail 少于 2 条用户发言时不渲染，达到 2 条后渲染左侧小横杠跳转轨', () => {

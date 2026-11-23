@@ -1147,12 +1147,27 @@ function App() {
   })
 
   const liveToolHostId = findLiveToolHostId(messages, activeTools, isStreaming)
-  const userTurns = useMemo(
-    () => visibleMessages
-      .filter((m) => m.role === 'user')
-      .map((m) => ({ id: m.id, preview: formatTurnPreview(m.content) })),
-    [visibleMessages],
-  )
+  const userTurns = useMemo(() => {
+    const result: Array<{ id: string; preview: string; replyPreview?: string; timestamp?: number }> = []
+    for (let i = 0; i < visibleMessages.length; i += 1) {
+      const m = visibleMessages[i]
+      if (m.role !== 'user') continue
+      let replyPreview: string | undefined
+      for (let j = i + 1; j < visibleMessages.length; j += 1) {
+        if (visibleMessages[j].role === 'user') break
+        if (visibleMessages[j].role === 'assistant' && visibleMessages[j].content.trim()) {
+          replyPreview = formatTurnPreview(visibleMessages[j].content, 84)
+        }
+      }
+      result.push({
+        id: m.id,
+        preview: formatTurnPreview(m.content, 68),
+        replyPreview,
+        timestamp: m.timestamp,
+      })
+    }
+    return result
+  }, [visibleMessages])
 
   const toggleToolCollapse = useCallback((callId: string) => {
     setToolCollapse((prev) => {

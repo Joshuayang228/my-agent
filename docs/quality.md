@@ -1,6 +1,6 @@
 # 质量总控
 
-路飞预置礼物 `imageUrl` 解析与圆点导航回归（2026-11-23）：`gifting.test.ts` 新增 `shanks-straw-hat` 与 `going-merry` 返回合法 `data:image/png;base64,...` 断言；`chat-scroll-navigator.test.ts` 同步校验极简圆点轨与 68 字截断边界。
+路飞预置礼物 `imageUrl` 解析与圆点导航回归（2026-11-23）：`gifting.test.ts` 新增 `shanks-straw-hat` 与 `going-merry` 返回合法 `data:image/png;base64,...` 断言；`chat-scroll-navigator.test.ts` 同步校验极简圆点轨与 68 字截断边界（23 项定向单测与 `tsc --noEmit` 通过）。
 
 Chat 长对话导航回归（2026-11-23）：新增 `chat-scroll-navigator.test.ts`（3 项）覆盖 `formatTurnPreview`、`ChatTurnRail` 少于 2 轮隐藏与多轮跳转轨、`ChatScrollToBottomButton` 显隐与无障碍标签；全套 Foundation 门禁与 `tsc --noEmit` 全部通过。
 
