@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 Chat 左侧轮次引导轨由圆点改回极简线条样式：`ChatScrollNavigator.tsx` 将左侧指示点切换为左对齐细线条（当前轮次长条主色、悬停拉长加深、未选中短细线），保留无白底与单条悬停预览卡。
+
 2026-11-23 根治 Electron 打开用户工作区后通讯录头像与礼物/信物插画全部不显示的 Bug：`ProjectIPC` 打开用户工作区时会执行 `process.chdir(dirPath)`（如 `Desktop`），导致 `electron/main/companion/identity/loader.ts` 中 `resolveUniversesRoot()` 仅靠 `process.cwd()` 寻址 `universes/` 在 `dist-electron/` 产物下必然失败并被 `resolveRoleAssetFilePath` 静默缓存为 `null`；现改为优先按 `dist-electron/..`、`process.env.APP_ROOT`、`app.getAppPath()`、`process.resourcesPath` 定位内置 `universes/`，并在 `gifting.test.ts` 补齐 `process.chdir(os.tmpdir())` 回归。
 
 2026-11-23 修复朋友圈自主回复「错把用户当动态作者 / 配角越位 `@我`」Bug：`electron/main/prompts/moment-reply.ts` 显式区分 `postAuthor`（动态作者）与 `commenter`（用户/我），严禁回复对着主角喊话却挂在 `回复 @我` 下，并要求无意义占位输入返回 `shouldReply: false`；`electron/main/companion/life/moments.ts` 新增 `isTrivialPlaceholderComment`（跳过 `ll`、`...` 等占位输入的自动回复）与 `isAuthorizedCastResponder`（用户未回复或点名某配角时拦截配角越位回复 `@我`），同步更新 `docs/modules/companion.md`。

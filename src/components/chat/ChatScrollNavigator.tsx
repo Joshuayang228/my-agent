@@ -59,7 +59,7 @@ export function ChatTurnRail({
       aria-label="对话轮次导航"
       data-testid="chat-turn-rail"
     >
-      <div className={`flex flex-col items-center ${compact ? 'gap-1' : 'gap-1.5'}`}>
+      <div className={`flex flex-col items-start ${compact ? 'gap-1' : 'gap-1.5'}`}>
         {turns.map((turn, idx) => {
           const isActive = turn.id === activeTurnId
           const isHovered = turn.id === hoveredId
@@ -77,15 +77,15 @@ export function ChatTurnRail({
                 onFocus={() => setHoveredId(turn.id)}
                 onBlur={() => setHoveredId((prev) => (prev === turn.id ? null : prev))}
                 aria-label={`跳转到第 ${idx + 1} 轮：${turn.preview}`}
-                className="flex h-3 w-3 items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
+                className="flex h-2.5 w-4 items-center justify-start rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
               >
                 <span
-                  className={`block rounded-full transition-all duration-150 ${
+                  className={`block h-[2.5px] rounded-full transition-all duration-150 ${
                     isActive
-                      ? 'h-2 w-2'
+                      ? 'w-3.5'
                       : isHovered
-                        ? 'h-2 w-2 scale-110'
-                        : 'h-1.5 w-1.5'
+                        ? 'w-3'
+                        : 'w-2'
                   }`}
                   style={{
                     background: isActive

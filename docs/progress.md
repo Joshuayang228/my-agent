@@ -1,5 +1,7 @@
 # 项目进度
 
+Chat 左侧轮次引导改回极简细线条样式（2026-11-23）：`ChatScrollNavigator.tsx` 将圆点替换为左对齐细线条，保留透明底与单条悬停预览卡。
+
 根治打开工作区（`process.chdir`）导致通讯录头像与礼物/信物插画全部缺失的 Bug（2026-11-23）：`loader.ts` 的 `resolveUniversesRoot()` 不再依赖易被 `ProjectIPC` 改写的 `process.cwd()`，改为优先从 `dist-electron/..`、`APP_ROOT`、`app.getAppPath()` 与 `resourcesPath` 寻址内置 `universes/`，并在 `gifting.test.ts` 补齐切换 `cwd` 回归。
 
 修复朋友圈自主回复错把用户当动态作者与配角越位 `@我` Bug（2026-11-23）：`moment-reply.ts` 显式区分动态作者与评论用户，并在 `moments.ts` 补齐无意义占位评论（如 `ll`）跳过自动回复及配角越位截胡拦截；`moment-autonomous-reply.test.ts` 新增 2 项回归并同步 `docs/modules/companion.md`。
