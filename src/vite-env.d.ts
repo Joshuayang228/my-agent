@@ -17,6 +17,7 @@ import type {
   AgentAssetUsageQueryResult,
   ChatMessage,
   ChatSession,
+  ProjectReadFileResult,
   GeneratedImageReadResult,
   GeneratedImageRevealResult,
   AgentStreamEvent,
@@ -509,16 +510,7 @@ declare global {
         set: (dirPath: string | null) => Promise<{ success: boolean; error?: string }>
         get: () => Promise<{ path: string; name: string } | null>
         listFiles: (dirPath: string, depth?: number) => Promise<Array<{ name: string; path: string; isDir: boolean; children?: Array<{ name: string; path: string; isDir: boolean; children?: unknown[] }> }>>
-        readFile: (filePath: string) => Promise<{
-          kind?: 'text' | 'image' | 'unsupported'
-          content?: string
-          dataUrl?: string
-          mimeType?: string
-          languageHint?: string
-          reason?: string
-          size?: number
-          error?: string
-        }>
+        readFile: (filePath: string) => Promise<ProjectReadFileResult>
         openExternal: (filePath: string) => Promise<{ ok: boolean; error?: string }>
       }
       debug: {

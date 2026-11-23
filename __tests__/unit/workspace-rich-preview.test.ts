@@ -13,7 +13,7 @@ import {
   parseHtmlPickerMessage,
   sanitizeDocxHtml,
   sliceRangeAsMarkdown,
-} from '../../src/components/playground/workspace-preview/annotation-format'
+} from '../../src/components/chat/right-dock/preview/annotation-format'
 
 describe('workspace rich preview & annotation formatters', () => {
   it('converts 0-based column index to Excel letters', () => {

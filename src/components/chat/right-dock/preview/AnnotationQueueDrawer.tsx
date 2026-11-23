@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronUp, Layers, Send, Trash2, X } from 'lucide-react'
-import { ActionButton } from '../../foundation/ActionButton'
-import { Badge } from '../../foundation/Badge'
-import { IconButton } from '../../foundation/IconButton'
+import { ActionButton } from '../../../foundation/ActionButton'
+import { Badge } from '../../../foundation/Badge'
+import { IconButton } from '../../../foundation/IconButton'
 import type { AnnotationQueueItem } from './annotation-format'
 
 interface AnnotationQueueDrawerProps {

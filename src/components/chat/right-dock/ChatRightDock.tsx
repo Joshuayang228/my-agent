@@ -83,7 +83,7 @@ export function ChatRightDock({ projectPath, sessionId, showFiles, width = 380, 
     {/* 实例在后台继续持有状态与事件订阅；关闭标签才卸载，不能把选中态当作资源生命周期。 */}
     {visibleTabs.map(({ instance, label }) => <div key={instance.instanceId} id={'dock-panel-' + instance.instanceId} role="tabpanel" aria-label={label}
       hidden={activeTabId !== instance.instanceId} className={activeTabId === instance.instanceId ? 'flex min-h-0 min-w-0 flex-1 flex-col' : 'hidden'}>
-      {instance.kind === 'files' && <WorkspaceFilesPanel projectPath={projectPath} onContextChange={contextCallbacks[instance.instanceId]} />}
+      {instance.kind === 'files' && <WorkspaceFilesPanel projectPath={projectPath} onContextChange={contextCallbacks[instance.instanceId]} onTakeToChat={onTakeToChat} />}
       {instance.kind === 'review' && <ReviewPanel key={sessionId} sessionId={sessionId} onContextChange={contextCallbacks[instance.instanceId]} onTakeToChat={onTakeToChat} />}
       {instance.kind === 'terminal' && <TerminalPanel projectPath={projectPath} onTakeToChat={onTakeToChat} />}
       {instance.kind === 'browser' && <BrowserPanel />}

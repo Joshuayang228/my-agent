@@ -1644,3 +1644,42 @@ export interface ReplanResult {
 }
 
 export type HostCareTriggerInput = 'fatigue_break' | 'late_night_sleep' | 'welcome_back'
+
+export interface ProjectFilePreviewSheet {
+  name: string
+  rows: string[][]
+  truncatedRows?: boolean
+  truncatedCols?: boolean
+  totalRows?: number
+  totalCols?: number
+}
+
+export interface ProjectFilePreviewPdfPage {
+  pageNumber: number
+  imageUrl?: string
+  fallbackText?: string
+}
+
+export interface ProjectFilePreviewPptxSlide {
+  slideNumber: number
+  title: string
+  bullets: string[]
+  notes?: string
+}
+
+export interface ProjectReadFileResult {
+  kind?: 'text' | 'image' | 'spreadsheet' | 'docx' | 'pdf' | 'pptx' | 'unsupported'
+  content?: string
+  dataUrl?: string
+  mimeType?: string
+  languageHint?: string
+  sheets?: ProjectFilePreviewSheet[]
+  html?: string
+  notices?: string[]
+  pages?: ProjectFilePreviewPdfPage[]
+  pdfBase64?: string
+  slides?: ProjectFilePreviewPptxSlide[]
+  reason?: string
+  size?: number
+  error?: string
+}

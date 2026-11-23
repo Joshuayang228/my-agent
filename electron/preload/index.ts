@@ -16,6 +16,7 @@ import type {
   AgentAssetUsageQueryResult,
   ChatMessage,
   ChatSession,
+  ProjectReadFileResult,
   GeneratedImageReadResult,
   GeneratedImageRevealResult,
   AgentStreamEvent,
@@ -709,16 +710,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('project:get'),
     listFiles: (dirPath: string, depth?: number): Promise<FileEntry[]> =>
       ipcRenderer.invoke('project:listFiles', dirPath, depth),
-    readFile: (filePath: string): Promise<{
-      kind?: 'text' | 'image' | 'unsupported'
-      content?: string
-      dataUrl?: string
-      mimeType?: string
-      languageHint?: string
-      reason?: string
-      size?: number
-      error?: string
-    }> => ipcRenderer.invoke('project:readFile', filePath),
+    readFile: (filePath: string): Promise<ProjectReadFileResult> =>
+      ipcRenderer.invoke('project:readFile', filePath),
     openExternal: (filePath: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('project:openExternal', filePath),
   },

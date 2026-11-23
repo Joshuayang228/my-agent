@@ -4,6 +4,8 @@
 
 左导轨 20px 图标与快捷入口去重回归（2026-11-23）：`navigation-rail.test.ts` 同步校验有快捷入口时不重复渲染 `rail-nav-world`、清空快捷入口时兜底渲染 `rail-nav-world`；`companion-identity.test.ts` 同步更新路飞 `firstContact` 台词断言；定向单测与 `tsc --noEmit` 全绿。
 
+右侧工作区富文档渲染与批注回传 Batch A P1 正式回流门禁（2026-11-23）：`__tests__/unit/document-parser.test.ts` 扩展至 7 项，新增真实 XLSX/CSV 结构化多表解析、PDF 按页文本+base64 解析与零依赖原生 ZIP/XML PPTX 幻灯片+备注解析回归；配合 `__tests__/unit/workspace-rich-preview.test.ts`（6 项）、`typecheck`、`assets:check`（120/120）、`arch:check`（16/16）与 `vite build` 全绿通过。
+
 右侧工作区富文档渲染与批注回传 Batch A P0 单元测试（2026-11-23）：`__tests__/unit/workspace-rich-preview.test.ts` 扩展至 6 项，覆盖 Excel 列字母换算/反向矩形选区与 Markdown 切片、HTML 拾取脚本按需注入与随机 `channelToken` 防伪造拦截、Word HTML 白名单清洗、PDF/PPT 按页批注及多条批注草稿篮编号汇总输出；`typecheck`、`assets:check`（120/120）与 `vite build` 全绿通过。
 
 双层左导轨与空态首屏有图动态卡回归（2026-11-23）：新增 `navigation-rail.test.ts`（2 项）校验顶部伙伴头像、自定义快捷入口、未读角标、3 颗纯提示词胶囊、纯图标动态操作与有图缩略图 `+N` 角标；全套定向单测与 `tsc --noEmit` 全部通过。

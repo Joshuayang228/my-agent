@@ -100,7 +100,7 @@
 
 | 批次 | 范围 | P0 状态 | P1 状态 | 独立验收标准 |
 |---|---|---|---|---|
-| **Batch A** | Excel / HTML / Word / PDF / PPT 渲染 + 批注草稿篮 | ✅ P0 全部完成（待验收） | ⬜ 待 P0 验收确认 | Playground 5 类文档可渲染交互 + 多条批注汇总发送；P1 真实项目文件打开与批注直达 Chat 输入框；单测 + `assets:check` + `arch:check` + `vite build` 全绿 |
+| **Batch A** | Excel / HTML / Word / PDF / PPT 渲染 + 批注草稿篮 | ✅ P0 已验收 | ✅ P1 已回流正式右栏 | Playground 5 类文档可渲染交互 + 多条批注汇总发送；P1 真实项目文件（`.xlsx/.xls/.csv/.docx/.pdf/.pptx/.html`）打开与批注直达 Chat 输入框；单测 + `assets:check` + `arch:check` + `vite build` 全绿 |
 | **Batch B** | HTML 区域框选 + Adjust 样式试调 + 受控本地浏览器批注 | ⬜ 未开始 | ⬜ 未开始 | 区域框选坐标准确；Adjust 试调不改源文件且输出 `styleDiff`；本地 `localhost` 页面可预览并批注 |
 | **Batch C** | Diff 行级 `+` 批注 + Git 多视图 + 单文件/Hunk Stage/Revert | ⬜ 未开始 | ⬜ 未开始 | 悬停行写批注并入批注篮；Uncommitted / Branch 视图切换正常；单 Hunk Stage/Revert（含二次确认）真实生效且有单测回归 |
 | **Batch D** | 产出物摘要 + 对话侧显式焦点引用 | ⬜ 未开始 | ⬜ 未开始 | 会话产物一键定位预览；Chat 输入区可显式引用右栏焦点 |

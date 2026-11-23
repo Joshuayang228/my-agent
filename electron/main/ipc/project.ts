@@ -5,6 +5,12 @@ import * as fs from 'node:fs'
 import * as settings from '../storage/settings-store'
 import { setWorkspaceRoot } from '../workspace/workspace-root'
 import { createLogger, hashForLog } from '../utils/logger'
+import {
+  parseDocxHtmlPreview,
+  parsePdfPreview,
+  parsePptxPreview,
+  parseSpreadsheetPreview,
+} from '../utils/document-parser'
 
 const log = createLogger('ProjectIPC')
 
@@ -197,9 +203,10 @@ export function registerProjectIPC(): void {
 
       const ext = path.extname(resolvedFile).toLowerCase()
       const imageExt = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.ico'])
-      // Office / 压缩等太重：不在内嵌预览里解，交给系统应用
+      const spreadsheetExt = new Set(['.xlsx', '.xls', '.csv'])
+      // 老旧二进制 Office / 压缩包 / 音视频 / 可执行文件仍交给系统应用打开
       const externalOnly = new Set([
-        '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+        '.doc', '.ppt',
         '.zip', '.7z', '.rar', '.gz', '.tar',
         '.exe', '.dll', '.so', '.dylib', '.wasm',
         '.mp4', '.mov', '.avi', '.mkv', '.mp3', '.wav', '.flac',
@@ -210,6 +217,34 @@ export function registerProjectIPC(): void {
         const mime = mimeFromExt(ext)
         const dataUrl = `data:${mime};base64,${fs.readFileSync(resolvedFile).toString('base64')}`
         return { kind: 'image' as const, mimeType: mime, dataUrl, size: stat.size }
+      }
+
+      if (spreadsheetExt.has(ext)) {
+        if (stat.size > 10 * 1024 * 1024) return { kind: 'unsupported' as const, size: stat.size, reason: '表格文件超过 10MB 预览上限，可用系统应用打开' }
+        const parsed = await parseSpreadsheetPreview(fs.readFileSync(resolvedFile), path.basename(resolvedFile))
+        if (!parsed.ok) return { error: parsed.error, size: stat.size }
+        return { kind: 'spreadsheet' as const, sheets: parsed.sheets, size: stat.size }
+      }
+
+      if (ext === '.docx') {
+        if (stat.size > 10 * 1024 * 1024) return { kind: 'unsupported' as const, size: stat.size, reason: 'Word 文档超过 10MB 预览上限，可用系统应用打开' }
+        const parsed = await parseDocxHtmlPreview(fs.readFileSync(resolvedFile))
+        if (!parsed.ok) return { error: parsed.error, size: stat.size }
+        return { kind: 'docx' as const, html: parsed.html, notices: parsed.notices, size: stat.size }
+      }
+
+      if (ext === '.pdf') {
+        if (stat.size > 10 * 1024 * 1024) return { kind: 'unsupported' as const, size: stat.size, reason: 'PDF 文件超过 10MB 预览上限，可用系统应用打开' }
+        const parsed = await parsePdfPreview(fs.readFileSync(resolvedFile))
+        if (!parsed.ok) return { error: parsed.error, size: stat.size }
+        return { kind: 'pdf' as const, pages: parsed.pages, pdfBase64: parsed.pdfBase64, size: stat.size }
+      }
+
+      if (ext === '.pptx') {
+        if (stat.size > 10 * 1024 * 1024) return { kind: 'unsupported' as const, size: stat.size, reason: 'PPT 文件超过 10MB 预览上限，可用系统应用打开' }
+        const parsed = await parsePptxPreview(fs.readFileSync(resolvedFile))
+        if (!parsed.ok) return { error: parsed.error, size: stat.size }
+        return { kind: 'pptx' as const, slides: parsed.slides, size: stat.size }
       }
 
       if (externalOnly.has(ext)) {

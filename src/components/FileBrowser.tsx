@@ -25,9 +25,14 @@ import { ResizeHandle } from './shell/ResizeHandle'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from '../shared/panel-layout'
 import { IconButton } from './foundation/IconButton'
 import { ActionButton } from './foundation/ActionButton'
-import { SegmentedControl } from './foundation/SegmentedControl'
 import { TextField } from './foundation/TextField'
 import { ImagePreviewImage } from './foundation/ImagePreviewImage'
+import { SpreadsheetPreview } from './chat/right-dock/preview/SpreadsheetPreview'
+import { HtmlAnnotatePreview } from './chat/right-dock/preview/HtmlAnnotatePreview'
+import { DocxPreview } from './chat/right-dock/preview/DocxPreview'
+import { PdfPreview, type PdfPreviewPage } from './chat/right-dock/preview/PdfPreview'
+import { PptxPreview } from './chat/right-dock/preview/PptxPreview'
+import type { AnnotationQueueItem, PptxSlideData, SpreadsheetSheetData } from './chat/right-dock/preview/annotation-format'
 
 export interface FileBrowserPreviewEntry {
   name: string
@@ -39,6 +44,10 @@ export interface FileBrowserPreviewEntry {
 export type FileBrowserPreviewFile =
   | { path: string; kind: 'text'; content: string; languageHint?: string; size?: number }
   | { path: string; kind: 'image'; dataUrl: string; mimeType?: string; size?: number }
+  | { path: string; kind: 'spreadsheet'; sheets: SpreadsheetSheetData[]; size?: number }
+  | { path: string; kind: 'docx'; html: string; notices?: string[]; size?: number }
+  | { path: string; kind: 'pdf'; pages: PdfPreviewPage[]; pdfBase64?: string; size?: number }
+  | { path: string; kind: 'pptx'; slides: PptxSlideData[]; size?: number }
   | { path: string; kind: 'unsupported'; reason: string; size?: number }
   | { path: string; kind: 'error'; message: string }
   | { path: string; kind: 'loading' }
@@ -70,6 +79,8 @@ interface FileBrowserProps {
   hideProjectHeader?: boolean
   hidePreviewClose?: boolean
   onRetry?: () => void
+  onTakeToChat?: (text: string) => void
+  onQueueAnnotation?: (item: Omit<AnnotationQueueItem, 'id' | 'createdAt'>) => void
 }
 
 /**
@@ -84,6 +95,10 @@ export async function readFilePreview(path: string, data?: FileBrowserPreviewDat
     if (!result) return { path, kind: 'error', message: '读取失败，请重试' }
     if (result.error && !result.kind) return { path, kind: 'error', message: result.error }
     if (result.kind === 'image' && result.dataUrl) return { path, kind: 'image', dataUrl: result.dataUrl, mimeType: result.mimeType, size: result.size }
+    if (result.kind === 'spreadsheet' && result.sheets) return { path, kind: 'spreadsheet', sheets: result.sheets, size: result.size }
+    if (result.kind === 'docx' && result.html !== undefined) return { path, kind: 'docx', html: result.html, notices: result.notices, size: result.size }
+    if (result.kind === 'pdf' && result.pages) return { path, kind: 'pdf', pages: result.pages, pdfBase64: result.pdfBase64, size: result.size }
+    if (result.kind === 'pptx' && result.slides) return { path, kind: 'pptx', slides: result.slides, size: result.size }
     if (result.kind === 'unsupported') return { path, kind: 'unsupported', reason: result.reason || result.error || '无法预览', size: result.size }
     if (result.content !== undefined) return { path, kind: 'text', content: result.content, languageHint: result.languageHint, size: result.size }
     return { path, kind: 'error', message: result.error || '无法预览' }
@@ -97,7 +112,7 @@ function initialPreview(data?: FileBrowserPreviewData): FileBrowserPreviewState 
   return data.files[data.initialPath] ?? null
 }
 
-export function FileBrowser({ projectPath, onClose, embedded = false, previewData, mode = 'split', previewState, onPreviewStateChange, onFileSelect, hideProjectHeader = false, hidePreviewClose = false, onRetry }: FileBrowserProps) {
+export function FileBrowser({ projectPath, onClose, embedded = false, previewData, mode = 'split', previewState, onPreviewStateChange, onFileSelect, hideProjectHeader = false, hidePreviewClose = false, onRetry, onTakeToChat, onQueueAnnotation }: FileBrowserProps) {
   const [tree, setTree] = useState<FileEntry[]>(() => previewData?.tree ?? [])
   const [filter, setFilter] = useState('')
   const [internalPreview, setInternalPreview] = useState<FileBrowserPreviewState>(() => initialPreview(previewData))
@@ -112,8 +127,6 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
   const readVersion = useRef(0)
   const treeVersion = useRef(0)
   const [copied, setCopied] = useState(false)
-  /** html：预览 / 源码；默认预览 */
-  const [htmlView, setHtmlView] = useState<'preview' | 'source'>('preview')
   const [treeRatio, setTreeRatio] = usePersistedNumber(
     LAYOUT_KEYS.fileTreeRatio,
     LAYOUT_BOUNDS.fileTreeRatio.fallback,
@@ -159,7 +172,6 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
     const next = await readFilePreview(entry.path, previewData)
     if (version !== readVersion.current) return
     setPreview(next)
-    if (next.kind === 'text' && next.languageHint === 'html') setHtmlView('preview')
   }
 
   const openExternal = async () => {
@@ -274,10 +286,6 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                   <span className="min-w-0 flex-1 truncate text-[10px]" style={{ color: 'var(--text-muted)' }} title={preview.path}>
                     {fileName}
                   </span>
-                  {preview.kind === 'text' && preview.languageHint === 'html' && (
-                    <SegmentedControl ariaLabel="HTML 文件视图" value={htmlView} onChange={(id) => setHtmlView(id as 'preview' | 'source')}
-                      items={[{ id: 'preview', label: '预览' }, { id: 'source', label: '源码' }]} />
-                  )}
                   {preview.kind === 'text' && (
                     <IconButton label="复制正文" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => { void copyText() }}>
                       <Copy size={12} />
@@ -289,46 +297,94 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                   {!hidePreviewClose && <IconButton label="关闭预览" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => setPreview(null)}><X size={12} /></IconButton>}
                 </div>
 
-                <div className={`min-h-0 flex-1 overflow-auto scrollbar-hover select-text ${preview.kind === 'text' && preview.languageHint === 'html' && htmlView === 'preview' ? 'p-0' : 'p-3'}`}>
-                  {preview.kind === 'loading' && <p role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>正在读取文件…</p>}
-                  {preview.kind === 'image' && (
-                    <ImagePreviewImage
-                      src={preview.dataUrl}
-                      alt={fileName}
-                      className="mx-auto max-h-full max-w-full object-contain"
-                      buttonClassName="mx-auto max-w-full"
-                    />
-                  )}
-                  {preview.kind === 'text' && preview.languageHint === 'html' && htmlView === 'preview' && (
-                    <iframe
-                      title={fileName}
-                      // 允许 HTML 自身脚本驱动动画，但仍隔离同源权限、表单提交和 Electron 能力。
-                      sandbox="allow-scripts"
-                      srcDoc={preview.content}
-                      className="h-full min-h-[200px] w-full border-0 bg-white"
-                    />
-                  )}
-                  {preview.kind === 'text' && preview.languageHint === 'markdown' && (
-                    <div className="text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                      <MarkdownRenderer content={preview.content} />
+                {(() => {
+                  const isRichPreview = preview.kind === 'spreadsheet'
+                    || preview.kind === 'docx'
+                    || preview.kind === 'pdf'
+                    || preview.kind === 'pptx'
+                    || (preview.kind === 'text' && preview.languageHint === 'html')
+                  if (isRichPreview) {
+                    return (
+                      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                        {preview.kind === 'text' && preview.languageHint === 'html' && (
+                          <HtmlAnnotatePreview
+                            filePath={preview.path}
+                            htmlContent={preview.content}
+                            onSendToChat={onTakeToChat}
+                            onQueueAnnotation={onQueueAnnotation}
+                          />
+                        )}
+                        {preview.kind === 'spreadsheet' && (
+                          <SpreadsheetPreview
+                            filePath={preview.path}
+                            sheets={preview.sheets}
+                            onSendToChat={onTakeToChat}
+                            onQueueAnnotation={onQueueAnnotation}
+                          />
+                        )}
+                        {preview.kind === 'docx' && (
+                          <DocxPreview
+                            filePath={preview.path}
+                            htmlContent={preview.html}
+                            notices={preview.notices}
+                            onSendToChat={onTakeToChat}
+                            onQueueAnnotation={onQueueAnnotation}
+                          />
+                        )}
+                        {preview.kind === 'pdf' && (
+                          <PdfPreview
+                            filePath={preview.path}
+                            pages={preview.pages}
+                            pdfBase64={preview.pdfBase64}
+                            onSendToChat={onTakeToChat}
+                            onQueueAnnotation={onQueueAnnotation}
+                          />
+                        )}
+                        {preview.kind === 'pptx' && (
+                          <PptxPreview
+                            filePath={preview.path}
+                            slides={preview.slides}
+                            onSendToChat={onTakeToChat}
+                            onQueueAnnotation={onQueueAnnotation}
+                          />
+                        )}
+                      </div>
+                    )
+                  }
+                  return (
+                    <div className="min-h-0 flex-1 overflow-auto scrollbar-hover select-text p-3">
+                      {preview.kind === 'loading' && <p role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>正在读取文件…</p>}
+                      {preview.kind === 'image' && (
+                        <ImagePreviewImage
+                          src={preview.dataUrl}
+                          alt={fileName}
+                          className="mx-auto max-h-full max-w-full object-contain"
+                          buttonClassName="mx-auto max-w-full"
+                        />
+                      )}
+                      {preview.kind === 'text' && preview.languageHint === 'markdown' && (
+                        <div className="text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                          <MarkdownRenderer content={preview.content} />
+                        </div>
+                      )}
+                      {preview.kind === 'text' && preview.languageHint !== 'markdown' && (
+                        <CodeBlock code={preview.content} language={preview.languageHint || 'text'} />
+                      )}
+                      {preview.kind === 'unsupported' && (
+                        <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
+                          <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{preview.reason}</p>
+                          <ActionButton size="md" onClick={() => { void openExternal() }}>用系统应用打开</ActionButton>
+                        </div>
+                      )}
+                      {preview.kind === 'error' && (
+                        <div role="alert" className="space-y-2 text-[12px]" style={{ color: 'var(--danger)' }}>
+                          <p>{preview.message}</p>
+                          {onRetry && <ActionButton tone="accent" onClick={onRetry}>重新读取</ActionButton>}
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {preview.kind === 'text' && preview.languageHint !== 'markdown' && !(preview.languageHint === 'html' && htmlView === 'preview') && (
-                    <CodeBlock code={preview.content} language={preview.languageHint || 'text'} />
-                  )}
-                  {preview.kind === 'unsupported' && (
-                    <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
-                      <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{preview.reason}</p>
-                      <ActionButton size="md" onClick={() => { void openExternal() }}>用系统应用打开</ActionButton>
-                    </div>
-                  )}
-                  {preview.kind === 'error' && (
-                    <div role="alert" className="space-y-2 text-[12px]" style={{ color: 'var(--danger)' }}>
-                      <p>{preview.message}</p>
-                      {onRetry && <ActionButton tone="accent" onClick={onRetry}>重新读取</ActionButton>}
-                    </div>
-                  )}
-                </div>
+                  )
+                })()}
                 {copied && (
                   <p className="px-3 pb-2 text-[10px]" style={{ color: 'var(--success)' }}>已复制</p>
                 )}

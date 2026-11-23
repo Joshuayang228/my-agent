@@ -1,9 +1,9 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { ListPlus, Send, X } from 'lucide-react'
-import { ActionButton } from '../../foundation/ActionButton'
-import { Badge } from '../../foundation/Badge'
-import { IconButton } from '../../foundation/IconButton'
-import { TextField } from '../../foundation/TextField'
+import { ActionButton } from '../../../foundation/ActionButton'
+import { Badge } from '../../../foundation/Badge'
+import { IconButton } from '../../../foundation/IconButton'
+import { TextField } from '../../../foundation/TextField'
 
 interface AnnotationBarProps {
   /** 当前选中的位置/锚点标签，例如 Sheet1!B2:D5、button.cta 或 第 2 页 */

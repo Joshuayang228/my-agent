@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight, Presentation, StickyNote } from 'lucide-react'
-import { ActionButton } from '../../foundation/ActionButton'
-import { Badge } from '../../foundation/Badge'
-import { IconButton } from '../../foundation/IconButton'
+import { ActionButton } from '../../../foundation/ActionButton'
+import { Badge } from '../../../foundation/Badge'
+import { IconButton } from '../../../foundation/IconButton'
 import { AnnotationBar } from './AnnotationBar'
 import {
   formatPptxSlideAnnotation,

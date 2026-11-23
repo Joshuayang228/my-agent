@@ -10,18 +10,18 @@ import { ActionButton } from '../foundation/ActionButton'
 import { SelectField } from '../foundation/SelectField'
 import { WorkspaceToolMenu } from '../foundation/WorkspaceToolMenu'
 import { TextField } from '../foundation/TextField'
-import { SpreadsheetPreview } from './workspace-preview/SpreadsheetPreview'
-import { HtmlAnnotatePreview } from './workspace-preview/HtmlAnnotatePreview'
-import { DocxPreview } from './workspace-preview/DocxPreview'
-import { PdfPreview, type PdfPreviewPage } from './workspace-preview/PdfPreview'
-import { PptxPreview } from './workspace-preview/PptxPreview'
-import { AnnotationQueueDrawer } from './workspace-preview/AnnotationQueueDrawer'
+import { SpreadsheetPreview } from '../chat/right-dock/preview/SpreadsheetPreview'
+import { HtmlAnnotatePreview } from '../chat/right-dock/preview/HtmlAnnotatePreview'
+import { DocxPreview } from '../chat/right-dock/preview/DocxPreview'
+import { PdfPreview, type PdfPreviewPage } from '../chat/right-dock/preview/PdfPreview'
+import { PptxPreview } from '../chat/right-dock/preview/PptxPreview'
+import { AnnotationQueueDrawer } from '../chat/right-dock/preview/AnnotationQueueDrawer'
 import {
   formatAnnotationQueueForChat,
   type AnnotationQueueItem,
   type PptxSlideData,
   type SpreadsheetSheetData,
-} from './workspace-preview/annotation-format'
+} from '../chat/right-dock/preview/annotation-format'
 import teaImage from '../../assets/playground/moment-tea-by-window.jpg'
 import { LAYOUT_CLASSES, layoutProfileStyle } from '../../shared/content-layout'
 

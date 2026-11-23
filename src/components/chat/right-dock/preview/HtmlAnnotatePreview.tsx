@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Crosshair } from 'lucide-react'
-import { ActionButton } from '../../foundation/ActionButton'
-import { SegmentedControl } from '../../foundation/SegmentedControl'
-import { CodeBlock } from '../../MarkdownRenderer'
+import { ActionButton } from '../../../foundation/ActionButton'
+import { SegmentedControl } from '../../../foundation/SegmentedControl'
+import { CodeBlock } from '../../../MarkdownRenderer'
 import { AnnotationBar } from './AnnotationBar'
 import {
   buildHtmlPickerSrcDoc,

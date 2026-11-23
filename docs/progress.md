@@ -6,6 +6,8 @@
 
 左导轨 20px 图标体系统一与去重收口（2026-11-23）：`NavigationRail.tsx` 全员放大至 `20px`（`38×38` 热区），底部 `Debug` / `Playground` 换为简洁几何图标 `Terminal` / `Layers`，并去除与「朋友圈」重复的常驻「人物世界」图标（仅在 0 快捷项时兜底）。
 
+右侧工作区富文档渲染与批注回传 Batch A P1 正式回流完成（2026-11-23）：经 P0 Playground 验收确认后，将 5 类富预览与批注组件迁入 `src/components/chat/right-dock/preview/` 并晋升 `ui-component-registry.ts` 为 `adopted`；主进程 `document-parser.ts` 与 `project:readFile`（四处 IPC 同步）放开 `.xlsx/.xls/.csv`（多 Sheet 500×50 上限）、`.docx`（语义 HTML + 前端白名单清洗）、`.pdf`（原版 Chromium 预览 + 按页文字双模）与 `.pptx`（零依赖原生 ZIP/XML 幻灯片与备注），`ChatRightDock` → `WorkspaceFilesPanel` → `FileBrowser` 打通跨文件「批注草稿篮」与 `onTakeToChat` 直达主对话输入框。
+
 右侧工作区富文档渲染与批注回传 Batch A P0（Playground 隔离候选）全部就绪（2026-11-23）：升级全量施工合同 `docs/requirements/workspace-rich-preview-and-annotations-v1.md`（对标 Codex 拆为 Batch A–D 四批），实现共享批注纯函数、5 类富预览组件（`SpreadsheetPreview`、`HtmlAnnotatePreview`、`DocxPreview`、`PdfPreview`、`PptxPreview`）及统一 `AnnotationBar` + 跨文档「批注草稿篮」`AnnotationQueueDrawer`，接入 `Playground → 产品体验 → 工作区` 并与模拟主对话壳打通单条直发与多条汇总发送；未改动任何正式生产页面，待用户验收 P0 后进入 Batch A P1 正式回流。
 
 修复左导轨 hover 反馈并优化图标体系与行间距（2026-11-23）：`NavigationRail.tsx` 修复内联 `transparent` 压死 hover 的问题并新增即时胶囊 Tooltip，放大顶部伙伴头像至 36×36、图标至 18px 并放宽导轨与会话列表行间距；归还「人物世界」`Sparkles` 图标，朋友圈改用镜头光圈 `Aperture`、主对话改用圆润实心锚点 `MessageCircle`。

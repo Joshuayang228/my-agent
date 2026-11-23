@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Table2 } from 'lucide-react'
-import { Badge } from '../../foundation/Badge'
-import { SegmentedControl } from '../../foundation/SegmentedControl'
+import { Badge } from '../../../foundation/Badge'
+import { SegmentedControl } from '../../../foundation/SegmentedControl'
 import { AnnotationBar } from './AnnotationBar'
 import {
   columnIndexToLetter,
