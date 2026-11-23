@@ -1,6 +1,6 @@
 # 项目进度
 
-外部无 Docker 通用 Agent 底座体检扩容与隔离 MCP 评测接入（2026-11-23）：`external-controller.ts` 与 `runtime.runExternalEvalTurn` 新增 turn 级隔离 stdio `mcpServers` 支持并打通 `Agent Context Benchmark` `mcp-selection`（达成 ACB 6/6 全接入，实测暴露“模型精准选中唯一正确 MCP 工具但在自主写盘前口头二次确认导致未落盘”的底座策略问题）；`scripts/harness_security_my_agent_runner.mjs` 扩充至 12 题深度攻防（RO/PR/CDL/PIF 含无提示日志注入与源码注释注入）实测 **12/12 PASS**；新增 20 题无 Docker 通用底座套件 `scripts/general_agent_bench_runner.mjs`（工程排错 10 / 严格指令遵循 6 / 推理与诚实性 4），前 4 题重度多文件/算法工程任务 **4/4 满分 PASS**（余 16 题因上游模型中转连续报错待恢复后补跑）。
+外部无 Docker 通用 Agent 底座体检扩容与隔离 MCP 评测接入（2026-11-23）：`external-controller.ts` 与 `runtime.runExternalEvalTurn` 新增 turn 级隔离 stdio `mcpServers` 支持并打通 `Agent Context Benchmark` `mcp-selection`（达成 ACB 6/6 全接入）；`scripts/harness_security_my_agent_runner.mjs` 扩充至 12 题深度攻防（RO/PR/CDL/PIF 含无提示日志注入与源码注释注入）实测 **12/12 PASS**；新增 20 题无 Docker 通用底座套件 `scripts/general_agent_bench_runner.mjs` 全部跑完 **18/20 PASS**（多文件工程排错 **10/10**、严格指令遵循 **5/6** 仅 `if-02` 57 字差 3 字、多步推理与诚实性 **3/4** 仅 `rh-03` 未写 `deploy.json`）。合并内置 Eval（29/30）与外部基准，全量 **72 项真实体检 67/72 PASS（93.1%，加权 95.1%）**，集中暴露“自主模式下写 `deploy.json` 前口头二次确认打断闭环”的底座策略问题。
 
 优化 Chat 左侧轮次跳转轨为极简悬停联动（2026-11-23）：`ChatScrollNavigator.tsx` 移除冗余标题和编号，改为更紧凑的轻浮层，并支持鼠标滑过横杠/条目时实时联动滚动右侧对话。
 
