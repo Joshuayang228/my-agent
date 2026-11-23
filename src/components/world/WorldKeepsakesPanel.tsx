@@ -10,14 +10,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   MessageSquareShare,
-  ArrowLeft,
   Gift,
 } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { Badge } from '../foundation/Badge'
+import { DetailHeader } from '../foundation/DetailHeader'
 import { EmptyState } from '../foundation/EmptyState'
 import { ErrorState } from '../foundation/ErrorState'
 import { ImagePreviewImage } from '../foundation/ImagePreviewImage'
+import { SurfaceCard } from '../foundation/SurfaceCard'
 import { TabStrip } from '../foundation/TabStrip'
 import { LAYOUT_CLASSES, contentGutterStyle, mediaFrameStyle } from '../../shared/content-layout'
 import type {
@@ -191,12 +192,10 @@ export function WorldKeepsakesPanel({
       data-testid="world-keepsakes-panel"
       data-world-content="keepsakes"
     >
-      <div className={hasSelection ? 'mx-auto mb-4 flex w-full max-w-3xl flex-wrap items-center gap-3' : 'mb-4 flex flex-wrap items-center gap-3'}>
-        {hasSelection ? (
-          <ActionButton variant="plain" onClick={() => setSelectedId(null)}>
-            <ArrowLeft size={14} className="mr-1" />返回礼物柜
-          </ActionButton>
-        ) : (
+      {hasSelection ? (
+        <DetailHeader backLabel="返回礼物柜" onBack={() => setSelectedId(null)} />
+      ) : (
+        <div className="mb-4 flex flex-wrap items-center gap-3">
           <TabStrip
             label="礼物柜分类"
             activeId={activeTab}
@@ -209,8 +208,8 @@ export function WorldKeepsakesPanel({
               { id: 'gifts', label: '收到的礼物', testId: 'tab-gifts' },
             ]}
           />
-        )}
-      </div>
+        </div>
+      )}
 
       {/* 内容展示区（纯只读礼物柜） */}
       {previewReadError || loadError ? (
@@ -283,14 +282,13 @@ export function WorldKeepsakesPanel({
         ) : (
           <div className={`${LAYOUT_CLASSES.cardGrid} items-stretch`} data-testid="keepsake-shelf">
             {keepsakes.map((item) => (
-              <button
+              <SurfaceCard
                 key={item.id}
-                type="button"
+                as="button"
+                padding="none"
                 onClick={() => setSelectedId(item.id)}
                 aria-label={`查看礼物：${item.name}`}
                 data-testid={`keepsake-card-${item.id}`}
-                className="flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-card)] border text-left transition-colors hover:bg-[var(--hover-overlay)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
-                style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}
               >
                 <GiftCoverImage src={item.imageUrl} alt={item.name} />
                 <div className="flex flex-1 flex-col gap-2 p-3.5">
@@ -302,7 +300,7 @@ export function WorldKeepsakesPanel({
                     {item.description}
                   </span>
                 </div>
-              </button>
+              </SurfaceCard>
             ))}
           </div>
         )
@@ -355,14 +353,13 @@ export function WorldKeepsakesPanel({
         ) : (
           <div className={`${LAYOUT_CLASSES.cardGrid} items-stretch`} data-testid="received-gift-shelf">
             {gifts.map((gift) => (
-              <button
+              <SurfaceCard
                 key={gift.id}
-                type="button"
+                as="button"
+                padding="none"
                 onClick={() => setSelectedId(gift.id)}
                 aria-label={`查看礼物：${gift.giftName}`}
                 data-testid={`received-gift-card-${gift.id}`}
-                className="flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-card)] border text-left transition-colors hover:bg-[var(--hover-overlay)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
-                style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}
               >
                 <GiftCoverImage src={gift.imageUrl} alt={gift.giftName} />
                 <div className="flex flex-1 flex-col gap-2 p-3.5">
@@ -379,7 +376,7 @@ export function WorldKeepsakesPanel({
                     {gift.userNote || gift.companionReaction}
                   </span>
                 </div>
-              </button>
+              </SurfaceCard>
             ))}
           </div>
         )

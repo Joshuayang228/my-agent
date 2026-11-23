@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 落地 Foundation 容器原语收敛与防拖延/防退化门禁：`AGENTS.md` 新增「禁止“以后再说”式拖延」铁律，`agent-skills/frontend-guidelines.md` 固化「三次法则 + 踩坑即收口」与「单点 Bug → 全仓清扫 → 静态门禁」三步闭环；新增 Foundation 原语 `SurfaceCard.tsx`（升级 `behavior.card` 为 `adopted`）与 `DetailHeader.tsx`，收口 `CompanionAvatar#framed` 并在 `WorldProfileHeader`、`ChatWelcome`、`WorldCultureGallery` 与 `WorldKeepsakesPanel` 落地采用；`foundation-enforcement-gate.test.ts` 新增全仓「禁止给 `CompanionAvatar` 外传裸 `ring-*`/`!border-*`」与「带 `role="menu"` 浮层的 `<section>` 禁止 `overflow-hidden`」两项静态门禁。
+
 2026-11-23 清零全仓 Tailwind v4 裸 `ring-*` 黑框并新增全仓静态扫描门禁：修复 `ChatWelcome.tsx`、`PrimarySidebar.tsx`、`GiftGivingModal.tsx` 与 `App.tsx` 全部 5 处无显式颜色类的 `ring-1/2/4`；在 `foundation-enforcement-gate.test.ts` 新增全仓 `src/**/*.tsx` 静态扫描门禁（随 `assets:check` / Git Hook 执行），并将同源清扫纪律记入 `docs/pitfalls.md`。
 
 2026-11-23 修复人物世界页头换图下拉菜单被裁切、移除冗余关闭图标并同步 Playground 样张：`WorldProfileHeader.tsx` 移除外层 `<section>` 的 `overflow-hidden`（保留内层封面容器裁切）并提升菜单 `z-30` 防止「恢复默认」被截断，同时删除右上角冗余关闭图标；`SurfaceBaselinePanel.tsx` 同步切换为 `pill` 标签并传入 `statusMetrics` 样张，与正式人物世界保持一致。

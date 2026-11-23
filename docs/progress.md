@@ -1,5 +1,7 @@
 # 项目进度
 
+Foundation 容器原语收敛（`SurfaceCard` / `DetailHeader` / `CompanionAvatar#framed`）与防拖延/防裁切门禁（2026-11-23）：`AGENTS.md` 确立禁止“以后再说”铁律；新增并采用 `SurfaceCard` 与 `DetailHeader`，`CompanionAvatar` 收口 `framed` 语义描边；`foundation-enforcement-gate.test.ts` 扩展至 13 项全仓静态门禁。
+
 全仓清零裸 `ring-*` 黑框并落地静态防退化门禁（2026-11-23）：一锅端修复 `ChatWelcome`、`PrimarySidebar`、`GiftGivingModal` 与 `App` 共 5 处裸 `ring-*`，在 `foundation-enforcement-gate.test.ts` 接入全仓扫描门禁并沉淀 `docs/pitfalls.md`。
 
 修复页头换图菜单裁切、移除关闭按钮并同步 Playground（2026-11-23）：`WorldProfileHeader.tsx` 去掉外层 `overflow-hidden` 解决菜单截断并删除多余 `X` 关闭按钮；`SurfaceBaselinePanel.tsx` 同步 `pill` 标签与双色心情/精力微条样张。

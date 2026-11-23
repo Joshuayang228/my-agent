@@ -166,8 +166,8 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
             role="assistant"
             size="lg"
             shape="rounded"
+            framed
             themeColor={profile.themeColor}
-            className="!border-2 shadow-sm"
           />
         </div>
 

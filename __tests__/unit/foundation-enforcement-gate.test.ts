@@ -372,5 +372,68 @@ describe('Foundation 布局与控件复用自动门禁', () => {
       }
       expect(violations).toEqual([])
     })
+
+    it('全仓 CompanionAvatar 调用点禁止外传裸 ring-* 或 !border-*，必须走 framed 原语', () => {
+      const files: string[] = []
+      const walk = (dir: string) => {
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+          const full = join(dir, entry.name)
+          if (entry.isDirectory()) walk(full)
+          else if (entry.name.endsWith('.tsx')) files.push(full)
+        }
+      }
+      walk(resolve('src'))
+      const violations: string[] = []
+      for (const file of files) {
+        if (file.endsWith('CompanionAvatar.tsx')) continue
+        const source = readFileSync(file, 'utf8')
+        const matches = source.matchAll(/<CompanionAvatar\b[\s\S]*?\/>/g)
+        for (const match of matches) {
+          if (/\b(?:ring-|!border-)/.test(match[0])) {
+            violations.push(`${relative(process.cwd(), file)} -> ${match[0].replace(/\s+/g, ' ').slice(0, 120)}`)
+          }
+        }
+      }
+      expect(violations).toEqual([])
+    })
+
+    it('带 role="menu" 浮层的 <section> 外壳禁止挂 overflow-hidden（防止下拉菜单被裁切）', () => {
+      const files: string[] = []
+      const walk = (dir: string) => {
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+          const full = join(dir, entry.name)
+          if (entry.isDirectory()) walk(full)
+          else if (entry.name.endsWith('.tsx')) files.push(full)
+        }
+      }
+      walk(resolve('src'))
+      const violations: string[] = []
+      for (const file of files) {
+        const source = readFileSync(file, 'utf8')
+        if (!source.includes('role="menu"')) continue
+        const ast = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+        const visit = (node: ts.Node, clippedSection: boolean) => {
+          let nextClipped = clippedSection
+          if (ts.isJsxElement(node)) {
+            const tag = node.openingElement.tagName.getText(ast)
+            const cls = node.openingElement.attributes.properties
+              .filter(ts.isJsxAttribute)
+              .find((a) => a.name.getText(ast) === 'className')?.initializer?.getText(ast) ?? ''
+            if (tag === 'section' && cls.includes('overflow-hidden')) {
+              nextClipped = true
+            }
+            const roleAttr = node.openingElement.attributes.properties
+              .filter(ts.isJsxAttribute)
+              .find((a) => a.name.getText(ast) === 'role')?.initializer?.getText(ast) ?? ''
+            if (nextClipped && roleAttr.includes('menu')) {
+              violations.push(relative(process.cwd(), file))
+            }
+          }
+          ts.forEachChild(node, (child) => visit(child, nextClipped))
+        }
+        visit(ast, false)
+      }
+      expect(violations).toEqual([])
+    })
   })
 })

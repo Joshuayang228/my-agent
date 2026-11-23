@@ -20,7 +20,7 @@ export function ChatWelcome({ title, subtitle, avatarSrc, roleName, onGreet, onP
         name={roleName ?? title}
         role="assistant"
         size="lg"
-        className="!border-2 shadow-sm"
+        framed
       />
     </div>
     <h1 className="mt-5 break-words font-display text-[1.9rem] font-medium" style={{ color: 'var(--text-primary)', overflowWrap: 'anywhere' }}>{title}</h1>

@@ -7,6 +7,8 @@ export interface CompanionAvatarProps {
   role?: 'assistant' | 'user' | 'system'
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
   shape?: 'circle' | 'rounded'
+  /** 是否显示柔和纸白细边与轻投影（统一收口头像描边，禁止调用方外传裸 ring-* 或 !border-*） */
+  framed?: boolean
   themeColor?: string | null
   className?: string
   alt?: string
@@ -43,6 +45,7 @@ export function CompanionAvatar({
   role = 'assistant',
   size = 'sm',
   shape = 'circle',
+  framed = false,
   themeColor,
   className = '',
   alt,
@@ -62,11 +65,13 @@ export function CompanionAvatar({
     borderColor: `color-mix(in srgb, ${themeColor} 30%, transparent)`,
   } : undefined
 
+  const frameClass = framed ? '!border-2 shadow-sm' : 'border shadow-sm'
+
   if (src && !loadFailed) {
     return (
       <span
         aria-hidden={ariaHidden}
-        className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden border shadow-sm transition-transform ${sizeClass} ${shapeClass} ${className}`}
+        className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden transition-transform ${frameClass} ${sizeClass} ${shapeClass} ${className}`}
         style={{
           borderColor: 'var(--card-bg)',
           background: 'var(--bg-secondary)',

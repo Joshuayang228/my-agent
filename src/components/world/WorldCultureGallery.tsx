@@ -4,6 +4,7 @@ import { ActionButton } from '../foundation/ActionButton'
 import { EmptyState } from '../foundation/EmptyState'
 import { ErrorState } from '../foundation/ErrorState'
 import { ImagePreviewImage } from '../foundation/ImagePreviewImage'
+import { SurfaceCard } from '../foundation/SurfaceCard'
 import { TabStrip } from '../foundation/TabStrip'
 import { Badge } from '../foundation/Badge'
 import type { LivingAsset, LivingAssetEditor, LivingAssetImageReader, LivingAssetImageRevealer } from './WorldLivingContent'
@@ -164,7 +165,7 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
           </div>
         </section>
         : items.length ? <div className={`${LAYOUT_CLASSES.cardGrid} items-stretch`} data-testid="culture-grid">
-          {items.map((asset) => <article key={asset.id} aria-label={asset.name} className="flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-card)] border transition-colors hover:bg-[var(--hover-overlay)]" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
+          {items.map((asset) => <SurfaceCard key={asset.id} as="article" padding="none" interactive aria-label={asset.name} className="flex flex-col">
             <Artwork asset={asset} cardTop {...artworkSource} />
             <div className="flex flex-1 flex-col gap-2 p-3.5">
               <ActionButton variant="plain" ref={(node) => { if (node) triggers.current.set(asset.id, node); else triggers.current.delete(asset.id) }}
@@ -193,7 +194,7 @@ export function WorldCultureGallery({ assets, readingNotes = [], readError = '',
                 </div>}
               </>}
             </div>
-          </article>)}
+          </SurfaceCard>)}
         </div> : <EmptyState centerWithoutAction title={`还没有${categories.find((item) => item.id === category)?.label}记录`} description="可以在对话中聊聊你想一起读、看、听或创作的内容。" />}
     </div>
   </div>

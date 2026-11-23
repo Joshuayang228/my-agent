@@ -27,7 +27,12 @@
 | 6 | 流式即时 | Callback 三通道保持；识别到工具名即出卡 |
 | 7 | 视觉边界完整 | 确认 / Toast 在应用内，不用系统 `alert` |
 
-**禁区速查**：紫光霓虹堆叠、无交互重卡片、方法论术语进 UI、假设置死链、左侧色条标状态。
+**禁区速查**：紫光霓虹堆叠、无交互重卡片、方法论术语进 UI、假设置死链、左侧色条标状态、无显式颜色类的裸 `ring-1/2/4/8`、带 `role="menu"` 浮层的外壳挂 `overflow-hidden`。
+
+### 样式原语收敛与防退化三步闭环
+
+- **三次法则 + 踩坑即收口**：某类视觉/容器结构重复 ≥ 3 次或因分散手写踩过一次坑，立即收进 Foundation 原语（如 `SurfaceCard`、`DetailHeader`、`CompanionAvatar#framed`、`LAYOUT_CLASSES.cardGrid`、`mediaFrameStyle()`），不再在业务页散落手拼原子类。
+- **单点 Bug → 全仓清扫 → 门禁封口**：修复任何前端样式/布局 Bug 时，必须先 `grep` 扫全仓同源写法一锅端修复，再尽可能把反模式写进 `foundation-enforcement-gate.test.ts` / `content-layout.test.ts`（随 Git Hook 强制拦截），杜绝同类问题跨文件复发。
 
 ---
 
