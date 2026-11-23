@@ -1375,3 +1375,4 @@ Projection Adapter 回归覆盖朋友圈、关系、情绪、事件关联和执�
 全量 Unit 284 个文件、1786 项通过，1 项既有跳过；Electron 41 项通过，5 项需真实模型配置的用例跳过；Debug 来源同步的 UI 回归 45 项通过。双进程类型检查、生产构建、Eval 23 项、Skill Eval 1 项与资产门禁 113 项通过。真实 sql.js 磁盘重开覆盖事务持久化、并发回滚与状态增量；SQL 故障注入覆盖日记和文化事实回滚，租约回归覆盖旧 Outbox attempt 迟到失败。构建保留既有 chunk / dynamic import 警告，项目没有独立 lint 脚本。
 
 - 2026-11-23：备份夹具已显式绑定 companion_received_gifts 列，覆盖新增赠礼字段。
+- 2026-11-23：外部 Harness 评测接入 `Agent Context Benchmark`（`scripts/acb_my_agent_runner.mjs`）与 `RepoBench` Target 适配器（`scripts/repobench_my_agent_target.py`），结果统一持久化到 `eval-reports/external-eval-results.jsonl`。首轮真实端到端基线：`instruction-scope` 1.0/1.0 PASS、`session-resume` 1.0/1.0 PASS、`skill-loading` 0.75/1.0（`loadedReference` / `correctSections` / `omittedMaintenance` 全过）。新增 `__tests__/unit/external-eval-controller.test.ts` 覆盖参数与隔离目录边界。

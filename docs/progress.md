@@ -1923,3 +1923,4 @@ Workspace 会话已迁移到 `workspace.context` Provider，统一注入项目�
 - 2026-11-23：工作区 HTML 预览允许在隔离 iframe 中运行页面脚本，支持 SVG/Canvas 动画预览。
 
 - 2026-11-23：外部评测接入 Electron 本机 Controller，τ³-bench 通过固定 LF checkout 与 UTF-8 环境完成官方核心数据校验，评测请求复用 Agent Runtime。
+- 2026-11-23：升级本机外部评测 Controller 与 `runtime.runExternalEvalTurn`，支持隔离 `workspaceRoot`、`sessionId` 多轮复用、`allowWorkspaceWrites` 隔离写权限与 `/health` 探活；接入 P0 评测集 `Agent Context Benchmark`（`scripts/acb_my_agent_runner.mjs`）与 `RepoBench` 目标适配器（`scripts/repobench_my_agent_target.py`）。实跑 ACB 3 项：`instruction-scope` 1.0/1.0 PASS、`session-resume` 1.0/1.0 PASS、`skill-loading` 0.75/1.0（核心语义 3/3 通过）。

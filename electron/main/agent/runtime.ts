@@ -148,7 +148,7 @@ class AgentRuntime {
     toolRegistry: ToolRegistry,
     confirmTool?: (name: string, args: Record<string, unknown>) => Promise<boolean>,
     workspaceContext?: WorkspaceChatContext,
-    headless?: { universeId?: string },
+    headless?: { universeId?: string; workspaceRoot?: string; allowWorkspaceWrites?: boolean },
   ): AsyncGenerator<AgentStreamEvent & { sessionId: string }> {
     if (this.activeControllers.has(sessionId)) {
       yield { type: 'error', message: '该会话正在处理中，请等待完成或先中断', code: AgentErrorCode.SESSION_BUSY, sessionId }
@@ -160,7 +160,9 @@ class AgentRuntime {
     const abortController = new AbortController()
     this.activeControllers.set(sessionId, abortController)
     try {
-      const hostPolicy = getHostConversationPolicy(Boolean(headless))
+      // 受控外部评测在显式提供隔离 workspaceRoot 且允许写入时，需启用完整工作区工具策略，
+      // 但定时任务等常规 headless 仍保持 unattended-readonly。
+      const hostPolicy = getHostConversationPolicy(Boolean(headless && !headless.allowWorkspaceWrites))
       const llmConfig = await this.getLLMConfig(hostPolicy.modelPolicyKey)
       if (abortController.signal.aborted) {
         yield { type: 'done', reason: 'aborted', sessionId }
@@ -206,7 +208,7 @@ class AgentRuntime {
     hostPolicy: ReturnType<typeof getHostConversationPolicy>,
     confirmTool?: (name: string, args: Record<string, unknown>) => Promise<boolean>,
     workspaceContext?: WorkspaceChatContext,
-    headless?: { universeId?: string },
+    headless?: { universeId?: string; workspaceRoot?: string; allowWorkspaceWrites?: boolean },
   ): AsyncGenerator<AgentStreamEvent & { sessionId: string }> {
     const skillState = {}
 
@@ -235,7 +237,9 @@ class AgentRuntime {
       const customPrompt = await settings.getSetting('systemPrompt')
       const executionMode = (hostPolicy.permissionPolicyKey === 'unattended-readonly'
         ? 'confirm-all'
-        : (this.sessionExecutionModes.get(sessionId) ?? (await settings.getSetting('executionMode') || 'auto'))) as ExecutionMode
+        : headless?.allowWorkspaceWrites
+          ? 'auto'
+          : (this.sessionExecutionModes.get(sessionId) ?? (await settings.getSetting('executionMode') || 'auto'))) as ExecutionMode
       const expertiseOverride = await settings.getSetting('userExpertiseLevel')
       // 会话绑定 role_id 优先；与 active 不一致时仍按会话组装（禁止中途换角偷换人设）
       const sessionMeta = await store.getSession(sessionId)
@@ -492,6 +496,10 @@ class AgentRuntime {
       }, isSummon ? 'summon' : isWorkspace ? 'workspace' : 'main')
 
       // ── 运行 Agent Loop ──
+      // 背景：外部评测需要在独立目录运行工具，不能污染全局 getWorkspaceRoot()。
+      // 设计意图：默认保持全局 getWorkspaceRoot() 绑定；仅当显式传入 headless.workspaceRoot 时切换到隔离目录。
+      // 关键约束：workdir 与 workspaceRoot 必须保持同源，确保沙箱路径边界与相对路径解析一致。
+      const isolatedWorkspaceRoot = headless?.workspaceRoot?.trim() || undefined
       const toolContext: ToolContext = {
         agentManifest,
         runId: chatSpan.id,
@@ -514,6 +522,10 @@ class AgentRuntime {
             parentSpanId: chatSpan.id,
           })
         },
+      }
+      if (isolatedWorkspaceRoot) {
+        toolContext.workdir = isolatedWorkspaceRoot
+        toolContext.workspaceRoot = isolatedWorkspaceRoot
       }
 
       const stream = agentLoop(
@@ -840,6 +852,135 @@ class AgentRuntime {
 
     log.info('Headless run completed', { ...labelMeta, resultLength: resultText.length })
     return resultText
+  }
+
+  /**
+   * 受控外部评测执行入口（仅供 MY_AGENT_EVAL_CONTROLLER=1 本机评测 Controller 调用）。
+   *
+   * 背景：Agent Context Benchmark、RepoBench 等外部 Harness 评测需要在隔离工作区读写文件，
+   *       并在同一会话内连续执行多轮（如 session-resume、compaction）并采集工具与压缩指标。
+   * 设计意图：独立于生产定时任务 runHeadless，不放松定时任务的只读边界；复走真实 chat() 与
+   *           ToolRegistry 链路，确保测到的是生产 Runtime 行为。
+   * 关键约束：仅当显式传入 workspaceRoot 且 allowWorkspaceWrites=true 时才放行工作区读写工具，
+   *           所有路径与命令边界仍由工具内置沙箱强制校验；多轮复用 sessionId 时必须存在对应会话。
+   */
+  async runExternalEvalTurn(options: {
+    prompt: string
+    taskName?: string
+    sessionId?: string
+    workspaceRoot?: string
+    allowWorkspaceWrites?: boolean
+  }): Promise<{
+    sessionId: string
+    result: string
+    terminalReason: TerminalReason
+    toolCalls: Array<{ name: string; ok: boolean }>
+    usage: { promptTokens: number; completionTokens: number }
+    compactEvents: number
+    durationMs: number
+  }> {
+    const startedAt = Date.now()
+    const label = options.taskName || 'external-eval'
+    const labelMeta = { labelHash: hashForLog(label), labelLength: label.length }
+    const requestedSessionId = options.sessionId?.trim()
+    let sessionId: string
+    if (requestedSessionId) {
+      const existing = await store.getSession(requestedSessionId)
+      if (!existing) throw new Error(`评测会话不存在: ${requestedSessionId}`)
+      sessionId = existing.id
+    } else {
+      const session = await store.createSession()
+      sessionId = session.id
+    }
+
+    const userMsg: ChatMessage = {
+      id: `eval-user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      role: 'user',
+      content: options.prompt,
+      timestamp: Date.now(),
+    }
+
+    const toolRegistry = new ToolRegistry()
+    const { builtinTools } = await import('../tools/builtins/index')
+    for (const tool of builtinTools) {
+      toolRegistry.register(tool)
+    }
+    registerAgentHostTools(toolRegistry)
+
+    const evalWorkspaceRoot = options.workspaceRoot?.trim() || undefined
+    const allowWorkspaceWrites = Boolean(evalWorkspaceRoot && options.allowWorkspaceWrites)
+    const evalWorkspaceTools = new Set([
+      'file_read',
+      'file_write',
+      'file_edit',
+      'file_delete',
+      'apply_patch',
+      'list_dir',
+      'code_search',
+      'shell_exec',
+      'git_status',
+      'git_diff',
+      'git_log',
+    ])
+
+    const confirmTool = async (name: string, args: Record<string, unknown>) => {
+      const metadata = toolRegistry.resolveEffectiveMetadata(name, args)
+      if (shouldAutoApproveHeadlessTool(name, metadata)) return true
+      if (allowWorkspaceWrites && evalWorkspaceTools.has(name)) return true
+      log.warn('External eval denied tool', { toolName: name, ...labelMeta })
+      return false
+    }
+
+    let resultText = ''
+    let terminalReason: TerminalReason = 'completed'
+    let hadError = false
+    let errorMessage = ''
+    const toolCalls: Array<{ name: string; ok: boolean }> = []
+    let promptTokens = 0
+    let completionTokens = 0
+    let compactEvents = 0
+
+    await runWithTraceContext({ sessionId, userId: DEFAULT_TRACE_USER_ID }, async () => {
+      for await (const event of this.chat(
+        sessionId,
+        userMsg,
+        toolRegistry,
+        confirmTool,
+        undefined,
+        { workspaceRoot: evalWorkspaceRoot, allowWorkspaceWrites },
+      )) {
+        if (event.type === 'text') resultText += event.content
+        if (event.type === 'tool_end') {
+          toolCalls.push({ name: event.name, ok: !event.isError })
+        }
+        if (event.type === 'usage') {
+          promptTokens += event.promptTokens
+          completionTokens += event.completionTokens
+        }
+        if (event.type === 'compact') {
+          compactEvents += 1
+        }
+        if (event.type === 'done') terminalReason = event.reason
+        if (event.type === 'error') {
+          hadError = true
+          errorMessage = String((event as Record<string, unknown>).message || '评测执行出错')
+        }
+      }
+    })
+
+    if (hadError && terminalReason !== 'completed') {
+      throw new Error(errorMessage || `评测任务未完成 (${terminalReason})`)
+    }
+
+    return {
+      sessionId,
+      result: resultText,
+      terminalReason,
+      toolCalls,
+      usage: { promptTokens, completionTokens },
+      compactEvents,
+      durationMs: Date.now() - startedAt,
+    }
   }
 
   /** 优雅关闭 — 中断所有活跃会话，等待后台任务完成 */
