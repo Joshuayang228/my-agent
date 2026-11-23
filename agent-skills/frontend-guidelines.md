@@ -249,6 +249,19 @@ Main Area:
 
 - 必须流式；`sendMessage` 的 `finally` 兜底 `setIsStreaming(false)`。
 
+## 双层侧栏、图标注册单一事实源与 Chat 首屏/输入卡字号基线
+
+- **人物世界 8 大切面图标唯一事实源（`src/shared/icon-registry.ts`）**：
+  - `moments`（`companion.sparkles`）、`journal`（`companion.book`）、`keepsakes`（`companion.heart`）、`wardrobe`（`companion.palette`）、`culture`（`companion.flower`）、`home`（`companion.coffee`）、`cast`（`companion.people`）、`footprints`（`companion.compass`）统一在 `WORLD_SURFACE_ICON_KEYS` 登记并通过 `getWorldSurfaceIcon(surfaceId)` 暴露；
+  - `NavigationRail.tsx` 与 `WorldHub.tsx` 必须同源消费 `getWorldSurfaceIcon`，严禁在页面中各自手写挑选不一致或繁琐写实的 `lucide-react` 图标。
+- **双层左侧导航基线（`NavigationRail` + `PrimarySidebar`）**：
+  - 最左导轨宽 `54px`，顶部固定 `36×36`（`size="md"`）伙伴头像切换入口；导轨图标统一 `20px`（`strokeWidth={1.65~1.7}`）、圆角热区 `38×38`（`rounded-[11px]`）、纵向间距 `gap-2`（8px）；
+  - 严禁在按钮上写内联 `style={{ background: 'transparent' }}` 压死 hover 状态；悬停必须有即时底色反馈与 0 延迟右侧胶囊 `RailTooltip`；
+  - 旁侧会话栏保留柔和浅绿胶囊「+ 新对话」大按钮 + 右侧搜索图标，角色名右侧不加误导性下拉小箭头 `▾`，会话列表采用单行常规字重（`font-normal`，选中态 `font-medium`）与 `py-2 mb-1` 舒展行距。
+- **Chat 输入卡片（`ChatComposer`）与空态欢迎屏（`ChatWelcome`）收口基线**：
+  - **禁止框外“双下巴”**：附件、生图、审批模式（`ChatApprovalControl`，自动审批固定使用 `ShieldCheck` 而非刷新箭头 `RefreshCw`）、项目工作区选择（`projectControl`）与右侧模型标签统一收纳在 `ChatComposer` **卡片内部底栏**，严禁在输入框外部下方再悬挂第二排项目/Debug 工具行；
+  - **字号梯度固定**：欢迎屏主标题 `2rem`、角色第一人称台词 `15px`、上方 3 颗纯对话提示词胶囊 `12.5px`、输入框正文 `!text-[14px] leading-relaxed`、输入框底栏辅助控件 `12px`、下方单条最新动态轻卡正文 `13.5px`（时间栏 `11.5px`，不加 AI 星星装饰标，操作按钮收为纯图标）。
+
 ## 滚动条
 
 - **嵌套长文块 / Debug 侧栏列表**：用 `scrollbar-hover`——**槽位常占位**（防文字被挤），拇指默认透明，仅悬停 / `focus-within` 显色。

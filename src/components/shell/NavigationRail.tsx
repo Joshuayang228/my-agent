@@ -10,27 +10,20 @@
  * 关键约束：外层禁止 overflow-hidden 以免裁切自定义浮层与悬浮提示；快捷入口清单持久化于 localStorage。
  */
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { createElement, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
-  Aperture,
-  BookOpen,
   Check,
-  FileText,
-  Gift,
-  Home,
   Layers,
-  MapPin,
   MessageCircle,
   MoreHorizontal,
   Settings,
-  Shirt,
   Sparkles,
   Terminal,
-  Users,
 } from 'lucide-react'
 import type { ShellView } from './SecondaryNav'
 import { isWorldView, type WorldTab } from './WorldHub'
 import { CompanionAvatar } from '../CompanionAvatar'
+import { getWorldSurfaceIcon } from '../../shared/icon-registry'
 
 export interface RailWorldShortcutOption {
   id: WorldTab
@@ -39,14 +32,14 @@ export interface RailWorldShortcutOption {
 }
 
 export const RAIL_WORLD_SHORTCUT_OPTIONS: readonly RailWorldShortcutOption[] = [
-  { id: 'moments', label: '朋友圈', icon: <Aperture size={20} strokeWidth={1.7} /> },
-  { id: 'journal', label: '日记', icon: <FileText size={20} strokeWidth={1.7} /> },
-  { id: 'keepsakes', label: '礼物', icon: <Gift size={20} strokeWidth={1.7} /> },
-  { id: 'wardrobe', label: '衣柜', icon: <Shirt size={20} strokeWidth={1.7} /> },
-  { id: 'culture', label: '文化角', icon: <BookOpen size={20} strokeWidth={1.7} /> },
-  { id: 'home', label: '家居', icon: <Home size={20} strokeWidth={1.7} /> },
-  { id: 'cast', label: '通讯录', icon: <Users size={20} strokeWidth={1.7} /> },
-  { id: 'footprints', label: '足迹', icon: <MapPin size={20} strokeWidth={1.7} /> },
+  { id: 'moments', label: '朋友圈', icon: createElement(getWorldSurfaceIcon('moments'), { size: 20, strokeWidth: 1.65 }) },
+  { id: 'journal', label: '日记', icon: createElement(getWorldSurfaceIcon('journal'), { size: 20, strokeWidth: 1.65 }) },
+  { id: 'keepsakes', label: '礼物', icon: createElement(getWorldSurfaceIcon('keepsakes'), { size: 20, strokeWidth: 1.65 }) },
+  { id: 'wardrobe', label: '衣柜', icon: createElement(getWorldSurfaceIcon('wardrobe'), { size: 20, strokeWidth: 1.65 }) },
+  { id: 'culture', label: '文化角', icon: createElement(getWorldSurfaceIcon('culture'), { size: 20, strokeWidth: 1.65 }) },
+  { id: 'home', label: '家居', icon: createElement(getWorldSurfaceIcon('home'), { size: 20, strokeWidth: 1.65 }) },
+  { id: 'cast', label: '通讯录', icon: createElement(getWorldSurfaceIcon('cast'), { size: 20, strokeWidth: 1.65 }) },
+  { id: 'footprints', label: '足迹', icon: createElement(getWorldSurfaceIcon('footprints'), { size: 20, strokeWidth: 1.65 }) },
 ]
 
 export const DEFAULT_RAIL_WORLD_SHORTCUTS: readonly WorldTab[] = ['moments', 'journal', 'keepsakes']
@@ -320,14 +313,16 @@ export function NavigationRail({
         )}
         {developerMode && (
           <>
-            <RailIconBtn
-              active={activeView === 'debug'}
-              label="Debug"
-              onClick={() => onNavigate(activeView === 'debug' ? 'chat' : 'debug')}
-              testId="rail-nav-debug"
-            >
-              <Terminal size={20} strokeWidth={1.7} />
-            </RailIconBtn>
+            <div data-testid="rail-nav-debug">
+              <RailIconBtn
+                active={activeView === 'debug'}
+                label="Debug"
+                onClick={() => onNavigate(activeView === 'debug' ? 'chat' : 'debug')}
+                testId="open-global-debug"
+              >
+                <Terminal size={20} strokeWidth={1.7} />
+              </RailIconBtn>
+            </div>
             <RailIconBtn
               active={activeView === 'playground'}
               label="Playground"

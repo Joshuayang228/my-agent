@@ -443,5 +443,23 @@ describe('Foundation 布局与控件复用自动门禁', () => {
       expect(css).toContain('scrollbar-gutter: stable')
       expect(css).not.toContain('scrollbar-width: thin')
     })
+
+    it('人物世界切面图标统一由 icon-registry 单一事实源派生，且输入卡与审批控件维持字号和图标基线', () => {
+      const railSource = readFileSync(resolve('src/components/shell/NavigationRail.tsx'), 'utf8')
+      const hubSource = readFileSync(resolve('src/components/shell/WorldHub.tsx'), 'utf8')
+      expect(railSource).toContain('getWorldSurfaceIcon')
+      expect(hubSource).toContain('getWorldSurfaceIcon')
+
+      const approvalSource = readFileSync(resolve('src/components/chat/ChatApprovalControl.tsx'), 'utf8')
+      expect(approvalSource).toContain('ShieldCheck')
+      expect(approvalSource).not.toContain('RefreshCw')
+
+      const composerSource = readFileSync(resolve('src/components/chat/ChatComposer.tsx'), 'utf8')
+      expect(composerSource).toContain('!text-[14px]')
+      expect(composerSource).toContain('projectControl')
+
+      const welcomeSource = readFileSync(resolve('src/components/chat/ChatWelcome.tsx'), 'utf8')
+      expect(welcomeSource).not.toContain('Sparkles')
+    })
   })
 })

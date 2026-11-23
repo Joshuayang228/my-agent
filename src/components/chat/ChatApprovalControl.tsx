@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { Check, ChevronDown, RefreshCw, Shield, Zap } from 'lucide-react'
+import { Check, ChevronDown, Shield, ShieldCheck, Zap } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 
 export type ChatApprovalMode = 'confirm-all' | 'auto' | 'full-access'
 const options = [
   { mode: 'confirm-all', Icon: Shield, shortLabel: '确认模式', label: '请求批准', description: '破坏性操作始终询问；仅允许工作区内写入' },
-  { mode: 'auto', Icon: RefreshCw, shortLabel: '自动审批', label: '替我审批', description: '仅对风险操作请求批准；仅允许工作区内写入' },
+  { mode: 'auto', Icon: ShieldCheck, shortLabel: '自动审批', label: '替我审批', description: '仅对风险操作请求批准；仅允许工作区内写入' },
   { mode: 'full-access', Icon: Zap, shortLabel: '完全访问', label: '完全访问权限', description: '跳过确认，并放开文件路径沙箱' },
 ] as const
 
@@ -66,9 +66,9 @@ export function ChatApprovalControl({ value, onChange, disabled = false }: {
     onKeyDown={event => { if (event.key === 'Escape' && open) { event.stopPropagation(); close(true) } }}>
     <ActionButton ref={trigger} disabled={unavailable} aria-label={current.shortLabel} aria-haspopup="menu" aria-expanded={open}
       title={unavailable ? '审批设置在此样张中不可修改' : current.shortLabel}
-      className="h-7 w-28 gap-1 !border-0 !px-2 !text-[10.5px] hover:bg-[var(--hover-overlay)]"
+      className="h-7 w-auto gap-1.5 !border-0 !px-2 !text-[12px] hover:bg-[var(--hover-overlay)]"
       onClick={() => { visible.current = !open; setOpen(!open) }}>
-      <current.Icon size={12} aria-hidden="true" /><span>{current.shortLabel}</span><ChevronDown size={9} aria-hidden="true" />
+      <current.Icon size={13} aria-hidden="true" /><span>{current.shortLabel}</span><ChevronDown size={10} aria-hidden="true" />
     </ActionButton>
     {open && <div role="menu" aria-label="审批方式" aria-busy={pending}
       className="absolute bottom-full left-0 z-50 mb-1 w-56 max-w-[calc(100vw-3rem)] rounded-lg border p-1.5 shadow-lg"

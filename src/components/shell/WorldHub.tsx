@@ -2,10 +2,11 @@
  * 人物世界口袋 — 对齐 Alice `/moments`：一页多 tab，侧栏只留一个入口。
  */
 
-import { useState, useEffect, type ReactNode } from 'react'
+import { useState, useEffect, createElement, type ReactNode } from 'react'
 import { TabStrip } from '../foundation/TabStrip'
 import { IconButton } from '../foundation/IconButton'
-import { Newspaper, Shirt, Users, BookOpen, Home, MapPin, RefreshCw, X, FileText, Gift } from 'lucide-react'
+import { RefreshCw, X } from 'lucide-react'
+import { getWorldSurfaceIcon } from '../../shared/icon-registry'
 import { WorldJournalPanel } from '../world/WorldJournalPanel'
 import { WorldKeepsakesPanel } from '../world/WorldKeepsakesPanel'
 import { MomentsPanel, type MomentItem, type MomentsPreviewData } from '../MomentsPanel'
@@ -23,14 +24,14 @@ export type WorldTab = 'moments' | 'journal' | 'keepsakes' | 'assets' | 'cast' |
 export type WorldTabDefinition = { id: WorldTab; label: string; icon: ReactNode }
 
 const WORLD_TABS: WorldTabDefinition[] = [
-  { id: 'moments', label: '朋友圈', icon: <Newspaper size={14} strokeWidth={1.5} /> },
-  { id: 'journal', label: '日记', icon: <FileText size={14} strokeWidth={1.5} /> },
-  { id: 'keepsakes', label: '礼物', icon: <Gift size={14} strokeWidth={1.5} /> },
-  { id: 'wardrobe', label: '衣柜', icon: <Shirt size={14} strokeWidth={1.5} /> },
-  { id: 'culture', label: '文化角', icon: <BookOpen size={14} strokeWidth={1.5} /> },
-  { id: 'home', label: '家居', icon: <Home size={14} strokeWidth={1.5} /> },
-  { id: 'cast', label: '通讯录', icon: <Users size={14} strokeWidth={1.5} /> },
-  { id: 'footprints', label: '足迹', icon: <MapPin size={14} strokeWidth={1.5} /> },
+  { id: 'moments', label: '朋友圈', icon: createElement(getWorldSurfaceIcon('moments'), { size: 15, strokeWidth: 1.65 }) },
+  { id: 'journal', label: '日记', icon: createElement(getWorldSurfaceIcon('journal'), { size: 15, strokeWidth: 1.65 }) },
+  { id: 'keepsakes', label: '礼物', icon: createElement(getWorldSurfaceIcon('keepsakes'), { size: 15, strokeWidth: 1.65 }) },
+  { id: 'wardrobe', label: '衣柜', icon: createElement(getWorldSurfaceIcon('wardrobe'), { size: 15, strokeWidth: 1.65 }) },
+  { id: 'culture', label: '文化角', icon: createElement(getWorldSurfaceIcon('culture'), { size: 15, strokeWidth: 1.65 }) },
+  { id: 'home', label: '家居', icon: createElement(getWorldSurfaceIcon('home'), { size: 15, strokeWidth: 1.65 }) },
+  { id: 'cast', label: '通讯录', icon: createElement(getWorldSurfaceIcon('cast'), { size: 15, strokeWidth: 1.65 }) },
+  { id: 'footprints', label: '足迹', icon: createElement(getWorldSurfaceIcon('footprints'), { size: 15, strokeWidth: 1.65 }) },
 ]
 
 export function isWorldView(view: ShellView): boolean {

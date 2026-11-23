@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ArrowUpRight, MessageSquareShare, Sparkles } from 'lucide-react'
+import { ArrowUpRight, MessageSquareShare } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 
 export interface ChatWelcomeLatestMoment {
@@ -92,7 +92,7 @@ export function ChatWelcome({
             key={label}
             onClick={onClick}
             data-testid={actionTestId}
-            className="max-w-full !rounded-full !px-3.5 py-1.5 !text-[12px] backdrop-blur-md transition hover:!border-[var(--border-color)] hover:!text-[var(--text-primary)]"
+            className="max-w-full !rounded-full !px-3.5 py-1.5 !text-[12.5px] backdrop-blur-md transition hover:!border-[var(--border-color)] hover:!text-[var(--text-primary)]"
             style={{
               borderColor: 'var(--border-subtle)',
               color: 'var(--text-secondary)',
@@ -112,7 +112,7 @@ export function ChatWelcome({
 
       {latestMoment ? (
         <section
-          className="mt-5 w-full max-w-xl rounded-[var(--radius-card)] border px-3.5 py-3 text-left shadow-sm backdrop-blur-md transition"
+          className="mt-5 w-full max-w-xl rounded-[var(--radius-card)] border px-4 py-3 text-left shadow-sm backdrop-blur-md transition"
           style={{
             borderColor: 'var(--border-subtle)',
             background: 'color-mix(in srgb, var(--card-bg) 78%, transparent)',
@@ -145,8 +145,7 @@ export function ChatWelcome({
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                  <Sparkles size={12} style={{ color: 'var(--accent-fg)' }} aria-hidden="true" />
+                <div className="flex min-w-0 items-center gap-1.5 text-[11.5px]" style={{ color: 'var(--text-muted)' }}>
                   <span className="font-medium" style={{ color: 'var(--text-secondary)' }}>最新动态</span>
                   <span>·</span>
                   <span>{formatRelativeMomentTime(latestMoment.publishedAt)}</span>
@@ -177,7 +176,7 @@ export function ChatWelcome({
                 </div>
               </div>
               <p
-                className="mt-1 line-clamp-2 break-words text-[13px] leading-relaxed"
+                className="mt-1 line-clamp-2 break-words text-[13.5px] leading-relaxed"
                 style={{ color: 'var(--text-primary)' }}
               >
                 {latestMoment.text}

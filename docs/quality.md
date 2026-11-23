@@ -1,5 +1,7 @@
 # 质量总控
 
+人物世界图标单一事实源与输入卡字号/无双下巴静态门禁（2026-11-23）：`foundation-enforcement-gate.test.ts` 扩展至 15 项门禁，强制 `NavigationRail.tsx` 与 `WorldHub.tsx` 共用 `getWorldSurfaceIcon`、`ChatApprovalControl.tsx` 使用 `ShieldCheck`、`ChatComposer.tsx` 维持 `!text-[14px]` 与 `projectControl` 框内收口、`ChatWelcome.tsx` 动态卡禁用 `Sparkles`；`icon-registry.test.ts`、`ui-component-registry.test.ts` 与 `tsc --noEmit` 全部通过。
+
 左导轨 20px 图标与快捷入口去重回归（2026-11-23）：`navigation-rail.test.ts` 同步校验有快捷入口时不重复渲染 `rail-nav-world`、清空快捷入口时兜底渲染 `rail-nav-world`；`companion-identity.test.ts` 同步更新路飞 `firstContact` 台词断言；定向单测与 `tsc --noEmit` 全绿。
 
 右侧工作区富文档渲染与批注回传 Batch A P0 单元测试（2026-11-23）：`__tests__/unit/workspace-rich-preview.test.ts` 扩展至 6 项，覆盖 Excel 列字母换算/反向矩形选区与 Markdown 切片、HTML 拾取脚本按需注入与随机 `channelToken` 防伪造拦截、Word HTML 白名单清洗、PDF/PPT 按页批注及多条批注草稿篮编号汇总输出；`typecheck`、`assets:check`（120/120）与 `vite build` 全绿通过。

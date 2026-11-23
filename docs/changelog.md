@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 统一人物世界 8 大切面图标至 `icon-registry` 单一事实源、消除输入框“双下巴”与外露 Debug 并固化字号基线：`src/shared/icon-registry.ts` 新增 `WORLD_SURFACE_ICON_KEYS` 与 `getWorldSurfaceIcon`（朋友圈 `Sparkles`、日记 `BookOpen`、礼物 `Heart`、衣柜 `Palette`、文化角 `Flower2`、家居 `Coffee`、通讯录 `Users`、足迹 `Compass`），`NavigationRail.tsx` 与 `WorldHub.tsx` 同源消费；`ChatComposer.tsx` 与 `App.tsx` 将项目工作区选择（`📁 Desktop ▾`）收进输入卡片内部底栏（`projectControl`）并移除框外下方悬挂的工具行与重复 `Debug` 文字链接，输入正文提至 `14px`、底栏控件统一 `12px`；`ChatApprovalControl.tsx` 将自动审批图标由刷新箭头 `RefreshCw` 换为 `ShieldCheck`；`ChatWelcome.tsx` 移除最新动态卡左上角的 `Sparkles` 图标；同步固化至 `agent-skills/frontend-guidelines.md` 与 `foundation-enforcement-gate.test.ts`。
+
 2026-11-23 恢复侧栏「+ 新对话」浅绿胶囊按钮并修复 hover、移除角色名误导下拉箭头与补齐路飞台词「是」字：`PrimarySidebar.tsx` 恢复耐看的柔和浅绿胶囊「+ 新对话」大按钮与右侧并排 `🔍` 搜索按钮、修复内联 `background: 'transparent'` 压死 hover 的问题，并去掉「路飞」右侧像下拉菜单的 `▾` 箭头；`roles/luffy/manifest.json` 与 `App.tsx` 将招牌台词修正为「我是要成为海贼王的男人！」。
 
 2026-11-23 左导轨全员图标放大至 `20px`、替换底部碎图标并消除冗余「人物世界」入口：`NavigationRail.tsx` 将全轨图标统一放大至 `20px`（`38×38` 热区、导轨 `54px`），底部 `Debug` / `Playground` / `设置` 统一换为 `20px` 极简几何图标（`Terminal` / `Layers` / `Settings`），并在已有快捷入口时隐藏重复的「人物世界」图标（仅在快捷入口全空时兜底显示）。

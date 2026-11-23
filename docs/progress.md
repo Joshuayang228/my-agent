@@ -1,5 +1,7 @@
 # 项目进度
 
+统一人物世界图标注册事实源、收口输入卡底栏与固化字号基线（2026-11-23）：`icon-registry.ts` 建立 8 大生活切面几何图标单一事实源供左导轨与 `WorldHub` 同源消费；`ChatComposer.tsx` 收纳项目工作区选择器入框、消除框外“双下巴”与重复 `Debug` 链接并将正文提至 `14px`、工具栏统一 `12px`；`ChatApprovalControl.tsx` 自动审批改用 `ShieldCheck`，`ChatWelcome.tsx` 最新动态卡去除 AI 星星图标；全套规范写入 `frontend-guidelines.md` 与 `foundation-enforcement-gate.test.ts` 门禁。
+
 恢复侧栏「+ 新对话」胶囊按钮与修复 hover、移除角色名下拉箭头及修正路飞台词（2026-11-23）：`PrimarySidebar.tsx` 恢复浅绿胶囊「+ 新对话」与右侧搜索按钮并修复 hover，移除角色名旁误导性 `▾` 箭头；路飞 `manifest.json` 招牌台词修正为「我是要成为海贼王的男人！」。
 
 左导轨 20px 图标体系统一与去重收口（2026-11-23）：`NavigationRail.tsx` 全员放大至 `20px`（`38×38` 热区），底部 `Debug` / `Playground` 换为简洁几何图标 `Terminal` / `Layers`，并去除与「朋友圈」重复的常驻「人物世界」图标（仅在 0 快捷项时兜底）。

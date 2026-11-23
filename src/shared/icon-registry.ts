@@ -39,6 +39,7 @@ import {
   Coffee,
   Code2,
   Command,
+  Compass,
   ContactRound,
   Copy,
   Database,
@@ -192,7 +193,14 @@ export const ADOPTED_ICON_SOURCES: Readonly<Record<string, readonly string[]>> =
   'developer.playground': ['src/components/shell/PrimarySidebar.tsx'],
   'developer.activity': ['src/components/DevPanel.tsx'],
   'developer.test': ['src/components/DevPanel.tsx'],
-  'companion.sparkles': ['src/components/shell/PrimarySidebar.tsx'],
+  'companion.sparkles': ['src/components/shell/PrimarySidebar.tsx', 'src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
+  'companion.book': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
+  'companion.heart': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
+  'companion.palette': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
+  'companion.flower': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
+  'companion.coffee': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
+  'companion.people': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
+  'companion.compass': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
   'assets.folder': ['src/App.tsx'],
   'assets.folder-open': ['src/App.tsx'],
   'assets.shield': ['src/App.tsx'],
@@ -302,6 +310,7 @@ export const ICON_ASSETS: readonly IconAssetDefinition[] = [
   icon('companion', 'companion.calendar', '日历', 'Calendar Days', '日期 / 事件', 'P0', CalendarDays),
   icon('companion', 'companion.clock', '时间', 'Clock', '时间 / 最近活动', 'P0', Clock3),
   icon('companion', 'companion.location', '地点', 'Map Pin', '位置 / 场景', 'P0', MapPin),
+  icon('companion', 'companion.compass', '足迹', 'Compass', '旅行足迹 / 探索航向', 'P0', Compass),
   icon('companion', 'companion.home', '住所', 'House', '住所 / 生活空间', 'P0', House),
   icon('companion', 'companion.book', '故事', 'Book Open', '人物故事 / 日记', 'P0', BookOpen),
   icon('companion', 'companion.coffee', '日常', 'Coffee', '日常活动', 'P1', Coffee),
@@ -366,4 +375,27 @@ export const ICON_REGISTRY = Object.fromEntries(
 
 export function getIconAsset(key: IconKey): IconAssetDefinition {
   return ICON_REGISTRY[key]
+}
+
+/**
+ * 人物世界 8 大切面的统一语义图标映射（单一事实源）。
+ *
+ * 背景：此前左导轨（NavigationRail）与人物世界顶部 Tab（WorldHub）各自手写引入具象物件图标，既不一致又显繁琐。
+ * 设计意图：全部收敛至 icon-registry 的极简几何语义图标，左导轨与 WorldHub 统一由此读取。
+ */
+export const WORLD_SURFACE_ICON_KEYS = {
+  moments: 'companion.sparkles',
+  journal: 'companion.book',
+  keepsakes: 'companion.heart',
+  wardrobe: 'companion.palette',
+  culture: 'companion.flower',
+  home: 'companion.coffee',
+  cast: 'companion.people',
+  footprints: 'companion.compass',
+} as const satisfies Record<string, IconKey>
+
+export type WorldSurfaceIconId = keyof typeof WORLD_SURFACE_ICON_KEYS
+
+export function getWorldSurfaceIcon(surfaceId: WorldSurfaceIconId): LucideIcon {
+  return ICON_REGISTRY[WORLD_SURFACE_ICON_KEYS[surfaceId]].icon
 }

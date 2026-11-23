@@ -1434,126 +1434,100 @@ function App() {
           await window.electronAPI.settings.set('executionMode', mode)
           setApprovalMode(mode)
         }} />}
-      />
-
-      {/* 输入框下方信息栏：项目选择器 + Token 用量 */}
-      <div className="mt-1.5 flex items-center justify-between px-1">
-        {/* 项目选择器 */}
-        <div className="relative">
-          <button
-            onClick={async (e) => {
-              e.stopPropagation()
-              if (!projectMenuOpen) {
-                const list = await window.electronAPI?.project.list()
-                if (list) setRecentProjects(list)
-              }
-              setProjectMenuOpen(!projectMenuOpen)
-            }}
-            className="flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] transition"
-            style={{ color: 'var(--text-secondary)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-          >
-            <Folder size={12} style={{ color: 'var(--text-muted)' }} />
-            <span>{currentProject?.name || '未选择项目'}</span>
-            <ChevronDown size={9} style={{ color: 'var(--text-muted)' }} />
-          </button>
-
-          {projectMenuOpen && (
-            <div
-              className="absolute bottom-full left-0 z-50 mb-1 w-56 rounded-lg border py-1 shadow-lg"
-              style={{ borderColor: 'var(--border-color)', background: 'var(--dropdown-bg)' }}
+        projectControl={(
+          <div className="relative">
+            <button
+              type="button"
+              onClick={async (e) => {
+                e.stopPropagation()
+                if (!projectMenuOpen) {
+                  const list = await window.electronAPI?.project.list()
+                  if (list) setRecentProjects(list)
+                }
+                setProjectMenuOpen(!projectMenuOpen)
+              }}
+              className="flex h-7 items-center gap-1.5 rounded-md px-2 text-[12px] transition hover:bg-[var(--hover-overlay)]"
+              style={{ color: 'var(--text-secondary)' }}
             >
-              <div className="px-3 pb-1.5 pt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>项目目录</div>
+              <Folder size={13} style={{ color: 'var(--text-muted)' }} />
+              <span>{currentProject?.name || '未选择项目'}</span>
+              <ChevronDown size={10} style={{ color: 'var(--text-muted)' }} />
+            </button>
 
-              {recentProjects.map((proj) => (
+            {projectMenuOpen && (
+              <div
+                className="absolute bottom-full left-0 z-50 mb-1 w-56 rounded-lg border py-1 shadow-lg"
+                style={{ borderColor: 'var(--border-color)', background: 'var(--dropdown-bg)' }}
+              >
+                <div className="px-3 pb-1.5 pt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>项目目录</div>
+
+                {recentProjects.map((proj) => (
+                  <button
+                    key={proj.path}
+                    type="button"
+                    onClick={async (e) => {
+                      e.stopPropagation()
+                      await window.electronAPI.project.set(proj.path)
+                      setCurrentProject(proj)
+                      setProjectMenuOpen(false)
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition"
+                    style={{
+                      color: currentProject?.path === proj.path ? 'var(--accent-fg)' : 'var(--text-secondary)',
+                      background: currentProject?.path === proj.path ? 'var(--accent-subtle)' : undefined,
+                    }}
+                    onMouseEnter={(e) => { if (currentProject?.path !== proj.path) (e.currentTarget as HTMLButtonElement).style.background = 'var(--hover-overlay)' }}
+                    onMouseLeave={(e) => { if (currentProject?.path !== proj.path) (e.currentTarget as HTMLButtonElement).style.background = '' }}
+                    title={proj.path}
+                  >
+                    <Folder size={12} />
+                    <span className="truncate">{proj.name}</span>
+                    {currentProject?.path === proj.path && <Check size={12} style={{ color: 'var(--accent-fg)' }} />}
+                  </button>
+                ))}
+
+                <div className="mx-2 my-1 h-px" style={{ background: 'var(--border-subtle)' }} />
+
                 <button
-                  key={proj.path}
+                  type="button"
                   onClick={async (e) => {
                     e.stopPropagation()
-                    await window.electronAPI.project.set(proj.path)
-                    setCurrentProject(proj)
+                    const result = await window.electronAPI.project.browse()
+                    if (result) {
+                      setCurrentProject(result)
+                      const list = await window.electronAPI.project.list()
+                      if (list) setRecentProjects(list)
+                    }
                     setProjectMenuOpen(false)
                   }}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition"
-                  style={{
-                    color: currentProject?.path === proj.path ? 'var(--accent-fg)' : 'var(--text-secondary)',
-                    background: currentProject?.path === proj.path ? 'var(--accent-subtle)' : undefined,
-                  }}
-                  onMouseEnter={(e) => { if (currentProject?.path !== proj.path) (e.currentTarget as HTMLButtonElement).style.background = 'var(--hover-overlay)' }}
-                  onMouseLeave={(e) => { if (currentProject?.path !== proj.path) (e.currentTarget as HTMLButtonElement).style.background = '' }}
-                  title={proj.path}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition hover:bg-[var(--hover-overlay)]"
+                  style={{ color: 'var(--text-secondary)' }}
                 >
-                  <Folder size={12} />
-                  <span className="truncate">{proj.name}</span>
-                  {currentProject?.path === proj.path && <Check size={12} style={{ color: 'var(--accent-fg)' }} />}
+                  <FolderOpen size={12} />
+                  <span>添加新项目</span>
                 </button>
-              ))}
 
-              <div className="mx-2 my-1 h-px" style={{ background: 'var(--border-subtle)' }} />
-
-              <button
-                onClick={async (e) => {
-                  e.stopPropagation()
-                  const result = await window.electronAPI.project.browse()
-                  if (result) {
-                    setCurrentProject(result)
-                    const list = await window.electronAPI.project.list()
-                    if (list) setRecentProjects(list)
-                  }
-                  setProjectMenuOpen(false)
-                }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition"
-                style={{ color: 'var(--text-secondary)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-              >
-                <FolderOpen size={12} />
-                <span>添加新项目</span>
-              </button>
-
-              <button
-                onClick={async (e) => {
-                  e.stopPropagation()
-                  await window.electronAPI.project.set(null)
-                  setCurrentProject(null)
-                  setRightDockCollapsed(false)
-                  setShowFileBrowser(false)
-                  setProjectMenuOpen(false)
-                }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition"
-                style={{ color: 'var(--text-muted)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-              >
-                <Ban size={12} />
-                <span>不使用项目</span>
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Token：产品态 hover 才见；对话 debug 时由上方 Overlay 常显 */}
-        {usage && (
-          <div className="flex gap-2 text-[10px] opacity-0 transition-opacity hover:opacity-100" style={{ color: 'var(--text-muted)' }}>
-            <span>↑{(usage.promptTokens / 1000).toFixed(1)}k</span>
-            <span>↓{(usage.completionTokens / 1000).toFixed(1)}k</span>
-            <span>Σ{((usage.promptTokens + usage.completionTokens) / 1000).toFixed(1)}k</span>
+                <button
+                  type="button"
+                  onClick={async (e) => {
+                    e.stopPropagation()
+                    await window.electronAPI.project.set(null)
+                    setCurrentProject(null)
+                    setRightDockCollapsed(false)
+                    setShowFileBrowser(false)
+                    setProjectMenuOpen(false)
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition hover:bg-[var(--hover-overlay)]"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  <Ban size={12} />
+                  <span>不使用项目</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
-        {developerMode && (
-          <button
-            type="button"
-            onClick={() => setActiveView('debug')}
-            className="rounded px-1.5 py-0.5 text-[10px] transition"
-            style={{ color: 'var(--text-muted)' }}
-            title="打开全局 Debug"
-            data-testid="open-global-debug"
-          >
-            Debug
-          </button>
-        )}
-      </div>
+      />
     </>
   )
 
