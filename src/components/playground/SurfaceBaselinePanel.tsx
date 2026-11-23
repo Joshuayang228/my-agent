@@ -622,6 +622,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                       }}
                       onGreet={() => setJourney('conversation')}
                       onPlanDay={() => setJourney('conversation')}
+                      onAskRecent={() => setJourney('conversation')}
                       onOpenWorld={() => onNavigate?.('world')}
                       actionTestId="chat-journey-quick-action"
                     />

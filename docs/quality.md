@@ -1,5 +1,7 @@
 # 质量总控
 
+双层左导轨与空态首屏有图动态卡回归（2026-11-23）：新增 `navigation-rail.test.ts`（2 项）校验顶部伙伴头像、自定义快捷入口、未读角标、3 颗纯提示词胶囊、纯图标动态操作与有图缩略图 `+N` 角标；全套定向单测与 `tsc --noEmit` 全部通过。
+
 Chat 空态首屏与角色第一人称台词回归（2026-11-23）：`companion-presence.test.ts` 新增 `quote` 优先副标题断言；`ui-component-registry.test.ts`（47 项）、`foundation-enforcement-gate.test.ts`（14 项）与 `tsc --noEmit` 全绿。
 
 角色视觉资产 `process.chdir` 寻址回归（2026-11-23）：`gifting.test.ts` 扩展至 7 项，新增 `process.chdir(os.tmpdir())` 回归校验工作区切换后 `resolveRoleAssetFilePath` 仍能正确定位礼物插画与配角头像 PNG。

@@ -55,6 +55,9 @@ import {
 } from './components/chat/callbacks'
 import {
   PrimarySidebar,
+  NavigationRail,
+  loadRailWorldShortcuts,
+  saveRailWorldShortcuts,
   WorldHub,
   isWorldView,
   worldTabFromView,
@@ -178,7 +181,14 @@ function App() {
   const [companionStatusSummary, setCompanionStatusSummary] = useState<string | undefined>()
   const [companionStatusMetrics, setCompanionStatusMetrics] = useState<{ mood: number; energy: number; socialNeed: number; relationshipSignal: number | null; relationshipPhase: string | null } | undefined>()
   const [companionFirstContact, setCompanionFirstContact] = useState<{ openingLine: string; quote?: string } | undefined>()
-  const [latestWelcomeMoment, setLatestWelcomeMoment] = useState<{ id: string; text: string; publishedAt: number } | null>(null)
+  const [latestWelcomeMoment, setLatestWelcomeMoment] = useState<{
+    id: string
+    text: string
+    publishedAt: number
+    thumbSrc?: string | null
+    imageCount?: number
+  } | null>(null)
+  const [railWorldShortcuts, setRailWorldShortcuts] = useState<WorldTab[]>(() => loadRailWorldShortcuts())
   const [showFirstContact, setShowFirstContact] = useState(false)
   const [activeRoleId, setActiveRoleId] = useState('luffy')
 
@@ -188,10 +198,33 @@ function App() {
     const api = window.electronAPI?.companion
     if (!api?.getMoments) return
     let cancelled = false
-    void api.getMoments().then((res) => {
+    void api.getMoments().then(async (res) => {
       if (cancelled || !res || res.roleId !== activeRoleId) return
       const first = res.items.find((item) => item.roleId === activeRoleId && item.text.trim().length > 0)
-      setLatestWelcomeMoment(first ? { id: first.id, text: first.text.trim(), publishedAt: first.publishedAt } : null)
+      if (!first) {
+        setLatestWelcomeMoment(null)
+        return
+      }
+      const imageIds = first.imageIds ?? []
+      let thumbSrc: string | null = null
+      if (imageIds.length > 0 && api.readMomentImage) {
+        try {
+          const imgRes = await api.readMomentImage(first.id, imageIds[0])
+          if (!cancelled && imgRes?.ok && imgRes.dataUrl) {
+            thumbSrc = imgRes.dataUrl
+          }
+        } catch {
+          // 缩略图读取失败时平滑降级为纯文本动态卡
+        }
+      }
+      if (cancelled) return
+      setLatestWelcomeMoment({
+        id: first.id,
+        text: first.text.trim(),
+        publishedAt: first.publishedAt,
+        thumbSrc,
+        imageCount: imageIds.length,
+      })
     }).catch(() => {
       // 首屏最新动态是轻增强，读取失败静默降级为不展示
     })
@@ -930,7 +963,8 @@ function App() {
 
   const sendMessage = async (overrideText?: string) => {
     const text = (overrideText ?? input).trim()
-    if ((!text && pendingImages.length === 0) || isStreaming) return
+    const hasAttachments = pendingImages.length > 0 || attachedFiles.length > 0 || mentionedFiles.length > 0
+    if ((!text && !hasAttachments) || isStreaming) return
 
     let sid = activeSessionId
     if (!sid) {
@@ -942,8 +976,8 @@ function App() {
 
     let fullContent = text
     if (attachedFiles.length > 0) {
-      const fileContext = attachedFiles.map(f => `\n\n--- 附件: ${f.name} ---\n${f.content}`).join('')
-      fullContent = text + fileContext
+      const fileContext = attachedFiles.map(f => `--- 附件: ${f.name} ---\n${f.content}`).join('\n\n')
+      fullContent = text ? `${text}\n\n${fileContext}` : fileContext
       setAttachedFiles([])
     }
 
@@ -1079,18 +1113,79 @@ function App() {
 
   const handleFileAttach = async (files: FileList | File[]) => {
     const newFiles: Array<{ name: string; content: string }> = []
+    const newImages: ImageAttachment[] = []
+    const imageExtRe = /\.(png|jpe?g|gif|webp|bmp)$/i
+    const docExtRe = /\.(pdf|docx|xlsx|xls)$/i
+
+    const readAsDataUrl = (file: File): Promise<string> => new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result || ''))
+      reader.onerror = () => reject(new Error('read failed'))
+      reader.readAsDataURL(file)
+    })
+
     for (const file of Array.from(files)) {
+      const isImage = file.type.startsWith('image/') || imageExtRe.test(file.name)
+      if (isImage) {
+        if (file.size > 5 * 1024 * 1024) {
+          toast(`图片 ${file.name} 超过 5MB 限制`, 'warning')
+          continue
+        }
+        try {
+          const dataUrl = await readAsDataUrl(file)
+          newImages.push({
+            dataUrl,
+            mimeType: file.type || 'image/png',
+            fileName: file.name || 'image.png',
+          })
+        } catch {
+          toast(`无法读取图片 ${file.name}`, 'error')
+        }
+        continue
+      }
+
+      if (docExtRe.test(file.name)) {
+        if (file.size > 10 * 1024 * 1024) {
+          toast(`文档 ${file.name} 超过 10MB 限制`, 'warning')
+          continue
+        }
+        try {
+          const dataUrl = await readAsDataUrl(file)
+          const base64 = dataUrl.includes(',') ? dataUrl.slice(dataUrl.indexOf(',') + 1) : ''
+          const parsed = await window.electronAPI.chat.parseAttachment({
+            fileName: file.name,
+            dataBase64: base64,
+          })
+          if (parsed.ok) {
+            newFiles.push({ name: file.name, content: parsed.text })
+            if (parsed.truncated) {
+              toast(`文档 ${file.name} 较长，已自动截取前 8 万字`, 'info')
+            }
+          } else {
+            toast(`${file.name}：${parsed.error}`, 'warning')
+          }
+        } catch {
+          toast(`无法解析文档 ${file.name}`, 'error')
+        }
+        continue
+      }
+
       if (file.size > 1024 * 1024) {
         toast(`文件 ${file.name} 超过 1MB 限制`, 'warning')
         continue
       }
       try {
         const text = await file.text()
+        if (text.includes('\u0000')) {
+          toast(`暂不支持直接读取二进制文件 ${file.name}`, 'warning')
+          continue
+        }
         newFiles.push({ name: file.name, content: text })
       } catch {
         toast(`无法读取 ${file.name}`, 'error')
       }
     }
+    if (newImages.length > 0) setPendingImages(prev => [...prev, ...newImages])
     if (newFiles.length > 0) setAttachedFiles(prev => [...prev, ...newFiles])
   }
 
@@ -1300,7 +1395,7 @@ function App() {
           placeholder: attachedFiles.length > 0 ? '描述附件内容或输入问题...' : `和${currentPersonaName || '伙伴'}说说…`,
         }}
         streaming={isStreaming}
-        sendDisabled={!input.trim() && pendingImages.length === 0}
+        sendDisabled={!input.trim() && pendingImages.length === 0 && attachedFiles.length === 0 && mentionedFiles.length === 0}
         modelLabel={currentModel || '未配置模型'}
         onSend={() => { void sendMessage() }}
         onStop={() => { void window.electronAPI.chat.abort(activeSessionId || undefined) }}
@@ -1473,22 +1568,58 @@ function App() {
        * 侧栏保留在 DOM 中，只动画外层轨道的宽度和位移。
        * 这样展开 / 收起不会靠卸载造成硬切，同时 ResizeHandle 会和侧栏一起进退。
        */}
+      {/* 最左 48px 极窄图标导轨：顶部伙伴头像 + 对话 + 用户可自定义生活快捷入口 + 底部系统/开发入口 */}
+      <NavigationRail
+        personaName={currentPersonaName}
+        avatarSrc={roleAvatars[activeRoleId] ?? companionAvatar}
+        activeView={activeView}
+        activeWorldTab={worldTab}
+        worldShortcuts={railWorldShortcuts}
+        onChangeWorldShortcuts={(next) => {
+          setRailWorldShortcuts(next)
+          saveRailWorldShortcuts(next)
+        }}
+        onOpenShelf={openRoleShelf}
+        onNavigate={(view) => {
+          if (isWorldView(view) || view === 'world') {
+            setWorldTab(worldTabFromView(view === 'world' ? 'world' : view))
+            setActiveView('world')
+            return
+          }
+          setActiveView(view)
+        }}
+        onOpenWorldTab={(tab) => {
+          setWorldTab(tab)
+          setActiveView('world')
+        }}
+        developerMode={developerMode}
+        unreadMomentsCount={unreadMomentsCount}
+        activeBgTaskCount={activeBgTaskCount}
+        frosted={chatBackdropEnabled && (activeView === 'chat' || isWorldView(activeView))}
+      />
+
+      {/* 旁侧会话抽屉：切进人物世界时自动收起留出宽屏画布，回对话自动恢复 */}
+      {(() => {
+        const showSessionSidebar = sidebarOpen && activeView === 'chat'
+        return (
       <div
         ref={sidebarShellRef}
         className="sidebar-transition relative z-[1] flex min-h-0 shrink-0 overflow-hidden"
         style={{
-          width: sidebarOpen ? sidebarWidth + 1 : 0,
-          opacity: sidebarOpen ? 1 : 0,
-          transform: sidebarOpen ? undefined : 'translateX(-12px)',
-          pointerEvents: sidebarOpen ? 'auto' : 'none',
+          width: showSessionSidebar ? sidebarWidth + 1 : 0,
+          opacity: showSessionSidebar ? 1 : 0,
+          transform: showSessionSidebar ? undefined : 'translateX(-12px)',
+          pointerEvents: showSessionSidebar ? 'auto' : 'none',
         }}
-        aria-hidden={!sidebarOpen}
-        inert={!sidebarOpen}
-        data-open={sidebarOpen}
+        aria-hidden={!showSessionSidebar}
+        inert={!showSessionSidebar}
+        data-open={showSessionSidebar}
         data-testid="sidebar-transition-shell"
       >
         <PrimarySidebar
           collapseControlPlacement="header"
+          showFooter={false}
+          showBrandAvatar={false}
           frosted={chatBackdropEnabled && (activeView === 'chat' || isWorldView(activeView))}
           developerMode={developerMode}
           personaName={currentPersonaName}
@@ -1542,6 +1673,8 @@ function App() {
           onDelta={(dx) => setSidebarWidth((w) => w + dx)}
         />
       </div>
+        )
+      })()}
 
       {/* 会话右键菜单 */}
       {contextMenu && (
@@ -1585,7 +1718,7 @@ function App() {
       {/* ── 主区域 ── */}
       <div className={`${activeView === 'chat' ? 'chat-shape-scope ' : ''}relative z-[1] flex min-w-0 flex-1 flex-col overflow-hidden`} style={activeView === 'chat' ? layoutProfileStyle('chat') : undefined}>
         {/* 收起侧栏后的展开按钮：常驻于主区域左上角，覆盖 Chat / 人物世界 / 记忆 / 技能全部视图 */}
-        {!sidebarOpen && sidebarReopenReady && (
+        {activeView === 'chat' && !sidebarOpen && sidebarReopenReady && (
           <IconButton
             ref={sidebarReopenRef}
             size={32}
@@ -1797,6 +1930,7 @@ function App() {
                   } : null}
                   onGreet={() => { void sendMessage('你好，介绍一下你自己') }}
                   onPlanDay={() => { void sendMessage('今天打算怎么过？陪我想想。') }}
+                  onAskRecent={() => { void sendMessage('最近在忙啥呢？跟我聊聊。') }}
                   onOpenWorld={() => { setWorldTab('moments'); setActiveView('world') }}
                 />
               </div>

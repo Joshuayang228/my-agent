@@ -67,6 +67,8 @@ export function PrimarySidebar({
   collapseControlPlacement = 'toolbar',
   unreadMomentsCount = 0,
   frosted = false,
+  showFooter = true,
+  showBrandAvatar = true,
 }: {
   personaName: string
   personaBlurb: string
@@ -108,6 +110,10 @@ export function PrimarySidebar({
   unreadMomentsCount?: number
   /** 仅在 Chat 存在氛围壁纸时启用高雾度毛玻璃透色，保持文字清晰同时与底图柔和呼应 */
   frosted?: boolean
+  /** 双层侧栏启用 NavigationRail 时隐藏重复底栏，把完整垂直空间留给会话列表 */
+  showFooter?: boolean
+  /** 双层侧栏顶部导轨已展示伙伴头像时，会话栏头部可隐藏重复头像 */
+  showBrandAvatar?: boolean
 }) {
   return (
     <aside
@@ -134,13 +140,15 @@ export function PrimarySidebar({
         onMouseLeave={(event) => { event.currentTarget.style.background = 'transparent' }}
         title="打开角色架"
       >
-        <CompanionAvatar
-          src={avatarSrc}
-          name={personaName}
-          role="assistant"
-          size="md"
-          className="shrink-0"
-        />
+        {showBrandAvatar && (
+          <CompanionAvatar
+            src={avatarSrc}
+            name={personaName}
+            role="assistant"
+            size="md"
+            className="shrink-0"
+          />
+        )}
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>
             {personaName || '伙伴'}
@@ -334,7 +342,8 @@ export function PrimarySidebar({
         )}
       </div>
 
-      {/* 底栏：开发入口固定在产品入口上方，两个区块共同占用稳定底部空间。 */}
+      {/* 底栏：双层侧栏启用 NavigationRail 时隐藏，保留默认渲染以兼容独立预览与测试。 */}
+      {showFooter && (
       <div className="border-t px-3 py-2.5" style={{ borderColor: 'var(--border-subtle)' }}>
         {activeBgTaskCount > 0 && (
           <div
@@ -400,6 +409,7 @@ export function PrimarySidebar({
           </div>
         </div>
       </div>
+      )}
     </aside>
   )
 }
