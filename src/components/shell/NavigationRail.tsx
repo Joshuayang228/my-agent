@@ -19,9 +19,9 @@ import {
   Library,
   MapPin,
   MessageSquare,
+  MoreHorizontal,
   Settings,
   Shirt,
-  SlidersHorizontal,
   Sparkles,
   Users,
 } from 'lucide-react'
@@ -87,6 +87,7 @@ export function NavigationRail({
   unreadMomentsCount = 0,
   activeBgTaskCount = 0,
   frosted = false,
+  showRightBorder = false,
 }: {
   personaName: string
   avatarSrc?: string | null
@@ -101,6 +102,8 @@ export function NavigationRail({
   unreadMomentsCount?: number
   activeBgTaskCount?: number
   frosted?: boolean
+  /** 旁侧会话栏展开时不画中间分割竖线，两栏同底色自然融为一体；仅在会话栏收起时显式画右边界 */
+  showRightBorder?: boolean
 }) {
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const popoverRef = useRef<HTMLDivElement>(null)
@@ -142,13 +145,13 @@ export function NavigationRail({
     <nav
       aria-label="主导航导轨"
       data-testid="navigation-rail"
-      className="relative z-30 flex w-12 shrink-0 flex-col items-center border-r py-3"
+      className={`relative z-30 flex w-12 shrink-0 flex-col items-center py-3 ${showRightBorder ? 'border-r' : ''}`}
       style={{
         background: frosted
-          ? 'color-mix(in srgb, var(--card-bg) 34%, transparent)'
-          : 'color-mix(in srgb, var(--bg-primary) 58%, var(--card-bg))',
-        backdropFilter: frosted ? 'blur(22px) saturate(1.45)' : undefined,
-        WebkitBackdropFilter: frosted ? 'blur(22px) saturate(1.45)' : undefined,
+          ? 'color-mix(in srgb, var(--card-bg) 22%, transparent)'
+          : 'color-mix(in srgb, var(--bg-primary) 42%, var(--card-bg))',
+        backdropFilter: frosted ? 'blur(20px) saturate(1.45)' : undefined,
+        WebkitBackdropFilter: frosted ? 'blur(20px) saturate(1.45)' : undefined,
         borderColor: 'var(--border-subtle)',
       }}
     >
@@ -159,7 +162,7 @@ export function NavigationRail({
         title={`${personaName || '伙伴'} · 切换伙伴`}
         aria-label={`切换伙伴（当前：${personaName || '伙伴'}）`}
         data-testid="rail-avatar-button"
-        className="flex h-9 w-9 items-center justify-center rounded-full transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
+        className="mb-3 flex h-8 w-8 items-center justify-center rounded-full transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
       >
         <CompanionAvatar
           src={avatarSrc}
@@ -169,22 +172,16 @@ export function NavigationRail({
         />
       </button>
 
-      <div className="my-2.5 h-px w-5" style={{ background: 'var(--border-subtle)' }} />
-
-      {/* 核心导航区：对话 + 用户自定义生活快捷入口 + 人物世界总入口 + 自定义开关 */}
-      <div className="flex flex-col items-center gap-1">
+      {/* 核心导航区：无碎横线分割，依靠均匀留白与中性选中块塑造 Codex 级极简秩序感 */}
+      <div className="flex flex-col items-center gap-1.5">
         <RailIconBtn
           active={activeView === 'chat'}
           label="对话"
           onClick={() => onNavigate('chat')}
           testId="rail-nav-chat"
         >
-          <MessageSquare size={17} strokeWidth={1.7} />
+          <MessageSquare size={17} strokeWidth={1.65} />
         </RailIconBtn>
-
-        {shortcutItems.length > 0 && (
-          <div className="my-1 h-px w-4" style={{ background: 'var(--border-subtle)' }} />
-        )}
 
         {shortcutItems.map((item) => {
           const active = inWorld && activeWorldTab === item.id
@@ -213,7 +210,7 @@ export function NavigationRail({
           <Compass size={17} strokeWidth={1.6} />
         </RailIconBtn>
 
-        {/* 自定义快捷入口浮层 */}
+        {/* 自定义快捷入口浮层（采用 Codex 同款克制 ··· 图标） */}
         <div className="relative" ref={popoverRef}>
           <IconButton
             size={32}
@@ -221,13 +218,13 @@ export function NavigationRail({
             title="自定义左侧快捷入口"
             data-testid="rail-customize-shortcuts"
             onClick={() => setCustomizeOpen((open) => !open)}
-            className="mt-0.5 rounded-[var(--radius-md)] transition hover:bg-[var(--sidebar-hover)]"
+            className="rounded-[var(--radius-md)] transition hover:bg-[var(--sidebar-hover)]"
             style={{
-              color: customizeOpen ? 'var(--accent-fg)' : 'var(--text-muted)',
-              background: customizeOpen ? 'var(--accent-subtle)' : 'transparent',
+              color: customizeOpen ? 'var(--text-primary)' : 'var(--text-muted)',
+              background: customizeOpen ? 'var(--sidebar-active)' : 'transparent',
             }}
           >
-            <SlidersHorizontal size={14} strokeWidth={1.7} />
+            <MoreHorizontal size={16} strokeWidth={1.7} />
           </IconButton>
 
           {customizeOpen && (
@@ -366,8 +363,8 @@ function RailIconBtn({
         onClick={onClick}
         className="rounded-[var(--radius-md)] transition hover:bg-[var(--sidebar-hover)]"
         style={{
-          color: active ? 'var(--accent-fg)' : 'var(--text-muted)',
-          background: active ? 'var(--accent-subtle)' : 'transparent',
+          color: active ? 'var(--text-primary)' : 'var(--text-muted)',
+          background: active ? 'var(--sidebar-active)' : 'transparent',
         }}
       >
         {children}

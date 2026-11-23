@@ -6,7 +6,7 @@
 import type { RefObject, ReactNode, MouseEvent, ChangeEvent, KeyboardEvent } from 'react'
 import {
   Plus, Search, X, Pin, Sparkles, Settings,
-  Bug, FlaskConical, PanelLeftClose,
+  Bug, FlaskConical, PanelLeftClose, ChevronDown,
 } from 'lucide-react'
 import type { ShellView } from './SecondaryNav'
 import { isWorldView } from './WorldHub'
@@ -129,12 +129,12 @@ export function PrimarySidebar({
       }}
       data-testid="primary-sidebar"
     >
-      <div className={collapseControlPlacement === 'header' ? 'flex shrink-0 items-center gap-2 px-3 pt-2' : 'contents'}>
-      {/* 品牌 / 主角 */}
+      <div className={collapseControlPlacement === 'header' ? 'flex shrink-0 items-center justify-between gap-1 px-2.5 pt-2.5' : 'contents'}>
+      {/* 品牌 / 主角：双栏模式下收敛为 Codex 同款单行「路飞 ▾」，右侧并排搜索与收起图标 */}
       <ActionButton
         onClick={onOpenShelf}
-        size="md"
-        className={`w-auto justify-start gap-3 border-0 px-2 py-2.5 text-left ${collapseControlPlacement === 'header' ? 'min-w-0 flex-1' : 'mx-3 mt-4'}`}
+        size="sm"
+        className={`w-auto justify-start gap-2 border-0 px-2 py-1.5 text-left ${collapseControlPlacement === 'header' ? 'min-w-0' : 'mx-3 mt-4'}`}
         style={{ background: 'transparent' }}
         onMouseEnter={(event) => { event.currentTarget.style.background = 'var(--sidebar-hover)' }}
         onMouseLeave={(event) => { event.currentTarget.style.background = 'transparent' }}
@@ -150,33 +150,56 @@ export function PrimarySidebar({
           />
         )}
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-            {personaName || '伙伴'}
+          <span className="flex items-center gap-1 truncate text-[14px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+            <span className="truncate">{personaName || '伙伴'}</span>
+            <ChevronDown size={13} strokeWidth={1.8} className="shrink-0" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
           </span>
-          <span className="mt-0.5 block truncate text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            {personaBlurb || '越探索，越着迷。'}
-          </span>
+          {showBrandAvatar && personaBlurb && (
+            <span className="mt-0.5 block truncate text-[11px] font-normal" style={{ color: 'var(--text-muted)' }}>
+              {personaBlurb}
+            </span>
+          )}
         </span>
       </ActionButton>
       {collapseControlPlacement === 'header' && (
-        <IconButton size={32} onClick={onCollapse} label="收起侧栏" title="收起侧栏 Ctrl+B"
-          className="hover:bg-[var(--sidebar-hover)]" style={{ color: 'var(--text-muted)' }}>
-          <PanelLeftClose size={16} />
-        </IconButton>
+        <div className="flex shrink-0 items-center gap-0.5">
+          {!sidebarSearchOpen && (
+            <IconButton
+              size={28}
+              onClick={onToggleSearch}
+              className="rounded-[var(--radius-md)] transition hover:bg-[var(--sidebar-hover)]"
+              style={{ color: 'var(--text-muted)' }}
+              label="搜索会话"
+              title="搜索会话"
+            >
+              <Search size={14} strokeWidth={1.7} />
+            </IconButton>
+          )}
+          <IconButton
+            size={28}
+            onClick={onCollapse}
+            label="收起侧栏"
+            title="收起侧栏 Ctrl+B"
+            className="rounded-[var(--radius-md)] transition hover:bg-[var(--sidebar-hover)]"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            <PanelLeftClose size={14} strokeWidth={1.7} />
+          </IconButton>
+        </div>
       )}
       </div>
 
-      {/* 新对话 / 搜索：搜索在同一行展开，避免把会话列表再向下挤一层。 */}
-      <div className="mt-3 flex items-center gap-1.5 px-3" data-testid="sidebar-toolbar">
+      {/* 新对话 / 搜索：采用 Codex 同款无底色左对齐轻量菜单行，告别沉重实心大药丸 */}
+      <div className="mt-1.5 flex items-center gap-1 px-2" data-testid="sidebar-toolbar">
         {sidebarSearchOpen ? (
           <div
-            className="flex h-10 min-w-0 flex-1 self-start items-center gap-2 rounded-[var(--radius-lg)] border px-2.5 focus-within:outline-1 focus-within:outline-[var(--accent)]"
+            className="flex h-8 min-w-0 flex-1 self-start items-center gap-2 rounded-[var(--radius-md)] border px-2.5 focus-within:outline-1 focus-within:outline-[var(--accent)]"
             style={{
               background: 'var(--input-bg)',
               borderColor: 'var(--input-border)',
             }}
           >
-            <Search size={15} style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
+            <Search size={14} style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
             <TextField
               appearance="embedded"
               ref={sessionFilterRef}
@@ -197,53 +220,56 @@ export function PrimarySidebar({
               style={{ color: 'var(--text-muted)' }}
               label="关闭搜索"
             >
-              <X size={14} />
+              <X size={13} />
             </IconButton>
           </div>
         ) : (
           <ActionButton
-            size="md"
+            variant="plain"
+            size="sm"
             onClick={onCreateSession}
-            className="h-10 min-w-0 flex-1 gap-1.5 rounded-[var(--radius-lg)] text-[13px] font-medium"
+            className="h-8 min-w-0 flex-1 !justify-start gap-2 rounded-[var(--radius-md)] border-0 !px-2.5 text-[13px] !font-normal transition hover:bg-[var(--sidebar-hover)]"
             style={{
-              background: 'var(--accent-subtle)',
-              color: 'var(--accent-fg)',
+              background: 'transparent',
+              color: 'var(--text-primary)',
             }}
             title="新对话 Ctrl+N"
           >
-            <Plus size={16} />
-            新对话
+            <Plus size={15} strokeWidth={1.7} style={{ color: 'var(--text-secondary)' }} />
+            <span>新对话</span>
           </ActionButton>
         )}
-        {!sidebarSearchOpen && (
+        {collapseControlPlacement === 'toolbar' && !sidebarSearchOpen && (
           <IconButton
-            size={40}
+            size={32}
             onClick={onToggleSearch}
-            className="rounded-[var(--radius-lg)] transition hover:bg-[var(--sidebar-hover)]"
+            className="rounded-[var(--radius-md)] transition hover:bg-[var(--sidebar-hover)]"
             style={{ color: 'var(--text-muted)' }}
             label="搜索会话"
           >
-            <Search size={16} />
+            <Search size={15} />
           </IconButton>
         )}
-        {collapseControlPlacement === 'toolbar' && <IconButton
-          size={40}
-          onClick={onCollapse}
-          className="rounded-[var(--radius-lg)] transition hover:bg-[var(--sidebar-hover)]"
-          style={{ color: 'var(--text-muted)' }}
-          label="收起侧栏"
-          title="收起侧栏 Ctrl+B"
-        >
-          <PanelLeftClose size={16} />
-        </IconButton>}
+        {collapseControlPlacement === 'toolbar' && (
+          <IconButton
+            size={32}
+            onClick={onCollapse}
+            className="rounded-[var(--radius-md)] transition hover:bg-[var(--sidebar-hover)]"
+            style={{ color: 'var(--text-muted)' }}
+            label="收起侧栏"
+            title="收起侧栏 Ctrl+B"
+          >
+            <PanelLeftClose size={15} />
+          </IconButton>
+        )}
       </div>
 
-      {/* 会话列表 */}
-      <div className="scrollbar-hover mt-3 flex-1 overflow-y-auto px-2 pb-5 [mask-image:linear-gradient(to_bottom,black_calc(100%-18px),transparent)]" data-testid="sidebar-session-list">
+      {/* 会话列表：对齐 Codex / ChatGPT 单行极简目录（常规字重、去重复时间戳第二行、紧凑行高） */}
+      <div className="scrollbar-hover mt-2 flex-1 overflow-y-auto px-2 pb-5 [mask-image:linear-gradient(to_bottom,black_calc(100%-18px),transparent)]" data-testid="sidebar-session-list">
         {sessionGroups.map((group) => (
           <div key={group.label}>
             <div
-              className="px-2.5 pb-1.5 pt-3 text-[10px] font-medium tracking-wider"
+              className="px-2.5 pb-1 pt-3 text-[11px] font-normal"
               style={{ color: 'var(--text-muted)' }}
             >
               {group.label}
@@ -251,10 +277,12 @@ export function PrimarySidebar({
             {group.items.map((s) => {
               const active = s.id === activeSessionId && activeView === 'chat'
               const preview = sessionPreviews[s.id]
+              const hoverTitle = `${s.title}\n${formatSessionStamp(s.updatedAt)}${preview ? ` · ${formatSessionPreview(preview)}` : ''}`
               return (
                 <div
                   key={s.id}
-                  className="group mb-0.5 cursor-pointer rounded-[var(--radius-md)] px-2.5 py-2 transition"
+                  title={hoverTitle}
+                  className="group mb-0.5 cursor-pointer rounded-[var(--radius-md)] px-2.5 py-1.5 transition"
                   style={{
                     background: active ? 'var(--sidebar-active)' : 'transparent',
                   }}
@@ -285,50 +313,37 @@ export function PrimarySidebar({
                       onClick={(e: MouseEvent<HTMLInputElement>) => e.stopPropagation()}
                     />
                   ) : (
-                    <>
-                      <div className="flex items-start gap-1.5">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1">
-                            {bgStreamingSessionId === s.id && s.id !== activeSessionId && (
-                              <span
-                                className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full"
-                                style={{ background: 'var(--accent)' }}
-                              />
-                            )}
-                            {pinnedIds.includes(s.id) && (
-                              <Pin size={10} style={{ color: 'var(--accent)' }} />
-                            )}
-                            <span
-                              className="truncate text-[13px] font-medium"
-                              style={{ color: active ? 'var(--accent-fg)' : 'var(--text-primary)' }}
-                            >
-                              {s.title}
-                            </span>
-                          </div>
-                          <div
-                            className="mt-0.5 truncate text-[11px]"
-                            style={{ color: 'var(--text-muted)' }}
-                          >
-                            {formatSessionStamp(s.updatedAt)}
-                            {preview ? ` · ${formatSessionPreview(preview)}` : ''}
-                          </div>
-                        </div>
-                        <IconButton
-                          size={24}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onDeleteSession(s.id)
-                          }}
-                          className="invisible mt-0.5 shrink-0 transition group-hover:visible focus-visible:visible"
-                          style={{ color: 'var(--text-muted)' }}
-                          label="删除会话"
-                          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--danger)')}
-                          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
-                        >
-                          <X size={12} />
-                        </IconButton>
-                      </div>
-                    </>
+                    <div className="flex items-center gap-1.5">
+                      {bgStreamingSessionId === s.id && s.id !== activeSessionId && (
+                        <span
+                          className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full"
+                          style={{ background: 'var(--accent)' }}
+                        />
+                      )}
+                      {pinnedIds.includes(s.id) && (
+                        <Pin size={10} className="shrink-0" style={{ color: 'var(--accent)' }} />
+                      )}
+                      <span
+                        className={`min-w-0 flex-1 truncate text-[13px] leading-5 ${active ? 'font-medium' : 'font-normal'}`}
+                        style={{ color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+                      >
+                        {s.title}
+                      </span>
+                      <IconButton
+                        size={24}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onDeleteSession(s.id)
+                        }}
+                        className="invisible -mr-1 !h-5 !w-5 shrink-0 transition group-hover:visible focus-visible:visible"
+                        style={{ color: 'var(--text-muted)' }}
+                        label="删除会话"
+                        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--danger)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+                      >
+                        <X size={12} />
+                      </IconButton>
+                    </div>
                   )}
                 </div>
               )

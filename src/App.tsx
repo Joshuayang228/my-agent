@@ -1596,6 +1596,7 @@ function App() {
         unreadMomentsCount={unreadMomentsCount}
         activeBgTaskCount={activeBgTaskCount}
         frosted={chatBackdropEnabled && (activeView === 'chat' || isWorldView(activeView))}
+        showRightBorder={!(sidebarOpen && activeView === 'chat')}
       />
 
       {/* 旁侧会话抽屉：切进人物世界时自动收起留出宽屏画布，回对话自动恢复 */}
