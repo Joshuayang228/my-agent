@@ -1,5 +1,7 @@
 # 项目进度
 
+修复左导轨 hover 反馈并优化图标体系与行间距（2026-11-23）：`NavigationRail.tsx` 修复内联 `transparent` 压死 hover 的问题并新增即时胶囊 Tooltip，放大顶部伙伴头像至 36×36、图标至 18px 并放宽导轨与会话列表行间距；归还「人物世界」`Sparkles` 图标，朋友圈改用镜头光圈 `Aperture`、主对话改用圆润实心锚点 `MessageCircle`。
+
 对齐 ChatGPT / Codex 双栏侧边栏极简高级感（2026-11-23）：`PrimarySidebar.tsx` 与 `NavigationRail.tsx` 消除双栏间生硬分割竖线与内部碎横线，头部收为单行「路飞 ▾ + 搜索/收起」、「+ 新对话」改为无底色轻量菜单行，会话列表改为单行常规字重目录并移除满屏重复时间戳第二行。
 
 统一全站 `SelectField` 下拉浮层为主题化圆角菜单（2026-11-23）：`SelectField.tsx` 拦截 Windows 原生蓝底 `<select>` 弹窗，由 Portal 渲染符合当前主题 Token 的圆角下拉列表与选中对勾，同时保持 `<select>` DOM 契约不变。

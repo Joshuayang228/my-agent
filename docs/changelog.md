@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 修复左导轨 hover 无响应并精修图标体系、头像尺寸与行距：`NavigationRail.tsx` 移除压死 hover 类名的内联 `background: 'transparent'`，改为显式悬停底色高亮 + 0 延迟右侧胶囊 `RailTooltip`；顶部伙伴头像放大至 `size="md"`（36×36），导轨扩至 52px、图标放大至 18px 并拉开纵向间距至 `gap-2`；将 `Sparkles` 归还给「人物世界」总入口，「朋友圈」改用镜头光圈 `Aperture`、「对话」改用圆润 `MessageCircle`（选中态实心填充）、其余切面与 `WorldHub` 对齐；`PrimarySidebar.tsx` 会话列表行距放宽至 `py-2 mb-1`。
+
 2026-11-23 对齐 ChatGPT / Codex 极简高级双栏侧边栏质感：`PrimarySidebar.tsx` 头部收敛为单行「路飞 ▾ + 右侧搜索/收起图标」，将「+ 新对话」由沉重实心大药丸改为无底色左对齐轻量菜单行，会话列表改为单行极简目录（常规字重 `font-normal`、仅选中态 `font-medium` + 中性胶囊浅底、移除每行重复的 `今天 HH:mm` 第二行并收入悬停 title）；`NavigationRail.tsx` 与会话栏展开时同底色无竖线融为一体、去除内部碎横线、选中态改为克制中性色块并将自定义入口图标换为 `···`（`MoreHorizontal`）。
 
 2026-11-23 统一 `SelectField` 下拉浮层主题样式，告别 Windows 原生蓝底系统菜单：`src/components/foundation/SelectField.tsx` 在保留真实 `<select>` 顶层节点（完全兼容 Playwright `selectOption`、键盘导航与表单语义）的基础上，于鼠标左键点击时拦截 Win32 原生 `#0078D7` 弹窗，改由 Portal 渲染圆角主题化下拉浮层（`--dropdown-bg` / `--accent-subtle` / `--accent-fg` + 勾选对勾），全站下拉框一次统一。

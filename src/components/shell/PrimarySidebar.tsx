@@ -269,7 +269,7 @@ export function PrimarySidebar({
         {sessionGroups.map((group) => (
           <div key={group.label}>
             <div
-              className="px-2.5 pb-1 pt-3 text-[11px] font-normal"
+              className="px-2.5 pb-1.5 pt-3.5 text-[11px] font-normal"
               style={{ color: 'var(--text-muted)' }}
             >
               {group.label}
@@ -282,7 +282,7 @@ export function PrimarySidebar({
                 <div
                   key={s.id}
                   title={hoverTitle}
-                  className="group mb-0.5 cursor-pointer rounded-[var(--radius-md)] px-2.5 py-1.5 transition"
+                  className="group mb-1 cursor-pointer rounded-[var(--radius-md)] px-2.5 py-2 transition"
                   style={{
                     background: active ? 'var(--sidebar-active)' : 'transparent',
                   }}
