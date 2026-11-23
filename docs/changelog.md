@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 统一 `SelectField` 下拉浮层主题样式，告别 Windows 原生蓝底系统菜单：`src/components/foundation/SelectField.tsx` 在保留真实 `<select>` 顶层节点（完全兼容 Playwright `selectOption`、键盘导航与表单语义）的基础上，于鼠标左键点击时拦截 Win32 原生 `#0078D7` 弹窗，改由 Portal 渲染圆角主题化下拉浮层（`--dropdown-bg` / `--accent-subtle` / `--accent-fg` + 勾选对勾），全站下拉框一次统一。
+
 2026-11-23 落地双层左侧导航导轨（支持自定义生活快捷入口）并精修空态首屏：新增 `src/components/shell/NavigationRail.tsx`（48px 极窄左导轨，顶部固定伙伴头像切换、中部「对话 + 可自定义人物世界快捷入口（默认朋友圈/日记/礼物）+ 人物世界总入口 + 原地勾选自定义浮层并持久化至 localStorage」、底部收敛 Debug/Playground/设置）；`PrimarySidebar.tsx` 支持 `showFooter={false}` / `showBrandAvatar={false}` 并在切进人物世界时自动收起会话栏释放宽屏画布；`ChatWelcome.tsx` 将 3 颗纯对话提示词胶囊挪至输入框上方，底部最新动态轻卡收为纯图标操作并支持有图左缩略图（多图 `+N` 角标）。
 
 2026-11-23 重构 Chat 空态首屏为「去头像 + 角色第一人称台词 + 居中输入框 + 单条最新动态轻卡」：`companion-presence.ts#buildColdStartCopy` 优先使用 Role Pack `firstContact.quote`（如路飞「我要成为海贼王的男人！」）替代第三人称简介；`ChatWelcome.tsx` 移除重复圆头像、统一三颗清透胶囊并新增 `composer` 居中插槽与 `latestMoment` 毛玻璃最新动态轻卡（支持「聊聊这条」预填输入与「去看看」跳转朋友圈）；`App.tsx` 在空态时将输入区居中承载、开聊后自然落回底部，同步更新 Playground `SurfaceBaselinePanel.tsx`。
