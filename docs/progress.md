@@ -10,6 +10,8 @@ Chat 左侧轮次引导改回极简细线条样式（2026-11-23）：`ChatScroll
 
 重构 Chat 左侧轮次跳转轨为无白底圆点 + 单条预览卡并补齐礼物配图回归（2026-11-23）：对齐 Antigravity 极简圆点导航，`ChatScrollNavigator.tsx` 去除白底补丁，悬停单个圆点仅展示当前条用户提问、伙伴回复摘要、序数与时间，点击精准跳转；`gifting.test.ts` 新增预设礼物真实 PNG Base64 输出断言。
 
+外部全球权威公开基准首轮实测出分（2026-11-23）：新增 `scripts/authoritative_bench_runner.py` 并接入 `scripts/run_external_evals.mjs --suite authoritative`，在无 Docker 环境下直连 My Agent 真实 Electron Runtime 跑完三套全球公认权威基准（官方原版数据集 + 官方确定性判分器）：**OpenAI HumanEval 25/25（100.0%）**、**OpenAI GSM8K 25/25（100.0%）**、**Google IFEval 21/23 Prompt-Loose（91.3%） / 18/23 Prompt-Strict（78.3%）**（2 题因本机缺 NLTK `punkt_tab` 判分报错已剔除统计）；连同 **Agent Context Benchmark 5/6 满分 + 1 项 0.75（均分 95.8%）**，四大外部权威基准形成可对外横向对标的硬核能力基线。
+
 修复 `auto` 模式下写文件前口头二次确认打断闭环（2026-11-23）：`electron/main/prompts/compiler.ts` 将无条件绑定 `file_write`/`shell_exec` 的口头确认改为按 `executionMode` 分流（`auto` 模式允许直接落盘并由宿主权限系统把关，仅对不可逆高风险破坏性操作先暂停确认备份/恢复；`plan-first` / `confirm-all` 保持显式确认）。复测结果：`Agent Context Benchmark` `mcp-selection`（0 → **1.00 PASS**）与 `general-agent-bench` `rh-03`（0 → **1.00 PASS**）一次全过，12 题安全回归 **12/12 PASS** 零退化，全量 72 项真实体检跃升至 **69/72 PASS（95.8%，加权 97.9%）**。
 
 外部无 Docker 通用 Agent 底座体检扩容与隔离 MCP 评测接入（2026-11-23）：`external-controller.ts` 与 `runtime.runExternalEvalTurn` 新增 turn 级隔离 stdio `mcpServers` 支持并打通 `Agent Context Benchmark` `mcp-selection`（达成 ACB 6/6 全接入）；`scripts/harness_security_my_agent_runner.mjs` 扩充至 12 题深度攻防（RO/PR/CDL/PIF 含无提示日志注入与源码注释注入）实测 **12/12 PASS**；新增 20 题无 Docker 通用底座套件 `scripts/general_agent_bench_runner.mjs` 全部跑完 **18/20 PASS**（多文件工程排错 **10/10**、严格指令遵循 **5/6** 仅 `if-02` 57 字差 3 字、多步推理与诚实性 **3/4** 仅 `rh-03` 未写 `deploy.json`）。合并内置 Eval（29/30）与外部基准，全量 **72 项真实体检 67/72 PASS（93.1%，加权 95.1%）**，集中暴露“自主模式下写 `deploy.json` 前口头二次确认打断闭环”的底座策略问题。

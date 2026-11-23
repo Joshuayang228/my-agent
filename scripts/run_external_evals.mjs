@@ -23,6 +23,8 @@ function parseArgs(argv) {
     port: process.env.MY_AGENT_EVAL_PORT || '48762',
     acbTasks: 'instruction-scope,session-resume,skill-loading,handoff,compaction,mcp-selection',
     generalIds: '',
+    authSuites: 'humaneval,ifeval,gsm8k',
+    authLimit: '25',
   }
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === '--suite' && argv[i + 1]) {
@@ -33,6 +35,10 @@ function parseArgs(argv) {
       args.acbTasks = argv[++i].trim()
     } else if (argv[i] === '--general-ids' && argv[i + 1]) {
       args.generalIds = argv[++i].trim()
+    } else if (argv[i] === '--auth-suites' && argv[i + 1]) {
+      args.authSuites = argv[++i].trim()
+    } else if (argv[i] === '--auth-limit' && argv[i + 1]) {
+      args.authLimit = argv[++i].trim()
     }
   }
   return args
@@ -155,6 +161,15 @@ async function main() {
         ]
         if (options.generalIds) generalArgs.push('--ids', options.generalIds)
         const code = await runSubprocess('node', generalArgs)
+        if (code !== 0) exitCode = 1
+      } else if (suite === 'authoritative') {
+        const venvPy = path.join(repoRoot, '_reference', 'framework-harness', 'evals', 'tau3-bench', '.venv', 'Scripts', 'python.exe')
+        const code = await runSubprocess(venvPy, [
+          'scripts/authoritative_bench_runner.py',
+          '--url', `http://127.0.0.1:${options.port}/run`,
+          '--suite', options.authSuites,
+          '--limit', options.authLimit,
+        ])
         if (code !== 0) exitCode = 1
       } else if (suite === 'repobench-smoke') {
         const code = await runRepoBenchSmoke(options.port)
