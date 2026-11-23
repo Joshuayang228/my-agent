@@ -302,8 +302,8 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                   {preview.kind === 'text' && preview.languageHint === 'html' && htmlView === 'preview' && (
                     <iframe
                       title={fileName}
-                      // 空 sandbox：禁脚本 / 表单 / same-origin，仅静态渲染
-                      sandbox=""
+                      // 允许 HTML 自身脚本驱动动画，但仍隔离同源权限、表单提交和 Electron 能力。
+                      sandbox="allow-scripts"
                       srcDoc={preview.content}
                       className="h-full min-h-[200px] w-full border-0 bg-white"
                     />

@@ -1777,3 +1777,5 @@ Playground 提示词管理器 v3 候选：调整文字职责与阅读比例，�
 - Chat 朋友圈发布把事件创建和动态投影放入同一事务，投影失败不会留下孤立事件。
 - Runtime 通过 `ConversationApplicationContext` 统一组织 Agent、Session、权限策略、Domain Read Model 和 Prompt Context Evidence。
 2026-11-23：修复主对话生成大文件时的输出预算与截断恢复问题。旧版 4096 默认值不再强行写入 OpenAI-compatible 请求，模型可按自身能力决定输出上限；模型在输出上限前没有正文或工具调用时不再写入非法空 assistant 消息，而是返回可重试的结构化失败；文件生成场景提示模型优先使用文件工具落盘。保留已有正文 / 工具调用的合法续写。
+
+2026-11-23：工作区 HTML 预览启用隔离脚本执行，生成的 SVG/Canvas 动画可直接预览。
