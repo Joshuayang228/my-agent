@@ -69,6 +69,20 @@ function resolveUniversesRoot(): string {
   const candidates = [
     path.join(here, 'universes'),
     path.join(here, '..', 'universes'),
+    // 背景：ProjectIPC 打开用户工作区时会执行 process.chdir(dirPath)（如 Desktop），导致 dist-electron/ 下仅靠 process.cwd() 寻址 universes 全部失效，配角头像与礼物插画静默变空。
+    // 设计意图：优先按编译产物相对位置（dist-electron/..）、APP_ROOT、app.getAppPath() 与 resourcesPath 定位内置 universes，最后才回退 process.cwd()。
+    // 关键约束：任何候选路径都不依赖当前工作目录未被切换；缺 APP_ROOT 或非 Electron 测试环境时安全跳过。
+    path.join(here, '..', 'electron', 'main', 'companion', 'universes'),
+    ...(process.env.APP_ROOT ? [path.join(process.env.APP_ROOT, 'electron', 'main', 'companion', 'universes')] : []),
+    ...(() => {
+      try {
+        const appPath = app?.getAppPath?.()
+        return appPath ? [path.join(appPath, 'electron', 'main', 'companion', 'universes')] : []
+      } catch {
+        return []
+      }
+    })(),
+    ...(process.resourcesPath ? [path.join(process.resourcesPath, 'universes')] : []),
     path.join(process.cwd(), 'electron', 'main', 'companion', 'universes'),
   ]
   for (const root of candidates) {

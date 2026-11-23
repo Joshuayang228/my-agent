@@ -191,4 +191,21 @@ describe('专属物品赠送与羁绊好感（Companion Gifting & Bond Progressi
     await expect(sendGiftToCompanion('luffy', 'unknown-gift')).rejects.toThrow('礼物不存在')
     await expect(sendGiftToCompanion('luffy', 'bone-meat', '字'.repeat(501))).rejects.toThrow('赠礼寄语无效')
   })
+
+  it('ProjectIPC 切换 process.cwd 到用户工作区后，礼物插画与配角头像仍能定位真实 PNG', async () => {
+    const os = await import('node:os')
+    const { resolveRoleAssetFilePath } = await import('../../electron/main/companion/identity/loader')
+    const origCwd = process.cwd()
+    const origAppRoot = process.env.APP_ROOT
+    try {
+      process.env.APP_ROOT = origCwd
+      process.chdir(os.tmpdir())
+      expect(resolveRoleAssetFilePath('luffy', 'visual/gift-shanks-straw-hat.png', 'default')).toMatch(/gift-shanks-straw-hat\.png$/)
+      expect(resolveRoleAssetFilePath('zoro', 'visual/avatar-v1.png', 'default')).toMatch(/avatar-v1\.png$/)
+    } finally {
+      process.chdir(origCwd)
+      if (origAppRoot === undefined) delete process.env.APP_ROOT
+      else process.env.APP_ROOT = origAppRoot
+    }
+  })
 })

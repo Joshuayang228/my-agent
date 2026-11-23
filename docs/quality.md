@@ -1,5 +1,7 @@
 # 质量总控
 
+角色视觉资产 `process.chdir` 寻址回归（2026-11-23）：`gifting.test.ts` 扩展至 7 项，新增 `process.chdir(os.tmpdir())` 回归校验工作区切换后 `resolveRoleAssetFilePath` 仍能正确定位礼物插画与配角头像 PNG。
+
 朋友圈自主回复对象防错位与占位评论守门回归（2026-11-23）：`moment-autonomous-reply.test.ts` 扩展至 6 项，新增无意义占位评论（如 `ll`）不触发自动回复、用户未点名/回复配角时拦截配角越位回复 `@我` 2 项回归；24 项定向单测、`assets:check`、`arch:check` 与 `tsc --noEmit` 全部通过。
 
 路飞预置礼物 `imageUrl` 解析与圆点导航回归（2026-11-23）：`gifting.test.ts` 新增 `shanks-straw-hat` 与 `going-merry` 返回合法 `data:image/png;base64,...` 断言；`chat-scroll-navigator.test.ts` 同步校验极简圆点轨与 68 字截断边界（23 项定向单测与 `tsc --noEmit` 通过）。
