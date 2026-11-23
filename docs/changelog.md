@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 左导轨全员图标放大至 `20px`、替换底部碎图标并消除冗余「人物世界」入口：`NavigationRail.tsx` 将全轨图标统一放大至 `20px`（`38×38` 热区、导轨 `54px`），底部 `Debug` / `Playground` / `设置` 统一换为 `20px` 极简几何图标（`Terminal` / `Layers` / `Settings`），并在已有快捷入口时隐藏重复的「人物世界」图标（仅在快捷入口全空时兜底显示）。
+
 2026-11-23 Playground 工作区新增富文档渲染与元素/选区批注候选（Phase P0，未改动正式页面）：在 `Playground → 产品体验 → 工作区` 的「文件」视图新增「Excel 表格」「HTML 批注」「Word 文档」「PDF 文档」4 个可交互隔离场景，支持 Excel 多 Sheet 切换与单元格拖拽框选批注、HTML 沙箱选元素批注、Word 清洗富文本划词批注与 PDF 按页批注并一键注入模拟对话输入框，待验收确认后推进 Phase P1 正式回流。
 
 2026-11-23 修复左导轨 hover 无响应并精修图标体系、头像尺寸与行距：`NavigationRail.tsx` 移除压死 hover 类名的内联 `background: 'transparent'`，改为显式悬停底色高亮 + 0 延迟右侧胶囊 `RailTooltip`；顶部伙伴头像放大至 `size="md"`（36×36），导轨扩至 52px、图标放大至 18px 并拉开纵向间距至 `gap-2`；将 `Sparkles` 归还给「人物世界」总入口，「朋友圈」改用镜头光圈 `Aperture`、「对话」改用圆润 `MessageCircle`（选中态实心填充）、其余切面与 `WorldHub` 对齐；`PrimarySidebar.tsx` 会话列表行距放宽至 `py-2 mb-1`。

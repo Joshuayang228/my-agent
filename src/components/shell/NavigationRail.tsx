@@ -1,11 +1,12 @@
 /**
- * 最左侧 52px 极窄图标导轨（NavigationRail）。
+ * 最左侧 54px 极窄图标导轨（NavigationRail）。
  *
  * 背景：原单层侧栏底部塞入 4 个功能按钮，挤压会话列表且无法一键直达「朋友圈 / 日记 / 礼物」等高频生活面。
  * 设计意图：对齐 ChatGPT / Codex 双层侧栏质感：
- *   1. 顶部固定 36×36 伙伴头像切换入口，图标与行间距舒展透气；
- *   2. 消除内联 transparent 覆盖 hover 的缺陷，悬停即时亮起圆角底色并在右侧 0 延迟浮现胶囊 Tooltip；
- *   3. 「人物世界」回归标志性 Sparkles 图标，各生活切面图标与 WorldHub 保持统一几何极简语言。
+ *   1. 顶部固定 36×36 伙伴头像切换入口，图标统一放大至 20px（38×38 圆角热区），行间距舒展透气；
+ *   2. 悬停即时亮起圆角底色并在右侧 0 延迟浮现胶囊 Tooltip；
+ *   3. 已有快捷入口时不再重复展示冗余的「人物世界」图标（仅在用户取消全部快捷入口时兜底显示）；
+ *   4. 底部 Debug / Playground / 设置统一采用 20px 极简几何图标（Terminal / Layers / Settings）。
  * 关键约束：外层禁止 overflow-hidden 以免裁切自定义浮层与悬浮提示；快捷入口清单持久化于 localStorage。
  */
 
@@ -13,18 +14,18 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   Aperture,
   BookOpen,
-  Bug,
   Check,
   FileText,
-  FlaskConical,
   Gift,
   Home,
+  Layers,
   MapPin,
   MessageCircle,
   MoreHorizontal,
   Settings,
   Shirt,
   Sparkles,
+  Terminal,
   Users,
 } from 'lucide-react'
 import type { ShellView } from './SecondaryNav'
@@ -38,14 +39,14 @@ export interface RailWorldShortcutOption {
 }
 
 export const RAIL_WORLD_SHORTCUT_OPTIONS: readonly RailWorldShortcutOption[] = [
-  { id: 'moments', label: '朋友圈', icon: <Aperture size={18} strokeWidth={1.65} /> },
-  { id: 'journal', label: '日记', icon: <FileText size={18} strokeWidth={1.65} /> },
-  { id: 'keepsakes', label: '礼物', icon: <Gift size={18} strokeWidth={1.65} /> },
-  { id: 'wardrobe', label: '衣柜', icon: <Shirt size={18} strokeWidth={1.65} /> },
-  { id: 'culture', label: '文化角', icon: <BookOpen size={18} strokeWidth={1.65} /> },
-  { id: 'home', label: '家居', icon: <Home size={18} strokeWidth={1.65} /> },
-  { id: 'cast', label: '通讯录', icon: <Users size={18} strokeWidth={1.65} /> },
-  { id: 'footprints', label: '足迹', icon: <MapPin size={18} strokeWidth={1.65} /> },
+  { id: 'moments', label: '朋友圈', icon: <Aperture size={20} strokeWidth={1.7} /> },
+  { id: 'journal', label: '日记', icon: <FileText size={20} strokeWidth={1.7} /> },
+  { id: 'keepsakes', label: '礼物', icon: <Gift size={20} strokeWidth={1.7} /> },
+  { id: 'wardrobe', label: '衣柜', icon: <Shirt size={20} strokeWidth={1.7} /> },
+  { id: 'culture', label: '文化角', icon: <BookOpen size={20} strokeWidth={1.7} /> },
+  { id: 'home', label: '家居', icon: <Home size={20} strokeWidth={1.7} /> },
+  { id: 'cast', label: '通讯录', icon: <Users size={20} strokeWidth={1.7} /> },
+  { id: 'footprints', label: '足迹', icon: <MapPin size={20} strokeWidth={1.7} /> },
 ]
 
 export const DEFAULT_RAIL_WORLD_SHORTCUTS: readonly WorldTab[] = ['moments', 'journal', 'keepsakes']
@@ -132,7 +133,6 @@ export function NavigationRail({
     .map((id) => RAIL_WORLD_SHORTCUT_OPTIONS.find((opt) => opt.id === id))
     .filter((item): item is RailWorldShortcutOption => Boolean(item))
 
-  const hasMomentsShortcut = worldShortcuts.includes('moments')
   const inWorld = isWorldView(activeView)
 
   const toggleShortcut = (id: WorldTab) => {
@@ -147,7 +147,7 @@ export function NavigationRail({
     <nav
       aria-label="主导航导轨"
       data-testid="navigation-rail"
-      className={`relative z-30 flex w-[52px] shrink-0 flex-col items-center py-3.5 ${showRightBorder ? 'border-r' : ''}`}
+      className={`relative z-30 flex w-[54px] shrink-0 flex-col items-center py-3.5 ${showRightBorder ? 'border-r' : ''}`}
       style={{
         background: frosted
           ? 'color-mix(in srgb, var(--card-bg) 22%, transparent)'
@@ -183,7 +183,7 @@ export function NavigationRail({
         {avatarHovered && <RailTooltip label={`${personaName || '伙伴'} · 切换伙伴`} />}
       </div>
 
-      {/* 核心导航区：36×36 圆角热区 + 8px 舒展纵向间距 + Codex 级主入口实心锚点 */}
+      {/* 核心导航区：38×38 圆角热区 + 20px 几何图标 + 避免朋友圈与人物世界重复 */}
       <div className="flex flex-col items-center gap-2">
         <RailIconBtn
           active={activeView === 'chat'}
@@ -192,8 +192,8 @@ export function NavigationRail({
           testId="rail-nav-chat"
         >
           <MessageCircle
-            size={18}
-            strokeWidth={activeView === 'chat' ? 2 : 1.65}
+            size={20}
+            strokeWidth={activeView === 'chat' ? 2 : 1.7}
             fill={activeView === 'chat' ? 'currentColor' : 'none'}
           />
         </RailIconBtn>
@@ -215,16 +215,18 @@ export function NavigationRail({
           )
         })}
 
-        {/* 人物世界总入口：归还标志性 Sparkles 图标 */}
-        <RailIconBtn
-          active={inWorld && !worldShortcuts.includes(activeWorldTab)}
-          label="人物世界"
-          onClick={() => onNavigate('world')}
-          testId="rail-nav-world"
-          badgeCount={!hasMomentsShortcut && unreadMomentsCount > 0 ? unreadMomentsCount : 0}
-        >
-          <Sparkles size={18} strokeWidth={1.65} />
-        </RailIconBtn>
+        {/* 仅在用户取消了全部快捷入口（0 项）时，才兜底显示一颗「人物世界」总入口，避免与「朋友圈」重复 */}
+        {shortcutItems.length === 0 && (
+          <RailIconBtn
+            active={inWorld}
+            label="人物世界"
+            onClick={() => onNavigate('world')}
+            testId="rail-nav-world"
+            badgeCount={unreadMomentsCount > 0 ? unreadMomentsCount : 0}
+          >
+            <Sparkles size={20} strokeWidth={1.7} />
+          </RailIconBtn>
+        )}
 
         {/* 自定义快捷入口浮层（采用 Codex 同款 ··· 图标） */}
         <div className="relative" ref={popoverRef}>
@@ -235,7 +237,7 @@ export function NavigationRail({
             testId="rail-customize-shortcuts"
             hideTooltip={customizeOpen}
           >
-            <MoreHorizontal size={18} strokeWidth={1.75} />
+            <MoreHorizontal size={20} strokeWidth={1.75} />
           </RailIconBtn>
 
           {customizeOpen && (
@@ -304,7 +306,7 @@ export function NavigationRail({
       {/* 中间弹性留白 */}
       <div className="flex-1" />
 
-      {/* 底部系统与开发入口 */}
+      {/* 底部系统与开发入口：统一 20px 极简几何图标（Terminal / Layers / Settings） */}
       <div className="flex flex-col items-center gap-2">
         {activeBgTaskCount > 0 && (
           <span
@@ -324,7 +326,7 @@ export function NavigationRail({
               onClick={() => onNavigate(activeView === 'debug' ? 'chat' : 'debug')}
               testId="rail-nav-debug"
             >
-              <Bug size={17} strokeWidth={1.65} />
+              <Terminal size={20} strokeWidth={1.7} />
             </RailIconBtn>
             <RailIconBtn
               active={activeView === 'playground'}
@@ -332,7 +334,7 @@ export function NavigationRail({
               onClick={() => onNavigate(activeView === 'playground' ? 'chat' : 'playground')}
               testId="rail-nav-playground"
             >
-              <FlaskConical size={17} strokeWidth={1.65} />
+              <Layers size={20} strokeWidth={1.7} />
             </RailIconBtn>
           </>
         )}
@@ -342,7 +344,7 @@ export function NavigationRail({
           onClick={() => onNavigate(activeView === 'settings' ? 'chat' : 'settings')}
           testId="rail-nav-settings"
         >
-          <Settings size={18} strokeWidth={1.65} />
+          <Settings size={20} strokeWidth={1.7} />
         </RailIconBtn>
       </div>
     </nav>
@@ -396,7 +398,7 @@ function RailIconBtn({
         onClick={onClick}
         onFocus={() => setHovered(true)}
         onBlur={() => setHovered(false)}
-        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] transition-all duration-150 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
+        className="flex h-[38px] w-[38px] cursor-pointer items-center justify-center rounded-[11px] transition-all duration-150 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
         style={{
           color: active || hovered ? 'var(--text-primary)' : 'var(--text-secondary)',
           background: active

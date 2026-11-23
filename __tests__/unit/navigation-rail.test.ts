@@ -24,10 +24,23 @@ describe('NavigationRail 与 ChatWelcome 升级门禁', () => {
     expect(html).toContain('data-testid="rail-shortcut-moments"')
     expect(html).toContain('data-testid="rail-shortcut-journal"')
     expect(html).toContain('data-testid="rail-shortcut-keepsakes"')
+    expect(html).not.toContain('data-testid="rail-nav-world"')
     expect(html).toContain('data-testid="rail-customize-shortcuts"')
     expect(html).toContain('data-testid="world-unread-badge"')
     expect(html).toContain('data-testid="rail-nav-debug"')
     expect(html).toContain('data-testid="rail-nav-playground"')
+
+    const emptyShortcutsHtml = renderToStaticMarkup(createElement(NavigationRail, {
+      personaName: '路飞',
+      activeView: 'chat',
+      activeWorldTab: 'moments',
+      worldShortcuts: [],
+      onChangeWorldShortcuts: () => {},
+      onOpenShelf: () => {},
+      onNavigate: () => {},
+      onOpenWorldTab: () => {},
+    }))
+    expect(emptyShortcutsHtml).toContain('data-testid="rail-nav-world"')
   })
 
   it('ChatWelcome 顶部 3 颗全为纯提示词胶囊，底部最新动态支持纯图标操作与有图缩略图 +N 角标', () => {

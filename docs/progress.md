@@ -1,5 +1,7 @@
 # 项目进度
 
+左导轨 20px 图标体系统一与去重收口（2026-11-23）：`NavigationRail.tsx` 全员放大至 `20px`（`38×38` 热区），底部 `Debug` / `Playground` 换为简洁几何图标 `Terminal` / `Layers`，并去除与「朋友圈」重复的常驻「人物世界」图标（仅在 0 快捷项时兜底）。
+
 右侧工作区富文档渲染与批注回传 Phase P0（Playground 隔离候选）就绪（2026-11-23）：新增施工合同 `docs/requirements/workspace-rich-preview-and-annotations-v1.md`，实现共享批注纯函数与 4 个富预览组件（`SpreadsheetPreview` 多 Sheet + 拖拽选区、`HtmlAnnotatePreview` 沙箱 `allow-scripts` + 随机 token `postMessage` 拾取元素、`DocxPreview` 白名单清洗富文本 + 划词、`PdfPreview` 按页翻页缩放）及统一 `AnnotationBar`，接入 `Playground → 产品体验 → 工作区` 四个新场景并与模拟主对话壳打通「发送到对话」；未改动任何正式生产页面，待用户验收 P0 后进入 P1 正式回流与主进程真实解析。
 
 修复左导轨 hover 反馈并优化图标体系与行间距（2026-11-23）：`NavigationRail.tsx` 修复内联 `transparent` 压死 hover 的问题并新增即时胶囊 Tooltip，放大顶部伙伴头像至 36×36、图标至 18px 并放宽导轨与会话列表行间距；归还「人物世界」`Sparkles` 图标，朋友圈改用镜头光圈 `Aperture`、主对话改用圆润实心锚点 `MessageCircle`。
