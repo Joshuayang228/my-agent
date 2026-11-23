@@ -1,5 +1,7 @@
 # 质量总控
 
+右侧工作区富文档渲染与批注回传 P0 单元测试（2026-11-23）：新增 `__tests__/unit/workspace-rich-preview.test.ts`（5 项），覆盖 Excel 列字母换算/反向矩形选区规范化与 Markdown 表格切片、HTML 拾取脚本按需注入与随机 `channelToken` 防伪造拦截、Word HTML 白名单清洗（剥离 `<script>`/`<iframe>`/`on*`/`javascript:`/非图片 `data:`）及四类批注格式化输出；`typecheck`、`assets:check`（120/120）与 `vite build` 全绿通过。
+
 双层左导轨与空态首屏有图动态卡回归（2026-11-23）：新增 `navigation-rail.test.ts`（2 项）校验顶部伙伴头像、自定义快捷入口、未读角标、3 颗纯提示词胶囊、纯图标动态操作与有图缩略图 `+N` 角标；全套定向单测与 `tsc --noEmit` 全部通过。
 
 Chat 空态首屏与角色第一人称台词回归（2026-11-23）：`companion-presence.test.ts` 新增 `quote` 优先副标题断言；`ui-component-registry.test.ts`（47 项）、`foundation-enforcement-gate.test.ts`（14 项）与 `tsc --noEmit` 全绿。

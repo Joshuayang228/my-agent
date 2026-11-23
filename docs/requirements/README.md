@@ -21,6 +21,7 @@
 ## 进行中
 
 通用 Agent Harness 修复：[general-agent-harness-remediation-v1.md](./general-agent-harness-remediation-v1.md)，按 2026-11-23 Harness 审计修复工具、流式、预算、持久 Turn、Retry、模型能力和会话隔离边界。
+右侧工作区富文档渲染与元素/选区批注回传：[workspace-rich-preview-and-annotations-v1.md](./workspace-rich-preview-and-annotations-v1.md)，分两阶段（P0 Playground 隔离候选验收 → P1 正式回流与主进程解析）落地 Excel/Word/PDF 内嵌渲染、HTML 选元素批注与 Excel 选区批注发送回对话。
 
 ---
 
