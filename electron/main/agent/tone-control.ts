@@ -22,6 +22,20 @@ export interface ToneControlResult {
 const RE_ERROR_CLIMAX =
   /报错|堆栈|stack\s*trace|exception|失败了|又崩|panic|TypeError|Cannot find|EACCES|FATAL/i
 
+/**
+ * 识别用户显式提出严格输出格式/结构/字数/大小写/禁用词约束的请求。
+ *
+ * 背景：Google IFEval 与 skill-loading 实测显示，当用户要求精确格式（无前后解释、全小写、
+ *       精确段落/列表/占位符或字数边界）时，人格化过渡语或 `~>` 旁白会导致严格校验失败。
+ * 设计意图：仅在检测到显式格式/结构约束信号时收紧语气并抑制旁白，平时闲聊与情感陪伴零受影响。
+ * 关键约束：保持纯启发式零 LLM 调用，且不得误触发普通情绪倾诉或常规问答。
+ */
+const RE_STRICT_FORMAT_CONSTRAINT =
+  /只输出|仅输出|严格按|严格遵守|不要多余|不要解释|不要加|禁止出现|严禁出现|纯\s*JSON|无围栏|字数在|不少于\s*\d+|不超过\s*\d+|正好\s*\d+|全部大写|全部小写|\b(?:strictly|exact\s+format|only\s+output|output\s+only|return\s+only|no\s+other\s+text|no\s+explanation|without\s+any\s+(?:extra|additional|other)|all\s+lowercase|all\s+capital|entire\s+response\s+should\s+be\s+in|highlighted\s+sections?|bullet\s+points?|placeholders?|first\s+word\s+of|at\s+least\s+\d+\s+(?:words?|sentences?|paragraphs?|sections?|bullet)|no\s+more\s+than\s+\d+\s+(?:words?|sentences?|paragraphs?)|exactly\s+\d+\s+(?:words?|sentences?|paragraphs?|bullet|sections?))\b/i
+
+const STRICT_FORMAT_GUIDANCE =
+  '格式守约：本轮用户指定了明确的输出格式、字数、大小写或结构约束。必须逐条严格满足，严禁添加开场白、结束语、额外解释、多余 Markdown 包装或内心独白（~>）。'
+
 const GUIDANCE: Record<ToneRegister, string> = {
   tight:
     '主答：紧、短、可执行（结论→步骤→验证）；少铺垫。',
@@ -49,7 +63,9 @@ export function resolveToneControl(input: ResolveToneControlInput): ToneControlR
   const signals: string[] = []
   const text = (input.userText || '').trim()
   const errorClimax = text.length > 0 && RE_ERROR_CLIMAX.test(text)
+  const strictFormat = text.length > 0 && RE_STRICT_FORMAT_CONSTRAINT.test(text)
   if (errorClimax) signals.push('error-climax')
+  if (strictFormat) signals.push('strict-format')
   if (input.executionMode === 'confirm-all') signals.push('confirm-all')
   if (input.executionMode === 'plan-first') signals.push('plan-first')
   if (input.sessionKind === 'summon') signals.push('summon')
@@ -60,6 +76,7 @@ export function resolveToneControl(input: ResolveToneControlInput): ToneControlR
 
   if (
     errorClimax ||
+    strictFormat ||
     input.executionMode === 'confirm-all' ||
     input.executionMode === 'plan-first' ||
     input.stance === 'act' ||
@@ -87,10 +104,14 @@ export function resolveToneControl(input: ResolveToneControlInput): ToneControlR
     signals.push('aside-cooldown')
   }
 
-  const guidance = [
+  const guidanceLines = [
     `语气档位：${register}`,
     `行动指引：${GUIDANCE[register]}`,
-  ].join('\n')
+  ]
+  if (strictFormat) {
+    guidanceLines.push(STRICT_FORMAT_GUIDANCE)
+  }
+  const guidance = guidanceLines.join('\n')
 
   return { register, asidePolicy, signals, guidance }
 }
@@ -102,5 +123,6 @@ export function formatToneControlForPrompt(result: ToneControlResult): string {
 
 export const __test = {
   RE_ERROR_CLIMAX,
+  RE_STRICT_FORMAT_CONSTRAINT,
   GUIDANCE,
 }

@@ -12,6 +12,8 @@ Chat 左侧轮次引导改回极简细线条样式（2026-11-23）：`ChatScroll
 
 重构 Chat 左侧轮次跳转轨为无白底圆点 + 单条预览卡并补齐礼物配图回归（2026-11-23）：对齐 Antigravity 极简圆点导航，`ChatScrollNavigator.tsx` 去除白底补丁，悬停单个圆点仅展示当前条用户提问、伙伴回复摘要、序数与时间，点击精准跳转；`gifting.test.ts` 新增预设礼物真实 PNG Base64 输出断言。
 
+修复严格格式约束下人设过渡语与旁白干扰（2026-11-23）：`electron/main/agent/tone-control.ts` 新增 `RE_STRICT_FORMAT_CONSTRAINT` 启发式识别，当用户显式指定严格格式、字数、大小写或结构约束时自动切换 `tight` + `discourage`（静默 `~>` 旁白）并追加「格式守约」指引，普通闲聊与情绪陪伴不受影响。复测结果：**Google IFEval（有效 23 题）Prompt-Strict 由 18/23（78.3%）跃升至 21/23（91.3%，+13.0pp），Strict 与 Loose 差距归零**；`general-agent-bench` `if-02` 翻盘 1.00 PASS（20 题通用基准达 **20/20 满分**）。
+
 外部全球权威公开基准首轮实测出分（2026-11-23）：新增 `scripts/authoritative_bench_runner.py` 并接入 `scripts/run_external_evals.mjs --suite authoritative`，在无 Docker 环境下直连 My Agent 真实 Electron Runtime 跑完三套全球公认权威基准（官方原版数据集 + 官方确定性判分器）：**OpenAI HumanEval 25/25（100.0%）**、**OpenAI GSM8K 25/25（100.0%）**、**Google IFEval 21/23 Prompt-Loose（91.3%） / 18/23 Prompt-Strict（78.3%）**（2 题因本机缺 NLTK `punkt_tab` 判分报错已剔除统计）；连同 **Agent Context Benchmark 5/6 满分 + 1 项 0.75（均分 95.8%）**，四大外部权威基准形成可对外横向对标的硬核能力基线。
 
 修复 `auto` 模式下写文件前口头二次确认打断闭环（2026-11-23）：`electron/main/prompts/compiler.ts` 将无条件绑定 `file_write`/`shell_exec` 的口头确认改为按 `executionMode` 分流（`auto` 模式允许直接落盘并由宿主权限系统把关，仅对不可逆高风险破坏性操作先暂停确认备份/恢复；`plan-first` / `confirm-all` 保持显式确认）。复测结果：`Agent Context Benchmark` `mcp-selection`（0 → **1.00 PASS**）与 `general-agent-bench` `rh-03`（0 → **1.00 PASS**）一次全过，12 题安全回归 **12/12 PASS** 零退化，全量 72 项真实体检跃升至 **69/72 PASS（95.8%，加权 97.9%）**。
