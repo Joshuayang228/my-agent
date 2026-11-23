@@ -1,5 +1,5 @@
-import { resolve } from 'node:path'
-import { readFileSync } from 'node:fs'
+import { join, relative, resolve } from 'node:path'
+import { readdirSync, readFileSync } from 'node:fs'
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 import { UI_COMPONENT_REGISTRY } from '../../src/shared/ui-component-registry'
@@ -347,6 +347,30 @@ describe('Foundation 布局与控件复用自动门禁', () => {
 
     it('注册表声明不存在的 Foundation 组件 Key 必定被类型与注册表校验拦截', () => {
       expect(UI_COMPONENT_REGISTRY['behavior.non-existent-component']).toBeUndefined()
+    })
+
+    it('全仓 src/**/*.tsx 禁止不带显式颜色类的裸 ring-1/2/4/8（防止 Tailwind v4 默认 currentColor 黑框）', () => {
+      const files: string[] = []
+      const walk = (dir: string) => {
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+          const full = join(dir, entry.name)
+          if (entry.isDirectory()) walk(full)
+          else if (entry.name.endsWith('.tsx')) files.push(full)
+        }
+      }
+      walk(resolve('src'))
+      const violations: string[] = []
+      const ringWidthRe = /\b(?:[a-z-]+:)?ring-(?:1|2|4|8)\b/
+      const ringColorRe = /\b(?:[a-z-]+:)?ring-(?:\[[^\]]+\]|white|black|transparent|current|inherit|(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d+)/
+      for (const file of files) {
+        const lines = readFileSync(file, 'utf8').split(/\r?\n/)
+        lines.forEach((line, idx) => {
+          if (ringWidthRe.test(line) && !ringColorRe.test(line)) {
+            violations.push(`${relative(process.cwd(), file)}:${idx + 1} -> ${line.trim()}`)
+          }
+        })
+      }
+      expect(violations).toEqual([])
     })
   })
 })

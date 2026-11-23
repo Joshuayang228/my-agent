@@ -139,7 +139,7 @@ export function PrimarySidebar({
           name={personaName}
           role="assistant"
           size="md"
-          className="shrink-0 ring-2"
+          className="shrink-0"
         />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>

@@ -1425,7 +1425,7 @@ function App() {
         {activeView === 'chat' && <div
           ref={chatContainerRef}
           data-testid="chat-messages"
-          className={`scrollbar-thin relative flex-1 select-text overflow-y-auto ${dragOver ? 'ring-2 ring-inset' : ''}`}
+          className={`scrollbar-thin relative flex-1 select-text overflow-y-auto ${dragOver ? 'ring-2 ring-inset ring-[var(--accent)]' : ''}`}
           style={dragOver ? { ['--tw-ring-color' as string]: 'var(--accent)' } as React.CSSProperties : {}}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
           onDragLeave={() => setDragOver(false)}
@@ -1483,7 +1483,7 @@ function App() {
                 return (
                   <div
                     key={msg.id}
-                    className={`animate-fade-in-up group ${dimmed ? 'opacity-20' : ''} ${isSearchMatch ? 'rounded-md ring-1' : ''}`}
+                    className={`animate-fade-in-up group ${dimmed ? 'opacity-20' : ''} ${isSearchMatch ? 'rounded-md ring-1 ring-[var(--accent)]' : ''}`}
                     style={isSearchMatch ? { ['--tw-ring-color' as string]: 'var(--accent)', ['--tw-ring-opacity' as string]: '0.3' } as React.CSSProperties : {}}
                   >
                     <ChatMessageFrame

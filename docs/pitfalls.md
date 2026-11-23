@@ -2,6 +2,12 @@
 
 > 开发过程中遇到的坑和解决方案，避免重复踩坑。
 
+## Tailwind v4 裸 `ring-1/2/4/8` 默认取 `currentColor` 产生黑框
+
+**问题**：2026-11-23 连续在人物世界页头头像、Chat 欢迎页头像、侧栏头像等 5 处出现明显黑圈/黑框；原因是 Tailwind v4 中不配颜色的 `ring-2` / `ring-4` 默认继承 `currentColor`（深黑文字色 `--text-primary`），且首次修复只改了单个文件未做全仓同源排查。
+
+**解决**：清零全仓全部 5 处无色 `ring-*`（头像描边收口至 `CompanionAvatar` 自身纸白边，交互高亮显式指定 `ring-[var(--accent-fg)]`），并在 `foundation-enforcement-gate.test.ts`（随 `assets:check` / Git Hook 执行）新增全仓 `src/**/*.tsx` 静态扫描门禁，拦截任何不带显式颜色的裸 `ring-*`。此后凡修复视觉/样式陷阱，必须全仓 `grep` 清扫同源写法，并优先沉淀为全仓静态门禁。
+
 ## 打包文件存在不代表打包完成
 
 2026-09-19 本地 Windows 生图验收中，构建会话中断后已有 app.asar 和 Electron 可执行文件，但启动直接退出。用 @electron/asar 读取包内 package.json，内容实际为全零字节；文件名和大小不能作为成功证据。必须确认构建进程结束及退出码，再读取包内入口并从该产物运行正式流程。中断产物保留为失败证据，不反复拿半包排查应用代码。

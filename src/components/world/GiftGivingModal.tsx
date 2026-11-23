@@ -375,7 +375,7 @@ export function GiftGivingModal({
                   placeholder="想对伙伴说点什么，可以顺手写在这里…"
                   maxLength={120}
                   rows={2}
-                  className="mt-2 w-full resize-none rounded-lg border p-2.5 text-xs outline-none transition focus:ring-1"
+                  className="mt-2 w-full resize-none rounded-lg border p-2.5 text-xs outline-none transition focus:ring-1 focus:ring-[var(--accent-fg)]"
                   style={{
                     backgroundColor: 'var(--bg-secondary)',
                     borderColor: 'var(--border-subtle)',

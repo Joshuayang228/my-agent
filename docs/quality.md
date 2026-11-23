@@ -1,5 +1,7 @@
 # 质量总控
 
+全仓裸 `ring-*` 静态扫描门禁（2026-11-23）：`foundation-enforcement-gate.test.ts` 扩展至 11 项门禁，新增全仓 `src/**/*.tsx` 扫描禁止无显式颜色类的 `ring-1/2/4/8`（防止 Tailwind v4 默认 `currentColor` 黑框），随 `assets:check` 与 Git Hook 强制拦截。
+
 人物世界头图双色微条门禁（2026-11-23）：`world-profile-header.test.ts` 更新为校验「心情 / 精力」双色微条（不含「兴致」与裸数字），定向单测与 `tsc --noEmit` 全部通过。
 
 人物世界页头精修与无数字状态微条门禁（2026-11-23）：`world-profile-header.test.ts` 补齐无 `ring-4` 黑圈与 `world-profile-vitals`（心情 / 精力 / 兴致无裸数字）断言；`foundation-enforcement-gate.test.ts` 与 `tsc --noEmit` 全部通过。

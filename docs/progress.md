@@ -1,5 +1,7 @@
 # 项目进度
 
+全仓清零裸 `ring-*` 黑框并落地静态防退化门禁（2026-11-23）：一锅端修复 `ChatWelcome`、`PrimarySidebar`、`GiftGivingModal` 与 `App` 共 5 处裸 `ring-*`，在 `foundation-enforcement-gate.test.ts` 接入全仓扫描门禁并沉淀 `docs/pitfalls.md`。
+
 修复页头换图菜单裁切、移除关闭按钮并同步 Playground（2026-11-23）：`WorldProfileHeader.tsx` 去掉外层 `overflow-hidden` 解决菜单截断并删除多余 `X` 关闭按钮；`SurfaceBaselinePanel.tsx` 同步 `pill` 标签与双色心情/精力微条样张。
 
 人物世界封面通透化与双色心情/精力微条（2026-11-23）：`WorldProfileHeader.tsx` 保留封面原画色彩并仅加底部轻暗角，右上角以半透明深色胶囊显示地点，右下角状态微条精简为「心情（翠绿）/ 精力（天蓝）」两条无数字细条。

@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 清零全仓 Tailwind v4 裸 `ring-*` 黑框并新增全仓静态扫描门禁：修复 `ChatWelcome.tsx`、`PrimarySidebar.tsx`、`GiftGivingModal.tsx` 与 `App.tsx` 全部 5 处无显式颜色类的 `ring-1/2/4`；在 `foundation-enforcement-gate.test.ts` 新增全仓 `src/**/*.tsx` 静态扫描门禁（随 `assets:check` / Git Hook 执行），并将同源清扫纪律记入 `docs/pitfalls.md`。
+
 2026-11-23 修复人物世界页头换图下拉菜单被裁切、移除冗余关闭图标并同步 Playground 样张：`WorldProfileHeader.tsx` 移除外层 `<section>` 的 `overflow-hidden`（保留内层封面容器裁切）并提升菜单 `z-30` 防止「恢复默认」被截断，同时删除右上角冗余关闭图标；`SurfaceBaselinePanel.tsx` 同步切换为 `pill` 标签并传入 `statusMetrics` 样张，与正式人物世界保持一致。
 
 2026-11-23 人物世界头图通透化与双色状态微条精修：`WorldProfileHeader.tsx` 去掉洗白画面的 80% 浅色渐变，改用原画 + 底部轻暗角与白字高对比层级；右上角收敛为半透明地点胶囊，右下角状态微条精简为「心情（翠绿）+ 精力（天蓝）」双色无数字细条，兼顾原画美感与随时感知状态。
