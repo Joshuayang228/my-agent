@@ -648,6 +648,39 @@ export async function recoverDelayedMomentReplies(): Promise<void> {
   if (next !== null) wakeDelayedMomentReplies(next)
 }
 
+/**
+ * 背景：用户有时会在评论区随手敲无意义占位字符（如「ll」「11」「...」）测试交互，若仍送进辅助模型容易触发强行接话甚至错把用户当成动态作者。
+ * 设计意图：仅拦截纯符号或 1-3 位单调重复 ASCII 字符，不误伤正常短中文评论（如「好」「香」「赞」）。
+ * 关键约束：仅控制是否触发自动回复，不影响用户评论本身正常落库。
+ */
+function isTrivialPlaceholderComment(text: string): boolean {
+  const trimmed = text.trim()
+  if (!trimmed) return true
+  if (!/[\p{L}\p{N}]/u.test(trimmed)) return true
+  if (/^([a-zA-Z0-9])\1{0,2}$/.test(trimmed)) return true
+  return false
+}
+
+/**
+ * 背景：自主回复最终会以「<回复者> 回复 @我」展示；若用户未点名/回复某位配角却让配角强行插话，模型容易把说话对象错当成动态作者本人。
+ * 设计意图：只有当配角真实在当前花名册中，且用户正在回复该配角或在评论中明确提到其姓名时，才放行配角以「回复 @我」身份落库。
+ * 关键约束：不阻断主角（protagonist）回复用户；配角越位截胡时静默跳过，不伪造回复。
+ */
+function isAuthorizedCastResponder(
+  decision: AutonomousReplyDecision,
+  roster: Array<{ otherId: string; otherName: string }>,
+  replyToActorName: string | null | undefined,
+  commentText: string,
+): boolean {
+  if (decision.actorType !== 'cast') return true
+  const matched = roster.find((r) => r.otherId === decision.responderId || r.otherName === decision.responderName)
+  if (!matched) return false
+  const target = (replyToActorName ?? '').trim()
+  if (target && target === matched.otherName) return true
+  if (commentText.includes(matched.otherName)) return true
+  return false
+}
+
 export async function addMomentCommentForRole(
   roleId: string,
   momentId: string,
@@ -678,7 +711,7 @@ export async function addMomentCommentForRole(
   try {
     const config = await loadAuxLLMConfig()
     const pack = loadRolePack(roleId)
-    if (hasLLMAuthentication(config)) {
+    if (!isTrivialPlaceholderComment(normalized.text) && hasLLMAuthentication(config)) {
       const universeId = opts?.universeId ?? resolveRoleUniverseId(roleId)
       const roster = buildRosterLines(roleId, universeId)
       const castContext = roster.map((r) => `${r.otherName}（ID: ${r.otherId}，关系: ${r.relationType}，简介: ${r.text}）`).join('\n')
@@ -710,7 +743,7 @@ export async function addMomentCommentForRole(
 
       command?.signal?.throwIfAborted()
       const decision = parseAutonomousReply(raw, roleId, pack.name)
-      if (decision && decision.shouldReply) {
+      if (decision && decision.shouldReply && isAuthorizedCastResponder(decision, roster, opts?.replyToActorName, normalized.text)) {
         const reply: MomentReply = {
           roleId,
           momentId: id,

@@ -224,4 +224,40 @@ describe('朋友圈回复互动与 NPC 自主决策', () => {
     expect(html).toContain('role="button"')
     expect(html).not.toContain('>回复</button>')
   })
+
+  it('无意义占位评论（如 ll / ...）仅落库，不触发自主回复', async () => {
+    const moment = await seedMoment('luffy', 'ev-trivial', '蹲锅边偷吃最香，被追半圈甲板也值。')
+    llmState.response = JSON.stringify({
+      shouldReply: true,
+      responderId: 'sanji',
+      responderName: '山治',
+      actorType: 'cast',
+      reply: '偷吃还敢发出来，锅边那口我留的！',
+      delaySeconds: 0,
+    })
+
+    const saved = await addMomentCommentForRole('luffy', moment.id, 'll', { immediate: true })
+    expect(saved.ok).toBe(true)
+    const interactions = await listMomentUserInteractionsForRole('luffy')
+    expect(interactions).toHaveLength(1)
+    expect(interactions[0]).toMatchObject({ actorId: 'user', text: 'll' })
+  })
+
+  it('用户评论主角动态且未点名或回复配角时，拦截配角越位回复 @我', async () => {
+    const moment = await seedMoment('luffy', 'ev-cast-hijack', '蹲锅边偷吃最香，被追半圈甲板也值。')
+    llmState.response = JSON.stringify({
+      shouldReply: true,
+      responderId: 'sanji',
+      responderName: '山治',
+      actorType: 'cast',
+      reply: '偷吃还敢发出来，锅边那口我留的！',
+      delaySeconds: 0,
+    })
+
+    const saved = await addMomentCommentForRole('luffy', moment.id, '哈哈哈看得我都饿了', { immediate: true })
+    expect(saved.ok).toBe(true)
+    const interactions = await listMomentUserInteractionsForRole('luffy')
+    expect(interactions).toHaveLength(1)
+    expect(interactions[0]).toMatchObject({ actorId: 'user', text: '哈哈哈看得我都饿了' })
+  })
 })

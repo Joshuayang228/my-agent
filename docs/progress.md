@@ -1,6 +1,6 @@
 # 项目进度
 
-修复朋友圈自主回复错把用户当动态作者与配角越位 `@我` Bug（2026-11-23）：`moment-reply.ts` 显式区分动态作者与评论用户，并在 `moments.ts` 补齐无意义占位评论（如 `ll`）跳过自动回复及配角越位截胡拦截；`moment-autonomous-reply.test.ts` 新增 2 项回归。
+修复朋友圈自主回复错把用户当动态作者与配角越位 `@我` Bug（2026-11-23）：`moment-reply.ts` 显式区分动态作者与评论用户，并在 `moments.ts` 补齐无意义占位评论（如 `ll`）跳过自动回复及配角越位截胡拦截；`moment-autonomous-reply.test.ts` 新增 2 项回归并同步 `docs/modules/companion.md`。
 
 重构 Chat 左侧轮次跳转轨为无白底圆点 + 单条预览卡并补齐礼物配图回归（2026-11-23）：对齐 Antigravity 极简圆点导航，`ChatScrollNavigator.tsx` 去除白底补丁，悬停单个圆点仅展示当前条用户提问、伙伴回复摘要、序数与时间，点击精准跳转；`gifting.test.ts` 新增预设礼物真实 PNG Base64 输出断言。
 
