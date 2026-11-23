@@ -34,14 +34,23 @@ export function ChatTurnRail({
 }) {
   const [open, setOpen] = useState(false)
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hoverJumpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     return () => {
       if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
+      if (hoverJumpTimerRef.current) clearTimeout(hoverJumpTimerRef.current)
     }
   }, [])
 
   if (turns.length < 2) return null
+
+  const scheduleHoverJump = (turnId: string) => {
+    if (hoverJumpTimerRef.current) clearTimeout(hoverJumpTimerRef.current)
+    hoverJumpTimerRef.current = setTimeout(() => {
+      onJumpToTurn(turnId)
+    }, 80)
+  }
 
   const handleEnter = () => {
     if (closeTimerRef.current) {
@@ -52,11 +61,15 @@ export function ChatTurnRail({
   }
 
   const handleLeave = () => {
+    if (hoverJumpTimerRef.current) {
+      clearTimeout(hoverJumpTimerRef.current)
+      hoverJumpTimerRef.current = null
+    }
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
     closeTimerRef.current = setTimeout(() => setOpen(false), 140)
   }
 
-  // 超过 24 轮时只压缩小横杠间距，保证整条轨道始终稳稳落在一屏内
+  // 超过 18 轮时压缩小横杠间距，保证整条轨道始终稳稳落在一屏内
   const compact = turns.length > 18
 
   return (
@@ -80,9 +93,9 @@ export function ChatTurnRail({
             <button
               key={turn.id}
               type="button"
+              onMouseEnter={() => scheduleHoverJump(turn.id)}
               onClick={() => onJumpToTurn(turn.id)}
               aria-label={`跳转到第 ${idx + 1} 轮：${turn.preview}`}
-              title={`${idx + 1}. ${turn.preview}`}
               className="group flex h-2.5 items-center py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
             >
               <span
@@ -100,42 +113,36 @@ export function ChatTurnRail({
         })}
       </div>
 
-      {/* 悬停展开的轮次跳转目录 */}
+      {/* 悬停展开的极简跳转目录（无多余标题与编号，悬停即联动定位、点击锁定收起） */}
       {open && (
         <div
-          className="ml-1.5 max-h-72 w-64 overflow-y-auto rounded-[var(--radius-card)] border p-1.5 shadow-lg backdrop-blur-md"
+          className="ml-1.5 max-h-64 w-56 overflow-y-auto rounded-[var(--radius-md)] border p-1 shadow-md backdrop-blur-md"
           style={{
-            background: 'color-mix(in srgb, var(--card-bg) 94%, transparent)',
+            background: 'color-mix(in srgb, var(--card-bg) 92%, transparent)',
             borderColor: 'var(--border-subtle)',
           }}
           data-testid="chat-turn-rail-popover"
         >
-          <div className="px-2 pb-1 pt-0.5 text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>
-            我的发言 · 共 {turns.length} 条
-          </div>
           <div className="flex flex-col gap-0.5">
-            {turns.map((turn, idx) => {
+            {turns.map((turn) => {
               const isActive = turn.id === activeTurnId
               return (
                 <button
                   key={turn.id}
                   type="button"
+                  onMouseEnter={() => scheduleHoverJump(turn.id)}
                   onClick={() => {
+                    if (hoverJumpTimerRef.current) clearTimeout(hoverJumpTimerRef.current)
                     onJumpToTurn(turn.id)
                     setOpen(false)
                   }}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] transition-colors hover:bg-[var(--hover-overlay)]"
+                  className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] leading-4 transition-colors hover:bg-[var(--hover-overlay)]"
                   style={{
                     background: isActive ? 'var(--accent-subtle)' : undefined,
-                    color: isActive ? 'var(--accent-fg)' : 'var(--text-primary)',
+                    color: isActive ? 'var(--accent-fg)' : 'var(--text-secondary)',
+                    fontWeight: isActive ? 500 : 400,
                   }}
                 >
-                  <span
-                    className="shrink-0 font-mono text-[10px] tabular-nums"
-                    style={{ color: isActive ? 'var(--accent-fg)' : 'var(--text-muted)' }}
-                  >
-                    {String(idx + 1).padStart(2, '0')}
-                  </span>
                   <span className="min-w-0 flex-1 truncate">{turn.preview}</span>
                 </button>
               )

@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 优化 Chat 左侧轮次跳转轨观感与悬停实时联动：`ChatScrollNavigator.tsx` 去掉冗余「我的发言 · 共 N 条」标题头与 `01/02` 编号收紧为极简轻浮层，并新增 80ms 防抖悬停实时定位（鼠标滑过任意横杠或条目时右侧对话即时平滑滚动，点击则锁定并收起）。
+
 2026-11-23 Chat 新增「回到底部」悬浮箭头与左侧轮次跳转轨、修复过程参数横滚条与精简页头右上角：新增 `ChatScrollNavigator.tsx`（`ChatScrollToBottomButton` 居中浮现于输入框上方一键回底 + `ChatTurnRail` 左侧极简小横杠，悬停展开全部用户发言目录并支持一键跳转，且向上浏览历史时不强制拉回底部）；`ToolCallbackList.tsx` 为工具参数 `<pre>` 补齐 `whitespace-pre-wrap break-all` 消除卡片内横向滚动条；`WorldProfileHeader.tsx` 移除右上角与左下角重复的地点胶囊。
 
 2026-11-23 根治通讯录配角头像在 `universeId === ''` 时缺失 Bug 并精修页头细节：`ipc/companion.ts`、`contacts.ts` 与 `loader.ts`（`getRoleVisualDataUrl` / `resolveRoleAssetFilePath`）统一将空字符串 `universeId` 归一回退为 `'default'`，彻底修复未切换过世界观时索隆/娜美/乌索普/山治头像无法加载的问题；`WorldProfileHeader.tsx` 移除重复的「很开心 · 此刻 · 」前缀（直出当前活动）、微调底部暗角加深至 64%，并将右上角换图图标改为悬停头图时才轻显（配半透明深色圆底）。
