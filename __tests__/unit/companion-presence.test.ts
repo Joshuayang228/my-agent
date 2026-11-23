@@ -25,6 +25,16 @@ describe('companion presence', () => {
     expect(copy.subtitle).toContain('路飞')
   })
 
+  it('常规空态首屏优先展示角色第一人称台词 quote 而非第三人称简介', () => {
+    const copy = buildColdStartCopy({
+      name: '路飞',
+      description: '自由、直率的冒险伙伴',
+      quote: '我要成为海贼王的男人！',
+    })
+    expect(copy.title).toBe('嗨，我是路飞')
+    expect(copy.subtitle).toBe('我要成为海贼王的男人！')
+  })
+
   it('换角再认识文案：换视角非重开，且点名双方', () => {
     const copy = buildReacquaintCopy({
       fromName: '小林',

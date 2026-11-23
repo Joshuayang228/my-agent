@@ -178,8 +178,25 @@ function App() {
   const [companionStatusSummary, setCompanionStatusSummary] = useState<string | undefined>()
   const [companionStatusMetrics, setCompanionStatusMetrics] = useState<{ mood: number; energy: number; socialNeed: number; relationshipSignal: number | null; relationshipPhase: string | null } | undefined>()
   const [companionFirstContact, setCompanionFirstContact] = useState<{ openingLine: string; quote?: string } | undefined>()
+  const [latestWelcomeMoment, setLatestWelcomeMoment] = useState<{ id: string; text: string; publishedAt: number } | null>(null)
   const [showFirstContact, setShowFirstContact] = useState(false)
   const [activeRoleId, setActiveRoleId] = useState('luffy')
+
+  useEffect(() => {
+    setLatestWelcomeMoment(null)
+    if (activeView !== 'chat' || messages.length > 0) return
+    const api = window.electronAPI?.companion
+    if (!api?.getMoments) return
+    let cancelled = false
+    void api.getMoments().then((res) => {
+      if (cancelled || !res || res.roleId !== activeRoleId) return
+      const first = res.items.find((item) => item.roleId === activeRoleId && item.text.trim().length > 0)
+      setLatestWelcomeMoment(first ? { id: first.id, text: first.text.trim(), publishedAt: first.publishedAt } : null)
+    }).catch(() => {
+      // 首屏最新动态是轻增强，读取失败静默降级为不展示
+    })
+    return () => { cancelled = true }
+  }, [activeRoleId, activeView, messages.length])
   const activeRoleIdRef = useRef(activeRoleId)
   activeRoleIdRef.current = activeRoleId
   const [companionAvatar, setCompanionAvatar] = useState<string | null>(null)
@@ -913,7 +930,7 @@ function App() {
 
   const sendMessage = async (overrideText?: string) => {
     const text = (overrideText ?? input).trim()
-    if (!text || isStreaming) return
+    if ((!text && pendingImages.length === 0) || isStreaming) return
 
     let sid = activeSessionId
     if (!sid) {
@@ -1204,11 +1221,245 @@ function App() {
   const coldStart = buildColdStartCopy({
     name: currentPersonaName,
     description: companionBlurb,
+    quote: companionFirstContact?.quote,
     firstContact: showFirstContact ? companionFirstContact : undefined,
   })
 
   // 全屏导航不能销毁项目工作区：保留固定位置的产品子树，仅隐藏；项目 key 才定义资源归属。
   const standaloneView = activeView === 'settings' || activeView === 'playground' || activeView === 'debug'
+
+  // 空态首屏时将输入框居中嵌入 ChatWelcome，对话开始后落回底部；两处共享同一份输入区子树避免重复维护。
+  const chatComposerInner = (
+    <>
+      {/* @mention 弹窗 */}
+      {mentionOpen && (
+        <MentionPopup
+          query={mentionQuery}
+          anchor={mentionAnchor}
+          onSelect={(entry) => {
+            const before = input.slice(0, mentionStartPos - 1)
+            const after = input.slice(inputRef.current?.selectionStart ?? input.length)
+            const tag = `@${entry.name} `
+            setInput(before + tag + after)
+            setMentionedFiles(prev => {
+              if (prev.some(f => f.path === entry.path)) return prev
+              return [...prev, { name: entry.name, path: entry.path }]
+            })
+            setMentionOpen(false)
+            setTimeout(() => inputRef.current?.focus(), 0)
+          }}
+          onClose={() => setMentionOpen(false)}
+        />
+      )}
+
+      {/* 输入卡片 */}
+      {modeChangeNotice && (
+        <div className="mb-2 flex items-center justify-between rounded-md border px-3 py-2 text-xs" style={{ borderColor: 'var(--warning)', color: 'var(--text-secondary)', background: 'var(--bg-secondary)' }}>
+          <span>{modeChangeNotice}</span>
+          <button onClick={() => setModeChangeNotice(null)} title="关闭提示" style={{ color: 'var(--text-muted)' }}><X size={13} /></button>
+        </div>
+      )}
+      <ChatComposer
+        inputRef={inputRef}
+        inputProps={{
+          value: input,
+          onChange: (e) => {
+            const val = e.target.value
+            setInput(val)
+            const pos = e.target.selectionStart ?? val.length
+            const charBefore = val[pos - 1]
+            const charBeforeThat = pos >= 2 ? val[pos - 2] : ' '
+            if (charBefore === '@' && (charBeforeThat === ' ' || charBeforeThat === '\n' || pos === 1)) {
+              const rect = e.target.getBoundingClientRect()
+              const popupHeight = 260
+              setMentionAnchor({ top: Math.max(8, rect.top - popupHeight - 8), left: rect.left })
+              setMentionStartPos(pos)
+              setMentionQuery('')
+              setMentionOpen(true)
+            } else if (mentionOpen && mentionStartPos > 0) {
+              const query = val.slice(mentionStartPos, pos)
+              if (query.includes(' ') || query.includes('\n') || pos < mentionStartPos) {
+                setMentionOpen(false)
+              } else {
+                setMentionQuery(query)
+              }
+            }
+          },
+          onKeyDown: handleKeyDown,
+          onPaste: (e) => {
+            handlePaste(e)
+            const files = e.clipboardData?.files
+            if (files && files.length > 0) {
+              const hasNonImage = Array.from(files).some(f => !f.type.startsWith('image/'))
+              if (hasNonImage) {
+                e.preventDefault()
+                handleFileAttach(Array.from(files).filter(f => !f.type.startsWith('image/')))
+              }
+            }
+          },
+          placeholder: attachedFiles.length > 0 ? '描述附件内容或输入问题...' : `和${currentPersonaName || '伙伴'}说说…`,
+        }}
+        streaming={isStreaming}
+        sendDisabled={!input.trim() && pendingImages.length === 0}
+        modelLabel={currentModel || '未配置模型'}
+        onSend={() => { void sendMessage() }}
+        onStop={() => { void window.electronAPI.chat.abort(activeSessionId || undefined) }}
+        onAttach={() => {
+          const inp = document.createElement('input')
+          inp.type = 'file'
+          inp.multiple = true
+          inp.onchange = () => { if (inp.files) void handleFileAttach(inp.files) }
+          inp.click()
+        }}
+        onImageGenerate={() => {
+          setInput((current) => current.trim() || buildImageDraftPrompt())
+          setTimeout(() => inputRef.current?.focus(), 0)
+        }}
+        prefix={(
+          <ChatAttachmentTray
+            images={pendingImages.map((img, idx) => ({ id: `${img.fileName ?? 'image'}-${idx}`, src: img.dataUrl, fileName: img.fileName || 'image.png' }))}
+            files={[
+              ...attachedFiles.map((f, idx) => ({ id: `att-${f.name}-${idx}`, name: f.name, sizeBytes: f.content?.length })),
+              ...mentionedFiles.map((f) => ({ id: `mention-${f.path}`, name: f.name })),
+            ]}
+            onRemoveImage={(idx) => setPendingImages(prev => prev.filter((_, i) => i !== idx))}
+            onRemoveFile={(idx) => {
+              if (idx < attachedFiles.length) {
+                setAttachedFiles(prev => prev.filter((_, i) => i !== idx))
+              } else {
+                const target = mentionedFiles[idx - attachedFiles.length]
+                if (target) setMentionedFiles(prev => prev.filter(x => x.path !== target.path))
+              }
+            }}
+          />
+        )}
+        approvalControl={<ChatApprovalControl value={approvalMode} onChange={async mode => {
+          if (!window.electronAPI) throw new Error('Settings unavailable')
+          await window.electronAPI.settings.set('executionMode', mode)
+          setApprovalMode(mode)
+        }} />}
+      />
+
+      {/* 输入框下方信息栏：项目选择器 + Token 用量 */}
+      <div className="mt-1.5 flex items-center justify-between px-1">
+        {/* 项目选择器 */}
+        <div className="relative">
+          <button
+            onClick={async (e) => {
+              e.stopPropagation()
+              if (!projectMenuOpen) {
+                const list = await window.electronAPI?.project.list()
+                if (list) setRecentProjects(list)
+              }
+              setProjectMenuOpen(!projectMenuOpen)
+            }}
+            className="flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] transition"
+            style={{ color: 'var(--text-secondary)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+          >
+            <Folder size={12} style={{ color: 'var(--text-muted)' }} />
+            <span>{currentProject?.name || '未选择项目'}</span>
+            <ChevronDown size={9} style={{ color: 'var(--text-muted)' }} />
+          </button>
+
+          {projectMenuOpen && (
+            <div
+              className="absolute bottom-full left-0 z-50 mb-1 w-56 rounded-lg border py-1 shadow-lg"
+              style={{ borderColor: 'var(--border-color)', background: 'var(--dropdown-bg)' }}
+            >
+              <div className="px-3 pb-1.5 pt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>项目目录</div>
+
+              {recentProjects.map((proj) => (
+                <button
+                  key={proj.path}
+                  onClick={async (e) => {
+                    e.stopPropagation()
+                    await window.electronAPI.project.set(proj.path)
+                    setCurrentProject(proj)
+                    setProjectMenuOpen(false)
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition"
+                  style={{
+                    color: currentProject?.path === proj.path ? 'var(--accent-fg)' : 'var(--text-secondary)',
+                    background: currentProject?.path === proj.path ? 'var(--accent-subtle)' : undefined,
+                  }}
+                  onMouseEnter={(e) => { if (currentProject?.path !== proj.path) (e.currentTarget as HTMLButtonElement).style.background = 'var(--hover-overlay)' }}
+                  onMouseLeave={(e) => { if (currentProject?.path !== proj.path) (e.currentTarget as HTMLButtonElement).style.background = '' }}
+                  title={proj.path}
+                >
+                  <Folder size={12} />
+                  <span className="truncate">{proj.name}</span>
+                  {currentProject?.path === proj.path && <Check size={12} style={{ color: 'var(--accent-fg)' }} />}
+                </button>
+              ))}
+
+              <div className="mx-2 my-1 h-px" style={{ background: 'var(--border-subtle)' }} />
+
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation()
+                  const result = await window.electronAPI.project.browse()
+                  if (result) {
+                    setCurrentProject(result)
+                    const list = await window.electronAPI.project.list()
+                    if (list) setRecentProjects(list)
+                  }
+                  setProjectMenuOpen(false)
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition"
+                style={{ color: 'var(--text-secondary)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+              >
+                <FolderOpen size={12} />
+                <span>添加新项目</span>
+              </button>
+
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation()
+                  await window.electronAPI.project.set(null)
+                  setCurrentProject(null)
+                  setRightDockCollapsed(false)
+                  setShowFileBrowser(false)
+                  setProjectMenuOpen(false)
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+              >
+                <Ban size={12} />
+                <span>不使用项目</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Token：产品态 hover 才见；对话 debug 时由上方 Overlay 常显 */}
+        {usage && (
+          <div className="flex gap-2 text-[10px] opacity-0 transition-opacity hover:opacity-100" style={{ color: 'var(--text-muted)' }}>
+            <span>↑{(usage.promptTokens / 1000).toFixed(1)}k</span>
+            <span>↓{(usage.completionTokens / 1000).toFixed(1)}k</span>
+            <span>Σ{((usage.promptTokens + usage.completionTokens) / 1000).toFixed(1)}k</span>
+          </div>
+        )}
+        {developerMode && (
+          <button
+            type="button"
+            onClick={() => setActiveView('debug')}
+            className="rounded px-1.5 py-0.5 text-[10px] transition"
+            style={{ color: 'var(--text-muted)' }}
+            title="打开全局 Debug"
+            data-testid="open-global-debug"
+          >
+            Debug
+          </button>
+        )}
+      </div>
+    </>
+  )
 
   return (
     <>
@@ -1510,15 +1761,44 @@ function App() {
         >
           <div className={`relative z-[1] flex min-h-full flex-col ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`}>
           <div className="mx-auto flex min-h-full w-full flex-1 flex-col" style={{ maxWidth: 'var(--layout-width)' }} data-testid="chat-content">
-            {/* 欢迎屏 — 衬线问候 + 建议 pill（Phase 3） */}
+            {/* 欢迎屏 — 无头像居中标题台词 + 居中输入框 + 统一清透胶囊 + 单条最新动态轻卡 */}
             {messages.length === 0 && (
-              <div className="flex flex-1 flex-col items-center justify-center pb-6">
-                <ChatWelcome title={coldStart.title} subtitle={coldStart.subtitle}
-                  avatarSrc={roleAvatars[activeRoleId] ?? companionAvatar}
+              <div className="flex flex-1 flex-col items-center justify-center py-6">
+                <ChatWelcome
+                  title={coldStart.title}
+                  subtitle={coldStart.subtitle}
                   roleName={currentPersonaName}
+                  composer={(
+                    <div
+                      className="relative w-full"
+                      style={{ ...layoutProfileStyle('chat'), background: 'transparent' }}
+                      data-testid="chat-composer-area"
+                    >
+                      {chatComposerInner}
+                    </div>
+                  )}
+                  latestMoment={latestWelcomeMoment ? {
+                    ...latestWelcomeMoment,
+                    onOpen: () => { setWorldTab('moments'); setActiveView('world') },
+                    onTalkAbout: () => {
+                      const snippet = latestWelcomeMoment.text.length > 60
+                        ? `${latestWelcomeMoment.text.slice(0, 60)}…`
+                        : latestWelcomeMoment.text
+                      const draft = `聊聊你刚发的这条动态：「${snippet}」`
+                      setInput(draft)
+                      requestAnimationFrame(() => {
+                        const el = inputRef.current
+                        if (el) {
+                          el.focus()
+                          el.setSelectionRange(draft.length, draft.length)
+                        }
+                      })
+                    },
+                  } : null}
                   onGreet={() => { void sendMessage('你好，介绍一下你自己') }}
                   onPlanDay={() => { void sendMessage('今天打算怎么过？陪我想想。') }}
-                  onOpenWorld={() => { setWorldTab('moments'); setActiveView('world') }} />
+                  onOpenWorld={() => { setWorldTab('moments'); setActiveView('world') }}
+                />
               </div>
             )}
 
@@ -1803,237 +2083,15 @@ function App() {
         </div>
         </div>}
 
-        {/* 输入区 — Codex 风格居中卡片 */}
-        {activeView === 'chat' && <div className={`relative shrink-0 ${LAYOUT_CLASSES.gutter} pb-5 pt-2`} style={{ ...layoutProfileStyle('chat'), background: 'transparent' }} data-testid="chat-composer-area">
-          <ChatScrollToBottomButton visible={showScrollToBottom} onClick={scrollToBottom} />
-          <div className="mx-auto w-full" style={{ maxWidth: 'var(--layout-width)' }}>
-            {/* @mention 弹窗 */}
-            {mentionOpen && (
-              <MentionPopup
-                query={mentionQuery}
-                anchor={mentionAnchor}
-                onSelect={(entry) => {
-                  const before = input.slice(0, mentionStartPos - 1)
-                  const after = input.slice(inputRef.current?.selectionStart ?? input.length)
-                  const tag = `@${entry.name} `
-                  setInput(before + tag + after)
-                  setMentionedFiles(prev => {
-                    if (prev.some(f => f.path === entry.path)) return prev
-                    return [...prev, { name: entry.name, path: entry.path }]
-                  })
-                  setMentionOpen(false)
-                  setTimeout(() => inputRef.current?.focus(), 0)
-                }}
-                onClose={() => setMentionOpen(false)}
-              />
-            )}
-
-            {/* 输入卡片 */}
-            {modeChangeNotice && (
-              <div className="mb-2 flex items-center justify-between rounded-md border px-3 py-2 text-xs" style={{ borderColor: 'var(--warning)', color: 'var(--text-secondary)', background: 'var(--bg-secondary)' }}>
-                <span>{modeChangeNotice}</span>
-                <button onClick={() => setModeChangeNotice(null)} title="关闭提示" style={{ color: 'var(--text-muted)' }}><X size={13} /></button>
-              </div>
-            )}
-            <ChatComposer
-              inputRef={inputRef}
-              inputProps={{
-                value: input,
-                onChange: (e) => {
-                  const val = e.target.value
-                  setInput(val)
-                  const pos = e.target.selectionStart ?? val.length
-                  const charBefore = val[pos - 1]
-                  const charBeforeThat = pos >= 2 ? val[pos - 2] : ' '
-                  if (charBefore === '@' && (charBeforeThat === ' ' || charBeforeThat === '\n' || pos === 1)) {
-                    const rect = e.target.getBoundingClientRect()
-                    const popupHeight = 260
-                    setMentionAnchor({ top: Math.max(8, rect.top - popupHeight - 8), left: rect.left })
-                    setMentionStartPos(pos)
-                    setMentionQuery('')
-                    setMentionOpen(true)
-                  } else if (mentionOpen && mentionStartPos > 0) {
-                    const query = val.slice(mentionStartPos, pos)
-                    if (query.includes(' ') || query.includes('\n') || pos < mentionStartPos) {
-                      setMentionOpen(false)
-                    } else {
-                      setMentionQuery(query)
-                    }
-                  }
-                },
-                onKeyDown: handleKeyDown,
-                onPaste: (e) => {
-                  handlePaste(e)
-                  const files = e.clipboardData?.files
-                  if (files && files.length > 0) {
-                    const hasNonImage = Array.from(files).some(f => !f.type.startsWith('image/'))
-                    if (hasNonImage) {
-                      e.preventDefault()
-                      handleFileAttach(Array.from(files).filter(f => !f.type.startsWith('image/')))
-                    }
-                  }
-                },
-                placeholder: attachedFiles.length > 0 ? '描述附件内容或输入问题...' : `和${currentPersonaName || '伙伴'}说说…`,
-              }}
-              streaming={isStreaming}
-              sendDisabled={!input.trim()}
-              modelLabel={currentModel || '未配置模型'}
-              onSend={() => { void sendMessage() }}
-              onStop={() => { void window.electronAPI.chat.abort(activeSessionId || undefined) }}
-              onAttach={() => {
-                const inp = document.createElement('input')
-                inp.type = 'file'
-                inp.multiple = true
-                inp.onchange = () => { if (inp.files) void handleFileAttach(inp.files) }
-                inp.click()
-              }}
-              onImageGenerate={() => {
-                setInput((current) => current.trim() || buildImageDraftPrompt())
-                setTimeout(() => inputRef.current?.focus(), 0)
-              }}
-              prefix={(
-                <ChatAttachmentTray
-                  images={pendingImages.map((img, idx) => ({ id: `${img.fileName ?? 'image'}-${idx}`, src: img.dataUrl, fileName: img.fileName || 'image.png' }))}
-                  files={[
-                    ...attachedFiles.map((f, idx) => ({ id: `att-${f.name}-${idx}`, name: f.name, sizeBytes: f.content?.length })),
-                    ...mentionedFiles.map((f) => ({ id: `mention-${f.path}`, name: f.name })),
-                  ]}
-                  onRemoveImage={(idx) => setPendingImages(prev => prev.filter((_, i) => i !== idx))}
-                  onRemoveFile={(idx) => {
-                    if (idx < attachedFiles.length) {
-                      setAttachedFiles(prev => prev.filter((_, i) => i !== idx))
-                    } else {
-                      const target = mentionedFiles[idx - attachedFiles.length]
-                      if (target) setMentionedFiles(prev => prev.filter(x => x.path !== target.path))
-                    }
-                  }}
-                />
-              )}
-              approvalControl={<ChatApprovalControl value={approvalMode} onChange={async mode => {
-                if (!window.electronAPI) throw new Error('Settings unavailable')
-                await window.electronAPI.settings.set('executionMode', mode)
-                setApprovalMode(mode)
-              }} />}
-            />
-
-            {/* 输入框下方信息栏：项目选择器 + Token 用量 */}
-            <div className="mt-1.5 flex items-center justify-between px-1">
-              {/* 项目选择器 */}
-              <div className="relative">
-                <button
-                  onClick={async (e) => {
-                    e.stopPropagation()
-                    if (!projectMenuOpen) {
-                      const list = await window.electronAPI?.project.list()
-                      if (list) setRecentProjects(list)
-                    }
-                    setProjectMenuOpen(!projectMenuOpen)
-                  }}
-                  className="flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] transition"
-                  style={{ color: 'var(--text-secondary)' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-                >
-                  <Folder size={12} style={{ color: 'var(--text-muted)' }} />
-                  <span>{currentProject?.name || '未选择项目'}</span>
-                  <ChevronDown size={9} style={{ color: 'var(--text-muted)' }} />
-                </button>
-
-                {projectMenuOpen && (
-                  <div
-                    className="absolute bottom-full left-0 z-50 mb-1 w-56 rounded-lg border py-1 shadow-lg"
-                    style={{ borderColor: 'var(--border-color)', background: 'var(--dropdown-bg)' }}
-                  >
-                    <div className="px-3 pb-1.5 pt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>项目目录</div>
-
-                    {recentProjects.map((proj) => (
-                      <button
-                        key={proj.path}
-                        onClick={async (e) => {
-                          e.stopPropagation()
-                          await window.electronAPI.project.set(proj.path)
-                          setCurrentProject(proj)
-                          setProjectMenuOpen(false)
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition"
-                        style={{
-                          color: currentProject?.path === proj.path ? 'var(--accent-fg)' : 'var(--text-secondary)',
-                          background: currentProject?.path === proj.path ? 'var(--accent-subtle)' : undefined,
-                        }}
-                        onMouseEnter={(e) => { if (currentProject?.path !== proj.path) (e.currentTarget as HTMLButtonElement).style.background = 'var(--hover-overlay)' }}
-                        onMouseLeave={(e) => { if (currentProject?.path !== proj.path) (e.currentTarget as HTMLButtonElement).style.background = '' }}
-                        title={proj.path}
-                      >
-                        <Folder size={12} />
-                        <span className="truncate">{proj.name}</span>
-                        {currentProject?.path === proj.path && <Check size={12} style={{ color: 'var(--accent-fg)' }} />}
-                      </button>
-                    ))}
-
-                    <div className="mx-2 my-1 h-px" style={{ background: 'var(--border-subtle)' }} />
-
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation()
-                        const result = await window.electronAPI.project.browse()
-                        if (result) {
-                          setCurrentProject(result)
-                          const list = await window.electronAPI.project.list()
-                          if (list) setRecentProjects(list)
-                        }
-                        setProjectMenuOpen(false)
-                      }}
-                      className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition"
-                      style={{ color: 'var(--text-secondary)' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-                    >
-                      <FolderOpen size={12} />
-                      <span>添加新项目</span>
-                    </button>
-
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation()
-                        await window.electronAPI.project.set(null)
-                        setCurrentProject(null)
-                        setRightDockCollapsed(false)
-                        setShowFileBrowser(false)
-                        setProjectMenuOpen(false)
-                      }}
-                      className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition"
-                      style={{ color: 'var(--text-muted)' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-                    >
-                      <Ban size={12} />
-                      <span>不使用项目</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Token：产品态 hover 才见；对话 debug 时由上方 Overlay 常显 */}
-              {usage && (
-                <div className="flex gap-2 text-[10px] opacity-0 transition-opacity hover:opacity-100" style={{ color: 'var(--text-muted)' }}>
-                  <span>↑{(usage.promptTokens / 1000).toFixed(1)}k</span>
-                  <span>↓{(usage.completionTokens / 1000).toFixed(1)}k</span>
-                  <span>Σ{((usage.promptTokens + usage.completionTokens) / 1000).toFixed(1)}k</span>
-                </div>
-              )}
-{developerMode && <button
-                type="button"
-                onClick={() => setActiveView('debug')}
-                className="rounded px-1.5 py-0.5 text-[10px] transition"
-                style={{ color: 'var(--text-muted)' }}
-                title="打开全局 Debug"
-                data-testid="open-global-debug"
-              >
-                Debug
-              </button>}
+        {/* 输入区 — 对话开始后固定落回底部，空态时由 ChatWelcome 居中承载 */}
+        {activeView === 'chat' && messages.length > 0 && (
+          <div className={`relative shrink-0 ${LAYOUT_CLASSES.gutter} pb-5 pt-2`} style={{ ...layoutProfileStyle('chat'), background: 'transparent' }} data-testid="chat-composer-area">
+            <ChatScrollToBottomButton visible={showScrollToBottom} onClick={scrollToBottom} />
+            <div className="mx-auto w-full" style={{ maxWidth: 'var(--layout-width)' }}>
+              {chatComposerInner}
             </div>
           </div>
-        </div>}
+        )}
       </div>
 
       {/* 右坞：文件 / 审阅 / 终端；Debug 统一进入全页工作区 */}

@@ -612,8 +612,14 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                     <ChatWelcome
                       title={`嗨，我是${persona.name}`}
                       subtitle={persona.blurb}
-                      avatarSrc={visuals?.avatarSrc}
                       roleName={persona.name}
+                      latestMoment={{
+                        id: 'preview-moment-1',
+                        text: '刚在甲板吹了会儿海风，顺手把今天最想聊的小事记下来了。',
+                        publishedAt: Date.now() - 2 * 60 * 60 * 1000,
+                        onOpen: () => onNavigate?.('world'),
+                        onTalkAbout: () => setJourney('conversation'),
+                      }}
                       onGreet={() => setJourney('conversation')}
                       onPlanDay={() => setJourney('conversation')}
                       onOpenWorld={() => onNavigate?.('world')}

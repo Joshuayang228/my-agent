@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 重构 Chat 空态首屏为「去头像 + 角色第一人称台词 + 居中输入框 + 单条最新动态轻卡」：`companion-presence.ts#buildColdStartCopy` 优先使用 Role Pack `firstContact.quote`（如路飞「我要成为海贼王的男人！」）替代第三人称简介；`ChatWelcome.tsx` 移除重复圆头像、统一三颗清透胶囊并新增 `composer` 居中插槽与 `latestMoment` 毛玻璃最新动态轻卡（支持「聊聊这条」预填输入与「去看看」跳转朋友圈）；`App.tsx` 在空态时将输入区居中承载、开聊后自然落回底部，同步更新 Playground `SurfaceBaselinePanel.tsx`。
+
 2026-11-23 放大 Chat 左侧轮次跳转轨热区并加入 Codex 同款鱼眼波浪拉长：`ChatScrollNavigator.tsx` 将左侧按钮热区扩至贴边 44px 宽 × 14px 高且纵向零缝隙（消除滑动断档），并按悬停距离（0/1/2 格）平滑渐变拉长线条（24px / 16px / 12px / 8px）。
 
 2026-11-23 重绘通讯录 4 位草帽团伙伴头像为阳光日漫满画幅风格：替换 `zoro` / `nami` / `usopp` / `sanji` 的 `visual/avatar-v1.png`（512×512 PNG），统一为晴朗蓝天白云甲板日光画风并彻底移除旧版黑夜阴森底色与白圆框。

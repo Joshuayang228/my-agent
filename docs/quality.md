@@ -1,5 +1,7 @@
 # 质量总控
 
+Chat 空态首屏与角色第一人称台词回归（2026-11-23）：`companion-presence.test.ts` 新增 `quote` 优先副标题断言；`ui-component-registry.test.ts`（47 项）、`foundation-enforcement-gate.test.ts`（14 项）与 `tsc --noEmit` 全绿。
+
 角色视觉资产 `process.chdir` 寻址回归（2026-11-23）：`gifting.test.ts` 扩展至 7 项，新增 `process.chdir(os.tmpdir())` 回归校验工作区切换后 `resolveRoleAssetFilePath` 仍能正确定位礼物插画与配角头像 PNG。
 
 朋友圈自主回复对象防错位与占位评论守门回归（2026-11-23）：`moment-autonomous-reply.test.ts` 扩展至 6 项，新增无意义占位评论（如 `ll`）不触发自动回复、用户未点名/回复配角时拦截配角越位回复 `@我` 2 项回归；24 项定向单测、`assets:check`、`arch:check` 与 `tsc --noEmit` 全部通过。

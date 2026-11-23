@@ -12,6 +12,8 @@ export interface ColdStartCopy {
 export function buildColdStartCopy(role: {
   name: string
   description: string
+  /** 角色第一人称招牌台词（来自 Role Pack `firstContact.quote`），优先作为常规首屏副标题 */
+  quote?: string
   firstContact?: { openingLine: string; quote?: string }
 }): ColdStartCopy {
   const name = role.name?.trim() || '伙伴'
@@ -23,9 +25,10 @@ export function buildColdStartCopy(role: {
       subtitle: `${name} · ${description}`,
     }
   }
+  const signatureQuote = role.quote?.trim()
   return {
     title: `嗨，我是${name}`,
-    subtitle: description,
+    subtitle: signatureQuote || description,
   }
 }
 
