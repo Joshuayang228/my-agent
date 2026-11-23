@@ -51,6 +51,7 @@ async function ensureSessionColumns(): Promise<void> {
       content          TEXT NOT NULL,
       tool_calls       TEXT,
       tool_call_id     TEXT,
+      images           TEXT,
       generated_images TEXT,
       created_at       INTEGER NOT NULL,
       sort_order       INTEGER NOT NULL
@@ -68,6 +69,19 @@ async function ensureSessionColumns(): Promise<void> {
   }
   if (!columns.has('parent_session_id')) db.run('ALTER TABLE sessions ADD COLUMN parent_session_id TEXT')
   if (!columns.has('session_kind')) db.run("ALTER TABLE sessions ADD COLUMN session_kind TEXT NOT NULL DEFAULT 'main'")
+
+  const msgInfoStmt = db.prepare('PRAGMA table_info(messages)')
+  const msgColumns = new Set<string>()
+  try {
+    while (msgInfoStmt.step()) {
+      const row = msgInfoStmt.getAsObject() as { name?: unknown }
+      if (typeof row.name === 'string') msgColumns.add(row.name)
+    }
+  } finally {
+    msgInfoStmt.free()
+  }
+  if (!msgColumns.has('images')) db.run('ALTER TABLE messages ADD COLUMN images TEXT')
+  if (!msgColumns.has('generated_images')) db.run('ALTER TABLE messages ADD COLUMN generated_images TEXT')
 }
 
 // ── 会话 CRUD ──
@@ -223,6 +237,7 @@ export async function getSession(sessionId: string): Promise<ChatSession | null>
       timestamp: r.created_at as number,
       ...(r.tool_calls ? { toolCalls: JSON.parse(r.tool_calls as string) } : {}),
       ...(r.tool_call_id ? { toolCallId: r.tool_call_id as string } : {}),
+      ...(r.images ? { images: JSON.parse(r.images as string) } : {}),
       ...(r.generated_images ? { generatedImages: JSON.parse(r.generated_images as string) } : {}),
     })
   }
@@ -284,8 +299,8 @@ export async function saveMessage(sessionId: string, message: ChatMessage): Prom
   db.run('SAVEPOINT save_message')
   try {
     db.run(`
-      INSERT INTO messages (id, session_id, role, content, tool_calls, tool_call_id, created_at, sort_order, generated_images)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO messages (id, session_id, role, content, tool_calls, tool_call_id, images, created_at, sort_order, generated_images)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       message.id,
       sessionId,
@@ -293,6 +308,7 @@ export async function saveMessage(sessionId: string, message: ChatMessage): Prom
       message.content,
       message.toolCalls ? JSON.stringify(message.toolCalls) : null,
       message.toolCallId || null,
+      message.images?.length ? JSON.stringify(message.images) : null,
       message.timestamp,
       maxOrder + 1,
       message.role === 'tool' && message.generatedImages?.length ? JSON.stringify(message.generatedImages) : null,
@@ -365,9 +381,9 @@ export async function forkSession(sourceSessionId: string, upToMessageId: string
     const r = msgStmt.getAsObject() as Record<string, unknown>
     const msgId = randomUUID()
     db.run(`
-      INSERT INTO messages (id, session_id, role, content, tool_calls, tool_call_id, created_at, sort_order, generated_images)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [msgId, newId, r.role as string, r.content as string, r.tool_calls as string | null, r.tool_call_id as string | null, r.created_at as number, order, typeof r.generated_images === 'string' ? r.generated_images : null])
+      INSERT INTO messages (id, session_id, role, content, tool_calls, tool_call_id, images, created_at, sort_order, generated_images)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [msgId, newId, r.role as string, r.content as string, r.tool_calls as string | null, r.tool_call_id as string | null, typeof r.images === 'string' ? r.images : null, r.created_at as number, order, typeof r.generated_images === 'string' ? r.generated_images : null])
 
     messages.push({
       id: msgId,
@@ -376,6 +392,7 @@ export async function forkSession(sourceSessionId: string, upToMessageId: string
       timestamp: r.created_at as number,
       ...(r.tool_calls ? { toolCalls: JSON.parse(r.tool_calls as string) } : {}),
       ...(r.tool_call_id ? { toolCallId: r.tool_call_id as string } : {}),
+      ...(r.images ? { images: JSON.parse(r.images as string) } : {}),
       ...(r.generated_images ? { generatedImages: JSON.parse(r.generated_images as string) } : {}),
     })
     order++

@@ -25,7 +25,7 @@ export function buildOpenAICompatibleMessages(
     if (msg.role === 'user' || msg.role === 'system') {
       if (msg.images && msg.images.length > 0) {
         if (stripImages) {
-          const placeholders = msg.images.map(img => `[图片: ${img.fileName || '附件'}]`).join(' ')
+          const placeholders = msg.images.map(img => `[图片: ${img.fileName || '附件'}（当前模型不支持视觉识别，无法直接查看图片内容）]`).join(' ')
           const text = [msg.content, placeholders].filter(Boolean).join('\n')
           result.push({ role: msg.role, content: text })
         } else {

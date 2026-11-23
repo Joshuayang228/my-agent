@@ -14,6 +14,8 @@ Chat 左侧轮次引导改回极简细线条样式（2026-11-23）：`ChatScroll
 
 重构 Chat 左侧轮次跳转轨为无白底圆点 + 单条预览卡并补齐礼物配图回归（2026-11-23）：对齐 Antigravity 极简圆点导航，`ChatScrollNavigator.tsx` 去除白底补丁，悬停单个圆点仅展示当前条用户提问、伙伴回复摘要、序数与时间，点击精准跳转；`gifting.test.ts` 新增预设礼物真实 PNG Base64 输出断言。
 
+修复用户消息图片附件丢失导致 AI 看不到图且回复后图片消失（2026-11-23）：定位根因为 `session-store.ts` 的 `messages` 表缺失 `images` 列，`runtime.chatTracked` 先落盘再从 DB 重载消息导致当轮即丢图，且回复结束后前端同步会话覆盖乐观状态致图片消失。已新增 DB v28→v29 幂等迁移（`messages.images TEXT`），补全 `saveMessage`/`getSession`/`forkSession` 持久化读写，允许 `App.tsx` 仅发图片不打字，并在不支持视觉的模型降级占位里明确告知模型当前无识图能力；`generated-image-session.test.ts` 新增全链路回归单测。
+
 修复严格格式约束下人设过渡语与旁白干扰（2026-11-23）：`electron/main/agent/tone-control.ts` 新增 `RE_STRICT_FORMAT_CONSTRAINT` 启发式识别，当用户显式指定严格格式、字数、大小写或结构约束时自动切换 `tight` + `discourage`（静默 `~>` 旁白）并追加「格式守约」指引，普通闲聊与情绪陪伴不受影响。复测结果：**Google IFEval（有效 23 题）Prompt-Strict 由 18/23（78.3%）跃升至 21/23（91.3%，+13.0pp），Strict 与 Loose 差距归零**；`general-agent-bench` `if-02` 翻盘 1.00 PASS（20 题通用基准达 **20/20 满分**）。
 
 外部全球权威公开基准首轮实测出分（2026-11-23）：新增 `scripts/authoritative_bench_runner.py` 并接入 `scripts/run_external_evals.mjs --suite authoritative`，在无 Docker 环境下直连 My Agent 真实 Electron Runtime 跑完三套全球公认权威基准（官方原版数据集 + 官方确定性判分器）：**OpenAI HumanEval 25/25（100.0%）**、**OpenAI GSM8K 25/25（100.0%）**、**Google IFEval 21/23 Prompt-Loose（91.3%） / 18/23 Prompt-Strict（78.3%）**（2 题因本机缺 NLTK `punkt_tab` 判分报错已剔除统计）；连同 **Agent Context Benchmark 5/6 满分 + 1 项 0.75（均分 95.8%）**，四大外部权威基准形成可对外横向对标的硬核能力基线。

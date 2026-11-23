@@ -40,7 +40,7 @@ let dbPath = ''
 let committedPersistenceFailure: Error | null = null
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 28
+export const SCHEMA_VERSION = 29
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -164,6 +164,7 @@ function initSchema(database: SqlJsDatabase): void {
       content       TEXT NOT NULL,
       tool_calls    TEXT,
       tool_call_id  TEXT,
+      images        TEXT,
       created_at    INTEGER NOT NULL,
       sort_order    INTEGER NOT NULL
     )
@@ -662,6 +663,10 @@ export function runMigrations(database: SqlJsDatabase): void {
         error_message    TEXT
       )`)
       d.run('CREATE INDEX IF NOT EXISTS idx_agent_turns_session ON agent_turns(session_id, updated_at)')
+    },
+    // v28 -> v29: persist user image attachments on messages so LLM and UI reload keep them.
+    (d) => {
+      if (tableExists(d, 'messages')) addColumnIfMissing(d, 'messages', 'images', 'TEXT')
     },
   ]
 

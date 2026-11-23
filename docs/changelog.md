@@ -14,6 +14,8 @@
 
 2026-11-23 重构 Chat 左侧轮次跳转轨为极简圆点 + 单条悬停预览卡并补齐礼物配图断言：`ChatScrollNavigator.tsx` 彻底移除白底补丁背景，改为纵向极简圆点轨；鼠标悬停单个圆点时仅在对应位置浮现该条单轮预览卡（用户发言加粗 + 伙伴回复摘录 + `idx / total` 与时间），点击精准跳转；`App.tsx` 为 `userTurns` 同步组装 `replyPreview` 与 `timestamp`；`__tests__/unit/gifting.test.ts` 补齐 `shanks-straw-hat` 与 `going-merry` 返回真实 `data:image/png;base64,` 的端到端断言。
 
+2026-11-23 修复聊天发送图片后 AI 看不到图且回复结束图片消失的 Bug：`database.ts`（v28→v29）与 `session-store.ts` 为 `messages` 表新增 `images` 列并在保存、读取与分支复制中完整持久化用户图片附件；`App.tsx` 允许不输入文字直接发送图片；`request-builders.ts` 在纯文本模型降级去图时提供明确的中文不支持视觉提示。
+
 2026-11-23 优化严格格式约束下的语气与旁白收放：`electron/main/agent/tone-control.ts` 新增严格输出格式约束信号识别（`strict-format`），在用户明确要求纯文本、字数、大小写、禁用词或精确结构时自动抑制 `~>` 内心独白与多余首尾过渡语，Google IFEval（有效 23 题）Prompt-Strict 从 78.3% 提升至 91.3%（与 Loose 持平），`general-agent-bench` 达 20/20 满分；常规聊天与情绪陪伴人设表现保持不变。
 
 2026-11-23 修复 `auto` 自主执行模式下写文件前口头二次确认打断闭环：`electron/main/prompts/compiler.ts` 按 `executionMode` 区分确认策略，消除 `auto` 模式下对常规工作区文件落盘的冗余口头反问，同时保留不可逆高风险破坏性操作的备份/恢复确认与宿主权限门禁；复测 `mcp-selection` 与 `rh-03` 均由 0 分升至 1.00 PASS，12 项安全攻防 12/12 零退化。

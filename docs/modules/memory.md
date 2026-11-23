@@ -224,4 +224,4 @@ Memory 边界审计完成。长期记忆、画像和向量召回继续独立于 
 
 
 #### Harness 接入说明（2026-11-23）
-上下文压缩会计入工具 schema 与历史工具结果裁剪，摘要调用通过 AsyncLocalStorage 绑定 query source，避免并发请求互相污染。
+上下文压缩会计入工具 schema 与历史工具结果裁剪，摘要调用通过 AsyncLocalStorage 绑定 query source，避免并发请求互相污染。数据库 schema v29 仅在 `messages` 表增加 `images` 列持久化用户图片附件，不改变长期记忆表与向量召回边界（压缩管线仍剥离图片二进制）。

@@ -49,6 +49,28 @@ it('用户消息不能持久化伪造生成引用，普通文本消息不附加�
   expect((await getSession(session.id))?.messages[0]).not.toHaveProperty('generatedImages')
 })
 
+it('用户消息图片附件经真实 SQLite 保存、重开、分支后不丢失，且能送入模型请求体', async () => {
+  const { buildOpenAICompatibleMessages } = await import('../../electron/main/llm/request-builders')
+  const session = await createSession('role')
+  const images = [{ dataUrl: 'data:image/png;base64,iVBORw0KGgo=', mimeType: 'image/png', fileName: 'shot.png' }]
+  await saveMessage(session.id, { id: 'user-img', role: 'user', content: '你能看到吗', timestamp: 1, images })
+
+  const exported = db.export(); db.close(); db = new SQL.Database(exported)
+  const reloaded = await getSession(session.id)
+  expect(reloaded?.messages[0].images).toEqual(images)
+
+  const fork = await forkSession(session.id, 'user-img')
+  expect(fork.messages[0].images).toEqual(images)
+  expect((await getSession(fork.id))?.messages[0].images).toEqual(images)
+
+  const apiMsgs = buildOpenAICompatibleMessages(reloaded!.messages)
+  expect(JSON.stringify(apiMsgs)).toContain('image_url')
+  expect(JSON.stringify(apiMsgs)).toContain('data:image/png;base64,iVBORw0KGgo=')
+
+  const strippedMsgs = buildOpenAICompatibleMessages(reloaded!.messages, { stripImages: true })
+  expect(JSON.stringify(strippedMsgs)).toContain('当前模型不支持视觉识别')
+})
+
 it('读取仅接受本会话图片 ID，真实文件替换、移动及跨会话引用失败', async () => {
   const session = await createSession('role')
   const other = await createSession('role')
