@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Image as ImageIcon, MapPin, MessageSquareShare, RotateCcw, X } from 'lucide-react'
+import { Image as ImageIcon, MapPin, MessageSquareShare, RotateCcw } from 'lucide-react'
 import { IconButton } from '../foundation/IconButton'
 import { ActionButton } from '../foundation/ActionButton'
 import { CompanionAvatar } from '../CompanionAvatar'
@@ -43,7 +43,7 @@ export interface WorldProfile {
  * 大幅降低顶部高度并强化渐变底衬可读性。
  * 关键约束：不向正式产品界面暴露 0-100 数值条与未来日程剧透；缺省内容不编造人设。
  */
-export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToChat, onClose, testId = 'world-profile' }: {
+export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToChat, testId = 'world-profile' }: {
   profile: WorldProfile
   roleId?: string
   initialTimeline?: CompanionTodayTimeline
@@ -135,7 +135,7 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
   return (
     <div className="shrink-0">
       <section
-        className={`relative flex min-h-[8.5rem] items-end gap-3.5 px-5 pb-4 pt-12 overflow-hidden ${hasBanner ? 'shadow-inner' : ''}`}
+        className={`relative flex min-h-[8.5rem] items-end gap-3.5 px-5 pb-4 pt-12 ${hasBanner ? 'shadow-inner' : ''}`}
         data-testid={testId}
         style={{
           background: 'var(--bg-primary)',
@@ -312,7 +312,7 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
               {menuOpen && (
                 <div
                   role="menu"
-                  className="absolute right-0 top-full mt-1.5 flex w-32 flex-col gap-0.5 rounded-[var(--radius-md)] border p-1 shadow-lg"
+                  className="absolute right-0 top-full z-30 mt-1.5 flex w-32 flex-col gap-0.5 rounded-[var(--radius-md)] border p-1 shadow-lg"
                   style={{
                     background: 'var(--bg-primary)',
                     borderColor: 'var(--border-subtle)',
@@ -354,7 +354,6 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
               )}
             </div>
           ) : null}
-          {onClose ? <IconButton label="返回聊天" onClick={onClose} style={{ color: 'var(--text-muted)' }}><X size={14} /></IconButton> : null}
         </div>
       </section>
     </div>

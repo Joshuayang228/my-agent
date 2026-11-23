@@ -1074,6 +1074,7 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
               avatarSrc: PERSONA_VISUALS[persona.id]?.avatarSrc,
               bannerSrc: PERSONA_VISUALS[persona.id]?.bannerSrc,
               themeColor: PERSONA_VISUALS[persona.id]?.themeColor,
+              statusMetrics: { mood: 82, energy: 74, socialNeed: 65, relationshipSignal: 12, relationshipPhase: 'rapport' },
             }}
             previewTimeline={{
               roleId: persona.id,
@@ -1094,7 +1095,6 @@ function WorldSurface({ persona, onNavigate }: { persona: PlaygroundPersona; onN
             enableImagePreview
             hideMomentsHeader
             previewPanels={previewPanels}
-            previewTabVariant="surface"
             toolbarAction={<WorldCandidateRefresh key={tab} label={refreshLabel} />}
           />
         </div>
