@@ -2,9 +2,15 @@ import { randomUUID } from 'node:crypto'
 import { buildTool } from '../builder'
 import { POST_MOMENT_DEFINITION, publishCompanionMoment, textArg } from '../../companion/application/publish-moment'
 import { changeWardrobe, createAsset, getAsset, listAssets, updateAsset } from '../../companion/life/assets'
-import { recordGiftFromChat } from '../../companion/life/gifting'
-import { addMomentCommentForRole } from '../../companion/life/moments'
+import { listReceivedGifts, recordGiftFromChat } from '../../companion/life/gifting'
+import { listInnerThoughts } from '../../companion/life/inner-thoughts'
+import { listKeepsakes } from '../../companion/growth/relationship-keepsake'
+import { getContactsForRole } from '../../companion/cast/contacts'
+import { getTodayTimelineForRole } from '../../companion/life/timeline'
+import { addProtagonistMomentCommentForRole, listMomentUserInteractionsForRole } from '../../companion/life/moments'
 import { listMoments } from '../../companion/core/persistence/life-repository'
+import { COMPANION_WORLD_READ_VIEWS, type CompanionWorldReadView } from '../../companion/core/projections/surface-registry'
+import { parseCastInteractions } from '../../../../src/shared/moment-user-interactions'
 import { getSession } from '../../storage/session-store'
 import { loadAuxLLMConfig } from '../../llm/aux-config'
 import { chatComplete } from '../../llm/index'
@@ -24,12 +30,16 @@ type CompanionAssetKind = (typeof ASSET_KINDS)[number]
  */
 export const companionReadWorldTool = buildTool({
   name: 'companion_read_world',
-  description: '读取当前会话人物的朋友圈或生活资产，返回真实 ID 和摘要。评论动态、给已有资产配图前先查询，不猜测目标 ID。',
+  description: '读取当前会话人物的世界记录（朋友圈含点赞评论、生活资产、日记、送出与收到的礼物、通讯录、今日轨迹），返回真实 ID 和摘要。聊到日记/礼物/动态评论或操作已有记录前先查询，绝不凭空猜测。',
   parameters: {
     type: 'object',
     properties: {
-      view: { type: 'string', enum: ['moments', 'assets'] },
-      kind: { type: 'string', enum: [...ASSET_KINDS], description: '查询资产时可按类型筛选。' },
+      view: {
+        type: 'string',
+        enum: [...COMPANION_WORLD_READ_VIEWS],
+        description: '要读取的人物世界切面：moments（朋友圈含评论）、assets（衣柜/文化角/家居/足迹）、journal（日记与深夜反思）、gifts（送出的信物与收到的礼物）、contacts（通讯录与伙伴关系）、timeline（今日轨迹）。',
+      },
+      kind: { type: 'string', enum: [...ASSET_KINDS], description: '当 view=assets 时可按资产类型筛选。' },
       offset: { type: 'integer', description: '分页起点，默认 0。' },
     },
     required: ['view'],
@@ -40,14 +50,137 @@ export const companionReadWorldTool = buildTool({
     if (!roleId) return '当前会话没有绑定人物，暂时不能读取人物世界。'
     const offset = args.offset === undefined ? 0 : args.offset
     if (typeof offset !== 'number' || !Number.isInteger(offset) || offset < 0 || offset > 10000) return '分页起点必须是 0–10000 的整数。'
-    if (args.view === 'moments') {
-      const rows = await listMoments(roleId, { offset, limit: 21 })
-      return JSON.stringify({ roleId, items: rows.slice(0, 20).map(row => ({ id: row.id, text: row.text.slice(0, 2000), publishedAt: row.publishedAt })), nextOffset: rows.length > 20 ? offset + 20 : null })
+    const view = args.view as CompanionWorldReadView
+    const handlers: Record<CompanionWorldReadView, () => Promise<string>> = {
+      moments: async () => {
+        const [rows, interactions] = await Promise.all([
+          listMoments(roleId, { offset, limit: 21 }),
+          listMomentUserInteractionsForRole(roleId),
+        ])
+        const items = rows.slice(0, 20).map((row) => {
+          const momentInteractions = interactions.filter((item) => item.momentId === row.id)
+          const likes = momentInteractions.filter((item) => item.kind === 'like')
+          const userAndProtagonistComments = momentInteractions
+            .filter((item) => item.kind === 'comment')
+            .map((item) => ({
+              id: item.id,
+              actorName: item.actorName || (item.actorType === 'user' ? '我' : roleId),
+              actorType: item.actorType,
+              replyToActorName: item.replyToActorName ?? null,
+              text: String(item.text ?? '').slice(0, 280),
+              createdAt: item.createdAt,
+            }))
+          const castComments = parseCastInteractions(row.meta || {}).map((item, idx) => ({
+            id: `cast:${row.id}:${idx}`,
+            actorName: item.actorName,
+            actorType: 'cast' as const,
+            replyToActorName: null,
+            text: (item.text || '赞').slice(0, 280),
+            createdAt: item.at ?? row.publishedAt,
+          }))
+          return {
+            id: row.id,
+            text: row.text.slice(0, 2000),
+            publishedAt: row.publishedAt,
+            likeCount: likes.length,
+            likedByUser: likes.some((item) => item.actorType === 'user'),
+            comments: [...castComments, ...userAndProtagonistComments].slice(-20),
+          }
+        })
+        return JSON.stringify({ roleId, items, nextOffset: rows.length > 20 ? offset + 20 : null })
+      },
+      assets: async () => {
+        if (args.kind !== undefined && !ASSET_KINDS.includes(args.kind as CompanionAssetKind)) return '资产类型无效。'
+        const rows = await listAssets(roleId, { kind: args.kind as string | undefined })
+        return JSON.stringify({
+          roleId,
+          items: rows.slice(offset, offset + 20).map((row) => ({
+            id: row.id,
+            kind: row.kind,
+            name: row.name,
+            description: typeof row.payload.description === 'string' ? row.payload.description.slice(0, 500) : '',
+          })),
+          nextOffset: rows.length > offset + 20 ? offset + 20 : null,
+        })
+      },
+      journal: async () => {
+        const thoughts = await listInnerThoughts(roleId, Math.min(100, offset + 21))
+        const slice = thoughts.slice(offset, offset + 20)
+        return JSON.stringify({
+          roleId,
+          items: slice.map((item) => ({
+            id: item.id,
+            title: item.title,
+            content: item.content.slice(0, 1200),
+            epiphany: item.epiphany ?? null,
+            mood: item.mood ?? null,
+            location: item.location ?? null,
+            thoughtType: item.thoughtType,
+            createdAt: item.createdAt,
+          })),
+          nextOffset: thoughts.length > offset + 20 ? offset + 20 : null,
+        })
+      },
+      gifts: async () => {
+        const [sent, received] = await Promise.all([
+          listKeepsakes(roleId),
+          listReceivedGifts(roleId, 50),
+        ])
+        return JSON.stringify({
+          roleId,
+          sent: sent.map((item) => ({
+            id: item.id,
+            name: item.name,
+            description: item.description.slice(0, 400),
+            lore: item.lore?.slice(0, 400) ?? null,
+            giftMessage: item.giftMessage?.slice(0, 400) ?? null,
+            giftReason: item.giftReason?.slice(0, 200) ?? null,
+            acquiredAt: item.acquiredAt,
+          })),
+          received: received.map((item) => ({
+            id: item.id,
+            giftName: item.giftName,
+            giverName: item.giverName || '你',
+            category: item.category,
+            note: item.userNote?.slice(0, 300) ?? null,
+            reaction: item.companionReaction.slice(0, 400),
+            createdAt: item.createdAt,
+          })),
+        })
+      },
+      contacts: async () => {
+        const contacts = await getContactsForRole(roleId)
+        return JSON.stringify({
+          roleId,
+          people: contacts.people.map((person) => ({
+            id: person.id,
+            name: person.name,
+            introduction: person.introduction.slice(0, 300),
+          })),
+          relations: contacts.relations,
+          recentExperiences: contacts.experiences.slice(0, 10),
+        })
+      },
+      timeline: async () => {
+        const timeline = await getTodayTimelineForRole(roleId)
+        return JSON.stringify({
+          roleId,
+          date: timeline.date,
+          theme: timeline.theme,
+          currentSlotIndex: timeline.currentSlotIndex,
+          slots: timeline.slots.map((slot) => ({
+            timeStr: slot.timeStr,
+            activity: slot.activity,
+            mood: slot.mood,
+            location: slot.location,
+            status: slot.status,
+          })),
+        })
+      },
     }
-    if (args.view !== 'assets') return '请选择 moments 或 assets。'
-    if (args.kind !== undefined && !ASSET_KINDS.includes(args.kind as CompanionAssetKind)) return '资产类型无效。'
-    const rows = await listAssets(roleId, { kind: args.kind as string | undefined })
-    return JSON.stringify({ roleId, items: rows.slice(offset, offset + 20).map(row => ({ id: row.id, kind: row.kind, name: row.name, description: typeof row.payload.description === 'string' ? row.payload.description.slice(0, 500) : '' })), nextOffset: rows.length > offset + 20 ? offset + 20 : null })
+    const handler = handlers[view]
+    if (!handler) return `请选择有效的视图：${COMPANION_WORLD_READ_VIEWS.join(' / ')}。`
+    return handler()
   },
 })
 
@@ -307,12 +440,14 @@ export const companionAddReadingNoteTool = buildTool({
  */
 export const companionCommentMomentTool = buildTool({
   name: 'companion_comment_moment',
-  description: '以当前人物身份查看并回应一条已发布朋友圈动态；评论会保留，人物回复在可用时单独生成。只能回应当前人物的动态。',
+  description: '以当前伙伴自己的身份在朋友圈动态下发表评论或回复某条评论。只能评论当前人物的动态；如需回复具体评论，可先调用 companion_read_world(view="moments") 获取评论 ID。',
   parameters: {
     type: 'object',
     properties: {
       momentId: { type: 'string', description: '要评论的动态 ID。' },
       text: { type: 'string', description: '评论内容，最多 280 字。' },
+      replyToCommentId: { type: 'string', description: '可选，要回复的评论 ID。' },
+      replyToActorName: { type: 'string', description: '可选，被回复人的称呼（如“我”或同伴名）。' },
     },
     required: ['momentId', 'text'],
   },
@@ -325,14 +460,22 @@ export const companionCommentMomentTool = buildTool({
     if (!roleId) return '当前会话没有绑定人物，暂时不能评论朋友圈。'
     const momentId = textArg(args, 'momentId', 200)
     const text = textArg(args, 'text', 280)
+    const replyToCommentId = textArg(args, 'replyToCommentId', 200)
+    const replyToActorName = textArg(args, 'replyToActorName', 80)
     if (!momentId || !text) return '动态 ID 和评论内容不能为空，评论不能超过 280 字。'
-    const result = await executeCompanionCommand({ roleId, actionType: 'comment-moment-tool', signal: context?.signal, handler: () => addMomentCommentForRole(roleId, momentId, text) })
+    const result = await executeCompanionCommand({
+      roleId,
+      actionType: 'comment-moment-tool',
+      signal: context?.signal,
+      handler: () => addProtagonistMomentCommentForRole(roleId, momentId, text, {
+        parentInteractionId: replyToCommentId || null,
+        replyToActorName: replyToActorName || null,
+      }),
+    })
     if (!result.ok) return `朋友圈评论未保存：${result.error}`
-    const reply = result.social.comments.find(item => item.source === 'protagonist' && item.parentInteractionId === result.interactionId)
-    return reply?.text ? `已评论朋友圈，${roleId} 回复：${reply.text}` : '已评论朋友圈；人物回复暂未生成。'
+    return `已以当前伙伴身份评论朋友圈：「${text}」`
   },
 })
-
 
 /**
  * 背景：用户聊天中常自然提到换装或天气穿搭，此前衣柜只能通过后台生活时钟或界面手动换上。

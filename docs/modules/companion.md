@@ -16,7 +16,7 @@
 
 人物世界读写接口统一验证当前应用窗口及主文档，全量校验发生在领域调用前。通讯录投影（`companion/cast/contacts.ts#getContactsForRole`）通过 `getRoleVisuals` 及配角直读 `getRoleVisualDataUrl` 一并返回关联配角的 `avatarSrc`，缺失时由前端自然降级为首字徽标。礼物柜（`companion/life/gifting.ts`）支持 `giverName` 与 Role Pack `starterReceivedGifts` 幂等播种，可同时展示用户与角色小伙伴赠送的珍藏礼物。
 
-朋友圈发布、资产工具与评论接入取消信号。已保存的评论继续保留，回复生成接收取消信号。人物选定的延迟回复连同到期时间写入 Outbox，重启后按原人物、世界观及评论归属恢复，同一条回复只提交一次。Chat 评论工具只回报直接回复本条评论的主角发言。
+朋友圈发布、资产工具与评论接入取消信号。已保存的评论继续保留，回复生成接收取消信号。人物选定的延迟回复连同到期时间写入 Outbox，重启后按原人物、世界观及评论归属恢复，同一条回复只提交一次。Chat 评论工具（`companion_comment_moment`）经 `addProtagonistMomentCommentForRole` 以当前主角本人身份（`actorType='protagonist'`）评论或回复，不冒充用户账号；`companion_read_world` 的可读视图枚举直接派生自 `surface-registry.ts#COMPANION_WORLD_READ_VIEWS`，覆盖全部 9 个人物世界切面（含朋友圈点赞与评论、日记、双边礼物、通讯录、今日轨迹与生活资产）。
 
 朋友圈发布与人物生活资产增改删、换装均在一个本地事务中保存业务事实、领域事件和成功回执；聊天工具创建资产与追加阅读笔记携带 (sessionId, toolCallId) 幂等键，资产配图与朋友圈配图挂载均在本地 Unit of Work 内原子提交并在 SQL 中止时清理已写出的孤立图片文件。命令失去租约后，原处理器进入本地事实事务时会被拒绝。
 

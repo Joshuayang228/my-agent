@@ -78,3 +78,23 @@ export function contentGutterStyle() {
 export function readingContentStyle(profile?: LayoutProfileId) {
   return { width: '100%', maxWidth: profile ? LAYOUT_PROFILES[profile].width ?? 'none' : CONTENT_LAYOUT.readingWidth, minWidth: 0, marginInline: 'auto' } as const
 }
+
+/**
+ * 人物世界各画廊共享的统一媒体图框档位（单一事实源）。
+ * - card：网格卡片统一 4/3 横卡（文化角、家居物件、足迹）
+ * - portrait：立绘与穿搭 3/4 竖卡（衣柜）
+ * - overview：宽幅总览大图 16/9 + 限宽 760px（家居总览、足迹详情）
+ * - scene：单空间场景图 16/9 + 限宽 560px（家居单房间）
+ */
+export const MEDIA_FRAME_PRESETS = {
+  card: { aspectRatio: '4 / 3' },
+  portrait: { aspectRatio: '3 / 4' },
+  overview: { aspectRatio: '16 / 9', maxWidth: 760 },
+  scene: { aspectRatio: '16 / 9', maxWidth: 560 },
+} as const
+
+export type MediaFramePreset = keyof typeof MEDIA_FRAME_PRESETS
+
+export function mediaFrameStyle(preset: MediaFramePreset): CSSProperties {
+  return { ...MEDIA_FRAME_PRESETS[preset], background: 'var(--bg-secondary)' }
+}

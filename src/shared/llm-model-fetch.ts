@@ -88,6 +88,36 @@ export function parseRemoteModelList(payload: unknown): string[] {
   return models
 }
 
+export type ModelCapability = { contextWindow?: number; maxOutputTokens?: number }
+
+function positiveNumber(value: unknown): number | undefined {
+  const number = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : NaN
+  return Number.isFinite(number) && number > 0 ? Math.floor(number) : undefined
+}
+
+/**
+ * 从供应商模型清单保留模型能力提示。
+ * 背景：上下文窗口和输出上限属于具体模型，不能继续用全局 4096 或固定启发式覆盖。
+ * 设计意图：只解析常见兼容字段并把未知字段丢弃，避免把供应商私有响应泄漏到设置或请求体。
+ * 关键约束：能力缺失必须保持 undefined，由运行时按安全默认处理；任何非正数都不能进入预算计算。
+ */
+export function parseRemoteModelCapabilities(payload: unknown): Record<string, ModelCapability> {
+  if (!payload || typeof payload !== 'object') return {}
+  const raw = payload as Record<string, unknown>
+  const source = Array.isArray(raw.data) ? raw.data : Array.isArray(raw.models) ? raw.models : []
+  const result: Record<string, ModelCapability> = {}
+  for (const item of source) {
+    if (!item || typeof item !== 'object') continue
+    const value = item as Record<string, unknown>
+    const id = String(value.id ?? value.model ?? '').trim()
+    if (!id) continue
+    const contextWindow = positiveNumber(value.contextWindow ?? value.context_window ?? value.context_length ?? value.max_input_tokens)
+    const maxOutputTokens = positiveNumber(value.maxOutputTokens ?? value.max_output_tokens ?? value.max_tokens ?? value.maxTokens)
+    if (contextWindow !== undefined || maxOutputTokens !== undefined) result[id] = { contextWindow, maxOutputTokens }
+  }
+  return result
+}
+
 export function connectionModelIds(connection: { model?: string; models?: Array<{ id?: string; enabled?: boolean }> }): string[] {
   const ids: string[] = []
   const seen = new Set<string>()
@@ -105,19 +135,19 @@ export function connectionModelIds(connection: { model?: string; models?: Array<
 }
 
 export function normalizeConnectionModels(
-  connection: { model?: string; models?: Array<{ id?: string; enabled?: boolean }> },
-): Array<{ id: string; enabled: boolean }> {
-  const enabledById = new Map<string, boolean>()
+  connection: { model?: string; models?: Array<{ id?: string; enabled?: boolean; contextWindow?: number; maxOutputTokens?: number }> },
+): Array<{ id: string; enabled: boolean; contextWindow?: number; maxOutputTokens?: number }> {
+  const byId = new Map<string, { enabled: boolean; contextWindow?: number; maxOutputTokens?: number }>()
   if (Array.isArray(connection.models)) {
     for (const item of connection.models) {
       const id = typeof item?.id === 'string' ? item.id.trim() : ''
       if (!id) continue
-      enabledById.set(id, item.enabled !== false)
+      byId.set(id, { enabled: item.enabled !== false, contextWindow: item.contextWindow, maxOutputTokens: item.maxOutputTokens })
     }
   }
   const model = typeof connection.model === 'string' ? connection.model.trim() : ''
-  if (model && !enabledById.has(model)) enabledById.set(model, true)
-  return Array.from(enabledById.entries()).map(([id, enabled]) => ({ id, enabled }))
+  if (model && !byId.has(model)) byId.set(model, { enabled: true })
+  return Array.from(byId.entries()).map(([id, value]) => ({ id, ...value }))
 }
 
 export function addConnectionModel(

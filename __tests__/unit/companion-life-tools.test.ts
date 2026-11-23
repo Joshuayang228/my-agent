@@ -57,7 +57,7 @@ it('Chat 查询真实动态 ID 后可评论，其他人物读不到该动态', a
   const data = JSON.parse(read.content)
   expect(data.items[0].text).toBe('读写闭环动态')
   const [comment] = await tools.executeAll([{ id: 'comment', name: 'companion_comment_moment', arguments: JSON.stringify({ momentId: data.items[0].id, text: '收到' }) }], context)
-  expect(comment.content).toContain('已评论朋友圈')
+  expect(comment.content).toContain('已以当前伙伴身份评论朋友圈')
   const [other] = await tools.executeAll([{ id: 'other', name: 'companion_read_world', arguments: '{"view":"moments"}' }], { ...context, roleId: 'nami' })
   expect(JSON.parse(other.content).items).toEqual([])
 })
@@ -223,31 +223,48 @@ it('Chat 可为路飞创建家居资料，并保留角色隔离与同一调用�
   expect((await listAssets('luffy', { kind: 'furniture' })).filter(asset => asset.name === '甲板望远镜架')).toHaveLength(1)
 })
 
-it('Chat 评论路飞朋友圈时复用真实互动与主角回复链', async () => {
+it('Chat 评论工具以当前主角本人身份评论朋友圈，不冒充用户账号', async () => {
   const posted = await registry().executeAll([{ id: 'post', name: 'companion_post_moment', arguments: JSON.stringify({ text: '千里阳光号甲板上的风很大。' }) }], { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' })
   expect(posted[0].isError).not.toBe(true)
   const moment = (await listMoments('luffy'))[0]
   const result = await registry().executeAll([{ id: 'comment', name: 'companion_comment_moment', arguments: JSON.stringify({ momentId: moment.id, text: '下一站也带我看看。' }) }], { sessionId: 's', workdir: process.cwd(), roleId: 'luffy' })
   expect(result[0].isError).not.toBe(true)
-  expect(result[0].content).toContain('已评论朋友圈')
-  expect((await listMomentUserInteractions('luffy')).some(item => item.momentId === moment.id && item.actorType === 'user' && item.text === '下一站也带我看看。')).toBe(true)
+  expect(result[0].content).toContain('已以当前伙伴身份评论朋友圈')
+  const rows = await listMomentUserInteractions('luffy')
+  expect(rows.some(item => item.momentId === moment.id && item.actorType === 'protagonist' && item.actorName === '路飞' && item.text === '下一站也带我看看。')).toBe(true)
+  expect(rows.some(item => item.actorType === 'user')).toBe(false)
 })
 
-it('评论工具只报告本次评论的回复，不把历史回复当成本次结果', async () => {
+it('companion_read_world 支持读取日记、双边礼物、通讯录与今日轨迹', async () => {
+  const tools = registry()
+  const context = { sessionId: 'read-all', workdir: process.cwd(), roleId: 'luffy' }
+  const [giftsRes, journalRes, contactsRes, timelineRes] = await tools.executeAll([
+    { id: 'r1', name: 'companion_read_world', arguments: '{"view":"gifts"}' },
+    { id: 'r2', name: 'companion_read_world', arguments: '{"view":"journal"}' },
+    { id: 'r3', name: 'companion_read_world', arguments: '{"view":"contacts"}' },
+    { id: 'r4', name: 'companion_read_world', arguments: '{"view":"timeline"}' },
+  ], context)
+  const gifts = JSON.parse(giftsRes.content)
+  expect(Array.isArray(gifts.sent)).toBe(true)
+  expect(gifts.received.some((item: { giverName: string }) => item.giverName === '红发香克斯')).toBe(true)
+  expect(Array.isArray(JSON.parse(journalRes.content).items)).toBe(true)
+  expect(Array.isArray(JSON.parse(contactsRes.content).people)).toBe(true)
+  expect(JSON.parse(timelineRes.content).roleId).toBe('luffy')
+})
+
+it('用户评论朋友圈只报告本次评论的主角回复，不把历史回复当成本次结果', async () => {
+  const { addMomentCommentForRole } = await import('../../electron/main/companion/life/moments')
   const tools = registry()
   const context = { sessionId: 'moment-replies', workdir: process.cwd(), roleId: 'luffy' }
   await tools.executeAll([{ id: 'post', name: 'companion_post_moment', arguments: '{"text":"明早出发。"}' }], context)
   const [moment] = await listMoments('luffy')
-  const comment = (id: string, text: string) => tools.executeAll([{
-    id, name: 'companion_comment_moment', arguments: JSON.stringify({ momentId: moment.id, text }),
-  }], context)
   vi.mocked(chatComplete).mockResolvedValueOnce('{"reply":"第一站去岛上。"}')
-  const [first] = await comment('first-comment', '第一站去哪儿？')
-  expect(first.content).toContain('第一站去岛上。')
+  const first = await addMomentCommentForRole('luffy', moment.id, '第一站去哪儿？', { immediate: true })
+  expect(first.ok && first.social.comments.some(item => item.source === 'protagonist' && item.parentInteractionId === first.interactionId && item.text === '第一站去岛上。')).toBe(true)
 
   vi.mocked(chatComplete).mockResolvedValueOnce('{"shouldReply":false}')
-  const [second] = await comment('second-comment', '路上小心。')
-  expect(second.content).toContain('人物回复暂未生成')
+  const second = await addMomentCommentForRole('luffy', moment.id, '路上小心。', { immediate: true })
+  expect(second.ok && second.social.comments.some(item => item.source === 'protagonist' && item.parentInteractionId === second.interactionId)).toBe(false)
 })
 
 it('已选定的延迟回复在原评论提交后保留持久任务和到期时间', async () => {
@@ -257,10 +274,9 @@ it('已选定的延迟回复在原评论提交后保留持久任务和到期时�
   const [moment] = await listMoments('luffy')
   vi.mocked(chatComplete).mockResolvedValueOnce('{"shouldReply":true,"reply":"明早见。","delaySeconds":120}')
   const start = Date.now()
-  const [result] = await tools.executeAll([{
-    id: 'comment', name: 'companion_comment_moment', arguments: JSON.stringify({ momentId: moment.id, text: '我去码头等你。' }),
-  }], context)
-  expect(result.content).toContain('人物回复暂未生成')
+  const { addMomentCommentForRole } = await import('../../electron/main/companion/life/moments')
+  const result = await addMomentCommentForRole('luffy', moment.id, '我去码头等你。')
+  expect(result.ok).toBe(true)
   const [comment] = await listMomentUserInteractions('luffy')
   const job = db.exec(`SELECT jobs.status, jobs.next_attempt_at, event.source_id
     FROM companion_outbox jobs JOIN companion_domain_events event ON jobs.event_id = event.id
@@ -355,10 +371,11 @@ it('Chat 收礼工具可将用户在对话中送出的礼物记入礼物柜，�
   expect(okRes[0].content).toContain('礼物柜')
 
   const history = await listReceivedGifts('luffy')
-  expect(history).toHaveLength(1)
-  expect(history[0].giftName).toBe('刚烤好的海王类带骨肉')
-  expect(history[0].userNote).toBe('看你今天出海辛苦了，给你烤的！')
-  expect(history[0].companionReaction).toBe('哇啊啊啊太香了吧！我要大口吃掉！')
+  const userGifts = history.filter((item) => !item.giverName || item.giverName === '你')
+  expect(userGifts).toHaveLength(1)
+  expect(userGifts[0].giftName).toBe('刚烤好的海王类带骨肉')
+  expect(userGifts[0].userNote).toBe('看你今天出海辛苦了，给你烤的！')
+  expect(userGifts[0].companionReaction).toBe('哇啊啊啊太香了吧！我要大口吃掉！')
 
   const noRoleRes = await registry().executeAll(
     [{ id: 'gift-2', name: 'companion_receive_gift', arguments: JSON.stringify({ giftName: '草帽徽章' }) }],

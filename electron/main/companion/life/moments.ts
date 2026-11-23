@@ -735,3 +735,63 @@ export async function addMomentCommentForRole(
   const rows = await store.listMomentUserInteractions(roleId)
   return { ok: true, social: describeMomentSocial(id, rows), interactionId: inserted.id }
 }
+
+/**
+ * 以当前主角本人身份在朋友圈发表评论或回复指定评论（供 Chat 工具调用）。
+ *
+ * 背景：此前 companion_comment_moment 误调了用户侧的 addMomentCommentForRole，导致伙伴评论时冒用了用户账号（actorType='user' / 「我」）。
+ * 设计意图：独立提供主角本人评论入口，写入 actorType='protagonist' 与角色真名，并同步广播 moment-updated 刷新界面，不触发自言自语的二次回复。
+ * 关键约束：动态必须属于 roleId；支持可选 parentInteractionId / replyToActorName 回复具体评论；严格走 UnitOfWork。
+ */
+export async function addProtagonistMomentCommentForRole(
+  roleId: string,
+  momentId: string,
+  text: unknown,
+  opts?: { parentInteractionId?: string | null; replyToActorName?: string | null },
+): Promise<MomentCommentMutationResult> {
+  const id = typeof momentId === 'string' ? momentId.trim() : ''
+  if (!id) return { ok: false, code: 'INVALID', error: '动态不存在' }
+  const normalized = normalizeMomentCommentText(text)
+  if (!normalized.ok) return { ok: false, code: 'INVALID', error: normalized.error }
+  const moment = await getMomentById(id)
+  if (!moment) return { ok: false, code: 'NOT_FOUND', error: '动态不存在' }
+  if (moment.roleId !== roleId) return { ok: false, code: 'ROLE_MISMATCH', error: '只能互动当前主角的动态' }
+  let protagonistName = roleId
+  try {
+    protagonistName = loadRolePack(roleId).name || roleId
+  } catch {
+    // 测试或未注册角色兜底
+  }
+  const inserted = await withCompanionUnitOfWork(async () => {
+    const row = await store.insertMomentUserInteraction({
+      momentId: id,
+      roleId,
+      kind: 'comment',
+      actorId: roleId,
+      actorType: 'protagonist',
+      actorName: protagonistName,
+      parentInteractionId: opts?.parentInteractionId ?? null,
+      replyToActorName: opts?.replyToActorName ?? null,
+      text: normalized.text,
+    })
+    await recordCompanionEventAndNotify({
+      roleId,
+      type: 'moment_protagonist_commented',
+      sourceType: 'moment_comment_tool',
+      sourceId: row.id,
+      idempotencyKey: `moment-protagonist-comment:${row.id}`,
+      occurredAt: row.createdAt,
+      payload: { momentId: id, text: normalized.text },
+      notification: {
+        kind: 'moment-updated',
+        dedupeKey: `moment-protagonist-comment:${row.id}`,
+        payload: { momentId: id, roleId, reply: { actorName: protagonistName, text: normalized.text } },
+      },
+      dispatch: false,
+    })
+    return row
+  })
+  await dispatchCompanionWindowOutbox()
+  const rows = await store.listMomentUserInteractions(roleId)
+  return { ok: true, social: describeMomentSocial(id, rows), interactionId: inserted.id }
+}

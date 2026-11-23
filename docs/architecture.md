@@ -792,3 +792,7 @@ Chat 朋友圈发布在同一 Unit of Work 内创建 Core 事件并投影旧查�
 对话 Application Context 统一承载 Agent、Session、权限策略、Domain Read Model 和 Prompt Context Evidence，Runtime 不再单独拼接 Prompt 证据列表。
 
 Companion 执行账本在读取幂等命令前回收超过租约窗口的 `running` 记录为 `retryable`，进程崩溃不会永久阻塞同一命令；恢复不把中断执行伪造为 completed，领域副作用仍由幂等键约束。
+
+
+#### 通用 Harness 边界补充（2026-11-23）
+LLM 请求预算由模型能力元数据进入 Agent Runtime，durable turn ledger 记录运行中断与终态，Provider failover 通过过程事件进入 UI 事件流。

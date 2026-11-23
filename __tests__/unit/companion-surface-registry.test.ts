@@ -3,6 +3,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   COMPANION_PROJECTION_SURFACES,
+  COMPANION_WORLD_READ_VIEWS,
   LIFE_FACTOR_CATALOG,
 } from '../../electron/main/companion/core/projections/surface-registry'
 import { PROMPT_KEYS } from '../../electron/main/prompts/keys'
@@ -54,5 +55,17 @@ describe('Companion Projection Surface Registry（12 切面 × 15 维因子统�
     const registryAsset = assets.find((a) => a.key === 'companion:registry:projection-surfaces')
     expect(registryAsset).toBeDefined()
     expect(registryAsset?.source).toContain('surface-registry.ts')
+  })
+
+  it('所有人物世界切面均声明 readView 并与 companion_read_world 工具枚举单一事实源同步', () => {
+    const worldSurfaces = COMPANION_PROJECTION_SURFACES.filter((s) => s.domain === 'world')
+    for (const surface of worldSurfaces) {
+      expect(surface.readView, `${surface.id} 缺少 readView 声明`).toBeTruthy()
+      expect(surface.toolNames, `${surface.id} 缺少 companion_read_world 声明`).toContain('companion_read_world')
+    }
+    const readTool = builtinTools.find((t) => t.name === 'companion_read_world')
+    expect(readTool).toBeDefined()
+    const viewEnum = (readTool?.parameters as { properties?: { view?: { enum?: string[] } } })?.properties?.view?.enum
+    expect(viewEnum).toEqual([...COMPANION_WORLD_READ_VIEWS])
   })
 })

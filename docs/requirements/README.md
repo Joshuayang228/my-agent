@@ -20,7 +20,7 @@
 
 ## 进行中
 
-当前无进行中施工合同。新功能立项请按需新增合同。
+通用 Agent Harness 修复：[general-agent-harness-remediation-v1.md](./general-agent-harness-remediation-v1.md)，按 2026-11-23 Harness 审计修复工具、流式、预算、持久 Turn、Retry、模型能力和会话隔离边界。
 
 ---
 

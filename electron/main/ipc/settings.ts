@@ -24,7 +24,12 @@ const modelConfigurationSchema = z.object({
 const connectionListSchema = z.array(z.object({
   id: z.string().min(1).max(256), name: z.string().max(1024), baseUrl: z.string().max(8192),
   model: z.string().max(1024), enabled: z.boolean(), apiKey: z.string().max(65536).optional(),
-  models: z.array(z.object({ id: z.string().min(1).max(1024), enabled: z.boolean() })).max(2000).optional(),
+  models: z.array(z.object({
+    id: z.string().min(1).max(1024),
+    enabled: z.boolean(),
+    contextWindow: z.number().int().positive().optional(),
+    maxOutputTokens: z.number().int().positive().optional(),
+  })).max(2000).optional(),
   provider: z.enum(['auto', 'openai', 'anthropic', 'gemini']).optional(),
   source: z.enum(['official', 'coding', 'relay', 'local', 'custom']).optional(), presetId: z.string().max(256).optional(),
 })).max(1000)

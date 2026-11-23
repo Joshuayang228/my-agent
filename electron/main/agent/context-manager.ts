@@ -1,5 +1,6 @@
 import { compileCompactRequest, compileContextMessage } from '../prompts/registered-request'
-import type { ChatMessage, LLMConfig } from '../../../src/shared/types'
+import type { ChatMessage, LLMConfig, ToolDefinition } from '../../../src/shared/types'
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { createLogger } from '../utils/logger'
 import { chatComplete } from '../llm/index'
 import { recordAssetUsage } from '../utils/asset-usage'
@@ -24,6 +25,7 @@ const L2_THRESHOLD = 0.75
 const L3_THRESHOLD = 0.90
 const L4_THRESHOLD = 0.95
 const RECENT_KEEP_COUNT = 6
+const HISTORICAL_TOOL_RESULT_MAX_CHARS = 12_000
 
 /**
  * querySource 标记 — 区分调用来源，防止压缩/记忆系统递归触发 LLM 调用。
@@ -31,18 +33,25 @@ const RECENT_KEEP_COUNT = 6
  */
 export type QuerySource = 'main' | 'compact' | 'memory' | 'title' | 'classifier'
 
-let activeQuerySource: QuerySource | null = null
+const querySourceStorage = new AsyncLocalStorage<{ source: QuerySource | null }>()
+let legacyQuerySource: QuerySource | null = null
 
 export function getQuerySource(): QuerySource | null {
-  return activeQuerySource
+  return querySourceStorage.getStore()?.source ?? legacyQuerySource
 }
 
 export function setQuerySource(source: QuerySource | null): void {
-  activeQuerySource = source
+  const store = querySourceStorage.getStore()
+  if (store) store.source = source
+  else legacyQuerySource = source
 }
 
 export function isCompactGuardActive(): boolean {
-  return activeQuerySource === 'compact'
+  return getQuerySource() === 'compact'
+}
+
+export function withQuerySource<T>(source: QuerySource, action: () => Promise<T>): Promise<T> {
+  return querySourceStorage.run({ source }, action)
 }
 
 export interface CompactCallbackInfo {
@@ -55,6 +64,8 @@ export interface CompactCallbackInfo {
 
 export interface ContextManagerOptions {
   maxTokens?: number
+  /** 当前请求实际暴露给模型的工具定义，用于把 schema 纳入预算。 */
+  tools?: readonly ToolDefinition[]
   /** API 上一轮返回的实际 promptTokens，比启发式估算更准 */
   lastActualPromptTokens?: number
   /** LLM 配置，L3/L4 需要调用 LLM 做摘要 */
@@ -87,6 +98,25 @@ export function estimateTokens(messages: ChatMessage[]): number {
   return total
 }
 
+/**
+ * 估算完整模型请求的文本预算。
+ *
+ * 背景：只统计消息会漏掉工具 schema，工具数量较多时本地判断会明显低于 Provider 的真实 prompt。
+ * 设计意图：把工具描述和参数 schema 纳入同一估算入口，避免把 schema 预算散落在 Provider 适配器里。
+ * 关键约束：这是压缩前的保守估算，不替代 Provider usage；工具顺序和实际暴露集合必须与请求一致。
+ */
+export function estimateRequestTokens(messages: ChatMessage[], tools: readonly ToolDefinition[] = []): number {
+  const messageTokens = estimateTokens(messages)
+  if (tools.length === 0) return messageTokens
+  const toolSchema = tools.map(tool => ({
+    name: tool.name,
+    description: tool.description,
+    parameters: tool.parameters,
+    inputExamples: tool.inputExamples,
+  }))
+  return messageTokens + estimateTextTokens(JSON.stringify(toolSchema)) + tools.length * 12
+}
+
 function estimateTextTokens(text: string): number {
   if (!text) return 0
   let cjk = 0
@@ -115,6 +145,25 @@ export function stripImagesForCompression(messages: ChatMessage[]): ChatMessage[
 }
 
 /**
+ * 在正式压缩前修剪历史工具结果。
+ *
+ * 背景：工具结果常常比用户和助手正文大几个数量级，等到 L3 摘要才处理会先浪费大量上下文。
+ * 设计意图：只处理非最近窗口的 tool 消息，保留结果头部和明确的修剪标记；最近结果继续完整保留，
+ * 让当前回合可以直接观察。放弃“所有历史工具结果都原样保留”的做法。
+ * 关键约束：不改变 toolCallId、消息顺序和最近 RECENT_KEEP_COUNT 条消息，不触碰 UI 已展示的原文。
+ */
+export function pruneHistoricalToolResults(messages: ChatMessage[]): ChatMessage[] {
+  const recentStart = Math.max(1, messages.length - RECENT_KEEP_COUNT)
+  return messages.map((message, index) => {
+    if (index >= recentStart || message.role !== 'tool' || message.content.length <= HISTORICAL_TOOL_RESULT_MAX_CHARS) return message
+    return {
+      ...message,
+      content: `${message.content.slice(0, HISTORICAL_TOOL_RESULT_MAX_CHARS)}\n\n[历史工具结果已修剪，当前回合如需完整内容请重新读取]`,
+    }
+  })
+}
+
+/**
  * 上下文压缩入口 — 四层分级策略（Alice 方法论 Ch.5）。
  *
  * L1 Snip（零成本）→ L2 MicroCompact（零成本）→ L3 Collapse（LLM 摘要）→ L4 AutoCompact（全量重写）
@@ -132,7 +181,7 @@ export async function compressContext(
   // C2: maxTokens 优先级 —— 显式传入 > 按模型推断 > 默认。
   // 不同模型窗口差异大，硬编码单一阈值会让大窗口模型过早压缩、小窗口模型压缩不及时。
   const inferredContextWindow = options.maxTokens === undefined
-  const maxTokens = options.maxTokens ?? getEffectiveContextWindow(options.llmConfig?.model)
+  const maxTokens = options.maxTokens ?? getEffectiveContextWindow(options.llmConfig?.model, options.llmConfig?.modelContextWindow)
   if (inferredContextWindow) {
     void recordAssetUsage({
       assetKey: PROVIDER_ASSET_KEYS.contextWindow,
@@ -144,9 +193,12 @@ export async function compressContext(
   }
   const querySource = options.querySource ?? 'main'
   // G5: 压缩管线不携带图片二进制，避免 vision 载荷扭曲预算与摘要
-  let current = stripImagesForCompression(messages)
-  let tokens = options.lastActualPromptTokens ?? estimateTokens(current)
-  const source = options.lastActualPromptTokens ? 'api' : 'estimate'
+  let current = pruneHistoricalToolResults(stripImagesForCompression(messages))
+  const estimatedRequestTokens = estimateRequestTokens(current, options.tools)
+  let tokens = options.lastActualPromptTokens === undefined
+    ? estimatedRequestTokens
+    : Math.max(options.lastActualPromptTokens, estimatedRequestTokens)
+  const source = options.lastActualPromptTokens === undefined ? 'estimate' : 'api+estimate'
 
   // A2: 在任何压缩层运行前快照文件读取状态。L1 Snip 会删掉早期 file_read 轮次，
   // 若等到 L3/L4 再提取就晚了——必须从原始消息捕获。对照 CC preCompactReadFileState。
@@ -159,7 +211,7 @@ export async function compressContext(
     const before = current.length
     const preTok = tokens
     current = snip(current)
-    const after = estimateTokens(current)
+    const after = estimateRequestTokens(current, options.tools)
     if (before !== current.length) {
       log.info(`L1 Snip: ${before} → ${current.length} messages, ${tokens} → ${after} tokens`)
       options.onCompact?.({
@@ -182,7 +234,7 @@ export async function compressContext(
     if (systemBefore?.role === 'system' && current[0] !== systemBefore) {
       current[0] = systemBefore
     }
-    const after = estimateTokens(current)
+    const after = estimateRequestTokens(current, options.tools)
     if (before !== current.length) {
       log.info(`L2 MicroCompact: ${before} → ${current.length} messages, ${tokens} → ${after} tokens`)
       options.onCompact?.({
@@ -202,7 +254,7 @@ export async function compressContext(
     const preTok = tokens
     const useLLM = querySource === 'main' && !!options.llmConfig
     current = await collapse(current, maxTokens, useLLM ? options.llmConfig : undefined, preCompactFileReads)
-    const after = estimateTokens(current)
+    const after = estimateRequestTokens(current, options.tools)
     log.info(`L3 Collapse: ${before} → ${current.length} messages, ${tokens} → ${after} tokens`, { usedLLM: useLLM })
     if (before !== current.length) {
       options.onCompact?.({
@@ -221,7 +273,7 @@ export async function compressContext(
     const before = current.length
     const preTok = tokens
     current = await autoCompact(current, maxTokens, options.llmConfig, preCompactFileReads)
-    const after = estimateTokens(current)
+    const after = estimateRequestTokens(current, options.tools)
     log.info(`L4 AutoCompact: ${before} → ${current.length} messages, ${tokens} → ${after} tokens`)
     options.onCompact?.({
       level: 'L4_AutoCompact',
@@ -546,14 +598,11 @@ async function collapse(
 
   if (llmConfig) {
     try {
-      setQuerySource('compact')
-      summaryContent = await generateLLMSummary(middleMessages, llmConfig)
+      summaryContent = await withQuerySource('compact', () => generateLLMSummary(middleMessages, llmConfig))
       usedLLM = true
     } catch (err) {
       log.warn('L3 LLM summary failed, falling back to rule-based', { error: String(err) })
       summaryContent = buildRuleSummary(middleMessages)
-    } finally {
-      setQuerySource(null)
     }
   } else {
     summaryContent = buildRuleSummary(middleMessages)
@@ -623,14 +672,11 @@ async function autoCompact(
   let summaryContent: string
   let usedLLM = false
   try {
-    setQuerySource('compact')
-    summaryContent = await generateLLMSummary(toSummarize, llmConfig, true)
+    summaryContent = await withQuerySource('compact', () => generateLLMSummary(toSummarize, llmConfig, true))
     usedLLM = true
   } catch (err) {
     log.warn('L4 AutoCompact LLM summary failed', { error: String(err) })
     summaryContent = buildRuleSummary(toSummarize)
-  } finally {
-    setQuerySource(null)
   }
 
   // A2: 恢复压缩前最近读取的文件（快照来自 compressContext 入口）

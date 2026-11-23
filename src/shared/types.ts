@@ -783,7 +783,7 @@ export interface LLMModelFetchInput {
 }
 
 export type LLMModelFetchResult =
-  | { ok: true; models: string[] }
+  | { ok: true; models: string[]; capabilities?: Record<string, { contextWindow?: number; maxOutputTokens?: number }> }
   | { ok: false; error: string; reason: LLMModelFetchReason; retryable: boolean }
 
 export type McpTransportType = 'stdio' | 'sse' | 'streamable-http'
@@ -852,6 +852,9 @@ export interface LLMConfig {
   temperature?: number
   topP?: number
   maxTokens?: number
+  /** 当前模型清单探测到的能力；缺失时由运行时安全降级。 */
+  modelContextWindow?: number
+  modelMaxOutputTokens?: number
   /**
    * OpenAI 兼容请求体上的 thinking 开关（DeepSeek V4 / Kimi 等）。
    * undefined = 不传，走厂商默认；辅助调用经能力探测或启发式后常设为 disabled。
@@ -877,6 +880,8 @@ export interface ModelConfigurationInput {
 export interface ModelConnectionModel {
   id: string
   enabled: boolean
+  contextWindow?: number
+  maxOutputTokens?: number
 }
 
 export interface ModelConnectionProfile {
@@ -908,6 +913,8 @@ export interface FallbackModelConfig {
   baseUrl?: string
   apiKey?: string
   provider?: LLMProvider
+  modelContextWindow?: number
+  modelMaxOutputTokens?: number
   thinking?: LLMConfig['thinking']
   runtimeAssetKeys?: string[]
 }
@@ -998,6 +1005,7 @@ export type AgentStreamEvent =
   | { type: 'usage'; promptTokens: number; completionTokens: number }
   | { type: 'error'; message: string; code?: string }
   | { type: 'execution_mode_changed'; mode: ExecutionMode; reason: string }
+  | { type: 'process'; message: string }
   | {
       /** M29-G1：本轮注入 Prompt 的记忆引用（供 UI 芯片） */
       type: 'memory_citations'

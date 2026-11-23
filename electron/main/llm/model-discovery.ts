@@ -1,6 +1,6 @@
 import { appendApiPath, detectProvider } from './provider-router'
 import { hasLLMAuthentication } from '../../../src/shared/llm-connection-test'
-import { MODEL_FETCH_MESSAGES, MODEL_FETCH_TIMEOUT_MS, parseRemoteModelList } from '../../../src/shared/llm-model-fetch'
+import { MODEL_FETCH_MESSAGES, MODEL_FETCH_TIMEOUT_MS, parseRemoteModelCapabilities, parseRemoteModelList } from '../../../src/shared/llm-model-fetch'
 import type { LLMConfig, LLMModelFetchReason, LLMModelFetchResult } from '../../../src/shared/types'
 
 function classifyHttpStatus(status: number): { error: string; reason: LLMModelFetchReason; retryable: boolean } {
@@ -82,7 +82,9 @@ export async function fetchRemoteModels(
     if (payload && typeof payload === 'object' && !Array.isArray((payload as Record<string, unknown>).data) && !Array.isArray((payload as Record<string, unknown>).models)) {
       return { ok: false, error: MODEL_FETCH_MESSAGES.invalidResponse, reason: 'invalid-response', retryable: false }
     }
-    return { ok: true, models: parseRemoteModelList(payload) }
+    const models = parseRemoteModelList(payload)
+    const capabilities = parseRemoteModelCapabilities(payload)
+    return Object.keys(capabilities).length > 0 ? { ok: true, models, capabilities } : { ok: true, models }
   } catch (error) {
     return { ok: false, ...classifyFetchError(error) }
   }

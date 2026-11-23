@@ -5,6 +5,7 @@ import {
   MODEL_FETCH_MESSAGES,
   normalizeConnectionModels,
   parseRemoteModelList,
+  parseRemoteModelCapabilities,
   removeConnectionModel,
   setConnectionModelEnabled,
   validateLLMModelFetchInput,
@@ -60,6 +61,13 @@ describe('remote model list parsing', () => {
     expect(parseRemoteModelList({
       models: [{ model: 'claude-sonnet-4' }, { id: 'claude-haiku-4' }],
     })).toEqual(['claude-sonnet-4', 'claude-haiku-4'])
+  })
+
+  it('keeps provider model capability metadata for request budgeting', () => {
+    expect(parseRemoteModelCapabilities({ data: [
+      { id: 'large', context_window: 1_000_000, max_output_tokens: 64_000 },
+      { id: 'invalid', contextWindow: 0 },
+    ] })).toEqual({ large: { contextWindow: 1_000_000, maxOutputTokens: 64_000 } })
   })
 })
 

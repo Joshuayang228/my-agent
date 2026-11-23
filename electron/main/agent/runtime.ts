@@ -28,12 +28,13 @@ import {
   resolveExpertiseLevel,
 } from './expertise-level'
 import { maybeExtractProfile } from './profile-extractor'
-import { setQuerySource } from './context-manager'
+import { withQuerySource } from './context-manager'
 import { checkBudget, recordDailyUsage } from './token-budget'
 import { ToolRegistry } from '../tools/registry'
 import * as store from '../storage/session-store'
 import * as settings from '../storage/settings-store'
 import * as memory from '../storage/memory-store'
+import { markInterruptedAgentTurns, startAgentTurn, updateAgentTurn } from '../storage/agent-turn-ledger'
 import {
   searchVectorStore,
   addToVectorStore,
@@ -85,10 +86,17 @@ export function resolveRuntimeDone(
 
 class AgentRuntime {
   private activeControllers = new Map<string, AbortController>()
+  /** 运行期权限降级只属于当前会话，不改写全局默认设置。 */
+  private sessionExecutionModes = new Map<string, ExecutionMode>()
 
   constructor() {
     // 供 Companion Orchestrator 门控换角，避免 companion import agent
     registerConversationStreamingProbe(() => this.activeControllers.size > 0)
+    void markInterruptedAgentTurns().catch((error) => {
+      log.warn('Failed to mark interrupted agent turns during startup', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+    })
   }
 
   /** 检查某会话是否正在执行 */
@@ -219,14 +227,33 @@ class AgentRuntime {
     let doneEmitted = false
     let errorSpan: ReturnType<typeof startSpan> | undefined
     let pendingFeedbackId: string | undefined
+    const turnId = randomUUID()
+    let turnStarted = false
 
     try {
       // ── 构建上下文 ──
       const customPrompt = await settings.getSetting('systemPrompt')
-      const executionMode = (hostPolicy.permissionPolicyKey === 'unattended-readonly' ? 'confirm-all' : await settings.getSetting('executionMode') || 'auto') as ExecutionMode
+      const executionMode = (hostPolicy.permissionPolicyKey === 'unattended-readonly'
+        ? 'confirm-all'
+        : (this.sessionExecutionModes.get(sessionId) ?? (await settings.getSetting('executionMode') || 'auto'))) as ExecutionMode
       const expertiseOverride = await settings.getSetting('userExpertiseLevel')
       // 会话绑定 role_id 优先；与 active 不一致时仍按会话组装（禁止中途换角偷换人设）
       const sessionMeta = await store.getSession(sessionId)
+      try {
+        await startAgentTurn({
+          turnId,
+          sessionId,
+          model: llmConfig.model,
+          requestFingerprint: `${sessionId}:${userMessage.id}:${messages.length}:${llmConfig.model}`,
+        })
+        turnStarted = true
+      } catch (error) {
+        // 运行时账本是恢复增强层，不能让诊断表暂不可用阻断本轮对话。
+        log.warn('Agent turn ledger unavailable; continuing without checkpoint', {
+          sessionId,
+          error: error instanceof Error ? error.message : String(error),
+        })
+      }
       const { assembleRoleId, activeRoleId, mismatch } = await assertConversationSessionRole(sessionMeta?.roleId)
       const agentManifest = loadHostConversationManifest(assembleRoleId, hostPolicy)
       const isSummon = sessionMeta?.sessionKind === 'summon'
@@ -513,9 +540,9 @@ class AgentRuntime {
       for await (const ev of stream) {
         let completedReply: ChatMessage | undefined
         if (ev.type === 'execution_mode_changed') {
-          // 安全降级必须跨当前 loop 生效到后续请求，避免下次对话又恢复 auto。
-          await settings.setSetting('executionMode', ev.mode)
-          log.warn('Execution mode persisted after runtime downgrade', {
+          // 安全降级只跨当前会话生效，不能把一次会话的拒绝扩散到其他窗口或人物。
+          this.sessionExecutionModes.set(sessionId, ev.mode)
+          log.warn('Execution mode scoped to session after runtime downgrade', {
             sessionId,
             mode: ev.mode,
             reason: ev.reason,
@@ -570,6 +597,9 @@ class AgentRuntime {
           recordDailyUsage(ev.promptTokens, ev.completionTokens)
         }
         if (ev.type === 'tool_calls') {
+          // 工具前的说明属于过程文本，Loop 不会把它作为最终 assistant turn 提交。
+          // 清掉 Runtime 的展示累加器，避免“我先处理一下”被持久化成最终回复。
+          assistantContent = ''
           await store.saveMessage(sessionId, {
             id: `assistant-tc-${randomUUID()}`,
             role: 'assistant',
@@ -625,6 +655,25 @@ class AgentRuntime {
       try { clearSessionSubAgents(sessionId) } catch { /* ok */ }
 
       if (terminalReason === 'completed') this.sendDesktopNotification(assistantContent)
+      if (turnStarted) {
+        const status = terminalReason === 'completed'
+          ? 'completed'
+          : terminalReason === 'aborted'
+            ? 'aborted'
+            : terminalReason
+              ? 'failed'
+              : 'needs_recovery'
+        await updateAgentTurn(turnId, {
+          status,
+          terminalReason: terminalReason ?? 'runtime_interrupted',
+        }).catch((error) => {
+          log.warn('Failed to finalize agent turn ledger', {
+            sessionId,
+            turnId,
+            error: error instanceof Error ? error.message : String(error),
+          })
+        })
+      }
     }
   }
 
@@ -680,24 +729,18 @@ class AgentRuntime {
   ): Promise<void> {
     const checkpoint = completedTurnCheckpoint(reply, lastUserMsg)
     await taskQueue.enqueue(sessionId, 'profile-extract', async () => {
-      setQuerySource('memory')
-      try {
+      await withQuerySource('memory', async () => {
         await maybeExtractProfile(messages, llmConfig, reply.content, {
           roleId: companion?.roleId,
           sessionId,
         })
-      } finally {
-        setQuerySource(null)
-      }
+      })
     }, checkpoint)
 
     await taskQueue.enqueue(sessionId, 'smart-title', async () => {
-      setQuerySource('title')
-      try {
+      await withQuerySource('title', async () => {
         await generateSmartTitle(sessionId, lastUserMsg?.content || '', reply.content, llmConfig)
-      } finally {
-        setQuerySource(null)
-      }
+      })
     }, checkpoint)
 
     if (lastUserMsg?.content && lastUserMsg.content.length > 20) {

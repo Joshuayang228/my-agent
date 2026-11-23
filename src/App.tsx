@@ -773,6 +773,7 @@ function App() {
       : ev.type === 'tool_start' ? `${ev.name}(${JSON.stringify(ev.args).slice(0, 60)})`
       : ev.type === 'tool_end' ? `${ev.name} → ${ev.isError ? 'ERR' : 'OK'}`
       : ev.type === 'error' ? ev.message
+      : ev.type === 'process' ? ev.message
       : ev.type === 'execution_mode_changed' ? `${ev.mode}: ${ev.reason}`
       : ev.type === 'compact' ? `${ev.level} ${ev.preTokens}→${ev.postTokens}t [${ev.trigger}${ev.usedLLM ? ' LLM' : ''}]`
       : ev.type === 'usage' ? `in:${ev.promptTokens} out:${ev.completionTokens}`
@@ -835,6 +836,10 @@ function App() {
         setApprovalMode(ev.mode === 'plan-first' ? 'confirm-all' : ev.mode)
         setModeChangeNotice(ev.reason)
         toast(ev.reason, 'warning')
+        break
+
+      case 'process':
+        setModeChangeNotice(ev.message)
         break
 
       case 'done':

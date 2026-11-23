@@ -3,7 +3,7 @@ import { ArrowLeft, ImageOff, MessageSquareShare, MapPin } from 'lucide-react'
 import { ActionButton } from '../foundation/ActionButton'
 import { Badge } from '../foundation/Badge'
 import { EmptyState } from '../foundation/EmptyState'
-import { contentGutterStyle, readingContentStyle } from '../../shared/content-layout'
+import { contentGutterStyle, mediaFrameStyle, readingContentStyle } from '../../shared/content-layout'
 
 export interface TravelRecordView {
   id: string; title: string; destination: string; start: string | null; end: string | null;
@@ -50,7 +50,7 @@ export function WorldTravelGallery({ trips: input, renderImage, renderEditor, to
     restoring.current = false
   }, [selected])
   const back = () => { restoring.current = true; setSelected(null) }
-  const picture = (item: TravelRecordView, thumbnail: boolean) => <div className={`flex w-full items-center justify-center overflow-hidden ${thumbnail ? '' : 'max-h-96 rounded-md'}`} style={{ aspectRatio: '3 / 2', background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>{renderImage?.(item, thumbnail) ?? <span className="inline-flex items-center gap-2 text-xs"><ImageOff size={16} />暂无旅行配图</span>}</div>
+  const picture = (item: TravelRecordView, thumbnail: boolean) => <div className={`flex w-full items-center justify-center overflow-hidden ${thumbnail ? '' : 'max-h-96 rounded-md'}`} style={{ ...mediaFrameStyle(thumbnail ? 'card' : 'overview'), color: 'var(--text-muted)' }}>{renderImage?.(item, thumbnail) ?? <span className="inline-flex items-center gap-2 text-xs"><ImageOff size={16} />暂无旅行配图</span>}</div>
   return <div className="flex min-h-0 flex-1 flex-col" data-testid="travel-gallery">
     {!embedded && toolbarAction && <div className="flex shrink-0 justify-end px-4 pt-3">{toolbarAction}</div>}
     <div ref={scroller} className={embedded ? 'min-w-0' : 'min-h-0 flex-1 overflow-y-auto'} data-testid="travel-scroll" style={{ ...(!embedded ? contentGutterStyle() : {}), color: 'var(--text-primary)' }}>

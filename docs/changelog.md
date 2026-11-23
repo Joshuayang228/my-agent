@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 人物世界 AI 读取工具注册表驱动全覆盖、朋友圈主角身份评论修复与基础层媒体图框统一：`surface-registry.ts` 为全部 9 个人物世界切面声明 `readView` 并导出单一事实源 `COMPANION_WORLD_READ_VIEWS`（`arch:check` 门禁强制锁死新增切面必同步工具）；`companion_read_world` 补齐 `journal`（日记）、`gifts`（送出与收到的礼物）、`contacts`（通讯录）、`timeline`（今日轨迹）且 `moments` 附带点赞与评论列表；`companion_comment_moment` 改为调用新增的 `addProtagonistMomentCommentForRole`，以当前主角身份（`actorType='protagonist'`）发表/回复评论，彻底修复此前冒充用户账号（「我」）的 Bug；`content-layout.ts` 新增 `MEDIA_FRAME_PRESETS` / `mediaFrameStyle()` 并在文化角、家居、足迹画廊统一卡片媒体比例。
+
 2026-11-23 优化右下角 Toast 停留时长与悬停暂停：`Toast.tsx` 由固定 3s 改为按文案字数自适应（4s–8.5s，报错至少 6.5s），并支持鼠标悬停暂停倒计时、移开后平滑退场，确保长评论回复提示从容可读。
 
 2026-11-23 朋友圈评论交互微调：`MomentsPanel.tsx` 移除回复栏冗余「取消」按钮（直接按退格键清除回复前缀），并新增点击输入区外任意位置自动收起评论框且保留内存草稿，再次点开可无缝续写。

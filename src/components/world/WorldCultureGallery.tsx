@@ -9,7 +9,7 @@ import { Badge } from '../foundation/Badge'
 import type { LivingAsset, LivingAssetEditor, LivingAssetImageReader, LivingAssetImageRevealer } from './WorldLivingContent'
 import { WorldRecordImage } from './WorldRecordImage'
 import { worldRecordImageReference } from '../../shared/world-records'
-import { LAYOUT_CLASSES, contentGutterStyle, readingContentStyle } from '../../shared/content-layout'
+import { LAYOUT_CLASSES, contentGutterStyle, mediaFrameStyle, readingContentStyle } from '../../shared/content-layout'
 
 const categories = [
   { id: 'reading', label: '书籍', icon: BookOpen },
@@ -54,7 +54,10 @@ function Artwork({ asset, maximumHeight, cardTop = false, showPreviewImages = fa
   const src = showPreviewImages ? text(asset, 'playgroundImageSrc') : ''
   const image = !showPreviewImages ? worldRecordImageReference(asset.payload) : null
   const Icon = categories.find((item) => item.id === type)?.icon ?? BookOpen
-  return <div className={cardTop ? 'w-full overflow-hidden' : 'w-full overflow-hidden rounded-md'} data-testid="culture-artwork" style={{ aspectRatio: ratio, maxWidth: maximumHeight ? maximumHeight * ratio : undefined, background: 'var(--bg-secondary)' }}>
+  const frameStyle = cardTop
+    ? mediaFrameStyle('card')
+    : { aspectRatio: ratio, maxWidth: maximumHeight ? maximumHeight * ratio : undefined, background: 'var(--bg-secondary)' }
+  return <div className={cardTop ? 'w-full overflow-hidden' : 'w-full overflow-hidden rounded-md'} data-testid="culture-artwork" style={frameStyle}>
     {image && readImage ? <WorldRecordImage assetId={asset.id} image={image} alt={asset.name} readImage={readImage} revealImage={revealImage} /> : src && !['pending', 'failed'].includes(text(asset, 'imageState'))
       ? <ImagePreviewImage src={src} alt={`${asset.name}${photography ? '，虚构摄影作品' : '，示意配图'}`} className="block h-full w-full object-cover" buttonClassName="h-full w-full" />
       : <div role="status" className="flex h-full flex-col items-center justify-center gap-3 px-3 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>

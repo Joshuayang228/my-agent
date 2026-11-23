@@ -25,7 +25,10 @@ export const MODEL_CONTEXT_WINDOWS: ReadonlyArray<{ prefix: string; window: numb
  * 设计意图：按已知家族匹配后统一扣除预留；未知或空模型名走同一保守回退。
  * 关键约束：返回值是压缩预算而非厂商声明的原始 Context Window。
  */
-export function getEffectiveContextWindow(model?: string): number {
+export function getEffectiveContextWindow(model?: string, configuredWindow?: number): number {
+  if (configuredWindow !== undefined && Number.isFinite(configuredWindow) && configuredWindow > 0) {
+    return Math.max(Math.floor(configuredWindow) - OUTPUT_RESERVE_TOKENS, MIN_EFFECTIVE_CONTEXT_TOKENS)
+  }
   if (!model) return DEFAULT_MAX_TOKENS
   const normalized = model.toLowerCase()
   for (const { prefix, window } of MODEL_CONTEXT_WINDOWS) {

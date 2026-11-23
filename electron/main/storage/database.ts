@@ -40,7 +40,7 @@ let dbPath = ''
 let committedPersistenceFailure: Error | null = null
 
 /** 当前 schema 版本；每次破坏性/加列迁移 +1 */
-export const SCHEMA_VERSION = 27
+export const SCHEMA_VERSION = 28
 
 /** persist 是否正在写盘（同步重入 / 连打时走 dirty coalesce） */
 let persisting = false
@@ -223,6 +223,22 @@ function initSchema(database: SqlJsDatabase): void {
   `)
   database.run(`CREATE INDEX IF NOT EXISTS idx_btasks_status ON background_tasks(status)`)
   database.run(`CREATE INDEX IF NOT EXISTS idx_btasks_session ON background_tasks(session_id)`)
+
+  database.run(`
+    CREATE TABLE IF NOT EXISTS agent_turns (
+      turn_id          TEXT PRIMARY KEY,
+      session_id       TEXT NOT NULL,
+      status           TEXT NOT NULL DEFAULT 'running',
+      model            TEXT NOT NULL DEFAULT '',
+      request_hash     TEXT NOT NULL DEFAULT '',
+      attempt          INTEGER NOT NULL DEFAULT 0,
+      started_at       INTEGER NOT NULL,
+      updated_at       INTEGER NOT NULL,
+      terminal_reason  TEXT,
+      error_message    TEXT
+    )
+  `)
+  database.run(`CREATE INDEX IF NOT EXISTS idx_agent_turns_session ON agent_turns(session_id, updated_at)`)
 
   runMigrations(database)
 }
@@ -630,6 +646,22 @@ export function runMigrations(database: SqlJsDatabase): void {
         finished_at INTEGER,
         PRIMARY KEY(task_id, scheduled_at)
       )`)
+    },
+    // v27 -> v28: durable Agent turn lifecycle for restart recovery.
+    (d) => {
+      d.run(`CREATE TABLE IF NOT EXISTS agent_turns (
+        turn_id          TEXT PRIMARY KEY,
+        session_id       TEXT NOT NULL,
+        status           TEXT NOT NULL DEFAULT 'running',
+        model            TEXT NOT NULL DEFAULT '',
+        request_hash     TEXT NOT NULL DEFAULT '',
+        attempt          INTEGER NOT NULL DEFAULT 0,
+        started_at       INTEGER NOT NULL,
+        updated_at       INTEGER NOT NULL,
+        terminal_reason  TEXT,
+        error_message    TEXT
+      )`)
+      d.run('CREATE INDEX IF NOT EXISTS idx_agent_turns_session ON agent_turns(session_id, updated_at)')
     },
   ]
 

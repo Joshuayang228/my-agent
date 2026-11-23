@@ -399,7 +399,7 @@ export async function* streamChat(
         try {
           attachRequest(fbConfig, i + 1, previousError)
           llmLog.info(`Failover attempt ${i + 1}/${fallbacks.length}`, { model: fb.model })
-          yield { type: 'text', content: `\n\n> ⚡ 主模型不可用，已切换到 ${fb.model}\n\n` }
+          yield { type: 'process', message: `主模型不可用，已切换到 ${fb.model}` }
           const result = yield* attempt({ ...options, config: fbConfig })
           finishLLMTrace(traceSpan, ownsTraceSpan, true, result)
           return result
@@ -588,6 +588,7 @@ async function* streamChatSingle(
     name: tc.name,
     arguments: tc.arguments,
   }))
+  stopReason ??= toolCalls.length > 0 ? 'tool_calls' : contentAcc ? 'stop' : 'unknown'
 
   return {
     content: contentAcc || null,
@@ -751,6 +752,7 @@ async function* streamChatAnthropic(
     name: tc.name,
     arguments: tc.arguments,
   }))
+  stopReason ??= toolCalls.length > 0 ? 'tool_calls' : contentAcc ? 'stop' : 'unknown'
 
   return { content: contentAcc || null, toolCalls, usage, reasoning: reasoningAcc || undefined, stopReason }
 }
@@ -966,6 +968,7 @@ async function* streamChatGemini(
     name: tc.name,
     arguments: tc.arguments,
   }))
+  stopReason ??= toolCalls.length > 0 ? 'tool_calls' : contentAcc ? 'stop' : 'unknown'
 
   return { content: contentAcc || null, toolCalls, usage, reasoning: reasoningAcc || undefined, stopReason }
 }

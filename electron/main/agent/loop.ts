@@ -22,7 +22,7 @@ import { recordAssetUsage, recordAssetUsages } from '../utils/asset-usage'
 import { toolAssetKey } from '../tools/asset-keys'
 import { PERMISSION_SANDBOX_ASSET_KEYS } from '../sandbox/asset-keys'
 import { resolveEffectiveSandbox } from '../sandbox/effective-sandbox'
-import { compressContext, emergencyTruncate, estimateTokens, DEFAULT_MAX_TOKENS } from './context-manager'
+import { compressContext, emergencyTruncate, estimateRequestTokens, DEFAULT_MAX_TOKENS } from './context-manager'
 import { sanitizeMessages } from './message-pipeline'
 import { compileAgentRequest, compileDefaultSystem, readRegisteredSystemText } from '../prompts/registered-request'
 
@@ -239,7 +239,9 @@ export async function* agentLoop(
     // ── 上下文压缩（每次迭代前检查，带熔断器） ──
     if (state.consecutiveCompactFailures >= MAX_CONSECUTIVE_COMPACT_FAILURES) {
       // A3: 熔断后不能什么都不做（下一轮会因超限崩溃），降级为紧急截断
-      const tokens = state.lastPromptTokens ?? estimateTokens(state.messages)
+      const tokens = state.lastPromptTokens === undefined
+        ? estimateRequestTokens(state.messages, effectiveTools)
+        : Math.max(state.lastPromptTokens, estimateRequestTokens(state.messages, effectiveTools))
       if (tokens > DEFAULT_MAX_TOKENS * 0.9) {
         const before = state.messages.length
         const truncated = emergencyTruncate(state.messages, DEFAULT_MAX_TOKENS * 0.5)
@@ -264,6 +266,7 @@ export async function* agentLoop(
       const compressed = await compressContext(state.messages, {
         lastActualPromptTokens: state.lastPromptTokens,
         llmConfig: config,
+        tools: effectiveTools,
         querySource: 'main',
       })
       if (compressed.length < beforeCount) {
@@ -315,6 +318,7 @@ export async function* agentLoop(
     })
 
     for (let attempt = 0; attempt <= MAX_LLM_RETRIES; attempt++) {
+      let emittedOutputThisAttempt = false
       if (attempt > 0) {
         // 优先遵从服务端 retry-after，否则退回指数退避（对照 CC withRetry.ts:530）
         const backoff = nextRetryAfterMs ?? 1000 * Math.pow(2, attempt - 1)
@@ -349,6 +353,9 @@ export async function* agentLoop(
 
         let streamResult = await stream.next()
         while (!streamResult.done) {
+          if (streamResult.value.type === 'text' || streamResult.value.type === 'thinking' || streamResult.value.type === 'tool_call_delta') {
+            emittedOutputThisAttempt = true
+          }
           yield streamResult.value
           streamResult = await stream.next()
         }
@@ -390,6 +397,17 @@ export async function* agentLoop(
           return
         }
         lastErr = err
+
+        // 已经把模型输出发布给 Renderer 后不能从同一轮重新请求并拼接，
+        // 否则网络断流会让用户看到重复正文或重复工具调用。将本次 attempt
+        // 作为不可恢复的流式失败终态，用户可以从原始消息重新发起一轮。
+        if (emittedOutputThisAttempt) {
+          log.warn('LLM stream failed after output was emitted; skipping retry', {
+            attempt,
+            error: err instanceof Error ? err.message : String(err),
+          })
+          break
+        }
 
         // ── 413 紧急压缩 + 重试 ──
         if (is413Error(err) && !state.hasAttemptedReactiveCompact) {

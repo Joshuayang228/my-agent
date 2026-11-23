@@ -251,8 +251,9 @@ describe('streamChat failover', () => {
 
     const textEvents = events.filter(e => e.type === 'text')
     const allText = textEvents.map(e => (e as { content: string }).content).join('')
+    const processMessages = events.filter(e => e.type === 'process').map(e => (e as { message: string }).message).join('')
     expect(allText).toContain('Fallback reply')
-    expect(allText).toContain('已切换')
+    expect(processMessages).toContain('已切换')
     expect(mockFetch).toHaveBeenCalledTimes(2)
     expect(mockFetch.mock.calls[1][0]).toContain('backup')
   })

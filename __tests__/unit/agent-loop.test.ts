@@ -212,6 +212,23 @@ describe('agentLoop', () => {
     expect(received.filter(event => event.type === 'error').every(event => event.code === 'ABORTED')).toBe(true)
   })
 
+  it('流已经发布正文后断开，不重新请求以免重复展示半截输出', async () => {
+    const stream = vi.fn(async function* () {
+      yield { type: 'text' as const, content: '已发布的一段' }
+      throw new Error('socket closed')
+    })
+    const events = await collectEvents(agentLoop({
+      config: testConfig,
+      messages: [userMsg('继续')],
+      tools: [],
+      _streamChatOverride: stream,
+    }, new ToolRegistry()))
+
+    expect(stream).toHaveBeenCalledTimes(1)
+    expect(events.filter((event) => event.type === 'text')).toEqual([{ type: 'text', content: '已发布的一段' }])
+    expect(events.some((event) => event.type === 'error')).toBe(true)
+  })
+
   it('LLM 错误产出 error 事件', async () => {
     const registry = new ToolRegistry()
     const options: AgentLoopOptions = {

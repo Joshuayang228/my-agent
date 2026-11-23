@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import {
   estimateTokens,
+  estimateRequestTokens,
+  pruneHistoricalToolResults,
   stripImagesForCompression,
 } from '../../electron/main/agent/context-manager'
-import type { ChatMessage } from '../../src/shared/types'
+import type { ChatMessage, ToolDefinition } from '../../src/shared/types'
 
 function msg(partial: Partial<ChatMessage> & { content: string }): ChatMessage {
   return {
@@ -31,6 +33,18 @@ describe('estimateTokens G13', () => {
     })])
     expect(withImg).toBeGreaterThan(noImg + 500)
   })
+
+  it('完整请求预算包含工具 schema', () => {
+    const tool: ToolDefinition = {
+      name: 'file_write',
+      description: '写入一个文件并保存内容',
+      parameters: { type: 'object', properties: { path: { type: 'string' }, content: { type: 'string' } } },
+      metadata: { isReadOnly: false, isDestructive: true, isConcurrencySafe: false },
+      execute: async () => 'ok',
+    }
+    expect(estimateRequestTokens([msg({ content: '创建文件' })], [tool]))
+      .toBeGreaterThan(estimateTokens([msg({ content: '创建文件' })]))
+  })
 })
 
 describe('stripImagesForCompression G5', () => {
@@ -51,5 +65,20 @@ describe('stripImagesForCompression G5', () => {
   it('无图片时原样返回', () => {
     const input = [msg({ content: 'plain' })]
     expect(stripImagesForCompression(input)[0]).toEqual(input[0])
+  })
+})
+
+describe('pruneHistoricalToolResults', () => {
+  it('只修剪历史工具结果并保留最近结果', () => {
+    const long = 'x'.repeat(13_000)
+    const messages: ChatMessage[] = [
+      msg({ role: 'system', content: 'sys' }),
+      msg({ role: 'tool', content: long }),
+      ...Array.from({ length: 6 }, (_, index) => msg({ role: index % 2 ? 'assistant' : 'user', content: 'recent' })),
+      msg({ role: 'tool', content: long }),
+    ]
+    const result = pruneHistoricalToolResults(messages)
+    expect(result[1].content).toContain('历史工具结果已修剪')
+    expect(result.at(-1)?.content).toBe(long)
   })
 })

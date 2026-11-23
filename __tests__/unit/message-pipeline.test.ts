@@ -31,6 +31,19 @@ describe('sanitizeToolCallPairs', () => {
     const result = sanitizeToolCallPairs(messages)
     expect(result.some(m => m.role === 'tool' && m.toolCallId === 'tc1')).toBe(true)
   })
+
+  it('不会把旧回合同名 toolCallId 当作当前回合结果', () => {
+    const messages: ChatMessage[] = [
+      msg('assistant', '', { toolCalls: [{ id: 'same', name: 'echo', arguments: '{}' }] }),
+      msg('tool', '旧结果', { toolCallId: 'same' }),
+      msg('assistant', '', { toolCalls: [{ id: 'same', name: 'echo', arguments: '{}' }] }),
+      msg('user', '等待当前结果'),
+    ]
+    const result = sanitizeToolCallPairs(messages)
+    const currentIndex = result.findIndex((item, index) => index > 1 && item.role === 'assistant' && item.toolCalls?.[0]?.id === 'same')
+    expect(result[currentIndex + 1]?.role).toBe('tool')
+    expect(result[currentIndex + 1]?.content).toContain('中断')
+  })
 })
 
 describe('removeOrphanToolResults', () => {

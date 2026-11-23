@@ -11,22 +11,21 @@ const log = createLogger('MessagePipeline')
  */
 export function sanitizeToolCallPairs(messages: ChatMessage[]): ChatMessage[] {
   const result: ChatMessage[] = []
-  const allToolResultIds = new Set<string>()
-
-  for (const msg of messages) {
-    if (msg.role === 'tool' && msg.toolCallId) {
-      allToolResultIds.add(msg.toolCallId)
-    }
-  }
-
   for (let i = 0; i < messages.length; i++) {
     const msg = messages[i]
     result.push(msg)
 
     if (msg.role === 'assistant' && msg.toolCalls?.length) {
+      // 只在当前 assistant 后面的连续 tool 段查找结果，不能用整段历史的
+      // 全局 ID 集合，否则重复 callId 或迟到结果会误配到旧回合。
+      const followingToolIds = new Set<string>()
+      for (let j = i + 1; j < messages.length && messages[j].role === 'tool'; j++) {
+        const toolCallId = messages[j].toolCallId
+        if (toolCallId) followingToolIds.add(toolCallId)
+      }
       const missingIds: string[] = []
       for (const tc of msg.toolCalls) {
-        if (!allToolResultIds.has(tc.id)) {
+        if (!followingToolIds.has(tc.id)) {
           missingIds.push(tc.id)
         }
       }
@@ -55,7 +54,6 @@ export function sanitizeToolCallPairs(messages: ChatMessage[]): ChatMessage[] {
               timestamp: msg.timestamp,
               toolCallId: callId,
             })
-            allToolResultIds.add(callId)
           }
         }
       }

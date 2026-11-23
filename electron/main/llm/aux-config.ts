@@ -37,6 +37,7 @@ export async function loadMainLLMConfig(overrides?: Partial<LLMConfig>, options?
       const parsed = parseInt(s.llmMaxTokens)
       return parsed > 0 && parsed !== 4096 ? parsed : undefined
     })(),
+    ...modelCapabilityConfig(routed),
     fallbackModels: chain.length > 1 ? chain.slice(1).map(connectionConfig) : undefined,
     ...overrides,
     ...(overrides?.baseUrl !== undefined ? {
@@ -83,8 +84,23 @@ export async function loadImageGenerationConfig(): Promise<LLMConfig | null> {
  * 设计意图：整体替换连接身份，不按字段借用主连接凭据或协议。
  * 关键约束：空密钥保持为空；未指定协议时按目标地址检测，不能继承主连接的显式协议。
  */
-function connectionConfig(connection: ModelConnectionProfile): Pick<LLMConfig, 'apiKey' | 'baseUrl' | 'model' | 'provider'> {
-  return { apiKey: connection.apiKey || '', baseUrl: connection.baseUrl, model: connection.model, provider: connection.provider || 'auto' }
+function modelCapabilityConfig(connection?: ModelConnectionProfile): Pick<LLMConfig, 'modelContextWindow' | 'modelMaxOutputTokens'> {
+  if (!connection) return {}
+  const selected = connection.models?.find(item => item.id === connection.model)
+  return {
+    ...(selected?.contextWindow !== undefined ? { modelContextWindow: selected.contextWindow } : {}),
+    ...(selected?.maxOutputTokens !== undefined ? { modelMaxOutputTokens: selected.maxOutputTokens } : {}),
+  }
+}
+
+function connectionConfig(connection: ModelConnectionProfile): Pick<LLMConfig, 'apiKey' | 'baseUrl' | 'model' | 'provider' | 'modelContextWindow' | 'modelMaxOutputTokens'> {
+  return {
+    apiKey: connection.apiKey || '',
+    baseUrl: connection.baseUrl,
+    model: connection.model,
+    provider: connection.provider || 'auto',
+    ...modelCapabilityConfig(connection),
+  }
 }
 
 function resolveRoutedConfig(connectionsRaw: string, routesRaw: string, purpose: ModelRoutePurpose): ModelConnectionProfile | null {

@@ -189,6 +189,17 @@ export function ModelRoutingSettings({ connectionsRaw, routesRaw, onSave, onTest
     fetchRequests.current.delete(connection.id)
     if (result.ok) {
       setFetchedModels((current) => ({ ...current, [connection.id]: result.models }))
+      if (result.capabilities && Object.keys(result.capabilities).length > 0) {
+        await persistModels(connection.id, item => {
+          const existing = new Map(normalizeConnectionModels(item).map(model => [model.id, model]))
+          for (const modelId of result.models) {
+            const capability = result.capabilities?.[modelId]
+            const current = existing.get(modelId) ?? { id: modelId, enabled: true }
+            existing.set(modelId, { ...current, ...capability })
+          }
+          return { ...item, models: Array.from(existing.values()) }
+        })
+      }
       setFetchState((current) => ({ ...current, [connection.id]: 'success' }))
       return
     }

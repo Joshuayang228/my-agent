@@ -39,11 +39,15 @@ export interface LifeFactorDescriptor {
   source: string
 }
 
+export type CompanionWorldReadView = 'timeline' | 'moments' | 'assets' | 'journal' | 'gifts' | 'contacts'
+
 export interface CompanionProjectionSurface {
   id: string
   domain: 'world' | 'chat'
   name: string
   description: string
+  /** 人物世界切面在 companion_read_world 中对应的读取视图，由架构门禁校验全覆盖 */
+  readView?: CompanionWorldReadView
   factors: readonly LifeFactorKey[]
   gatingPolicies: readonly string[]
   toolNames: readonly string[]
@@ -77,6 +81,7 @@ export const COMPANION_PROJECTION_SURFACES: readonly CompanionProjectionSurface[
     domain: 'world',
     name: '今日轨迹（日剧本与因果重排）',
     description: '每日动态排期与体征耗竭后的日内休养重排，是所有生活事件的时间轴源头。',
+    readView: 'timeline',
     factors: ['vitals', 'dynamic_status_tags', 'relationship_stage', 'user_vibe', 'host_presence', 'open_loops', 'recent_experience', 'chat_resonance', 'rhythm_weather', 'anti_repetition'],
     gatingPolicies: ['replan.ts#replanRemainingSlots'],
     toolNames: ['companion_read_world'],
@@ -89,6 +94,7 @@ export const COMPANION_PROJECTION_SURFACES: readonly CompanionProjectionSurface[
     domain: 'world',
     name: '朋友圈（动态投影与关系可见窗口）',
     description: '由生活事件与 Chat 工具投影的社交动态，受关系可见天数（3/7/14天）、体征节流、冷却上限与自动配图约束。',
+    readView: 'moments',
     factors: ['vitals', 'dynamic_status_tags', 'relationship_stage', 'user_vibe', 'recent_experience', 'cast_resonance', 'world_asset_state', 'rhythm_weather', 'interaction_gap', 'anti_repetition'],
     gatingPolicies: ['life-gating.ts#evaluateLifeActionGating', 'moment-visibility.ts#resolveMomentVisibilityDays'],
     toolNames: ['companion_post_moment', 'companion_comment_moment', 'companion_read_world', 'companion_take_photo', 'image_generate'],
@@ -101,6 +107,7 @@ export const COMPANION_PROJECTION_SURFACES: readonly CompanionProjectionSurface[
     domain: 'world',
     name: '衣柜与穿搭',
     description: '管理角色衣物资产与当前穿着，支持生活引擎上下文自动换装、界面手动换装与 Chat 换装工具，并同步反馈到主对话与朋友圈配图。',
+    readView: 'assets',
     factors: ['recent_experience', 'world_asset_state', 'rhythm_weather'],
     gatingPolicies: ['autonomous-dressing.ts#shouldPerformContextualDressing'],
     toolNames: ['companion_change_wardrobe', 'companion_create_asset', 'companion_read_world', 'image_generate'],
@@ -113,9 +120,10 @@ export const COMPANION_PROJECTION_SURFACES: readonly CompanionProjectionSurface[
     domain: 'world',
     name: '日记、深夜反思与脆弱心境',
     description: '承载角色私密独白、深夜深层反思（回写长期记忆）与脆弱时刻卡片，受关系阶段门控防交浅言深。',
+    readView: 'journal',
     factors: ['vitals', 'emotion_memory', 'relationship_stage', 'recent_experience', 'rhythm_weather'],
     gatingPolicies: ['life-gating.ts#evaluateLifeActionGating'],
-    toolNames: [],
+    toolNames: ['companion_read_world'],
     promptKeys: [PROMPT_KEYS.companionInnerThought, PROMPT_KEYS.companionNightlyReflection, PROMPT_KEYS.companionVulnerabilityReaction],
     backendSources: ['electron/main/companion/life/inner-thoughts.ts', 'electron/main/companion/life/nightly-reflection.ts', 'electron/main/companion/life/vulnerability.ts'],
     frontendSources: ['src/components/world/WorldJournalPanel.tsx', 'src/components/world/VulnerabilityCard.tsx'],
@@ -125,6 +133,7 @@ export const COMPANION_PROJECTION_SURFACES: readonly CompanionProjectionSurface[
     domain: 'world',
     name: '文化角与书架',
     description: '管理书影音展游体验与带来源的阅读笔记，打通聊天种草播种、图片材料观察与自动第一人称感想生成。',
+    readView: 'assets',
     factors: ['chat_resonance', 'open_loops', 'world_asset_state'],
     gatingPolicies: [],
     toolNames: ['companion_create_asset', 'companion_observe_material', 'companion_add_reading_note', 'companion_read_world', 'image_generate'],
@@ -137,6 +146,7 @@ export const COMPANION_PROJECTION_SURFACES: readonly CompanionProjectionSurface[
     domain: 'world',
     name: '家居与物件陈列',
     description: '展示居所经典空间与有意义的随身象征物（如草帽），支持资产创建、配图挂载与备份恢复。',
+    readView: 'assets',
     factors: ['world_asset_state'],
     gatingPolicies: [],
     toolNames: ['companion_create_asset', 'companion_read_world', 'image_generate'],
@@ -149,6 +159,7 @@ export const COMPANION_PROJECTION_SURFACES: readonly CompanionProjectionSurface[
     domain: 'world',
     name: '足迹与航程演化',
     description: '记录过往旅程与进行中航段，按冷却、体征节流与旅行心愿自主推进新经停站点。',
+    readView: 'assets',
     factors: ['vitals', 'recent_experience', 'chat_resonance', 'world_asset_state'],
     gatingPolicies: ['life-gating.ts#evaluateLifeActionGating', 'travel-progression.ts#shouldProgressTravelJourney'],
     toolNames: ['companion_create_asset', 'companion_read_world', 'image_generate'],
@@ -161,6 +172,7 @@ export const COMPANION_PROJECTION_SURFACES: readonly CompanionProjectionSurface[
     domain: 'world',
     name: '礼物柜（送出与收到的礼物）',
     description: '伙伴的只读礼物陈列柜，展示伙伴送出的纪念礼物与通过聊天收到的礼物回响，所有赠礼由主会话自然触发。',
+    readView: 'gifts',
     factors: ['vitals', 'relationship_stage', 'emotion_memory', 'recent_experience'],
     gatingPolicies: [],
     toolNames: ['companion_receive_gift', 'companion_read_world'],
@@ -173,9 +185,10 @@ export const COMPANION_PROJECTION_SURFACES: readonly CompanionProjectionSurface[
     domain: 'world',
     name: '通讯录与卡司名册',
     description: '展示同船伙伴关系弧线、忙闲状态与临时召唤短聊入口，保持与主角生活引擎隔离。',
+    readView: 'contacts',
     factors: ['cast_resonance', 'relationship_stage'],
     gatingPolicies: [],
-    toolNames: [],
+    toolNames: ['companion_read_world'],
     promptKeys: [PROMPT_KEYS.companionContext],
     backendSources: ['electron/main/companion/cast/contacts.ts', 'electron/main/companion/cast/availability.ts', 'electron/main/companion/cast/roster.ts'],
     frontendSources: ['src/components/world/WorldContactsPanel.tsx', 'src/components/world/WorldContactsGallery.tsx'],
@@ -218,6 +231,18 @@ export const COMPANION_PROJECTION_SURFACES: readonly CompanionProjectionSurface[
     frontendSources: ['src/App.tsx'],
   },
 ] as const
+
+/**
+ * 从人物世界 9 大切面注册表自动派生的只读视图列表（单一事实源）。
+ * companion_read_world 工具的 view 枚举直接引用此常量，新增世界切面时不会遗漏 AI 读取能力。
+ */
+export const COMPANION_WORLD_READ_VIEWS: readonly CompanionWorldReadView[] = Array.from(
+  new Set(
+    COMPANION_PROJECTION_SURFACES
+      .filter((s): s is CompanionProjectionSurface & { readView: CompanionWorldReadView } => s.domain === 'world' && Boolean(s.readView))
+      .map((s) => s.readView),
+  ),
+)
 
 export function getCompanionProjectionSurfaceSummary() {
   return {
