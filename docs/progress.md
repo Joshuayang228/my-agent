@@ -1913,3 +1913,5 @@ Agent Host 只同步当前启用的 Skill 元数据，停用 Skill 不进入 Ava
 Workspace 会话已迁移到 `workspace.context` Provider，统一注入项目路径、最近主对话和当前焦点内容，移除 Runtime 里的第二份 Workspace Prompt 拼装。
 
 - 2026-11-23：工作区 HTML 预览允许在隔离 iframe 中运行页面脚本，支持 SVG/Canvas 动画预览。
+
+- 2026-11-23：外部评测接入 Electron 本机 Controller，τ³-bench 通过固定 LF checkout 与 UTF-8 环境完成官方核心数据校验，评测请求复用 Agent Runtime。

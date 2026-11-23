@@ -796,3 +796,5 @@ Companion 执行账本在读取幂等命令前回收超过租约窗口的 `runni
 
 #### 通用 Harness 边界补充（2026-11-23）
 LLM 请求预算由模型能力元数据进入 Agent Runtime，durable turn ledger 记录运行中断与终态，Provider failover 通过过程事件进入 UI 事件流。
+
+外部评测通过显式环境变量开启的本机 Controller 进入 Electron 主进程，再复用 runtime.runHeadless。评测器只提交有界任务正文并接收统一终态，不直接导入主进程模块或复制 Agent Loop。

@@ -72,11 +72,11 @@ export const companionReadWorldTool = buildTool({
             }))
           const castComments = parseCastInteractions(row.meta || {}).map((item, idx) => ({
             id: `cast:${row.id}:${idx}`,
-            actorName: item.actorName,
+            actorName: item.castName,
             actorType: 'cast' as const,
             replyToActorName: null,
             text: (item.text || '赞').slice(0, 280),
-            createdAt: item.at ?? row.publishedAt,
+            createdAt: row.publishedAt,
           }))
           return {
             id: row.id,

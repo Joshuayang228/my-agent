@@ -30,6 +30,7 @@ import * as settings from './storage/settings-store'
 import { initScheduler, shutdownScheduler } from './scheduler/index'
 import { registerHostPresenceIdleReader } from './companion/life/host-presence'
 import { normalizeDevServerUrl } from './utils/dev-server-url'
+import { startExternalEvalController } from './debug/external-controller'
 
 const log = createLogger('Main')
 mark('imports_done')
@@ -287,6 +288,7 @@ function setupAutoUpdater() {
 // ── App 生命周期 ──
 
 app.whenReady().then(async () => {
+  startExternalEvalController()
   registerHostPresenceIdleReader(() => powerMonitor.getSystemIdleTime())
   const database = await getDatabase()
   startDiagnosticHistory(database, persist)
