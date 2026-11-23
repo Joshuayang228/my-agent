@@ -132,4 +132,23 @@ describe('注册编译请求的模型边界', () => {
     expect(agentRequest(result).promptAssetKeys).toContain(PROMPT_KEYS.compactRestoreContext)
     expect(fetch).not.toHaveBeenCalled()
   })
+
+  it('auto 模式不把普通 file_write 写死成口头二次确认，plan-first 与 confirm-all 仍保持显式确认约束', () => {
+    const pack = loadRolePack('luffy')
+    const autoText = readRegisteredSystemText(compileMainSystem(pack, pack.mutableDefault, {
+      platform: { toolNames: ['file_write', 'shell_exec'], executionMode: 'auto' },
+      behavior: {},
+      currentDate: '2026-11-23',
+    }))
+    expect(autoText).toContain('当前处于 auto 模式')
+    expect(autoText).toContain('不要在写文件或执行前停下来口头二次确认')
+    expect(autoText).toContain('不可逆的高风险破坏性操作')
+
+    const planText = readRegisteredSystemText(compileMainSystem(pack, pack.mutableDefault, {
+      platform: { toolNames: ['file_write'], executionMode: 'plan-first' },
+      behavior: {},
+      currentDate: '2026-11-23',
+    }))
+    expect(planText).toContain('当前处于 plan-first 模式')
+  })
 })

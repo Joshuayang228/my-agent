@@ -737,6 +737,6 @@ Skill Registry 初始化完成后同步 Skill key 与激活工具元数据到 Ho
 
 
 #### Harness 可靠性收口（2026-11-23）
-运行时已接入 durable turn ledger、会话级 execution mode、工具结果历史裁剪、模型能力预算与流式 failover 过程事件。上下文预算优先使用当前模型探测能力，缺失时回退模型家族启发式。
+运行时已接入 durable turn ledger、会话级 execution mode、工具结果历史裁剪、模型能力预算与流式 failover 过程事件。上下文预算优先使用当前模型探测能力，缺失时回退模型家族启发式。主系统 Prompt 编译层（`prompts/compiler.ts`）按 `executionMode` 区分工作方法：`auto` 模式允许常规工作区文件落盘与验证命令直通并由宿主权限引擎统一把关，仅对不可逆高风险破坏性操作要求先暂停确认备份/恢复；`plan-first` 与 `confirm-all` 保持显式执行前确认。
 
 外部评测 Controller 在显式环境变量开启时绑定本机端口（`GET /health` 与 `POST /run`），支持叠加 `MY_AGENT_EVAL_HEADLESS=1` 以无窗口模式独立运行而不冲突桌面单实例；提交任务后调用 `runtime.runExternalEvalTurn`：支持隔离 `workspaceRoot`、多轮 `sessionId` 复用、显式绑定隔离目录时的受控工作区写权限以及 turn 级临时 stdio `mcpServers` 挂载与结束回收（零污染全局 `mcpManager`），返回统一终态、工具调用摘要、Token 用量与压缩事件计数；生产定时任务 `runHeadless` 仍保持只读约束不变。

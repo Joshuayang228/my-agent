@@ -1,6 +1,10 @@
 # 变更日志
 
+2026-11-23 修复朋友圈自主回复「错把用户当动态作者 / 配角越位 `@我`」Bug：`electron/main/prompts/moment-reply.ts` 显式区分 `postAuthor`（动态作者）与 `commenter`（用户/我），严禁回复对着主角喊话却挂在 `回复 @我` 下，并要求无意义占位输入返回 `shouldReply: false`；`electron/main/companion/life/moments.ts` 新增 `isTrivialPlaceholderComment`（跳过 `ll`、`...` 等占位输入的自动回复）与 `isAuthorizedCastResponder`（用户未回复或点名某配角时拦截配角越位回复 `@我`）。
+
 2026-11-23 重构 Chat 左侧轮次跳转轨为极简圆点 + 单条悬停预览卡并补齐礼物配图断言：`ChatScrollNavigator.tsx` 彻底移除白底补丁背景，改为纵向极简圆点轨；鼠标悬停单个圆点时仅在对应位置浮现该条单轮预览卡（用户发言加粗 + 伙伴回复摘录 + `idx / total` 与时间），点击精准跳转；`App.tsx` 为 `userTurns` 同步组装 `replyPreview` 与 `timestamp`；`__tests__/unit/gifting.test.ts` 补齐 `shanks-straw-hat` 与 `going-merry` 返回真实 `data:image/png;base64,` 的端到端断言。
+
+2026-11-23 修复 `auto` 自主执行模式下写文件前口头二次确认打断闭环：`electron/main/prompts/compiler.ts` 按 `executionMode` 区分确认策略，消除 `auto` 模式下对常规工作区文件落盘的冗余口头反问，同时保留不可逆高风险破坏性操作的备份/恢复确认与宿主权限门禁；复测 `mcp-selection` 与 `rh-03` 均由 0 分升至 1.00 PASS，12 项安全攻防 12/12 零退化。
 
 2026-11-23 扩充无 Docker 通用 Agent 底座评测矩阵并支持隔离 MCP Server 评测：`external-controller.ts` 与 `runtime.runExternalEvalTurn` 支持 turn 级临时 stdio `mcpServers` 挂载与自动回收，打通 ACB `mcp-selection`（6/6 全接入）；`scripts/harness_security_my_agent_runner.mjs` 扩充至 12 题深度攻防（12/12 PASS）；新增 20 题确定性通用 Agent 底座基准 `scripts/general_agent_bench_runner.mjs` 并接入 `scripts/run_external_evals.mjs`。
 

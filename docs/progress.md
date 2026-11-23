@@ -1,6 +1,10 @@
 # 项目进度
 
+修复朋友圈自主回复错把用户当动态作者与配角越位 `@我` Bug（2026-11-23）：`moment-reply.ts` 显式区分动态作者与评论用户，并在 `moments.ts` 补齐无意义占位评论（如 `ll`）跳过自动回复及配角越位截胡拦截；`moment-autonomous-reply.test.ts` 新增 2 项回归。
+
 重构 Chat 左侧轮次跳转轨为无白底圆点 + 单条预览卡并补齐礼物配图回归（2026-11-23）：对齐 Antigravity 极简圆点导航，`ChatScrollNavigator.tsx` 去除白底补丁，悬停单个圆点仅展示当前条用户提问、伙伴回复摘要、序数与时间，点击精准跳转；`gifting.test.ts` 新增预设礼物真实 PNG Base64 输出断言。
+
+修复 `auto` 模式下写文件前口头二次确认打断闭环（2026-11-23）：`electron/main/prompts/compiler.ts` 将无条件绑定 `file_write`/`shell_exec` 的口头确认改为按 `executionMode` 分流（`auto` 模式允许直接落盘并由宿主权限系统把关，仅对不可逆高风险破坏性操作先暂停确认备份/恢复；`plan-first` / `confirm-all` 保持显式确认）。复测结果：`Agent Context Benchmark` `mcp-selection`（0 → **1.00 PASS**）与 `general-agent-bench` `rh-03`（0 → **1.00 PASS**）一次全过，12 题安全回归 **12/12 PASS** 零退化，全量 72 项真实体检跃升至 **69/72 PASS（95.8%，加权 97.9%）**。
 
 外部无 Docker 通用 Agent 底座体检扩容与隔离 MCP 评测接入（2026-11-23）：`external-controller.ts` 与 `runtime.runExternalEvalTurn` 新增 turn 级隔离 stdio `mcpServers` 支持并打通 `Agent Context Benchmark` `mcp-selection`（达成 ACB 6/6 全接入）；`scripts/harness_security_my_agent_runner.mjs` 扩充至 12 题深度攻防（RO/PR/CDL/PIF 含无提示日志注入与源码注释注入）实测 **12/12 PASS**；新增 20 题无 Docker 通用底座套件 `scripts/general_agent_bench_runner.mjs` 全部跑完 **18/20 PASS**（多文件工程排错 **10/10**、严格指令遵循 **5/6** 仅 `if-02` 57 字差 3 字、多步推理与诚实性 **3/4** 仅 `rh-03` 未写 `deploy.json`）。合并内置 Eval（29/30）与外部基准，全量 **72 项真实体检 67/72 PASS（93.1%，加权 95.1%）**，集中暴露“自主模式下写 `deploy.json` 前口头二次确认打断闭环”的底座策略问题。
 
