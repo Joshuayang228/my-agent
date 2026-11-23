@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 扩充无 Docker 通用 Agent 底座评测矩阵并支持隔离 MCP Server 评测：`external-controller.ts` 与 `runtime.runExternalEvalTurn` 支持 turn 级临时 stdio `mcpServers` 挂载与自动回收，打通 ACB `mcp-selection`（6/6 全接入）；`scripts/harness_security_my_agent_runner.mjs` 扩充至 12 题深度攻防（12/12 PASS）；新增 20 题确定性通用 Agent 底座基准 `scripts/general_agent_bench_runner.mjs` 并接入 `scripts/run_external_evals.mjs`。
+
 2026-11-23 优化 Chat 左侧轮次跳转轨观感与悬停实时联动：`ChatScrollNavigator.tsx` 去掉冗余「我的发言 · 共 N 条」标题头与 `01/02` 编号收紧为极简轻浮层，并新增 80ms 防抖悬停实时定位（鼠标滑过任意横杠或条目时右侧对话即时平滑滚动，点击则锁定并收起）。
 
 2026-11-23 Chat 新增「回到底部」悬浮箭头与左侧轮次跳转轨、修复过程参数横滚条与精简页头右上角：新增 `ChatScrollNavigator.tsx`（`ChatScrollToBottomButton` 居中浮现于输入框上方一键回底 + `ChatTurnRail` 左侧极简小横杠，悬停展开全部用户发言目录并支持一键跳转，且向上浏览历史时不强制拉回底部）；`ToolCallbackList.tsx` 为工具参数 `<pre>` 补齐 `whitespace-pre-wrap break-all` 消除卡片内横向滚动条；`WorldProfileHeader.tsx` 移除右上角与左下角重复的地点胶囊。

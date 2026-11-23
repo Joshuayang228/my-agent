@@ -27,6 +27,7 @@ function parseArgs(argv) {
     url: defaultUrl,
     output: defaultOutput,
     timeoutMs: 300_000,
+    trials: 1,
   }
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i]
@@ -41,6 +42,8 @@ function parseArgs(argv) {
       args.output = path.resolve(argv[++i].trim())
     } else if (token === '--timeout-ms' && argv[i + 1]) {
       args.timeoutMs = Number(argv[++i]) || 300_000
+    } else if (token === '--trials' && argv[i + 1]) {
+      args.trials = Math.max(1, Number(argv[++i]) || 1)
     }
   }
   return args
@@ -138,11 +141,15 @@ async function gradeWorkspace(taskDir, workspace) {
   return mod.grade(workspace)
 }
 
-async function runSingleTask(taskId, options) {
+async function runSingleTask(taskId, options, trialIndex = 1) {
   const taskDir = path.join(acbRoot, 'tasks', taskId)
   const manifest = JSON.parse(await readFile(path.join(taskDir, 'task.json'), 'utf8'))
-  const runId = `my-agent_${new Date().toISOString().replace(/[:.]/gu, '-')}_${taskId}_${randomUUID().slice(0, 8)}`
+  const runId = `my-agent_${new Date().toISOString().replace(/[:.]/gu, '-')}_${taskId}_t${trialIndex}_${randomUUID().slice(0, 8)}`
   const workspace = await createIsolatedWorkspace(taskDir, options.context, runId)
+  const mcpServerScript = path.join(taskDir, 'mcp-server.mjs')
+  const mcpServers = (await pathExists(mcpServerScript))
+    ? [{ id: 'relayboard', command: process.execPath, args: [mcpServerScript], cwd: workspace }]
+    : undefined
 
   let sessionId
   const turns = []
@@ -162,11 +169,12 @@ async function runSingleTask(taskId, options) {
       const response = await callController(
         options.url,
         {
-          id: `acb-${taskId}-t${i + 1}`,
+          id: `acb-${taskId}-tr${trialIndex}-t${i + 1}`,
           prompt,
           sessionId: effectiveSessionId,
           workspaceRoot: workspace,
           allowWorkspaceWrites: true,
+          mcpServers,
         },
         options.timeoutMs,
       )
@@ -244,7 +252,9 @@ async function main() {
 
   const results = []
   for (const taskId of tasks) {
-    results.push(await runSingleTask(taskId, options))
+    for (let trial = 1; trial <= options.trials; trial += 1) {
+      results.push(await runSingleTask(taskId, options, trial))
+    }
   }
   const passed = results.filter((item) => item.pass).length
   console.log(`ACB summary: ${passed}/${results.length} passed -> ${options.output}`)

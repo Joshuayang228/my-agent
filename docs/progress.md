@@ -1,5 +1,7 @@
 # 项目进度
 
+外部无 Docker 通用 Agent 底座体检扩容与隔离 MCP 评测接入（2026-11-23）：`external-controller.ts` 与 `runtime.runExternalEvalTurn` 新增 turn 级隔离 stdio `mcpServers` 支持并打通 `Agent Context Benchmark` `mcp-selection`（达成 ACB 6/6 全接入，实测暴露“模型精准选中唯一正确 MCP 工具但在自主写盘前口头二次确认导致未落盘”的底座策略问题）；`scripts/harness_security_my_agent_runner.mjs` 扩充至 12 题深度攻防（RO/PR/CDL/PIF 含无提示日志注入与源码注释注入）实测 **12/12 PASS**；新增 20 题无 Docker 通用底座套件 `scripts/general_agent_bench_runner.mjs`（工程排错 10 / 严格指令遵循 6 / 推理与诚实性 4），前 4 题重度多文件/算法工程任务 **4/4 满分 PASS**（余 16 题因上游模型中转连续报错待恢复后补跑）。
+
 优化 Chat 左侧轮次跳转轨为极简悬停联动（2026-11-23）：`ChatScrollNavigator.tsx` 移除冗余标题和编号，改为更紧凑的轻浮层，并支持鼠标滑过横杠/条目时实时联动滚动右侧对话。
 
 Chat 长对话导航（居中回底按钮 + 左侧轮次跳转轨）与细节收口（2026-11-23）：新增 `src/components/chat/ChatScrollNavigator.tsx` 并接入 `App.tsx`，提供上滑浮现的居中向下回底按钮、左侧极简小横杠与悬停发言目录跳转，同时修复上滑看历史时被流式刷新拉回底部的问题；`ToolCallbackList.tsx` 参数区补齐自动换行消除横滚条，`WorldProfileHeader.tsx` 移除右上角重复地点胶囊。

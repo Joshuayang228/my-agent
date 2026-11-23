@@ -797,4 +797,4 @@ Companion 执行账本在读取幂等命令前回收超过租约窗口的 `runni
 #### 通用 Harness 边界补充（2026-11-23）
 LLM 请求预算由模型能力元数据进入 Agent Runtime，durable turn ledger 记录运行中断与终态，Provider failover 通过过程事件进入 UI 事件流。
 
-外部评测通过显式环境变量开启的本机 Controller 进入 Electron 主进程（叠加 `MY_AGENT_EVAL_HEADLESS=1` 时以无窗口模式独立初始化数据库、Skill、权限规则与 Controller，跳过单实例锁且不启动生活时钟/托盘），再由 `runtime.runExternalEvalTurn` 复走真实 `chat()` 与工具沙箱链路；支持显式隔离 `workspaceRoot` 与多轮 `sessionId` 复用，不污染全局工作区也不放松生产 `runHeadless` 只读边界。评测器只提交有界任务正文并接收统一终态与轨迹摘要，不直接导入主进程模块或复制 Agent Loop。
+外部评测通过显式环境变量开启的本机 Controller 进入 Electron 主进程（叠加 `MY_AGENT_EVAL_HEADLESS=1` 时以无窗口模式独立初始化数据库、Skill、权限规则与 Controller，跳过单实例锁且不启动生活时钟/托盘），再由 `runtime.runExternalEvalTurn` 复走真实 `chat()` 与工具沙箱链路；支持显式隔离 `workspaceRoot`、多轮 `sessionId` 复用与 turn 级临时 stdio `mcpServers` 隔离挂载，不污染全局工作区或 `mcpManager`，也不放松生产 `runHeadless` 只读边界。评测器只提交有界任务正文并接收统一终态与轨迹摘要，不直接导入主进程模块或复制 Agent Loop。

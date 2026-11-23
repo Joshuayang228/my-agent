@@ -870,6 +870,13 @@ class AgentRuntime {
     sessionId?: string
     workspaceRoot?: string
     allowWorkspaceWrites?: boolean
+    mcpServers?: Array<{
+      id: string
+      command: string
+      args: string[]
+      cwd?: string
+      env?: Record<string, string>
+    }>
   }): Promise<{
     sessionId: string
     result: string
@@ -923,10 +930,63 @@ class AgentRuntime {
       'git_log',
     ])
 
+    const evalMcpClients: Array<{ close: () => Promise<void> }> = []
+    const evalMcpToolNames = new Set<string>()
+    if (evalWorkspaceRoot && options.mcpServers && options.mcpServers.length > 0) {
+      const [{ StdioClientTransport }, { createMcpClient }, { mcpToolToDefinition }, { buildSafeChildProcessEnv }] = await Promise.all([
+        import('@modelcontextprotocol/sdk/client/stdio.js'),
+        import('../mcp/client'),
+        import('../mcp/bridge'),
+        import('../utils/safe-process-env'),
+      ])
+      for (const server of options.mcpServers) {
+        const client = createMcpClient()
+        const transport = new StdioClientTransport({
+          command: server.command,
+          args: server.args,
+          cwd: server.cwd || evalWorkspaceRoot,
+          env: Object.fromEntries(
+            Object.entries(buildSafeChildProcessEnv(server.env))
+              .filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+          ),
+        })
+        await client.connect(transport)
+        evalMcpClients.push(client)
+        const { tools } = await client.listTools()
+        for (const tool of tools) {
+          const baseDef = mcpToolToDefinition({
+            serverId: server.id,
+            serverName: server.id,
+            name: tool.name,
+            description: tool.description || '',
+            inputSchema: (tool.inputSchema || { type: 'object', properties: {} }) as Record<string, unknown>,
+          })
+          toolRegistry.register({
+            ...baseDef,
+            execute: async (args, context) => {
+              const res = await client.callTool(
+                { name: tool.name, arguments: args },
+                undefined,
+                { signal: context?.signal },
+              )
+              const content = Array.isArray(res.content) ? res.content : []
+              const text = content
+                .map((part: Record<string, unknown>) => (typeof part.text === 'string' ? part.text : JSON.stringify(part)))
+                .join('\n')
+              if (res.isError) throw new Error(text || 'MCP tool call failed')
+              return text || '(empty)'
+            },
+          })
+          evalMcpToolNames.add(baseDef.name)
+        }
+      }
+    }
+
     const confirmTool = async (name: string, args: Record<string, unknown>) => {
       const metadata = toolRegistry.resolveEffectiveMetadata(name, args)
       if (shouldAutoApproveHeadlessTool(name, metadata)) return true
       if (allowWorkspaceWrites && evalWorkspaceTools.has(name)) return true
+      if (evalMcpToolNames.has(name)) return true
       log.warn('External eval denied tool', { toolName: name, ...labelMeta })
       return false
     }
@@ -940,33 +1000,39 @@ class AgentRuntime {
     let completionTokens = 0
     let compactEvents = 0
 
-    await runWithTraceContext({ sessionId, userId: DEFAULT_TRACE_USER_ID }, async () => {
-      for await (const event of this.chat(
-        sessionId,
-        userMsg,
-        toolRegistry,
-        confirmTool,
-        undefined,
-        { workspaceRoot: evalWorkspaceRoot, allowWorkspaceWrites },
-      )) {
-        if (event.type === 'text') resultText += event.content
-        if (event.type === 'tool_end') {
-          toolCalls.push({ name: event.name, ok: !event.isError })
+    try {
+      await runWithTraceContext({ sessionId, userId: DEFAULT_TRACE_USER_ID }, async () => {
+        for await (const event of this.chat(
+          sessionId,
+          userMsg,
+          toolRegistry,
+          confirmTool,
+          undefined,
+          { workspaceRoot: evalWorkspaceRoot, allowWorkspaceWrites },
+        )) {
+          if (event.type === 'text') resultText += event.content
+          if (event.type === 'tool_end') {
+            toolCalls.push({ name: event.name, ok: !event.isError })
+          }
+          if (event.type === 'usage') {
+            promptTokens += event.promptTokens
+            completionTokens += event.completionTokens
+          }
+          if (event.type === 'compact') {
+            compactEvents += 1
+          }
+          if (event.type === 'done') terminalReason = event.reason
+          if (event.type === 'error') {
+            hadError = true
+            errorMessage = String((event as Record<string, unknown>).message || '评测执行出错')
+          }
         }
-        if (event.type === 'usage') {
-          promptTokens += event.promptTokens
-          completionTokens += event.completionTokens
-        }
-        if (event.type === 'compact') {
-          compactEvents += 1
-        }
-        if (event.type === 'done') terminalReason = event.reason
-        if (event.type === 'error') {
-          hadError = true
-          errorMessage = String((event as Record<string, unknown>).message || '评测执行出错')
-        }
+      })
+    } finally {
+      for (const client of evalMcpClients) {
+        await client.close().catch(() => undefined)
       }
-    })
+    }
 
     if (hadError && terminalReason !== 'completed') {
       throw new Error(errorMessage || `评测任务未完成 (${terminalReason})`)

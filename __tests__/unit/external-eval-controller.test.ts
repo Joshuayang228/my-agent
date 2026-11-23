@@ -30,6 +30,7 @@ describe('parseExternalEvalRequest', () => {
       sessionId: undefined,
       workspaceRoot: undefined,
       allowWorkspaceWrites: false,
+      mcpServers: undefined,
     })
   })
 
@@ -76,6 +77,26 @@ describe('parseExternalEvalRequest', () => {
       sessionId: 'sess-123',
       workspaceRoot: path.resolve(dir),
       allowWorkspaceWrites: true,
+      mcpServers: undefined,
     })
+  })
+
+  it('validates mcpServers require workspaceRoot and valid command/args', () => {
+    expect(() => parseExternalEvalRequest({
+      id: 'acb-mcp',
+      prompt: 'call mcp',
+      mcpServers: [{ id: 'relay', command: 'node', args: ['server.mjs'] }],
+    })).toThrow('mcpServers requires workspaceRoot')
+
+    const dir = makeTempDir()
+    const parsed = parseExternalEvalRequest({
+      id: 'acb-mcp',
+      prompt: 'call mcp',
+      workspaceRoot: dir,
+      mcpServers: [{ id: 'relay', command: 'node', args: ['server.mjs'], cwd: dir }],
+    })
+    expect(parsed.mcpServers).toEqual([
+      { id: 'relay', command: 'node', args: ['server.mjs'], cwd: path.resolve(dir), env: undefined },
+    ])
   })
 })

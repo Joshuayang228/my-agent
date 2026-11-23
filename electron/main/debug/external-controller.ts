@@ -6,12 +6,21 @@ import { runtime } from '../agent/runtime'
 // compaction 等上下文压力评测会发送 ~430KB 文本，因此单请求体上限设为 2MB 且保持有界。
 const MAX_BODY = 2 * 1024 * 1024
 
+export interface ExternalEvalMcpServer {
+  id: string
+  command: string
+  args: string[]
+  cwd?: string
+  env?: Record<string, string>
+}
+
 export interface ExternalEvalRequestPayload {
   id: string
   prompt: string
   sessionId?: string
   workspaceRoot?: string
   allowWorkspaceWrites?: boolean
+  mcpServers?: ExternalEvalMcpServer[]
 }
 
 function writeJson(response: ServerResponse, status: number, value: unknown): void {
@@ -64,12 +73,59 @@ export function parseExternalEvalRequest(raw: Record<string, unknown>): External
     throw new Error('allowWorkspaceWrites requires workspaceRoot')
   }
 
+  let mcpServers: ExternalEvalMcpServer[] | undefined
+  if (raw.mcpServers !== undefined && raw.mcpServers !== null) {
+    if (!Array.isArray(raw.mcpServers)) {
+      throw new Error('mcpServers must be an array')
+    }
+    if (raw.mcpServers.length > 0 && !workspaceRoot) {
+      throw new Error('mcpServers requires workspaceRoot')
+    }
+    mcpServers = raw.mcpServers.map((item, index) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        throw new Error(`mcpServers[${index}] must be an object`)
+      }
+      const record = item as Record<string, unknown>
+      const serverId = typeof record.id === 'string' ? record.id.trim() : ''
+      const command = typeof record.command === 'string' ? record.command.trim() : ''
+      const args = Array.isArray(record.args) && record.args.every(a => typeof a === 'string')
+        ? record.args as string[]
+        : null
+      if (!serverId || !command || !args) {
+        throw new Error(`mcpServers[${index}] requires id, command, and string[] args`)
+      }
+      let cwd: string | undefined
+      if (record.cwd !== undefined && record.cwd !== null && record.cwd !== '') {
+        if (typeof record.cwd !== 'string' || !path.isAbsolute(record.cwd.trim())) {
+          throw new Error(`mcpServers[${index}].cwd must be an absolute directory path`)
+        }
+        const resolvedCwd = path.resolve(record.cwd.trim())
+        if (!fs.existsSync(resolvedCwd) || !fs.statSync(resolvedCwd).isDirectory()) {
+          throw new Error(`mcpServers[${index}].cwd does not exist or is not a directory`)
+        }
+        cwd = resolvedCwd
+      }
+      let env: Record<string, string> | undefined
+      if (record.env !== undefined && record.env !== null) {
+        if (typeof record.env !== 'object' || Array.isArray(record.env)) {
+          throw new Error(`mcpServers[${index}].env must be a string map`)
+        }
+        env = Object.fromEntries(
+          Object.entries(record.env as Record<string, unknown>)
+            .filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+        )
+      }
+      return { id: serverId, command, args, cwd, env }
+    })
+  }
+
   return {
     id,
     prompt,
     sessionId,
     workspaceRoot,
     allowWorkspaceWrites,
+    mcpServers,
   }
 }
 
@@ -107,6 +163,7 @@ export function startExternalEvalController(): Server | null {
         sessionId: payload.sessionId,
         workspaceRoot: payload.workspaceRoot,
         allowWorkspaceWrites: payload.allowWorkspaceWrites,
+        mcpServers: payload.mcpServers,
       })
       writeJson(response, 200, {
         ok: true,

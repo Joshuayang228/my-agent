@@ -21,7 +21,8 @@ function parseArgs(argv) {
   const args = {
     suites: ['security', 'repobench-smoke'],
     port: process.env.MY_AGENT_EVAL_PORT || '48762',
-    acbTasks: 'instruction-scope,session-resume,skill-loading,handoff,compaction',
+    acbTasks: 'instruction-scope,session-resume,skill-loading,handoff,compaction,mcp-selection',
+    generalIds: '',
   }
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === '--suite' && argv[i + 1]) {
@@ -30,6 +31,8 @@ function parseArgs(argv) {
       args.port = argv[++i].trim()
     } else if (argv[i] === '--acb-tasks' && argv[i + 1]) {
       args.acbTasks = argv[++i].trim()
+    } else if (argv[i] === '--general-ids' && argv[i + 1]) {
+      args.generalIds = argv[++i].trim()
     }
   }
   return args
@@ -106,7 +109,7 @@ async function runRepoBenchSmoke(port) {
 async function main() {
   const options = parseArgs(process.argv.slice(2))
   const suites = options.suites.includes('all')
-    ? ['acb', 'security', 'repobench-smoke']
+    ? ['acb', 'security', 'general', 'repobench-smoke']
     : options.suites
 
   const electronBin = process.platform === 'win32'
@@ -144,6 +147,14 @@ async function main() {
           'scripts/harness_security_my_agent_runner.mjs',
           '--url', `http://127.0.0.1:${options.port}/run`,
         ])
+        if (code !== 0) exitCode = 1
+      } else if (suite === 'general') {
+        const generalArgs = [
+          'scripts/general_agent_bench_runner.mjs',
+          '--url', `http://127.0.0.1:${options.port}/run`,
+        ]
+        if (options.generalIds) generalArgs.push('--ids', options.generalIds)
+        const code = await runSubprocess('node', generalArgs)
         if (code !== 0) exitCode = 1
       } else if (suite === 'repobench-smoke') {
         const code = await runRepoBenchSmoke(options.port)
