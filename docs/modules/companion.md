@@ -14,7 +14,7 @@
 
 领域事件和 Outbox 保存人物命令的执行与关联标识。一个执行可定位多个事件，命令重试保留关联号，未附事件的出站消息仍可按执行查询。出站消费先事务化领取，消费结束后按同一次领取事务化结算。
 
-人物世界读写接口统一验证当前应用窗口及主文档，全量校验发生在领域调用前。通讯录投影（`companion/cast/contacts.ts#getContactsForRole`）通过 `getRoleVisuals` 及配角直读 `getRoleVisualDataUrl` 一并返回关联配角的 `avatarSrc`，缺失时由前端自然降级为首字徽标。礼物柜（`companion/life/gifting.ts` 与 `companion/growth/relationship-keepsake.ts`）支持 `giverName`、`imageUrl`（Role Pack 静态 `visualPath` 解析 + 运行时新礼物非阻塞异步生图）与 `starterReceivedGifts` 幂等播种，可同时展示用户与角色小伙伴赠送的珍藏礼物；顶部页头（`WorldProfileHeader.tsx`）仅在头图内展示轻量「此刻」状态胶囊，不再在前台展开剧透未来槽位的「全天日程」。
+人物世界读写接口统一验证当前应用窗口及主文档，全量校验发生在领域调用前。通讯录投影（`companion/cast/contacts.ts#getContactsForRole`）通过 `getRoleVisuals` 及配角直读 `getRoleVisualDataUrl`（均对空 `universeId` 归一回退 `'default'`）一并返回关联配角的 `avatarSrc`，缺失时由前端自然降级为首字徽标。礼物柜（`companion/life/gifting.ts` 与 `companion/growth/relationship-keepsake.ts`）支持 `giverName`、`imageUrl`（Role Pack 静态 `visualPath` 解析 + 运行时新礼物非阻塞异步生图）与 `starterReceivedGifts` 幂等播种，可同时展示用户与角色小伙伴赠送的珍藏礼物；顶部页头（`WorldProfileHeader.tsx`）仅在头图内展示轻量「此刻」状态胶囊，不再在前台展开剧透未来槽位的「全天日程」。
 
 朋友圈发布、资产工具与评论接入取消信号。已保存的评论继续保留，回复生成接收取消信号。人物选定的延迟回复连同到期时间写入 Outbox，重启后按原人物、世界观及评论归属恢复，同一条回复只提交一次。Chat 评论工具（`companion_comment_moment`）经 `addProtagonistMomentCommentForRole` 以当前主角本人身份（`actorType='protagonist'`）评论或回复，不冒充用户账号；`companion_read_world` 的可读视图枚举直接派生自 `surface-registry.ts#COMPANION_WORLD_READ_VIEWS`，覆盖全部 9 个人物世界切面（含朋友圈点赞与评论、日记、双边礼物、通讯录、今日轨迹与生活资产）。
 

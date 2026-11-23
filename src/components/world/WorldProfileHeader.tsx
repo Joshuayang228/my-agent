@@ -10,14 +10,6 @@ function clampPercent(value: number): number {
   return Math.max(6, Math.min(100, Math.round(value)))
 }
 
-function describeMoodShort(value?: number): string {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return ''
-  if (value >= 80) return '很开心'
-  if (value >= 60) return '不错'
-  if (value >= 40) return '平静'
-  return '有点低落'
-}
-
 function describeVitalLevel(kind: 'mood' | 'energy', value: number): string {
   if (kind === 'mood') return value >= 75 ? '明亮有劲' : value >= 45 ? '还算平稳' : '有点低落'
   return value >= 75 ? '精力充沛' : value >= 45 ? '精力还够用' : '有点累了'
@@ -130,18 +122,17 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
   const currentSlot = timeline?.slots?.length
     ? (timeline.slots[timeline.currentSlotIndex] ?? timeline.slots[0])
     : null
-  const moodWord = describeMoodShort(profile.statusMetrics?.mood)
 
   return (
     <div className="shrink-0">
       <section
-        className={`relative flex min-h-[8.5rem] items-end gap-3.5 px-5 pb-4 pt-12 ${hasBanner ? 'shadow-inner' : ''}`}
+        className={`group/banner relative flex min-h-[8.5rem] items-end gap-3.5 px-5 pb-4 pt-12 ${hasBanner ? 'shadow-inner' : ''}`}
         data-testid={testId}
         style={{
           background: 'var(--bg-primary)',
         }}
       >
-        {/* 顶部宽幅生活场景 Banner 封面（保留原画色彩 + 底部轻暗角，不再发白发灰） */}
+        {/* 顶部宽幅生活场景 Banner 封面（保留原画色彩 + 底部轻暗角，确保白字清晰可读） */}
         {hasBanner && (
           <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
             <img
@@ -152,7 +143,7 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
             <div
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(180deg, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0.10) 42%, rgba(0,0,0,0.52) 100%)',
+                background: 'linear-gradient(180deg, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0.14) 38%, rgba(0,0,0,0.64) 100%)',
               }}
             />
           </div>
@@ -196,10 +187,8 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
                   title="点击和TA聊聊此刻"
                 >
                   <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: hasBanner ? '#6ee7b7' : 'var(--accent-fg)' }} />
-                  <span className="truncate">
-                    {moodWord ? `${moodWord} · ` : ''}此刻 · {currentSlot.activity}
-                  </span>
-                  <MessageSquareShare size={11} className="shrink-0 opacity-70 transition-opacity group-hover:opacity-100" />
+                  <span className="truncate">{currentSlot.activity}</span>
+                  <MessageSquareShare size={11} className="shrink-0 opacity-75 transition-opacity group-hover:opacity-100" />
                 </button>
               ) : (
                 <span
@@ -211,9 +200,7 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
                   }}
                 >
                   <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: hasBanner ? '#6ee7b7' : 'var(--accent-fg)' }} />
-                  <span className="truncate">
-                    {moodWord ? `${moodWord} · ` : ''}此刻 · {currentSlot.activity}
-                  </span>
+                  <span className="truncate">{currentSlot.activity}</span>
                 </span>
               )}
             </div>
@@ -299,15 +286,19 @@ export function WorldProfileHeader({ profile, roleId, initialTimeline, onTakeToC
             </span>
           )}
           {canEditVisuals ? (
-            <div className="relative">
+            <div className={`relative transition-opacity ${menuOpen ? 'opacity-100' : 'opacity-0 group-hover/banner:opacity-100 focus-within:opacity-100'}`}>
               <IconButton
                 label="更换头像或封面"
                 disabled={visualBusy}
                 onClick={() => setMenuOpen((open) => !open)}
                 aria-expanded={menuOpen}
-                style={{ color: hasBanner ? 'rgba(255,255,255,0.88)' : 'var(--text-muted)' }}
+                className="rounded-full backdrop-blur-sm"
+                style={{
+                  background: hasBanner ? 'rgba(0,0,0,0.32)' : 'var(--bg-secondary)',
+                  color: hasBanner ? 'rgba(255,255,255,0.92)' : 'var(--text-muted)',
+                }}
               >
-                <ImageIcon size={14} />
+                <ImageIcon size={13} />
               </IconButton>
               {menuOpen && (
                 <div

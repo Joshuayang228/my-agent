@@ -1,5 +1,7 @@
 # 质量总控
 
+通讯录空 `universeId` 头像回退回归（2026-11-23）：`world-contacts.test.ts` 新增 `getContactsForRole(roleId, '')` 空串回归校验强制归一为 `'default'` 并返回配角 `avatarSrc`；`world-profile-header.test.ts` 同步校验页头不输出冗余「此刻 ·」。
+
 全局滚动条基线静态门禁（2026-11-23）：`foundation-enforcement-gate.test.ts` 扩展至 14 项门禁，强制 `src/index.css` 维持全局 `*::-webkit-scrollbar` 与 `.scrollbar-stable` 基线且禁止混写 `scrollbar-width: thin`。
 
 Foundation 原语收敛与防裁切静态门禁（2026-11-23）：`foundation-enforcement-gate.test.ts` 扩展至 13 项门禁，新增全仓 `CompanionAvatar` 禁外传 `ring-*`/`!border-*` 扫描与带 `role="menu"` 浮层的 `<section>` 禁 `overflow-hidden` AST 门禁；`behavior.card` 正式晋升为 `adopted`（`SurfaceCard.tsx`）。

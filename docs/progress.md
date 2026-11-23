@@ -1,5 +1,7 @@
 # 项目进度
 
+修复通讯录配角头像空 `universeId` 回退 Bug 与页头微精修（2026-11-23）：修复 `settings.getSetting('universeId')` 返回空串 `''` 绕过默认参数导致配角头像路径失效的根因，并在 `world-contacts.test.ts` 补齐空串回归；页头移除冗余「心情/此刻」前缀并改换图按钮为悬停显现。
+
 统一全站滚动条基线与主视口 `scrollbar-gutter: stable` 防抖动（2026-11-23）：`src/index.css` 全局收口为 6px 悬停显现圆角细条并移除 `scrollbar-width: thin` 冲突，Chat / 人物世界 / Playground 主滚动区统一接入 `.scrollbar-stable`，同步沉淀规范与静态门禁。
 
 Playground 基础层同步展示 `SurfaceCard` / `DetailHeader` / `TabStrip#pill` 与 `MEDIA_FRAME_PRESETS`（2026-11-23）：`UiControlsPanel.tsx` 与 `LayoutLanguageSamples.tsx` 直连新落地的容器原语与布局档位，确保 Playground 基础层与生产代码完全一致。

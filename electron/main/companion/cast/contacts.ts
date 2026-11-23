@@ -11,6 +11,7 @@ import type { CompanionContactsData, CompanionContactExperience } from '../../..
  * 关键约束：事件、动态、旅行和关联都限定 ownerRoleId；缺失目标不提供死链接，不写第二份事实库。
  */
 export async function getContactsForRole(roleId: string, universeId = 'default'): Promise<CompanionContactsData> {
+  const resolvedUniverseId = universeId?.trim() || 'default'
   const cast = listRelatedCast(roleId, universeId)
   const ids = new Set(cast.map(person => person.id))
   const relations = loadRelations(universeId).edges.flatMap(edge => {
@@ -44,10 +45,10 @@ export async function getContactsForRole(roleId: string, universeId = 'default')
     people: cast.map(person => {
       let avatarSrc: string | undefined
       try {
-        avatarSrc = getRoleVisuals(person.id, universeId).avatarDataUrl ?? undefined
+        avatarSrc = getRoleVisuals(person.id, resolvedUniverseId).avatarDataUrl ?? undefined
       } catch {
         // 仅作为配角存在（无完整 protected.md/mutable.default.md）的角色直接读取其 Role Pack 头像文件
-        avatarSrc = getRoleVisualDataUrl(person.id, 'visual/avatar-v1.png', universeId) ?? undefined
+        avatarSrc = getRoleVisualDataUrl(person.id, 'visual/avatar-v1.png', resolvedUniverseId) ?? undefined
       }
       return {
         id: person.id,

@@ -578,7 +578,7 @@ export function registerCompanionIPC(): void {
   handle('companion:get-contacts', async () => {
     try {
       const roleId = await getActiveRoleId()
-      const universeId = await settings.getSetting('universeId')
+      const universeId = (await settings.getSetting('universeId')) || 'default'
       const result = await getContactsForRole(roleId, universeId)
       if (roleId !== await getActiveRoleId()) throw new Error('角色已切换')
       return result

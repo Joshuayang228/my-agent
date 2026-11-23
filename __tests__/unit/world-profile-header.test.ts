@@ -46,7 +46,8 @@ describe('World Frontend Polish（顶栏与新 Tab 去数值化与克制交互�
       },
       onTakeToChat: () => {},
     }))
-    expect(html).toContain('此刻 · 坐在狮子船头吹海风')
+    expect(html).toContain('坐在狮子船头吹海风')
+    expect(html).not.toContain('此刻 ·')
     expect(html).not.toContain('全天日程')
     expect(html).not.toContain('今日轨迹')
     expect(html).not.toContain('未来不该剧透的夜宵')

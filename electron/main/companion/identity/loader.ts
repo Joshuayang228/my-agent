@@ -284,11 +284,12 @@ export function getRoleVisualDataUrl(
   universeId: string = DEFAULT_UNIVERSE,
 ): string | null {
   if (!visualRelPath || typeof visualRelPath !== 'string') return null
-  const cacheKey = `${universeId}:${roleId}:${visualRelPath}`
+  const resolvedUniverse = universeId?.trim() || DEFAULT_UNIVERSE
+  const cacheKey = `${resolvedUniverse}:${roleId}:${visualRelPath}`
   if (roleVisualDataUrlCache.has(cacheKey)) {
     return roleVisualDataUrlCache.get(cacheKey) ?? null
   }
-  const absPath = resolveRoleAssetFilePath(roleId, visualRelPath, universeId)
+  const absPath = resolveRoleAssetFilePath(roleId, visualRelPath, resolvedUniverse)
   if (!absPath || !fs.existsSync(absPath)) {
     roleVisualDataUrlCache.set(cacheKey, null)
     return null
@@ -493,7 +494,8 @@ export function resolveRoleAssetFilePath(
   if (!normalized || normalized.startsWith('/') || normalized.split('/').some((part) => !part || part === '.' || part === '..')) {
     return null
   }
-  const rel = `${universeId}/roles/${roleId}/${normalized}`
+  const resolvedUniverse = universeId?.trim() || DEFAULT_UNIVERSE
+  const rel = `${resolvedUniverse}/roles/${roleId}/${normalized}`
   try {
     const abs = resolveAssetPath(rel)
     if (fs.existsSync(abs)) return abs

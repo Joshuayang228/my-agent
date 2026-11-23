@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 根治通讯录配角头像在 `universeId === ''` 时缺失 Bug 并精修页头细节：`ipc/companion.ts`、`contacts.ts` 与 `loader.ts`（`getRoleVisualDataUrl` / `resolveRoleAssetFilePath`）统一将空字符串 `universeId` 归一回退为 `'default'`，彻底修复未切换过世界观时索隆/娜美/乌索普/山治头像无法加载的问题；`WorldProfileHeader.tsx` 移除重复的「很开心 · 此刻 · 」前缀（直出当前活动）、微调底部暗角加深至 64%，并将右上角换图图标改为悬停头图时才轻显（配半透明深色圆底）。
+
 2026-11-23 统一全站滚动条基线与主视口防抖动占槽：`src/index.css` 建立全局 `*::-webkit-scrollbar` 6px 圆角悬停显现基线（静止透明、容器 hover/focus-within 显色、手柄 hover 加深、隐藏上下箭头），移除与 Chromium 121+ 冲突的 `scrollbar-width: thin`，新增 `.scrollbar-stable`（`scrollbar-gutter: stable`）并接入 Chat、人物世界与 Playground 主滚动区，同步写入 `frontend-guidelines.md` 与 `foundation-enforcement-gate.test.ts` 门禁。
 
 2026-11-23 同步 Playground 基础层展示新增容器原语与布局档位：`UiControlsPanel.tsx` 的「卡片」故事切为真实 Foundation `<SurfaceCard>` 并补充 `<DetailHeader>` 样张，「标签切换」故事新增 `TabStrip variant="pill"` 柔和胶囊样张；`LayoutLanguageSamples.tsx` 的图片区同步展示真实 `MEDIA_FRAME_PRESETS`（`card 4/3`、`portrait 3/4`、`overview 16/9`）与 `LAYOUT_CLASSES.cardGrid` 三列网格。
