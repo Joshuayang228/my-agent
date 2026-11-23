@@ -398,7 +398,7 @@ it('Companion 核心与生活状态（可变人格、运行态、关系、日记
   db.run("INSERT INTO companion_emotion_events VALUES ('emo-1', 'luffy', 'ev-1', '兴奋', 90, '吃到大肉', 1000)")
   db.run("INSERT INTO companion_inner_thoughts VALUES ('thought-1', 'luffy', '深夜看海', '今天和伙伴聊得很开心', '平静', '星空', '特等席', '发呆', 1, 1000, 'nightly_reflection', '同伴最珍贵', 'agent', 'thought-1', NULL)")
   db.run("INSERT INTO companion_keepsakes VALUES ('luffy-merry-bell', 'luffy', '梅利号铃铛', '金色铃铛', '梅利号的回忆', '送给你！', '心愿达成', 'Gift', NULL, 1000)")
-  db.run("INSERT INTO companion_received_gifts VALUES ('gift-1', 'luffy', 'bone-meat', '带骨烤肉', 'food', '多吃点', '太好吃了！', '{\"mood\":25}', 1000)")
+  db.run("INSERT INTO companion_received_gifts (id, role_id, gift_key, gift_name, category, user_note, companion_reaction, vitals_buff_json, created_at, giver_name) VALUES ('gift-1', 'luffy', 'bone-meat', '带骨烤肉', 'food', '多吃点', '太好吃了！', '{\"mood\":25}', 1000, NULL)")
   db.run("INSERT INTO companion_vulnerability_moments VALUES ('vuln-1', 'luffy', '想念艾斯', 'nostalgic', '深夜', '看着草帽想起了艾斯', '我陪着你', 'comforted', '一直都在', '谢谢你！', 1000, 1100)")
   db.run("INSERT INTO companion_life_resonances VALUES ('res-1', 'luffy', 'sess-1', 'culture_wish', '心愿：海流图鉴', '海流图鉴', '推荐你看', '想了解大海', 'reading', 'completed', 1000, 1100, 1200, '我看完啦！', NULL, NULL)")
   db.run("INSERT INTO companion_travel_progressions VALUES ('tp-1', 'luffy', 'trip-1', 'stop-1', '极光海', '2026-11-19', '看到浮游巨鲸', 'scheduled_voyage', 1000)")
