@@ -52,54 +52,65 @@ export function ChatTurnRail({
   if (turns.length < 2) return null
 
   const compact = turns.length > 20
+  const hoveredIdx = hoveredId ? turns.findIndex((t) => t.id === hoveredId) : -1
 
   return (
     <div
-      className="pointer-events-auto absolute left-2.5 top-1/2 z-20 hidden -translate-y-1/2 flex-col items-center sm:flex"
+      className="pointer-events-auto absolute left-0 top-1/2 z-20 hidden -translate-y-1/2 flex-col items-start py-2 sm:flex"
       aria-label="对话轮次导航"
       data-testid="chat-turn-rail"
+      onMouseLeave={() => setHoveredId(null)}
     >
-      <div className={`flex flex-col items-start ${compact ? 'gap-1' : 'gap-1.5'}`}>
+      <div className="flex flex-col items-start">
         {turns.map((turn, idx) => {
           const isActive = turn.id === activeTurnId
           const isHovered = turn.id === hoveredId
+          const distance = hoveredIdx >= 0 ? Math.abs(idx - hoveredIdx) : -1
           const timeText = formatTurnClock(turn.timestamp)
+          const barWidthClass = distance === 0
+            ? 'w-6'
+            : distance === 1
+              ? 'w-4'
+              : distance === 2
+                ? 'w-3'
+                : isActive
+                  ? 'w-3.5'
+                  : 'w-2'
+          const barColor = distance === 0
+            ? 'var(--text-primary)'
+            : isActive
+              ? 'var(--accent-fg)'
+              : distance === 1
+                ? 'color-mix(in srgb, var(--text-secondary) 70%, transparent)'
+                : distance === 2
+                  ? 'color-mix(in srgb, var(--text-muted) 60%, transparent)'
+                  : 'color-mix(in srgb, var(--text-muted) 42%, transparent)'
           return (
             <div
               key={turn.id}
               className="relative flex items-center"
               onMouseEnter={() => setHoveredId(turn.id)}
-              onMouseLeave={() => setHoveredId((prev) => (prev === turn.id ? null : prev))}
             >
+              {/* 宽大无缝热区（靠左边缘 44px 宽 × 14px 高、纵向零缝隙），贴合 Codex 顺滑扫过与点击手感 */}
               <button
                 type="button"
                 onClick={() => onJumpToTurn(turn.id)}
                 onFocus={() => setHoveredId(turn.id)}
                 onBlur={() => setHoveredId((prev) => (prev === turn.id ? null : prev))}
                 aria-label={`跳转到第 ${idx + 1} 轮：${turn.preview}`}
-                className="flex h-2.5 w-4 items-center justify-start rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)]"
+                className={`flex w-11 cursor-pointer items-center justify-start pl-2.5 pr-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-fg)] ${
+                  compact ? 'py-1' : 'py-1.5'
+                }`}
               >
                 <span
-                  className={`block h-[2.5px] rounded-full transition-all duration-150 ${
-                    isActive
-                      ? 'w-3.5'
-                      : isHovered
-                        ? 'w-3'
-                        : 'w-2'
-                  }`}
-                  style={{
-                    background: isActive
-                      ? 'var(--accent-fg)'
-                      : isHovered
-                        ? 'var(--text-primary)'
-                        : 'color-mix(in srgb, var(--text-muted) 45%, transparent)',
-                  }}
+                  className={`block h-[2px] rounded-full transition-all duration-150 ${barWidthClass}`}
+                  style={{ background: barColor }}
                 />
               </button>
 
               {isHovered && (
                 <div
-                  className="pointer-events-none absolute left-full top-1/2 ml-2.5 w-64 -translate-y-1/2 rounded-[var(--radius-md)] border px-3 py-2.5 shadow-lg backdrop-blur-md"
+                  className="pointer-events-none absolute left-full top-1/2 ml-1 w-64 -translate-y-1/2 rounded-[var(--radius-md)] border px-3 py-2.5 shadow-lg backdrop-blur-md"
                   style={{
                     background: 'color-mix(in srgb, var(--card-bg) 95%, transparent)',
                     borderColor: 'var(--border-subtle)',
