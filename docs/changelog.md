@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 统一全站滚动条基线与主视口防抖动占槽：`src/index.css` 建立全局 `*::-webkit-scrollbar` 6px 圆角悬停显现基线（静止透明、容器 hover/focus-within 显色、手柄 hover 加深、隐藏上下箭头），移除与 Chromium 121+ 冲突的 `scrollbar-width: thin`，新增 `.scrollbar-stable`（`scrollbar-gutter: stable`）并接入 Chat、人物世界与 Playground 主滚动区，同步写入 `frontend-guidelines.md` 与 `foundation-enforcement-gate.test.ts` 门禁。
+
 2026-11-23 同步 Playground 基础层展示新增容器原语与布局档位：`UiControlsPanel.tsx` 的「卡片」故事切为真实 Foundation `<SurfaceCard>` 并补充 `<DetailHeader>` 样张，「标签切换」故事新增 `TabStrip variant="pill"` 柔和胶囊样张；`LayoutLanguageSamples.tsx` 的图片区同步展示真实 `MEDIA_FRAME_PRESETS`（`card 4/3`、`portrait 3/4`、`overview 16/9`）与 `LAYOUT_CLASSES.cardGrid` 三列网格。
 
 2026-11-23 落地 Foundation 容器原语收敛与防拖延/防退化门禁：`AGENTS.md` 新增「禁止“以后再说”式拖延」铁律，`agent-skills/frontend-guidelines.md` 固化「三次法则 + 踩坑即收口」与「单点 Bug → 全仓清扫 → 静态门禁」三步闭环；新增 Foundation 原语 `SurfaceCard.tsx`（升级 `behavior.card` 为 `adopted`）与 `DetailHeader.tsx`，收口 `CompanionAvatar#framed` 并在 `WorldProfileHeader`、`ChatWelcome`、`WorldCultureGallery` 与 `WorldKeepsakesPanel` 落地采用；`foundation-enforcement-gate.test.ts` 新增全仓「禁止给 `CompanionAvatar` 外传裸 `ring-*`/`!border-*`」与「带 `role="menu"` 浮层的 `<section>` 禁止 `overflow-hidden`」两项静态门禁。

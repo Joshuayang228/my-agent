@@ -435,5 +435,13 @@ describe('Foundation 布局与控件复用自动门禁', () => {
       }
       expect(violations).toEqual([])
     })
+
+    it('src/index.css 维持全局 6px 悬停滚动条基线且不与 scrollbar-width: thin 冲突', () => {
+      const css = readFileSync(resolve('src/index.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+      expect(css).toContain('*::-webkit-scrollbar')
+      expect(css).toContain('.scrollbar-stable')
+      expect(css).toContain('scrollbar-gutter: stable')
+      expect(css).not.toContain('scrollbar-width: thin')
+    })
   })
 })

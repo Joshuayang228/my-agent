@@ -1425,7 +1425,7 @@ function App() {
         {activeView === 'chat' && <div
           ref={chatContainerRef}
           data-testid="chat-messages"
-          className={`scrollbar-thin relative flex-1 select-text overflow-y-auto ${dragOver ? 'ring-2 ring-inset ring-[var(--accent)]' : ''}`}
+          className={`scrollbar-thin scrollbar-stable relative flex-1 select-text overflow-y-auto ${dragOver ? 'ring-2 ring-inset ring-[var(--accent)]' : ''}`}
           style={dragOver ? { ['--tw-ring-color' as string]: 'var(--accent)' } as React.CSSProperties : {}}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
           onDragLeave={() => setDragOver(false)}

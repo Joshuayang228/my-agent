@@ -1,5 +1,7 @@
 # 项目进度
 
+统一全站滚动条基线与主视口 `scrollbar-gutter: stable` 防抖动（2026-11-23）：`src/index.css` 全局收口为 6px 悬停显现圆角细条并移除 `scrollbar-width: thin` 冲突，Chat / 人物世界 / Playground 主滚动区统一接入 `.scrollbar-stable`，同步沉淀规范与静态门禁。
+
 Playground 基础层同步展示 `SurfaceCard` / `DetailHeader` / `TabStrip#pill` 与 `MEDIA_FRAME_PRESETS`（2026-11-23）：`UiControlsPanel.tsx` 与 `LayoutLanguageSamples.tsx` 直连新落地的容器原语与布局档位，确保 Playground 基础层与生产代码完全一致。
 
 Foundation 容器原语收敛（`SurfaceCard` / `DetailHeader` / `CompanionAvatar#framed`）与防拖延/防裁切门禁（2026-11-23）：`AGENTS.md` 确立禁止“以后再说”铁律；新增并采用 `SurfaceCard` 与 `DetailHeader`，`CompanionAvatar` 收口 `framed` 语义描边；`foundation-enforcement-gate.test.ts` 扩展至 13 项全仓静态门禁。

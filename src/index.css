@@ -789,31 +789,61 @@ html[data-font-scale="lg"] {
   --scene-glow: color-mix(in srgb, var(--companion-accent-warm) 12%, transparent);
 }
 
-.scrollbar-thin {
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--text-muted) 28%, transparent) transparent;
+/**
+ * 全局滚动条统一基线（Foundation 唯一事实源）。
+ *
+ * 背景：此前全仓混用未声明滚动条（Windows 17px 原生粗条）、.scrollbar-thin（常显）与 .scrollbar-hover，
+ * 且同时声明标准 scrollbar-width/scrollbar-color 与 ::-webkit-scrollbar，导致 Chromium 121+ 忽略 ::-webkit-scrollbar 宽度与圆角。
+ * 设计意图：全局默认统一为 6px 全圆角悬停显现细条（静止透明、容器 hover/focus-within 柔和显现、手柄 hover 加深），
+ * 浅深主题统一基于 --text-muted 混色；主视口级容器配合 .scrollbar-stable 恒定占槽防左右跳动。
+ * 关键约束：Electron/Chromium 环境不与 scrollbar-width: thin 混写，避免覆盖 ::-webkit-scrollbar 样式。
+ */
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-.scrollbar-thin::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-.scrollbar-thin::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track {
   background: transparent;
 }
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--text-muted) 22%, transparent);
+*::-webkit-scrollbar-thumb {
+  background: transparent;
   border-radius: var(--radius-full);
 }
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--text-muted) 45%, transparent);
+*:hover::-webkit-scrollbar-thumb,
+*:focus-within::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-muted) 26%, transparent);
+}
+*:hover::-webkit-scrollbar-thumb:hover,
+*:focus-within::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--text-muted) 48%, transparent);
 }
 /* 隐藏 Windows 滚动条上下箭头按钮 */
-.scrollbar-thin::-webkit-scrollbar-button {
+*::-webkit-scrollbar-button {
   display: none;
   width: 0;
   height: 0;
 }
 
+/* 主视口级滚动容器：恒定预留 6px 透明槽位，内容短变长时居中卡片 0px 跳动 */
+.scrollbar-stable {
+  scrollbar-gutter: stable;
+}
+
+/* 兼容既有类名：.scrollbar-thin 与 .scrollbar-hover 统一复用全局悬停细条基线 */
+.scrollbar-thin,
+.scrollbar-hover {
+  overscroll-behavior: contain;
+}
+
+/* 显式例外：长日志/终端等需常驻提示可滚动的区域 */
+.scrollbar-always::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-muted) 22%, transparent);
+}
+.scrollbar-always::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--text-muted) 48%, transparent);
+}
+
+/* 显式例外：横向标签条/胶囊条完全隐藏滚动条 */
 .no-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -822,43 +852,6 @@ html[data-font-scale="lg"] {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
-}
-
-/**
- * 滚动条槽位常占位（防文字被挤），拇指默认透明；悬停 / focus-within 才显色。
- * 嵌套长文块与 Debug 侧栏列表优先用这个。
- */
-.scrollbar-hover {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-}
-.scrollbar-hover:hover,
-.scrollbar-hover:focus-within {
-  scrollbar-color: color-mix(in srgb, var(--text-muted) 32%, transparent) transparent;
-}
-.scrollbar-hover::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-.scrollbar-hover::-webkit-scrollbar-track {
-  background: transparent;
-}
-.scrollbar-hover::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: var(--radius-full);
-}
-.scrollbar-hover:hover::-webkit-scrollbar-thumb,
-.scrollbar-hover:focus-within::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--text-muted) 28%, transparent);
-}
-.scrollbar-hover:hover::-webkit-scrollbar-thumb:hover,
-.scrollbar-hover:focus-within::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--text-muted) 48%, transparent);
-}
-.scrollbar-hover::-webkit-scrollbar-button {
-  display: none;
-  width: 0;
-  height: 0;
 }
 
 /* Playground 朋友圈样张：借 Alice 的“人物头图 + 社交流”结构，不进入正式页面。 */

@@ -1,5 +1,7 @@
 # 质量总控
 
+全局滚动条基线静态门禁（2026-11-23）：`foundation-enforcement-gate.test.ts` 扩展至 14 项门禁，强制 `src/index.css` 维持全局 `*::-webkit-scrollbar` 与 `.scrollbar-stable` 基线且禁止混写 `scrollbar-width: thin`。
+
 Foundation 原语收敛与防裁切静态门禁（2026-11-23）：`foundation-enforcement-gate.test.ts` 扩展至 13 项门禁，新增全仓 `CompanionAvatar` 禁外传 `ring-*`/`!border-*` 扫描与带 `role="menu"` 浮层的 `<section>` 禁 `overflow-hidden` AST 门禁；`behavior.card` 正式晋升为 `adopted`（`SurfaceCard.tsx`）。
 
 全仓裸 `ring-*` 静态扫描门禁（2026-11-23）：`foundation-enforcement-gate.test.ts` 扩展至 11 项门禁，新增全仓 `src/**/*.tsx` 扫描禁止无显式颜色类的 `ring-1/2/4/8`（防止 Tailwind v4 默认 `currentColor` 黑框），随 `assets:check` 与 Git Hook 强制拦截。

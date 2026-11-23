@@ -33,6 +33,7 @@
 
 - **三次法则 + 踩坑即收口**：某类视觉/容器结构重复 ≥ 3 次或因分散手写踩过一次坑，立即收进 Foundation 原语（如 `SurfaceCard`、`DetailHeader`、`CompanionAvatar#framed`、`LAYOUT_CLASSES.cardGrid`、`mediaFrameStyle()`），不再在业务页散落手拼原子类。
 - **单点 Bug → 全仓清扫 → 门禁封口**：修复任何前端样式/布局 Bug 时，必须先 `grep` 扫全仓同源写法一锅端修复，再尽可能把反模式写进 `foundation-enforcement-gate.test.ts` / `content-layout.test.ts`（随 Git Hook 强制拦截），杜绝同类问题跨文件复发。
+- **滚动条统一基线（`src/index.css`）**：全仓默认继承 6px 全圆角悬停显现细条（静止透明、`:hover` / `:focus-within` 显色 26% `--text-muted`、手柄 hover 48%、隐藏上下箭头，不混写冲突的 `scrollbar-width: thin`）；主视口级滚动区（Chat / 人物世界 / 设置 / Playground）统一挂 `.scrollbar-stable`（`scrollbar-gutter: stable`）防左右跳动；仅终端/长日志用 `.scrollbar-always`，横向标签条用 `.no-scrollbar`。
 
 ---
 

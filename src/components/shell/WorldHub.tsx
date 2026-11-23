@@ -188,7 +188,7 @@ export function WorldHub({
         {(toolbarAction ?? defaultToolbarAction) && <div className="shrink-0">{toolbarAction ?? defaultToolbarAction}</div>}
       </div>
 
-      <div id={`world-panel-${tab}`} role="tabpanel" className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
+      <div id={`world-panel-${tab}`} role="tabpanel" className="min-h-0 flex-1 overflow-y-auto scrollbar-thin scrollbar-stable">
         {previewPanels?.[tab] ?? (
           <>
             {tab === 'moments' && <MomentsPanel onTakeToChat={onTakeToChat} onClose={onClose} onLoadingChange={setWorldRefreshing} refreshToken={momentsPreview ? undefined : worldRefreshToken} previewData={momentsPreview} appearance={momentsAppearance ?? 'alice-feed'} hideHeader={hideMomentsHeader ?? true} showSocialActions={showSocialActions} compactClosedComposer={compactClosedComposer} enableImagePreview={enableImagePreview} previewChrome="minimal" avatarSrc={profile?.avatarSrc} />}

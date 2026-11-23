@@ -160,7 +160,7 @@ export function PlaygroundShell({ onClose }: { onClose?: () => void }) {
 
       </aside>
 
-      <main className="playground-main min-h-0 min-w-0 flex-1 overflow-y-auto px-6 py-6 sm:px-10 sm:py-8" data-testid="playground-main">
+      <main className="playground-main scrollbar-stable min-h-0 min-w-0 flex-1 overflow-y-auto px-6 py-6 sm:px-10 sm:py-8" data-testid="playground-main">
         <div className="mx-auto w-full max-w-6xl">
           <PlaygroundPageHeader
             title={activeTab.label}
