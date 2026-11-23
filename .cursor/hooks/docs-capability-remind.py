@@ -47,11 +47,21 @@ def git_porcelain() -> list[str]:
 
 
 def main() -> None:
-    # 消费 stdin（Cursor 传入的 hook JSON），避免管道阻塞
+    # 解析 Cursor 传入的 hook JSON；若已由本 hook 触发过跟进（loop_count >= 1），
+    # 直接放行，避免工作区存在存量未提交改动时反复拉起形成死循环。
+    payload: dict = {}
     try:
-        sys.stdin.read()
+        raw = sys.stdin.read().strip()
+        if raw:
+            parsed = json.loads(raw)
+            if isinstance(parsed, dict):
+                payload = parsed
     except Exception:
         pass
+
+    if int(payload.get("loop_count") or 0) >= 1:
+        print("{}")
+        return
 
     paths = git_porcelain()
     product = [p for p in paths if p.startswith(PRODUCT_PREFIXES)]
