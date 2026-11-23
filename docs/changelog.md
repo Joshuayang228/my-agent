@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-23 重绘通讯录 4 位草帽团伙伴头像为阳光日漫满画幅风格：替换 `zoro` / `nami` / `usopp` / `sanji` 的 `visual/avatar-v1.png`（512×512 PNG），统一为晴朗蓝天白云甲板日光画风并彻底移除旧版黑夜阴森底色与白圆框。
+
 2026-11-23 Chat 左侧轮次引导轨由圆点改回极简线条样式：`ChatScrollNavigator.tsx` 将左侧指示点切换为左对齐细线条（当前轮次长条主色、悬停拉长加深、未选中短细线），保留无白底与单条悬停预览卡。
 
 2026-11-23 根治 Electron 打开用户工作区后通讯录头像与礼物/信物插画全部不显示的 Bug：`ProjectIPC` 打开用户工作区时会执行 `process.chdir(dirPath)`（如 `Desktop`），导致 `electron/main/companion/identity/loader.ts` 中 `resolveUniversesRoot()` 仅靠 `process.cwd()` 寻址 `universes/` 在 `dist-electron/` 产物下必然失败并被 `resolveRoleAssetFilePath` 静默缓存为 `null`；现改为优先按 `dist-electron/..`、`process.env.APP_ROOT`、`app.getAppPath()`、`process.resourcesPath` 定位内置 `universes/`，并在 `gifting.test.ts` 补齐 `process.chdir(os.tmpdir())` 回归。

@@ -1,5 +1,7 @@
 # 项目进度
 
+重绘通讯录 4 位草帽团伙伴头像为晴朗阳光画风（2026-11-23）：更新 `zoro` / `nami` / `usopp` / `sanji` 的 `avatar-v1.png` 为统一蓝天白云甲板满画幅日漫头像，消除暗黑阴森背景与内置圆框。
+
 Chat 左侧轮次引导改回极简细线条样式（2026-11-23）：`ChatScrollNavigator.tsx` 将圆点替换为左对齐细线条，保留透明底与单条悬停预览卡。
 
 根治打开工作区（`process.chdir`）导致通讯录头像与礼物/信物插画全部缺失的 Bug（2026-11-23）：`loader.ts` 的 `resolveUniversesRoot()` 不再依赖易被 `ProjectIPC` 改写的 `process.cwd()`，改为优先从 `dist-electron/..`、`APP_ROOT`、`app.getAppPath()` 与 `resourcesPath` 寻址内置 `universes/`，并在 `gifting.test.ts` 补齐切换 `cwd` 回归。
