@@ -1,5 +1,7 @@
 # 项目进度
 
+右坞侧栏防挤压自适应与文件浏览器视觉焕新（2026-11-24）：`App.tsx` 补齐三栏宽度守卫（打开大尺寸右坞自动让步左会话栏，保证中栏 Chat 最小 `380px` 永不被挤成窄条）与右键菜单圆角内缩；`FileBrowser.tsx` 对齐设计系统 2.0 的目录树行距、柔和文件夹配色、圆角搜索框与宽敞阅读留白。
+
 全站设计系统 2.0 表面语言统一落地（2026-11-24）：完成全局柔光聚焦与轻盈滚动条、开屏动态留白与柔和「+ 新对话」胶囊、朋友圈单层滚动、家居 `560px` 总览图与房间摘要、右侧工作区（`TabStrip` / `WorkspaceToolMenu` / `ChatRightDock` / `WorkspaceFilesPanel`）及设置全局（`SettingsLayout` / `SettingsFields`）视觉统一升级，并正式固化进 `frontend-guidelines.md` 与自动化提交门禁；全套单测、双端 TypeScript 检查与 `vite build` 生产构建全部通过。
 
 人物世界排版收口 Foundation、自动防偏移门禁与日常开屏温情化（2026-11-24）：`content-layout.ts` 补齐 `portraitGrid` 与 `portraitHero` 单一事实源，`MomentsPanel` 回归 `readingContentStyle('world')` 居中阅读列，`AssetsPanel` 收回 `mediaFrameStyle` 与 `portraitGrid` 并改为左图右槽主视觉；`foundation-enforcement-gate.test.ts` 强制锁死画廊/衣柜/朋友圈禁写手写媒体比例与私自网格；`companion-presence.ts` 为日常开屏改配时段双行温情问候，同步完成下拉圆角内缩、空工作区弱化、副标题对比度与欢迎重心上移。

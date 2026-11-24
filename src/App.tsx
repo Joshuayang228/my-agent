@@ -322,6 +322,9 @@ function App() {
   const [sidebarSearchOpen, setSidebarSearchOpen] = useState(false)
   const [showFileBrowser, setShowFileBrowser] = useState(false)
   const [rightDockCollapsed, setRightDockCollapsed] = useState(false)
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1280))
+  const sidebarAutoCollapsedRef = useRef(false)
+  const manualSidebarWithDockRef = useRef(false)
   const [sidebarWidth, setSidebarWidth] = usePersistedNumber(
     LAYOUT_KEYS.sidebarWidth,
     LAYOUT_BOUNDS.sidebarWidth.fallback,
@@ -332,6 +335,31 @@ function App() {
     LAYOUT_BOUNDS.rightDockWidth.fallback,
     LAYOUT_BOUNDS.rightDockWidth,
   )
+
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  const dockActive = activeView === 'chat' && showFileBrowser && !rightDockCollapsed
+  useEffect(() => {
+    if (!dockActive) {
+      manualSidebarWithDockRef.current = false
+      if (sidebarAutoCollapsedRef.current) {
+        sidebarAutoCollapsedRef.current = false
+        setSidebarOpen(true)
+      }
+      return
+    }
+    if (sidebarOpen && !manualSidebarWithDockRef.current) {
+      const centerRemaining = viewportWidth - 54 - sidebarWidth - rightDockWidth
+      if (centerRemaining < 440) {
+        sidebarAutoCollapsedRef.current = true
+        setSidebarOpen(false)
+      }
+    }
+  }, [dockActive, viewportWidth, sidebarWidth, rightDockWidth, sidebarOpen])
   const [mentionOpen, setMentionOpen] = useState(false)
   const [mentionQuery, setMentionQuery] = useState('')
   const [mentionAnchor, setMentionAnchor] = useState({ top: 0, left: 0 })
@@ -1805,7 +1833,11 @@ function App() {
             }
             setActiveView(view)
           }}
-          onCollapse={() => setSidebarOpen(false)}
+          onCollapse={() => {
+            sidebarAutoCollapsedRef.current = false
+            manualSidebarWithDockRef.current = false
+            setSidebarOpen(false)
+          }}
         />
         <ResizeHandle
           orientation="vertical"
@@ -1824,11 +1856,11 @@ function App() {
           onContextMenu={(e) => { e.preventDefault(); setContextMenu(null) }}
         >
           <div
-            className="absolute rounded-lg border py-1 shadow-lg"
+            className="absolute rounded-lg border p-1 shadow-lg"
             style={{
               left: contextMenu.x,
               top: contextMenu.y,
-              background: 'var(--bg-secondary)',
+              background: 'var(--dropdown-bg)',
               borderColor: 'var(--border-color)',
               minWidth: 160,
             }}
@@ -1843,10 +1875,8 @@ function App() {
               <button
                 key={item.label}
                 onClick={item.action}
-                className="flex w-full items-center px-3 py-1.5 text-left text-[13px] transition"
+                className="flex w-full cursor-pointer items-center rounded-md px-2.5 py-1.5 text-left text-[13px] transition hover:bg-[var(--hover-overlay)]"
                 style={{ color: 'danger' in item && item.danger ? 'var(--danger)' : 'var(--text-secondary)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = '')}
               >
                 {item.label}
               </button>
@@ -1864,6 +1894,8 @@ function App() {
             size={32}
             label="展开侧栏"
             onClick={() => {
+              sidebarAutoCollapsedRef.current = false
+              if (dockActive) manualSidebarWithDockRef.current = true
               setSidebarReopenReady(false)
               setSidebarOpen(true)
               requestAnimationFrame(() => sidebarShellRef.current?.querySelector<HTMLButtonElement>('button[aria-label="收起侧栏"]')?.focus())
@@ -2376,27 +2408,33 @@ function App() {
             title="拖动调整右坞宽度"
             onDelta={(dx) => setRightDockWidth((w) => w - dx)}
           />}
-          <ChatRightDock
-            key={currentProject?.path || 'no-project'}
-            projectPath={currentProject?.path || null}
-            sessionId={activeSessionId}
-            showFiles={showFileBrowser}
-            collapsed={rightDockCollapsed || activeView !== 'chat'}
-            width={rightDockWidth}
-
-            onCloseFiles={() => { setRightDockCollapsed(false); setShowFileBrowser(false) }}
-            onTakeToChat={({ text }) => {
-              setActiveView('chat')
-              setInput(text)
-              requestAnimationFrame(() => {
-                const el = inputRef.current
-                if (!el) return
-                el.focus()
-                const end = el.value.length
-                el.setSelectionRange(end, end)
-              })
-            }}
-          />
+          {(() => {
+            const occupiedLeft = 54 + (sidebarOpen && activeView === 'chat' ? sidebarWidth : 0)
+            const maxDockForCenter = Math.max(LAYOUT_BOUNDS.rightDockWidth.min, viewportWidth - occupiedLeft - 380)
+            const effectiveRightDockWidth = Math.max(LAYOUT_BOUNDS.rightDockWidth.min, Math.min(rightDockWidth, maxDockForCenter))
+            return (
+              <ChatRightDock
+                key={currentProject?.path || 'no-project'}
+                projectPath={currentProject?.path || null}
+                sessionId={activeSessionId}
+                showFiles={showFileBrowser}
+                collapsed={rightDockCollapsed || activeView !== 'chat'}
+                width={effectiveRightDockWidth}
+                onCloseFiles={() => { setRightDockCollapsed(false); setShowFileBrowser(false) }}
+                onTakeToChat={({ text }) => {
+                  setActiveView('chat')
+                  setInput(text)
+                  requestAnimationFrame(() => {
+                    const el = inputRef.current
+                    if (!el) return
+                    el.focus()
+                    const end = el.value.length
+                    el.setSelectionRange(end, end)
+                  })
+                }}
+              />
+            )
+          })()}
         </>
       )}
 

@@ -206,11 +206,11 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
       )}
       {embedded && !hideProjectHeader && (
         <div
-          className="flex shrink-0 items-center gap-1.5 border-b px-2 py-1"
+          className="flex shrink-0 items-center gap-1.5 border-b px-3 py-2"
           style={{ borderColor: 'var(--border-subtle)' }}
         >
-          <span className="min-w-0 flex-1 truncate text-[10px]" style={{ color: 'var(--text-muted)' }} title={displayProjectPath || undefined}>
-            {displayProjectPath || '未选择项目'}
+          <span className="min-w-0 flex-1 truncate text-[12px] font-medium" style={{ color: 'var(--text-primary)' }} title={displayProjectPath || undefined}>
+            {displayProjectPath ? (displayProjectPath.split(/[/\\]/).filter(Boolean).pop() || displayProjectPath) : '未选择项目'}
           </span>
           <IconButton label="刷新" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => { void loadTree() }}>
             <RefreshCw size={12} className={loading ? 'animate-spin' : undefined} />
@@ -226,8 +226,8 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
         <>
           {showTree && <div className="border-b px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
             <div
-              className="flex items-center gap-1.5 rounded-md border px-2 py-1"
-              style={{ borderColor: 'var(--border-color)', background: 'var(--input-bg)' }}
+              className="flex items-center gap-2 rounded-lg border px-2.5 py-1.5"
+              style={{ borderColor: 'color-mix(in srgb, var(--border-color) 75%, transparent)', background: 'color-mix(in srgb, var(--card-bg) 85%, transparent)' }}
             >
               <Search size={12} style={{ color: 'var(--text-muted)' }} />
               <TextField
@@ -242,7 +242,7 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
           {/* Alice 式：树上、预览下；中间可拖 */}
           <div ref={splitRef} className="flex min-h-0 flex-1 flex-col">
             {showTree && <div
-              className={`min-h-0 overflow-y-auto px-1 py-1 scrollbar-hover ${showPreview && preview ? 'shrink-0' : 'flex-1'}`}
+              className={`min-h-0 space-y-0.5 overflow-y-auto px-2 py-1.5 scrollbar-hover ${showPreview && preview ? 'shrink-0' : 'flex-1'}`}
               style={showPreview && preview ? { height: `${Math.round(treeRatio * 100)}%` } : undefined}
               data-testid="file-browser-tree"
             >
@@ -280,11 +280,11 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                 style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}
               >
                 <div
-                  className="flex shrink-0 items-center gap-1.5 border-b px-2 py-1.5"
+                  className="flex shrink-0 items-center justify-end gap-1 border-b px-3 py-1"
                   style={{ borderColor: 'var(--border-subtle)' }}
                 >
-                  <span className="min-w-0 flex-1 truncate text-[10px]" style={{ color: 'var(--text-muted)' }} title={preview.path}>
-                    {fileName}
+                  <span className="min-w-0 flex-1 truncate text-[11px]" style={{ color: 'var(--text-muted)' }} title={preview.path}>
+                    {hidePreviewClose ? '' : fileName}
                   </span>
                   {preview.kind === 'text' && (
                     <IconButton label="复制正文" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => { void copyText() }}>
@@ -352,7 +352,7 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                     )
                   }
                   return (
-                    <div className="min-h-0 flex-1 overflow-auto scrollbar-hover select-text p-3">
+                    <div className="min-h-0 flex-1 overflow-auto scrollbar-hover select-text px-5 py-4">
                       {preview.kind === 'loading' && <p role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>正在读取文件…</p>}
                       {preview.kind === 'image' && (
                         <ImagePreviewImage
@@ -363,7 +363,7 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                         />
                       )}
                       {preview.kind === 'text' && preview.languageHint === 'markdown' && (
-                        <div className="text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                        <div className="text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                           <MarkdownRenderer content={preview.content} />
                         </div>
                       )}
@@ -444,14 +444,12 @@ function TreeNode({ entry, depth, onFileClick, selectedPath }: {
     <div>
       <button
         type="button"
-        className="flex w-full items-center gap-1 rounded-md px-1 py-0.5 text-left text-[12px] transition"
+        className={`flex w-full cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[12.5px] transition hover:bg-[var(--hover-overlay)] ${isSelected ? 'font-medium' : ''}`}
         style={{
-          paddingLeft: depth * 14 + 4,
+          paddingLeft: depth * 14 + 8,
           color: isSelected ? 'var(--accent-fg)' : 'var(--text-secondary)',
           background: isSelected ? 'var(--accent-subtle)' : undefined,
         }}
-        onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = 'var(--hover-overlay)' }}
-        onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = '' }}
         onClick={() => {
           if (entry.isDir) setOpen(v => !v)
           else onFileClick(entry)
@@ -460,7 +458,7 @@ function TreeNode({ entry, depth, onFileClick, selectedPath }: {
         {entry.isDir ? (
           <>
             {open ? <ChevronDown size={12} style={{ color: 'var(--text-muted)' }} /> : <ChevronRight size={12} style={{ color: 'var(--text-muted)' }} />}
-            {open ? <FolderOpen size={13} className="text-amber-500" /> : <Folder size={13} className="text-amber-500" />}
+            {open ? <FolderOpen size={13} style={{ color: 'var(--companion-accent-warm, #c9a96e)' }} /> : <Folder size={13} style={{ color: 'var(--companion-accent-warm, #c9a96e)' }} />}
           </>
         ) : (
           <>
