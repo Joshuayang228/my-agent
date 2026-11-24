@@ -323,6 +323,17 @@ html[data-font-scale="lg"] {
 .chat-composer-input-no-ring:focus-visible {
   box-shadow: none;
 }
+.chat-composer-card {
+  border-color: var(--border-color);
+  background: color-mix(in srgb, var(--card-bg) 94%, transparent);
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--text-primary) 5%, transparent);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+.chat-composer-card:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border-color));
+  box-shadow: 0 8px 26px color-mix(in srgb, var(--text-primary) 6%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
+}
 .foundation-text-field-outlined {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);

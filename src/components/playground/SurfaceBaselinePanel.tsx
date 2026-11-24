@@ -610,7 +610,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                 <div className={`flex min-h-0 flex-1 overflow-y-auto ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`} data-testid="chat-surface-scroll">
                   {isWelcome ? (
                     <ChatWelcome
-                      title={`嗨，我是${persona.name}`}
+                      title="上午好啊"
                       subtitle={persona.blurb}
                       roleName={persona.name}
                       latestMoment={{

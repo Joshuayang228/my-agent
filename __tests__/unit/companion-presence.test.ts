@@ -2,15 +2,26 @@ import { describe, it, expect } from 'vitest'
 import {
   buildColdStartCopy,
   buildReacquaintCopy,
+  buildTimeOfDayGreeting,
 } from '../../src/shared/companion-presence'
 
 describe('companion presence', () => {
-  it('冷启动文案绑定主角名', () => {
+  it('按时段返回亲切活人感问候', () => {
+    expect(buildTimeOfDayGreeting(7)).toBe('早上好啊')
+    expect(buildTimeOfDayGreeting(10)).toBe('上午好啊')
+    expect(buildTimeOfDayGreeting(12)).toBe('中午好啊')
+    expect(buildTimeOfDayGreeting(15)).toBe('下午好啊')
+    expect(buildTimeOfDayGreeting(20)).toBe('晚上好啊')
+    expect(buildTimeOfDayGreeting(1)).toBe('夜深了，还没歇着呀')
+  })
+
+  it('无 quote 角色回退简介并采用时段问候标题', () => {
     const copy = buildColdStartCopy({
       name: '小林',
       description: '沉稳体贴的数字伙伴',
+      hour: 10,
     })
-    expect(copy.title).toBe('嗨，我是小林')
+    expect(copy.title).toBe('上午好啊')
     expect(copy.subtitle).toContain('沉稳体贴')
     expect(copy).not.toHaveProperty('hint')
   })
@@ -25,14 +36,15 @@ describe('companion presence', () => {
     expect(copy.subtitle).toContain('路飞')
   })
 
-  it('常规空态首屏优先展示角色第一人称台词 quote 而非第三人称简介', () => {
+  it('常规空态首屏采用时段问候标题并优先展示角色第一人称台词 quote', () => {
     const copy = buildColdStartCopy({
       name: '路飞',
       description: '自由、直率的冒险伙伴',
-      quote: '我要成为海贼王的男人！',
+      quote: '我是要成为海贼王的男人！',
+      hour: 10,
     })
-    expect(copy.title).toBe('嗨，我是路飞')
-    expect(copy.subtitle).toBe('我要成为海贼王的男人！')
+    expect(copy.title).toBe('上午好啊')
+    expect(copy.subtitle).toBe('我是要成为海贼王的男人！')
   })
 
   it('换角再认识文案：换视角非重开，且点名双方', () => {

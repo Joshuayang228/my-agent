@@ -1,5 +1,7 @@
 # 项目进度
 
+对话开屏页与 Codex 风格双层嵌套输入框焕新（2026-11-24）：`companion-presence.ts` 为开屏主标题加入按时段温情问候（「上午好啊 / 下午好啊」等）并与 Role Pack 个性台词/简介解耦；`ChatComposer.tsx` 升级为上盖工作区托盘 + 下层柔光主输入卡双层嵌套形态，底栏收口为 `+` 弹出菜单（收纳附件/生图）与审批胶囊、清晰区分发送按钮两态；`ChatWelcome.tsx` 移除 3 颗泛用模板胶囊并将底部收束为等宽毛玻璃朋友圈悬浮切片卡；`App.tsx`、`SurfaceBaselinePanel.tsx` 与单测同步通过。
+
 统一人物世界图标注册事实源、修复底栏按钮 hover 并恢复可点击模型切换器（2026-11-23）：`icon-registry.ts` 将左导轨 8 大生活切面图标（`Aperture` / `FileText` / `Gift` / `Shirt` / `BookOpen` / `Home` / `Users` / `MapPin`）固化为单一事实源供 `NavigationRail` 与 `WorldHub` 同源消费；`ActionButton.tsx` 与 `IconButton.tsx` 修复内联 `background: 'transparent'` 压死 hover 的问题；`ChatComposer.tsx` 与 `App.tsx` 接入 `modelControl` 可点击模型切换下拉菜单，并将项目选择器收进输入框底栏、消除框外“双下巴”与重复 `Debug` 链接。
 
 恢复侧栏「+ 新对话」胶囊按钮与修复 hover、移除角色名下拉箭头及修正路飞台词（2026-11-23）：`PrimarySidebar.tsx` 恢复浅绿胶囊「+ 新对话」与右侧搜索按钮并修复 hover，移除角色名旁误导性 `▾` 箭头；路飞 `manifest.json` 招牌台词修正为「我是要成为海贼王的男人！」。

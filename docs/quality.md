@@ -1,8 +1,12 @@
 # 质量总控
 
+对话开屏欢迎区与双层嵌套输入框回归（2026-11-24）：`companion-presence.test.ts`（6 项）覆盖全天 6 个时段问候语与角色台词/简介回退，`navigation-rail.test.ts`（2 项）校验移除 3 颗泛用模板胶囊及底部等宽毛玻璃朋友圈悬浮切片卡有图/纯文两态；配合 `icon-registry.test.ts`、`foundation-enforcement-gate.test.ts`（15 项）、`ui-component-registry.test.ts`（47 项）与 `tsc --noEmit` 全绿通过。
+
 人物世界图标单一事实源与输入卡字号/无双下巴静态门禁（2026-11-23）：`foundation-enforcement-gate.test.ts` 扩展至 15 项门禁，强制 `NavigationRail.tsx` 与 `WorldHub.tsx` 共用 `getWorldSurfaceIcon`、`ChatApprovalControl.tsx` 使用 `ShieldCheck`、`ChatComposer.tsx` 维持 `!text-[14px]` 与 `projectControl` 框内收口、`ChatWelcome.tsx` 动态卡禁用 `Sparkles`；`icon-registry.test.ts`、`ui-component-registry.test.ts` 与 `tsc --noEmit` 全部通过。
 
 左导轨 20px 图标与快捷入口去重回归（2026-11-23）：`navigation-rail.test.ts` 同步校验有快捷入口时不重复渲染 `rail-nav-world`、清空快捷入口时兜底渲染 `rail-nav-world`；`companion-identity.test.ts` 同步更新路飞 `firstContact` 台词断言；定向单测与 `tsc --noEmit` 全绿。
+
+右侧工作区视觉批注升级 Batch B P0 单元测试（2026-11-23）：新增 `__tests__/unit/workspace-visual-annotate.test.ts`（4 项），覆盖三态脚本按需注入、Adjust 最小样式差异计算与格式化、元素/区域框选随机 `channelToken` 白名单校验及本地预览地址协议安全拦截；`typecheck`、`assets:check`、`arch:check` 与 `vite build` 全绿通过。
 
 右侧工作区富文档渲染与批注回传 Batch A P1 正式回流门禁（2026-11-23）：`__tests__/unit/document-parser.test.ts` 扩展至 7 项，新增真实 XLSX/CSV 结构化多表解析、PDF 按页文本+base64 解析与零依赖原生 ZIP/XML PPTX 幻灯片+备注解析回归；配合 `__tests__/unit/workspace-rich-preview.test.ts`（6 项）、`typecheck`、`assets:check`（120/120）、`arch:check`（16/16）与 `vite build` 全绿通过。
 

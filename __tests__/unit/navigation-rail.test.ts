@@ -43,13 +43,11 @@ describe('NavigationRail 与 ChatWelcome 升级门禁', () => {
     expect(emptyShortcutsHtml).toContain('data-testid="rail-nav-world"')
   })
 
-  it('ChatWelcome 顶部 3 颗全为纯提示词胶囊，底部最新动态支持纯图标操作与有图缩略图 +N 角标', () => {
-    const html = renderToStaticMarkup(createElement(ChatWelcome, {
-      title: '嗨，我是路飞',
-      subtitle: '我要成为海贼王的男人！',
-      onGreet: () => {},
-      onPlanDay: () => {},
-      onAskRecent: () => {},
+  it('ChatWelcome 移除 3 颗模板胶囊，底部渲染等宽毛玻璃朋友圈悬浮切片卡（支持有图/纯文两态）', () => {
+    const withThumbHtml = renderToStaticMarkup(createElement(ChatWelcome, {
+      title: '上午好啊',
+      subtitle: '我是要成为海贼王的男人！',
+      roleName: '路飞',
       latestMoment: {
         id: 'm1',
         text: '刚在甲板钓到一条奇怪的大鱼！',
@@ -60,17 +58,30 @@ describe('NavigationRail 与 ChatWelcome 升级门禁', () => {
         onTalkAbout: () => {},
       },
     }))
-    expect(html).toContain('打个招呼')
-    expect(html).toContain('今天想怎么过？')
-    expect(html).toContain('最近在忙啥呢？')
-    expect(html).not.toContain('看看朋友圈')
-    // 操作收为纯图标，不渲染文字按钮文案
-    expect(html).not.toContain('>聊聊这条<')
-    expect(html).not.toContain('>去看看<')
-    expect(html).toContain('aria-label="聊聊这条动态"')
-    expect(html).toContain('aria-label="前往朋友圈查看"')
-    // 有图动态渲染缩略图与 +2 角标
-    expect(html).toContain('data-testid="chat-welcome-moment-thumb"')
-    expect(html).toContain('+2')
+    expect(withThumbHtml).not.toContain('打个招呼')
+    expect(withThumbHtml).not.toContain('今天想怎么过？')
+    expect(withThumbHtml).not.toContain('最近在忙啥呢？')
+    expect(withThumbHtml).toContain('路飞')
+    expect(withThumbHtml).toContain('在朋友圈')
+    expect(withThumbHtml).toContain('aria-label="聊聊这条动态"')
+    expect(withThumbHtml).toContain('aria-label="前往朋友圈查看"')
+    expect(withThumbHtml).toContain('data-testid="chat-welcome-moment-thumb"')
+    expect(withThumbHtml).toContain('+2')
+
+    const textOnlyHtml = renderToStaticMarkup(createElement(ChatWelcome, {
+      title: '上午好啊',
+      subtitle: '我是要成为海贼王的男人！',
+      roleName: '路飞',
+      latestMoment: {
+        id: 'm2',
+        text: '书里那口锅边偷尝太香了。',
+        publishedAt: Date.now() - 20 * 60_000,
+        onOpen: () => {},
+        onTalkAbout: () => {},
+      },
+    }))
+    expect(textOnlyHtml).not.toContain('data-testid="chat-welcome-moment-thumb"')
+    expect(textOnlyHtml).toContain('书里那口锅边偷尝太香了。')
+    expect(textOnlyHtml).toContain('aria-label="聊聊这条动态"')
   })
 })

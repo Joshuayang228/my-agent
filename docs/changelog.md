@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-24 重构对话开屏欢迎区与 Codex 风格双层嵌套输入框：`src/shared/companion-presence.ts` 新增 `buildTimeOfDayGreeting` 并使 `buildColdStartCopy` 对老朋友开屏改为按时段亲切问候（「上午好啊 / 下午好啊」等），角色按自身 Role Pack 的 `firstContact.quote` 展示个性台词（未配 `quote` 回退简介）；`ChatComposer.tsx` 与 `src/index.css` 新增聚焦柔光（`.chat-composer-card`）、支持由 `projectControl` 构成上盖环境托盘、去除底栏竖线分割并将附件与生图收敛入 `+` 弹出菜单，同时清晰区分发送按钮空态与激活态；`ChatWelcome.tsx` 去除拦截视线的 3 颗模板胶囊，将输入框下方升级为等宽毛玻璃朋友圈悬浮切片卡（带角色名、时间、光圈徽标/缩略图、`聊聊 ›` 与朋友圈直达入口）；同步更新 `App.tsx`、`SurfaceBaselinePanel.tsx` 与单元测试。
+
 2026-11-23 统一人物世界 8 大切面图标至 `icon-registry` 单一事实源、修复底栏按钮 hover 与恢复可点击模型切换器：`src/shared/icon-registry.ts` 新增 `WORLD_SURFACE_ICON_KEYS` 与 `getWorldSurfaceIcon`，将左导轨 8 个生活切面图标（朋友圈 `Aperture`、日记 `FileText`、礼物 `Gift`、衣柜 `Shirt`、文化角 `BookOpen`、家居 `Home`、通讯录 `Users`、足迹 `MapPin`）注册为单一事实源供 `NavigationRail.tsx` 与 `WorldHub.tsx` 同源消费；`ActionButton.tsx` 与 `IconButton.tsx` 移除压死 Tailwind `hover:bg-[var(--hover-overlay)]` 的内联 `background: 'transparent'` 并补齐 `hover:text-[var(--text-primary)]`；`ChatComposer.tsx` 与 `App.tsx` 新增 `modelControl` 可点击模型切换下拉菜单（支持一键切换主对话模型或直达模型设置）、将项目工作区选择（`📁 Desktop ▾`）收进输入卡片内部底栏（`projectControl`）并移除框外悬挂工具行与重复 `Debug` 链接；`ChatApprovalControl.tsx` 将自动审批图标由 `RefreshCw` 换为 `ShieldCheck`；`ChatWelcome.tsx` 移除最新动态卡左上角的 `Sparkles` 图标。
 
 2026-11-23 恢复侧栏「+ 新对话」浅绿胶囊按钮并修复 hover、移除角色名误导下拉箭头与补齐路飞台词「是」字：`PrimarySidebar.tsx` 恢复耐看的柔和浅绿胶囊「+ 新对话」大按钮与右侧并排 `🔍` 搜索按钮、修复内联 `background: 'transparent'` 压死 hover 的问题，并去掉「路飞」右侧像下拉菜单的 `▾` 箭头；`roles/luffy/manifest.json` 与 `App.tsx` 将招牌台词修正为「我是要成为海贼王的男人！」。

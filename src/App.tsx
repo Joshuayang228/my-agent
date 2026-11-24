@@ -1438,7 +1438,11 @@ function App() {
               }
             }
           },
-          placeholder: attachedFiles.length > 0 ? '描述附件内容或输入问题...' : `和${currentPersonaName || '伙伴'}说说…`,
+          placeholder: attachedFiles.length > 0
+            ? '描述附件内容或输入问题...'
+            : currentProject
+              ? `和${currentPersonaName || '伙伴'}说说，或输入 @ 引用项目文件…`
+              : `和${currentPersonaName || '伙伴'}说说…`,
         }}
         streaming={isStreaming}
         sendDisabled={!input.trim() && pendingImages.length === 0 && attachedFiles.length === 0 && mentionedFiles.length === 0}
@@ -1491,10 +1495,10 @@ function App() {
                 }
                 setProjectMenuOpen(!projectMenuOpen)
               }}
-              className="flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-2 text-[12px] text-[var(--text-secondary)] transition hover:bg-[var(--hover-overlay)] hover:text-[var(--text-primary)]"
+              className="flex h-6 cursor-pointer items-center gap-1.5 rounded-md px-2 text-[12px] text-[var(--text-secondary)] transition hover:bg-[var(--hover-overlay)] hover:text-[var(--text-primary)]"
             >
               <Folder size={13} style={{ color: 'var(--text-muted)' }} />
-              <span>{currentProject?.name || '未选择项目'}</span>
+              <span>{currentProject?.name || '选择工作区'}</span>
               <ChevronDown size={10} style={{ color: 'var(--text-muted)' }} />
             </button>
 
@@ -2017,7 +2021,7 @@ function App() {
         >
           <div className={`relative z-[1] flex min-h-full flex-col ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}`}>
           <div className="mx-auto flex min-h-full w-full flex-1 flex-col" style={{ maxWidth: 'var(--layout-width)' }} data-testid="chat-content">
-            {/* 欢迎屏 — 无头像居中标题台词 + 居中输入框 + 统一清透胶囊 + 单条最新动态轻卡 */}
+            {/* 欢迎屏 — 无头像时段问候 + 角色台词 + 居中输入框（上盖托盘）+ 等宽毛玻璃朋友圈悬浮切片卡 */}
             {messages.length === 0 && (
               <div className="flex flex-1 flex-col items-center justify-center py-6">
                 <ChatWelcome

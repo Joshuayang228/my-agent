@@ -9,12 +9,23 @@ export interface ColdStartCopy {
   subtitle: string
 }
 
+export function buildTimeOfDayGreeting(hour = new Date().getHours()): string {
+  const h = ((Math.floor(hour) % 24) + 24) % 24
+  if (h >= 5 && h < 9) return '早上好啊'
+  if (h >= 9 && h < 12) return '上午好啊'
+  if (h >= 12 && h < 14) return '中午好啊'
+  if (h >= 14 && h < 18) return '下午好啊'
+  if (h >= 18 && h < 23) return '晚上好啊'
+  return '夜深了，还没歇着呀'
+}
+
 export function buildColdStartCopy(role: {
   name: string
   description: string
   /** 角色第一人称招牌台词（来自 Role Pack `firstContact.quote`），优先作为常规首屏副标题 */
   quote?: string
   firstContact?: { openingLine: string; quote?: string }
+  hour?: number
 }): ColdStartCopy {
   const name = role.name?.trim() || '伙伴'
   const description = role.description?.trim() || '你的数字伙伴'
@@ -27,7 +38,7 @@ export function buildColdStartCopy(role: {
   }
   const signatureQuote = role.quote?.trim()
   return {
-    title: `嗨，我是${name}`,
+    title: buildTimeOfDayGreeting(role.hour),
     subtitle: signatureQuote || description,
   }
 }

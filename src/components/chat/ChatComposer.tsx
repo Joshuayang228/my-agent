@@ -1,5 +1,6 @@
-import { useLayoutEffect, useRef, type ReactNode, type RefObject, type TextareaHTMLAttributes } from 'react'
-import { ArrowUp, ImagePlus, Paperclip, Square } from 'lucide-react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject, type TextareaHTMLAttributes } from 'react'
+import { ArrowUp, ImagePlus, Paperclip, Plus, Square } from 'lucide-react'
+import { ActionButton } from '../foundation/ActionButton'
 import { IconButton } from '../foundation/IconButton'
 import { TextField } from '../foundation/TextField'
 
@@ -10,7 +11,7 @@ interface ChatComposerProps {
   inputRef?: RefObject<HTMLTextAreaElement | null>
   prefix?: ReactNode
   approvalControl: ReactNode
-  /** 项目工作区选择器插槽：统一收纳在输入卡片内部底栏，消除框外下挂“双下巴” */
+  /** 项目工作区选择器插槽：置于嵌套式顶部环境托盘内，与下方主输入卡形成双层包裹结构 */
   projectControl?: ReactNode
   /** 模型切换器插槽：传入时以可点击下拉呈现当前模型，未传时回退只读文本 */
   modelControl?: ReactNode
@@ -26,13 +27,16 @@ interface ChatComposerProps {
 }
 
 /**
- * 背景：正式 Chat 和候选各写输入卡片，字号、图标和操作槽已经漂移。
- * 设计意图：共享 Foundation 输入与固定按钮，附件、审批、发送和停止仍由调用方负责；不把 IPC 或样张数据带进呈现层。
- * 关键约束：发送 / 停止共用 28px 槽，模型名只能截断，hover 不改布局；输入高度只随内容变化且不超过 120px。
+ * 背景：正式 Chat 和候选各写输入卡片，且旧版外露回形针、生图按钮、竖线分割与框外双下巴导致底栏拥挤。
+ * 设计意图：共享 Foundation 输入、ActionButton 与固定 IconButton，工作区退居上盖环境托盘，附件与生图收敛入 `+` 菜单。
+ * 关键约束：发送 / 停止共用 28px 槽，模型名只能截断，hover 不改布局；输入高度只随内容变化且不超过 120px；严禁直连 IPC。
  */
 export function ChatComposer({ inputProps, inputRef, prefix, approvalControl, projectControl, modelControl, modelLabel, streaming = false, sendDisabled, onAttach, onImageGenerate, onSend, onStop, inputFocusRing = 'field' }: ChatComposerProps) {
   const localRef = useRef<HTMLTextAreaElement>(null)
   const textareaRef = inputRef ?? localRef
+  const plusMenuRef = useRef<HTMLDivElement>(null)
+  const [plusMenuOpen, setPlusMenuOpen] = useState(false)
+
   const resizeInput = () => {
     const node = textareaRef.current
     if (!node) return
@@ -41,31 +45,151 @@ export function ChatComposer({ inputProps, inputRef, prefix, approvalControl, pr
   }
   useLayoutEffect(resizeInput, [inputProps.value])
 
-  return <div data-testid="chat-composer" className="relative rounded-[var(--radius-xl)] border px-3.5 py-2.5 shadow-sm transition-shadow focus-within:shadow-md focus-within:outline-1 focus-within:outline-[var(--accent)]"
-    style={{ borderColor: 'var(--border-color)', background: 'var(--card-bg)', boxShadow: '0 6px 22px color-mix(in srgb, var(--text-primary) 5%, transparent)' }}>
-    {prefix}
-    <TextField multiline rows={1} aria-label="消息" {...inputProps} appearance="embedded" ref={textareaRef} disabled={streaming}
-      onInput={resizeInput} className={`min-h-[60px] w-full resize-none px-1 py-1.5 !text-[14px] leading-relaxed disabled:opacity-50 ${inputFocusRing === 'card' ? 'chat-composer-input-no-ring' : ''}`} style={{ maxHeight: 120 }} />
-    <div className="flex min-w-0 items-center justify-between gap-2 pt-1" data-testid="chat-composer-toolbar">
-      <div className="flex min-w-0 flex-wrap items-center gap-1">
-        <IconButton label="添加附件" onClick={onAttach} className="text-[var(--text-muted)] transition hover:bg-[var(--hover-overlay)] hover:text-[var(--text-primary)]"><Paperclip size={15} aria-hidden="true" /></IconButton>
-        <IconButton label="生成图片" onClick={onImageGenerate} disabled={streaming} className="text-[var(--text-muted)] transition hover:bg-[var(--hover-overlay)] hover:text-[var(--text-primary)]"><ImagePlus size={15} aria-hidden="true" /></IconButton>
-        <span className="mx-0.5 h-3.5 w-px" style={{ background: 'var(--border-subtle)' }} />
-        {approvalControl}
-        {projectControl ? (
-          <>
-            <span className="mx-0.5 h-3.5 w-px" style={{ background: 'var(--border-subtle)' }} />
-            {projectControl}
-          </>
-        ) : null}
+  useEffect(() => {
+    if (!plusMenuOpen) return
+    const handlePointerDown = (event: MouseEvent) => {
+      if (plusMenuRef.current?.contains(event.target as Node)) return
+      setPlusMenuOpen(false)
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setPlusMenuOpen(false)
+    }
+    document.addEventListener('click', handlePointerDown)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('click', handlePointerDown)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [plusMenuOpen])
+
+  const cardBody = (
+    <>
+      {prefix}
+      <TextField
+        multiline
+        rows={1}
+        aria-label="消息"
+        {...inputProps}
+        appearance="embedded"
+        ref={textareaRef}
+        disabled={streaming}
+        onInput={resizeInput}
+        className={`min-h-[56px] w-full resize-none px-1 py-1.5 !text-[14px] leading-relaxed disabled:opacity-50 ${inputFocusRing === 'card' ? 'chat-composer-input-no-ring' : ''}`}
+        style={{ maxHeight: 120 }}
+      />
+      <div className="flex min-w-0 items-center justify-between gap-2 pt-1" data-testid="chat-composer-toolbar">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+          <div className="relative" ref={plusMenuRef}>
+            <IconButton
+              label="添加内容"
+              aria-expanded={plusMenuOpen}
+              aria-haspopup="menu"
+              onClick={(e) => {
+                e.stopPropagation()
+                setPlusMenuOpen((open) => !open)
+              }}
+              className="text-[var(--text-secondary)] transition hover:bg-[var(--hover-overlay)] hover:text-[var(--text-primary)]"
+            >
+              <Plus size={16} aria-hidden="true" />
+            </IconButton>
+            {plusMenuOpen && (
+              <div
+                role="menu"
+                aria-label="添加内容"
+                className="absolute bottom-full left-0 z-50 mb-1.5 w-44 rounded-lg border p-1 shadow-lg"
+                style={{ borderColor: 'var(--border-color)', background: 'var(--dropdown-bg)' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ActionButton
+                  variant="plain"
+                  size="sm"
+                  role="menuitem"
+                  onClick={() => {
+                    setPlusMenuOpen(false)
+                    onAttach()
+                  }}
+                  className="!w-full !justify-start gap-2 rounded-md border-0 !px-2.5 !py-1.5 !text-[12px]"
+                >
+                  <Paperclip size={13} aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
+                  <span>添加附件</span>
+                </ActionButton>
+                <ActionButton
+                  variant="plain"
+                  size="sm"
+                  role="menuitem"
+                  disabled={streaming}
+                  onClick={() => {
+                    setPlusMenuOpen(false)
+                    onImageGenerate()
+                  }}
+                  className="!w-full !justify-start gap-2 rounded-md border-0 !px-2.5 !py-1.5 !text-[12px]"
+                >
+                  <ImagePlus size={13} aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
+                  <span>生成图片</span>
+                </ActionButton>
+              </div>
+            )}
+          </div>
+          {approvalControl}
+        </div>
+        <div className="flex min-w-0 shrink-0 items-center justify-end gap-2">
+          {modelControl ?? (
+            <span
+              data-testid="chat-current-model"
+              className="min-w-0 max-w-44 truncate text-[12px]"
+              style={{ color: 'var(--text-muted)' }}
+              title={modelLabel}
+            >
+              {modelLabel}
+            </span>
+          )}
+          <IconButton
+            label={streaming ? '停止' : '发送'}
+            onClick={streaming ? onStop : onSend}
+            disabled={streaming ? !onStop : sendDisabled}
+            className={`!rounded-full transition ${!streaming && !sendDisabled ? 'shadow-sm hover:brightness-95' : ''}`}
+            style={{
+              background: streaming
+                ? 'var(--danger)'
+                : sendDisabled
+                  ? 'var(--bg-tertiary)'
+                  : 'var(--accent-emphasis)',
+              color: streaming || !sendDisabled ? 'var(--bg-primary)' : 'var(--text-muted)',
+            }}
+          >
+            {streaming ? <Square size={10} fill="currentColor" aria-hidden="true" /> : <ArrowUp size={15} aria-hidden="true" />}
+          </IconButton>
+        </div>
       </div>
-      <div className="flex min-w-0 shrink-0 items-center justify-end gap-2">
-        {modelControl ?? <span data-testid="chat-current-model" className="min-w-0 max-w-44 truncate text-[12px]" style={{ color: 'var(--text-muted)' }} title={modelLabel}>{modelLabel}</span>}
-        <IconButton label={streaming ? '停止' : '发送'} onClick={streaming ? onStop : onSend} disabled={streaming ? !onStop : sendDisabled}
-          className="!rounded-full transition disabled:cursor-not-allowed disabled:opacity-30" style={{ background: streaming ? 'var(--danger)' : 'var(--accent-emphasis)', color: 'var(--bg-primary)' }}>
-          {streaming ? <Square size={10} fill="currentColor" aria-hidden="true" /> : <ArrowUp size={15} aria-hidden="true" />}
-        </IconButton>
+    </>
+  )
+
+  if (projectControl) {
+    return (
+      <div
+        data-testid="chat-composer"
+        className="relative rounded-[var(--radius-xl)] border backdrop-blur-md"
+        style={{
+          borderColor: 'color-mix(in srgb, var(--border-color) 70%, transparent)',
+          background: 'color-mix(in srgb, var(--bg-secondary) 72%, transparent)',
+        }}
+      >
+        <div className="flex items-center justify-between gap-2 px-3 py-1.5">
+          {projectControl}
+        </div>
+        <div className="chat-composer-card relative -mx-px -mb-px rounded-[var(--radius-xl)] border px-3.5 py-2.5 backdrop-blur-md">
+          {cardBody}
+        </div>
       </div>
+    )
+  }
+
+  return (
+    <div
+      data-testid="chat-composer"
+      className="chat-composer-card relative rounded-[var(--radius-xl)] border px-3.5 py-2.5 backdrop-blur-md"
+    >
+      {cardBody}
     </div>
-  </div>
+  )
 }
