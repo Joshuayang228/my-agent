@@ -104,7 +104,7 @@ const PAGE_SECTIONS: Record<SettingsPageId, SettingsSection> = {
 const SECTION_PAGES: Record<SettingsSection, SettingsPageId> = PAGE_SECTIONS
 
 interface SettingsPanelProps {
-  initialEntry?: 'default' | 'role-shelf'
+  initialEntry?: 'default' | 'role-shelf' | 'model'
   onClose: () => void
   saveBeforeLeaveRef?: Ref<() => Promise<boolean>>
   currentTheme?: string
@@ -126,7 +126,13 @@ export function SettingsPanel({
 }: SettingsPanelProps) {
   const { toast } = useToast()
   const [activeSection, setActiveSection] = useState<SettingsSection>(
-    preview ? (previewInitialSection ?? 'appearance') : initialEntry === 'role-shelf' ? 'companion' : 'appearance',
+    preview
+      ? (previewInitialSection ?? 'appearance')
+      : initialEntry === 'role-shelf'
+        ? 'companion'
+        : initialEntry === 'model'
+          ? 'model'
+          : 'appearance',
   )
   const [roleShelfOpen, setRoleShelfOpen] = useState(!preview && initialEntry === 'role-shelf')
   const activeSectionRef = useRef(activeSection)

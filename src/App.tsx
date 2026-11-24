@@ -151,7 +151,7 @@ function App() {
   const settingsSaveBeforeLeave = useRef<(() => Promise<boolean>) | null>(null)
   const settingsNavigationPending = useRef(false)
   const seenTaskNotifications = useRef(new Set<string>())
-  const [settingsEntry, setSettingsEntry] = useState<'default' | 'role-shelf'>('default')
+  const [settingsEntry, setSettingsEntry] = useState<'default' | 'role-shelf' | 'model'>('default')
   const settingsReturnView = useRef<ShellView>('chat')
   const [worldTab, setWorldTab] = useState<WorldTab>('moments')
   const [unreadMomentsCount, setUnreadMomentsCount] = useState(0)
@@ -677,8 +677,14 @@ function App() {
   const deleteSession = async (sessionId: string) => {
     await window.electronAPI.session.delete(sessionId)
     if (activeSessionId === sessionId) {
+      streamingSessionRef.current = null
       setActiveSessionId(null)
       setMessages([])
+      setActiveTools([])
+      setIsStreaming(false)
+      setReasoning(resetReasoning())
+      setUsage(null)
+      setToolCollapse({})
     }
     await loadSessions()
   }
@@ -697,6 +703,12 @@ function App() {
   const openRoleShelf = () => {
     settingsReturnView.current = activeView
     setSettingsEntry('role-shelf')
+    setActiveView('settings')
+  }
+
+  const openModelSettings = () => {
+    settingsReturnView.current = activeView
+    setSettingsEntry('model')
     setActiveView('settings')
   }
 
@@ -1596,6 +1608,7 @@ function App() {
 
             {modelMenuOpen && (
               <div
+                onMouseDown={(e) => e.stopPropagation()}
                 className="absolute bottom-full right-0 z-50 mb-1.5 w-60 rounded-lg border py-1 shadow-lg"
                 style={{ borderColor: 'var(--border-color)', background: 'var(--dropdown-bg)' }}
               >
@@ -1667,7 +1680,7 @@ function App() {
                   onClick={(e) => {
                     e.stopPropagation()
                     setModelMenuOpen(false)
-                    setActiveView('settings')
+                    openModelSettings()
                   }}
                   className="flex w-full cursor-pointer items-center justify-between px-3 py-1.5 text-left text-[12px] text-[var(--text-secondary)] transition hover:bg-[var(--hover-overlay)] hover:text-[var(--text-primary)]"
                 >
@@ -2305,7 +2318,7 @@ function App() {
 
             {/* 助手消息尚未出现时，思考过程与回复生成中提示共用助手列，与正式回复严格左对齐 */}
             {(() => {
-              const showPendingReasoning = reasoning.chunks.length > 0 && visibleMessages[visibleMessages.length - 1]?.role !== 'assistant'
+              const showPendingReasoning = (messages.length > 0 || isStreaming) && reasoning.chunks.length > 0 && visibleMessages[visibleMessages.length - 1]?.role !== 'assistant'
               const pendingContentPhase = contentPhase(
                 Boolean(
                   messages[messages.length - 1]?.role === 'assistant'
