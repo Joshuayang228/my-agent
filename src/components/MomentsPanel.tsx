@@ -418,7 +418,7 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
         </div>
       )}
 
-      <div className={loadError ? `flex-1 overflow-y-auto ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block} scrollbar-thin` : isSocialFeed ? 'flex-1 overflow-y-auto px-[var(--layout-gutter-small,1.25rem)] py-4 scrollbar-thin' : 'flex-1 overflow-y-auto px-4 py-3 scrollbar-thin'} data-testid="moments-content-scroll">
+      <div className={loadError ? `flex-1 ${hideHeader ? '' : 'overflow-y-auto scrollbar-thin '}${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block}` : isSocialFeed ? `flex-1 ${hideHeader ? '' : 'overflow-y-auto scrollbar-thin '}px-[var(--layout-gutter-small,1.25rem)] py-4` : `flex-1 ${hideHeader ? '' : 'overflow-y-auto scrollbar-thin '}px-4 py-3`} data-testid="moments-content-scroll">
         <div style={isSocialFeed ? readingContentStyle('world') : undefined}>
 
         {!isSocialFeed && summary ? (

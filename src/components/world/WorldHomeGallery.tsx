@@ -94,7 +94,25 @@ export function WorldHomeGallery({ overviewImage, spaces, objects, imageState = 
           </div>
           {renderEditor?.(selected.id)}
         </section>
-        : activeSpaceId === 'overview' ? <>{picture('overview', 'overview', overviewImage)}{renderEditor?.('overview')}</>
+        : activeSpaceId === 'overview' ? <div className="space-y-4" style={readingContentStyle('chat')}>
+          {picture('overview', 'overview', overviewImage)}
+          {spaces.length > 0 && (
+            <div className="rounded-[var(--radius-lg)] border px-4 py-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
+              <div className="mb-2 text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>共 {spaces.length} 个居住空间</div>
+              <div className="flex flex-wrap gap-2">
+                {spaces.map((item) => (
+                  <ActionButton key={item.id} size="sm" variant="plain" onClick={() => setSpaceId(item.id)}
+                    className="!rounded-full border gap-1.5 px-3 py-1 text-[12px]"
+                    style={{ borderColor: 'var(--border-subtle)' }}>
+                    {item.icon ?? <Home size={12} aria-hidden="true" />}
+                    <span>{item.name}</span>
+                  </ActionButton>
+                ))}
+              </div>
+            </div>
+          )}
+          {renderEditor?.('overview')}
+        </div>
         : <div className="space-y-4">
           {space && picture(space.id, 'scene', space.image, `${space.name}场景`)}
           {space?.description && <p className="break-words text-[12px] leading-5" style={{ color: 'var(--text-muted)' }}>{space.description}</p>}

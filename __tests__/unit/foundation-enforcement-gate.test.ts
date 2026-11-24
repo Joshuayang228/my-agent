@@ -466,6 +466,15 @@ describe('Foundation 布局与控件复用自动门禁', () => {
     it('朋友圈与人物世界画廊/衣柜统一消费 Foundation 布局与媒体框，禁止手写裸 aspect-[...]', () => {
       expect(LAYOUT_CLASSES.portraitGrid).toBeTruthy()
       expect(MEDIA_FRAME_PRESETS.portraitHero).toMatchObject({ aspectRatio: '3 / 4', maxWidth: 280 })
+      expect(MEDIA_FRAME_PRESETS.overview.maxWidth).toBeLessThanOrEqual(560)
+
+      const cssSource = readFileSync(resolve('src/index.css'), 'utf8')
+      expect(cssSource).toContain('.chat-composer-card:focus-within')
+      expect(cssSource).toContain('var(--text-muted) 14%')
+
+      const workspaceToolMenuSource = readFileSync(resolve('src/components/foundation/WorkspaceToolMenu.tsx'), 'utf8')
+      expect(workspaceToolMenuSource).toContain('Plus')
+      expect(workspaceToolMenuSource).toContain('var(--dropdown-bg)')
 
       const momentsSource = readFileSync(resolve('src/components/MomentsPanel.tsx'), 'utf8')
       expect(momentsSource).toContain('readingContentStyle')

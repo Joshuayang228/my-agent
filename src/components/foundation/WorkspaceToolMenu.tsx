@@ -1,4 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react'
+import { Plus } from 'lucide-react'
 import { IconButton } from './IconButton'
 
 export interface WorkspaceToolMenuItem {
@@ -27,16 +28,16 @@ export function WorkspaceToolMenu({ items, onSelect, testId }: {
   return <div className="relative shrink-0" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false) }}
     onKeyDown={(event) => { if (event.key === 'Escape' && open) { event.stopPropagation(); setOpen(false); triggerRef.current?.focus() } }}>
     <IconButton ref={triggerRef} label="添加工作区内容" size={28} aria-haspopup="menu" aria-expanded={open}
-      onClick={() => setOpen((value) => !value)} data-testid={testId}><span aria-hidden="true">+</span></IconButton>
-    {open && <div className="absolute right-0 top-full z-30 mt-1 w-40 rounded-md border p-1 shadow-lg"
-      style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} role="menu" aria-label="添加工作区内容"
+      onClick={() => setOpen((value) => !value)} data-testid={testId}><Plus size={15} strokeWidth={1.8} aria-hidden="true" /></IconButton>
+    {open && <div className="absolute right-0 top-full z-30 mt-1 w-40 rounded-lg border p-1 shadow-lg"
+      style={{ borderColor: 'var(--border-color)', background: 'var(--dropdown-bg)' }} role="menu" aria-label="添加工作区内容"
       onKeyDown={(event) => {
         const menuItems = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role=menuitem]'))
         const index = menuItems.indexOf(document.activeElement as HTMLButtonElement)
         if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); menuItems[(index + (event.key === 'ArrowDown' ? 1 : menuItems.length - 1)) % menuItems.length]?.focus() }
       }}>
       {items.map((item, index) => <button key={item.id} autoFocus={index === 0} type="button" role="menuitem"
-        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[12px] hover:bg-[var(--bg-secondary)] focus-visible:bg-[var(--bg-secondary)]"
+        className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-[var(--text-secondary)] transition hover:bg-[var(--hover-overlay)] hover:text-[var(--text-primary)] focus-visible:bg-[var(--hover-overlay)]"
         onClick={() => choose(item.id)}>{item.icon}{item.label}</button>)}
     </div>}
   </div>

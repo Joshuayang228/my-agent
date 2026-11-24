@@ -43,25 +43,28 @@ export function TabStrip({ label, items, activeId, onSelect, onClose, itemTestId
     onClose?.(id)
   }
   return <div ref={list} role="tablist" aria-label={label} tabIndex={items.length ? -1 : 0}
-    data-foundation="tabs" data-tab-variant={variant} className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
+    data-foundation="tabs" data-tab-variant={variant} className="no-scrollbar flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
     {items.map((item, index) => {
       const active = item.id === activeId
       return <Fragment key={item.id}>
-        {item.separatorBefore && <span aria-hidden="true" className="flex h-8 shrink-0 items-center px-1" style={{ color: 'var(--text-muted)' }}>|</span>}
+        {item.separatorBefore && <span aria-hidden="true" className="mx-1 h-3.5 w-px shrink-0" style={{ background: 'var(--border-subtle)' }} />}
         <div role="presentation" data-testid={itemTestId}
-        className={`flex shrink-0 items-center transition-colors ${variant === 'pill' ? 'rounded-full' : 'rounded-md px-1 hover:bg-[var(--bg-secondary)]'}`}
+        className={`flex shrink-0 items-center transition-colors ${variant === 'pill' ? 'rounded-full' : 'rounded-lg px-1 hover:bg-[var(--hover-overlay)]'}`}
         style={{
           background: variant === 'surface' && active
-            ? 'var(--bg-secondary)'
+            ? 'var(--card-bg)'
             : variant === 'pill' && active
               ? 'var(--accent-subtle)'
               : undefined,
+          boxShadow: variant === 'surface' && active
+            ? '0 1px 2px color-mix(in srgb, var(--text-primary) 5%, transparent)'
+            : undefined,
         }}>
         <button ref={(node) => { if (node) buttons.current.set(item.id, node); else buttons.current.delete(item.id) }}
           id={prefix + '-tab-' + index} type="button" role="tab" aria-selected={active}
           aria-controls={item.panelId} tabIndex={active || (!items.some((entry) => entry.id === activeId) && index === 0) ? 0 : -1}
           title={item.label} data-testid={item.testId} data-instance-id={item.id}
-          className={`inline-flex h-8 min-w-0 max-w-52 items-center gap-1.5 text-[12px] outline-offset-[-2px] transition-colors ${variant === 'pill' ? `rounded-full px-3 ${active ? 'font-medium' : 'hover:bg-[var(--hover-overlay)]'}` : 'gap-2 rounded px-2'}`}
+          className={`inline-flex h-8 min-w-0 max-w-52 items-center gap-1.5 text-[12px] outline-offset-[-2px] transition-colors ${active ? 'font-medium' : ''} ${variant === 'pill' ? `rounded-full px-3 ${active ? '' : 'hover:bg-[var(--hover-overlay)]'}` : 'gap-2 rounded px-2'}`}
           style={{
             color: variant === 'pill'
               ? (active ? 'var(--accent-fg)' : 'var(--text-muted)')

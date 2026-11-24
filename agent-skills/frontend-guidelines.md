@@ -400,3 +400,13 @@ Main Area:
 - 涉及 IPC、存储、回收站、软删除、恢复或权限契约时，先补完整方案和影响范围，再获得用户确认后实施。
 - 交互审计不以“元素存在”作为通过；必须验证点击、键盘、加载、空、错误、取消、重复点击和恢复路径。
 - Playground 的异步和危险操作默认使用隔离 fixture，并明确标注样张；不得把假成功状态带入正式产品。
+
+### 设计系统 2.0 表面语言基线（全站统一标准）
+
+所有正式表面（Chat、右侧工作区、设置、人物世界）遵循同一套底层表面语言，禁止在业务页面另造一套皮肤：
+
+1. **柔光聚焦，不用生硬实线**：所有输入框与主交互卡统一采用柔和边框提亮 + `3px` 极淡主色柔光晕（`color-mix(in srgb, var(--accent) 10%, transparent)`），禁止使用生硬的 `focus-within:outline-1`。
+2. **圆角内缩浮层菜单**：所有弹出菜单容器使用 `rounded-lg border p-1 shadow-lg`（背景 `var(--dropdown-bg)`），所有菜单项自带 `rounded-md px-2.5 py-1.5`，禁止悬停/选中底色贴边切齐直角。
+3. **去竖线工具栏与主次分明 CTA**：工具栏用自然间距与轻胶囊形态区分，禁止手写机械 `|` 竖线分割；新建等行动按钮采用轻透微浮胶囊，把主题强调底色明确留给当前选中态。
+4. **轻盈悬停滚动条与单层滚动槽**：全局悬停滚动条采用低对比度浓度（`14%` / `28%` `--text-muted` 混色），嵌入父级滚动区的面板（如 `WorldHub` 中的 `MomentsPanel`）禁止套第二层 `overflow-y-auto`。
+5. **Foundation 布局与媒体单一事实源**：阅读信息流（如朋友圈）统一使用 `readingContentStyle('world')`；画廊、衣柜与家居统一使用 `mediaFrameStyle`（`card` / `portrait` / `portraitHero` / `overview` / `scene`，其中 `overview` 与 `scene` 上限 `560px`）与 `LAYOUT_CLASSES.cardGrid` / `portraitGrid`，禁止手写裸 `aspect-[...]`；由 `foundation-enforcement-gate.test.ts` 在提交门禁自动拦截。

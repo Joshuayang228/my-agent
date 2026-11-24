@@ -73,8 +73,8 @@ export function ChatRightDock({ projectPath, sessionId, showFiles, width = 380, 
   }
 
   return <div id="chat-right-dock" className="relative flex shrink-0 flex-col overflow-hidden border-l"
-    style={{ display: showFiles && !collapsed ? undefined : 'none', width, borderColor: 'var(--border-color)', background: 'var(--bg-secondary)' }} data-testid="chat-right-dock">
-    <div className="relative flex shrink-0 items-center gap-1 border-b p-2" style={{ borderColor: 'var(--border-subtle)' }}>
+    style={{ display: showFiles && !collapsed ? undefined : 'none', width, borderColor: 'var(--border-subtle)', background: 'color-mix(in srgb, var(--bg-primary) 55%, var(--bg-secondary))' }} data-testid="chat-right-dock">
+    <div className="relative flex shrink-0 items-center gap-1 border-b px-2.5 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
       <TabStrip label="已打开的工作区" activeId={activeTabId} itemTestId="right-dock-tab-item"
         items={visibleTabs.map(({ instance, meta, label }) => { const Icon = meta.icon; return { id: instance.instanceId, label, icon: <Icon size={14} />, panelId: 'dock-panel-' + instance.instanceId, testId: 'right-dock-tab-' + instance.kind } })}
         onSelect={selectTab} onClose={closeTab} />

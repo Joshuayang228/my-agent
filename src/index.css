@@ -317,8 +317,8 @@ html[data-font-scale="lg"] {
 }
 .foundation-text-field:focus-visible {
   outline: none;
-  border-color: color-mix(in srgb, var(--accent) 62%, var(--border-color));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 24%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border-color));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
 }
 .chat-composer-input-no-ring:focus-visible {
   box-shadow: none;
@@ -414,8 +414,8 @@ html[data-font-scale="lg"] {
 }
 .theme-input:focus {
   outline: none;
-  border-color: color-mix(in srgb, var(--accent) 62%, var(--input-border));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 24%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--input-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
 }
 .theme-input::placeholder {
   color: var(--text-muted);
@@ -822,11 +822,11 @@ html[data-font-scale="lg"] {
 }
 *:hover::-webkit-scrollbar-thumb,
 *:focus-within::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--text-muted) 26%, transparent);
+  background: color-mix(in srgb, var(--text-muted) 14%, transparent);
 }
 *:hover::-webkit-scrollbar-thumb:hover,
 *:focus-within::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--text-muted) 48%, transparent);
+  background: color-mix(in srgb, var(--text-muted) 28%, transparent);
 }
 /* 隐藏 Windows 滚动条上下箭头按钮 */
 *::-webkit-scrollbar-button {
@@ -851,7 +851,7 @@ html[data-font-scale="lg"] {
   background: color-mix(in srgb, var(--text-muted) 22%, transparent);
 }
 .scrollbar-always::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--text-muted) 48%, transparent);
+  background: color-mix(in srgb, var(--text-muted) 28%, transparent);
 }
 
 /* 显式例外：横向标签条/胶囊条完全隐藏滚动条 */

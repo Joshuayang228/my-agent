@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-24 全站设计系统 2.0 表面语言统一与规范沉淀：沉淀 5 项设计系统 2.0 基线至 `agent-skills/frontend-guidelines.md` 并扩展 `foundation-enforcement-gate.test.ts` 自动门禁；`src/index.css` 统一柔光聚焦晕与低对比悬停滚动条（`14% / 28%`）；`ChatWelcome.tsx` 拉开动态悬浮卡距至 `mt-7`；`PrimarySidebar.tsx` 将「+ 新对话」改为轻透微浮胶囊并与选中态区分；`MomentsPanel.tsx` 移除嵌入模式双重滚动；`content-layout.ts` 与 `WorldHomeGallery.tsx` 收口家居总览 `overview` 至 `560px` 并补充空间跳转摘要条；`TabStrip.tsx`、`WorkspaceToolMenu.tsx`、`ChatRightDock.tsx`、`WorkspaceFilesPanel.tsx` 及 `SettingsLayout.tsx`、`SettingsFields.tsx` 全面对齐圆角内缩浮层、细腻卡片投影、极简分割与衬线页头排版。
+
 2026-11-24 人物世界布局收口回 Foundation 并强化静态防偏移门禁、日常开屏改走温暖时段双行问候与四项细节精修：`content-layout.ts` 新增 `LAYOUT_CLASSES.portraitGrid` 与 `MEDIA_FRAME_PRESETS.portraitHero`；`MomentsPanel.tsx` 复用 `readingContentStyle('world')` 居中限宽（672px）收敛过长信息流；`AssetsPanel.tsx` 移除全部手写 `aspect-[3/4]` 与 3 列大格，改用 `mediaFrameStyle('portraitHero')` 左图右槽双栏陈列「正在穿着」并统一走 `LAYOUT_CLASSES.portraitGrid`；`foundation-enforcement-gate.test.ts` 新增对朋友圈、衣柜与四大画廊的媒体框/网格自动化拦截；`companion-presence.ts` 新增 `buildTimeOfDaySubtitle`，日常回头开聊不重复喊人物口号；`App.tsx`、`ChatWelcome.tsx`、`ChatApprovalControl.tsx` 补齐菜单项圆角内缩、未选工作区上盖弱化、标题可读性与开屏重心微上移。
 
 2026-11-24 修复输入框「管理模型设置…」未直达模型设置页与删除会话后残影 Bug：`SettingsPanel.tsx` 与 `App.tsx` 为 `initialEntry` 新增 `'model'` 直达入口（`openModelSettings`），并记录返回来源与阻止下拉浮层事件误消；`deleteSession` 与 `showPendingReasoning` 同步清理/守卫空会话状态，消除删除当前会话后首页左下角残留「思考过程 >」的问题。

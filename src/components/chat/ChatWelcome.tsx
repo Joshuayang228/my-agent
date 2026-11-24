@@ -94,7 +94,7 @@ export function ChatWelcome({
       {latestMoment ? (
         <section
           onClick={latestMoment.onTalkAbout}
-          className="group mt-4 w-full cursor-pointer rounded-[var(--radius-lg)] border px-4 py-3 text-left backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+          className="group mt-7 w-full cursor-pointer rounded-[var(--radius-lg)] border px-4 py-3 text-left backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
           style={{
             borderColor: 'color-mix(in srgb, var(--border-color) 65%, transparent)',
             background: 'color-mix(in srgb, var(--card-bg) 62%, transparent)',

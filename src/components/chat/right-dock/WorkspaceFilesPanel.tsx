@@ -86,7 +86,7 @@ function FilesWorkspace({ projectPath, previewData, onContextChange, onTakeToCha
         previewState={activeFile} onFileSelect={openFile} onClose={() => {}} />
     </div>
     {files.length > 0 && <div className="flex min-h-0 min-w-0 flex-1 flex-col" data-testid="workspace-file-preview">
-      <div className="flex shrink-0 items-center border-b p-1" style={{ borderColor: 'var(--border-subtle)' }}>
+      <div className="flex shrink-0 items-center border-b px-2 py-1.5" style={{ borderColor: 'var(--border-subtle)' }}>
         <TabStrip label="文件预览" itemTestId="workspace-file-preview-tab" activeId={activePath}
           items={files.map((file, index) => ({ id: file.path, label: file.path.split(/[/\\]/).pop() || file.path, panelId: prefix + '-file-' + index }))}
           onSelect={setActivePath} onClose={closeFile} />

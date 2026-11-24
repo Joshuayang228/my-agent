@@ -1,5 +1,7 @@
 # 质量总控
 
+全站设计系统 2.0 表面统一与生产构建验收（2026-11-24）：`foundation-enforcement-gate.test.ts`（16 项）新增 `overview.maxWidth <= 560`、`.chat-composer-card:focus-within`、`14%` 轻盈滚动条与 `WorkspaceToolMenu` 圆角浮层门禁；5 个定向测试文件 73 项全部通过，`tsc --noEmit`、`tsc -p tsconfig.node.json --noEmit` 与 `vite build`（渲染层 + Electron 主进程 + preload）完整零错通过。
+
 人物世界排版单一事实源门禁与开屏温情问候回归（2026-11-24）：`foundation-enforcement-gate.test.ts` 扩展至 16 项门禁，强制校验 `MomentsPanel` 使用 `readingContentStyle`、`AssetsPanel` 使用 `mediaFrameStyle` 与 `LAYOUT_CLASSES.portraitGrid`、四大画廊使用 `mediaFrameStyle` + `cardGrid` 且全线零裸 `aspect-[...]` 类；`companion-presence.test.ts` 更新时段双行问候与 `firstContact` 分流断言；定向单测（73 项）与 `tsc --noEmit` 全绿通过。
 
 对话开屏欢迎区与双层嵌套输入框回归（2026-11-24）：`companion-presence.test.ts`（6 项）覆盖全天 6 个时段问候语与角色台词/简介回退，`navigation-rail.test.ts`（2 项）校验移除 3 颗泛用模板胶囊及底部等宽毛玻璃朋友圈悬浮切片卡有图/纯文两态；配合 `icon-registry.test.ts`、`foundation-enforcement-gate.test.ts`（15 项）、`ui-component-registry.test.ts`（47 项）与 `tsc --noEmit` 全绿通过。

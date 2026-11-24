@@ -86,14 +86,14 @@ export function readingContentStyle(profile?: LayoutProfileId) {
  * - card：网格卡片统一 4/3 横卡（文化角、家居物件、足迹）
  * - portrait：立绘与穿搭 3/4 竖卡（衣柜列表）
  * - portraitHero：正在穿着全身主视觉 3/4 竖框（限宽 280px，确保主视觉大于下方画廊单品）
- * - overview：宽幅总览大图 16/9 + 限宽 760px（家居总览、足迹详情）
+ * - overview：宽幅总览大图 16/9 + 限宽 560px（家居总览、足迹详情，避免挤压同屏内容）
  * - scene：单空间场景图 16/9 + 限宽 560px（家居单房间）
  */
 export const MEDIA_FRAME_PRESETS = {
   card: { aspectRatio: '4 / 3' },
   portrait: { aspectRatio: '3 / 4' },
   portraitHero: { aspectRatio: '3 / 4', maxWidth: 280 },
-  overview: { aspectRatio: '16 / 9', maxWidth: 760 },
+  overview: { aspectRatio: '16 / 9', maxWidth: 560 },
   scene: { aspectRatio: '16 / 9', maxWidth: 560 },
 } as const
 

@@ -47,25 +47,23 @@ export function SettingsLayout({ activeSection, onSelect, onClose, children, pre
     return <ActionButton key={item.id} size="md" aria-current={active ? 'page' : undefined}
       aria-controls={`${prefix}-panel-${item.id}`} title={item.label} onClick={() => onSelect(item.id)}
       data-testid={`${prefix}-nav-${item.id}`}
-      className="settings-nav-item w-full gap-2 border-0 text-left hover:bg-[var(--hover-overlay)]"
-      style={{ color: active ? 'var(--text-primary)' : 'var(--text-secondary)', background: active ? 'var(--hover-overlay)' : undefined }}
-      onMouseEnter={(event) => { if (!active) event.currentTarget.style.background = 'var(--hover-overlay)' }}
-      onMouseLeave={(event) => { if (!active) event.currentTarget.style.background = 'transparent' }}>
+      className={`settings-nav-item w-full gap-2.5 rounded-lg border-0 px-2.5 py-2 text-left text-[13px] transition hover:bg-[var(--hover-overlay)] ${active ? 'font-medium' : 'font-normal'}`}
+      style={active ? { color: 'var(--text-primary)', background: 'var(--accent-subtle)' } : { color: 'var(--text-secondary)' }}>
       <span className="shrink-0" aria-hidden="true" style={{ color: active ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{item.icon}</span>
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
-      <ChevronRight size={12} className="shrink-0" aria-hidden="true" style={{ opacity: active ? 1 : 0 }} />
+      <ChevronRight size={12} className="shrink-0" aria-hidden="true" style={{ opacity: active ? 0.65 : 0 }} />
     </ActionButton>
   }
   return <div className="flex h-full min-h-0 w-full min-w-0 flex-1" data-settings-layout="shared">
-    <aside className="scrollbar-thin hidden w-[198px] shrink-0 flex-col overflow-y-auto border-r px-3 py-5 md:flex"
-      style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }} data-testid="settings-nav">
+    <aside className="scrollbar-thin hidden w-[216px] shrink-0 flex-col overflow-y-auto border-r px-3 py-4 md:flex"
+      style={{ borderColor: 'var(--border-subtle)', background: 'color-mix(in srgb, var(--bg-primary) 42%, var(--card-bg))' }} data-testid="settings-nav">
       <div className="mb-4">
         {onClose ? <ActionButton onClick={onClose} title="返回聊天" data-testid="settings-back" variant="plain" className="min-h-8 w-full justify-start gap-1.5 rounded-lg px-2.5 py-2 text-left text-[12px]"><ArrowLeft size={15} strokeWidth={1.75} />返回</ActionButton> : null}
         {showNavigationTitle && <h2 className="mt-2 text-[13px] font-semibold">设置</h2>}
       </div>
       <nav className="flex-1 space-y-5" aria-label="设置导航">
         {SETTINGS_NAV_GROUPS.map((group) => <div key={group.group}>
-          <div className="mb-1 px-2 text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>{group.group}</div>
+          <div className="mb-1.5 px-2.5 text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>{group.group}</div>
           <div className="space-y-0.5">{group.items.map(renderItem)}</div>
         </div>)}
       </nav>
@@ -79,7 +77,7 @@ export function SettingsLayout({ activeSection, onSelect, onClose, children, pre
             activeId={activeSection} onSelect={(id) => { const item = SETTINGS_NAV_ITEMS.find((entry) => entry.id === id); if (item) onSelect(item.id) }} />
         </div>
       </div>
-      <main className={`min-h-0 min-w-0 flex-1 ${LAYOUT_CLASSES.gutter} py-[var(--layout-block,1.25rem)] ${panelOwnsScroll ? 'overflow-hidden' : 'scrollbar-thin overflow-y-auto'}`} style={{ scrollbarGutter: 'stable' }} data-testid="settings-main">
+      <main className={`min-h-0 min-w-0 flex-1 ${LAYOUT_CLASSES.gutter} py-7 ${panelOwnsScroll ? 'overflow-hidden' : 'scrollbar-thin overflow-y-auto'}`} style={{ scrollbarGutter: 'stable' }} data-testid="settings-main">
         <div key={activeSection} id={`${prefix}-panel-${activeSection}`} role="tabpanel"
           aria-label={SETTINGS_NAV_ITEMS.find((item) => item.id === activeSection)?.label}
           className={`view-transition mx-auto w-full min-w-0 max-w-[var(--layout-width,48rem)] ${panelOwnsScroll ? 'h-full min-h-0' : ''}`} data-testid={`${prefix}-content`}>
