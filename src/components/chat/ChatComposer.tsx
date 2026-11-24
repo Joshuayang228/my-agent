@@ -77,7 +77,7 @@ export function ChatComposer({ inputProps, inputRef, prefix, approvalControl, pr
         className={`min-h-[56px] w-full resize-none px-1 py-1.5 !text-[14px] leading-relaxed disabled:opacity-50 ${inputFocusRing === 'card' ? 'chat-composer-input-no-ring' : ''}`}
         style={{ maxHeight: 120 }}
       />
-      <div className="flex min-w-0 items-center justify-between gap-2 pt-1" data-testid="chat-composer-toolbar">
+      <div className="flex min-w-0 select-none items-center justify-between gap-2 pt-1" data-testid="chat-composer-toolbar">
         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           <div className="relative" ref={plusMenuRef}>
             <IconButton
@@ -138,10 +138,7 @@ export function ChatComposer({ inputProps, inputRef, prefix, approvalControl, pr
               data-testid="chat-current-model"
               className="min-w-0 max-w-44 truncate text-[12px]"
               style={{ color: 'var(--text-muted)' }}
-              title={modelLabel}
-            >
-              {modelLabel}
-            </span>
+              title={modelLabel}>{modelLabel}</span>
           )}
           <IconButton
             label={streaming ? '停止' : '发送'}
@@ -174,7 +171,7 @@ export function ChatComposer({ inputProps, inputRef, prefix, approvalControl, pr
           background: 'color-mix(in srgb, var(--bg-secondary) 72%, transparent)',
         }}
       >
-        <div className="flex items-center justify-between gap-2 px-3 py-1.5">
+        <div className="flex select-none items-center justify-between gap-2 px-3 py-1.5">
           {projectControl}
         </div>
         <div className="chat-composer-card relative -mx-px -mb-px rounded-[var(--radius-xl)] border px-3.5 py-2.5 backdrop-blur-md">

@@ -401,7 +401,9 @@ export function registerProjectIPC(): void {
           sheet[address] = { t: 's', v: edit.value }
         }
         try {
-          XLSX.writeFile(workbook, tempPath, { bookType: 'csv', FS: ',' })
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+          const csv = XLSX.utils.sheet_to_csv(firstSheet, { FS: ',' })
+          fs.writeFileSync(tempPath, csv, 'utf-8')
           fs.renameSync(tempPath, resolvedFile)
         } finally {
           try { if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath) } catch { /* ignore cleanup failure */ }

@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Save, Table2, X } from 'lucide-react'
 import { Badge } from '../../../foundation/Badge'
 import { EmptyState } from '../../../foundation/EmptyState'
 import { ActionButton } from '../../../foundation/ActionButton'
+import { IconButton } from '../../../foundation/IconButton'
 import { SegmentedControl } from '../../../foundation/SegmentedControl'
 import { AnnotationBar } from './AnnotationBar'
 import {
@@ -22,6 +23,7 @@ interface SpreadsheetPreviewProps {
   sheets: SpreadsheetSheetData[]
   mtimeMs?: number
   onDirtyChange?: (dirty: boolean) => void
+  onRegisterSaveHandler?: (handler: (() => Promise<{ ok: boolean; error?: string }>) | null) => void
   onSendToChat?: (text: string) => void
   onQueueAnnotation?: (item: Omit<AnnotationQueueItem, 'id' | 'createdAt'>) => void
 }
@@ -37,7 +39,7 @@ function isNumericCell(value: string): boolean {
  * 设计意图：展示 A/B/C 列标与 1/2/3 行号、表头与轻斑马纹、数字右对齐、外围统一矩形选区描边以及双态渐进批注条。
  * 关键约束：拖拽态在 window mouseup 自动收口，避免拖出表外后锁死选区；大表截断状态与空表分别用清晰状态呈现。
  */
-export function SpreadsheetPreview({ filePath, sheets, mtimeMs, onDirtyChange, onSendToChat, onQueueAnnotation }: SpreadsheetPreviewProps) {
+export function SpreadsheetPreview({ filePath, sheets, mtimeMs, onDirtyChange, onRegisterSaveHandler, onSendToChat, onQueueAnnotation }: SpreadsheetPreviewProps) {
   const [sheetIndex, setSheetIndex] = useState(0)
   const [range, setRange] = useState<CellRange | null>(null)
   const [dragging, setDragging] = useState(false)
@@ -46,8 +48,14 @@ export function SpreadsheetPreview({ filePath, sheets, mtimeMs, onDirtyChange, o
   const [edits, setEdits] = useState<SpreadsheetCellEditInput[]>([])
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const editsRef = useRef(edits)
+  const savingRef = useRef(saving)
+  const activeSheetRef = useRef<SpreadsheetSheetData | null>(null)
+  editsRef.current = edits
+  savingRef.current = saving
 
   const activeSheet = localSheets[sheetIndex] ?? localSheets[0] ?? null
+  activeSheetRef.current = activeSheet
 
   useEffect(() => {
     setLocalSheets(sheets)
@@ -60,37 +68,69 @@ export function SpreadsheetPreview({ filePath, sheets, mtimeMs, onDirtyChange, o
     onDirtyChange?.(false)
   }, [filePath, sheets])
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && edits.length > 0) {
-        event.preventDefault()
-        void saveEdits()
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  })
-
-  const saveEdits = async () => {
-    if (!edits.length || saving || !activeSheet) return
+  const saveEdits = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {
+    if (!editsRef.current.length) return { ok: true }
+    if (savingRef.current || !activeSheetRef.current) return { ok: false, error: '正在保存中，请稍候' }
     setSaving(true)
     setSaveError(null)
     try {
-      const result = await window.electronAPI?.project.saveSpreadsheetCells({ filePath, expectedMtimeMs: mtimeMs, edits })
+      const result = await window.electronAPI?.project.saveSpreadsheetCells({
+        filePath,
+        expectedMtimeMs: mtimeMs,
+        edits: editsRef.current,
+      })
       if (!result || !result.ok) {
-        setSaveError(result?.error || '保存失败，请重试')
-        return
+        const msg = result?.error || '保存失败，请重试'
+        setSaveError(msg)
+        return { ok: false, error: msg }
       }
       setLocalSheets(result.sheets)
       setEdits([])
       setEditing(null)
       onDirtyChange?.(false)
+      return { ok: true }
     } catch {
-      setSaveError('文件保存失败，可能正被其他应用占用')
+      const msg = '文件保存失败，可能正被其他应用占用；请关闭 WPS/Excel 后重试'
+      setSaveError(msg)
+      return { ok: false, error: msg }
     } finally {
       setSaving(false)
     }
-  }
+  }, [filePath, mtimeMs, onDirtyChange])
+
+  useEffect(() => {
+    onRegisterSaveHandler?.(saveEdits)
+    return () => onRegisterSaveHandler?.(null)
+  }, [onRegisterSaveHandler, saveEdits])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && editsRef.current.length > 0) {
+        event.preventDefault()
+        void saveEdits()
+        return
+      }
+      // 选中单个可编辑非公式格时按 Enter 进入编辑（不抢输入框焦点）
+      if (
+        event.key === 'Enter'
+        && !editing
+        && range
+        && activeSheet?.editable
+        && range.start.row === range.end.row
+        && range.start.col === range.end.col
+        && !(event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)
+      ) {
+        const { row, col } = range.start
+        const style = activeSheet.cellStyles?.[`${row}:${col}`]
+        if (!style?.isFormula) {
+          event.preventDefault()
+          setEditing({ row, col, value: activeSheet.rows[row]?.[col] ?? '' })
+        }
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [activeSheet, editing, range, saveEdits])
 
   const commitCell = (row: number, col: number, value: string) => {
     if (!activeSheet || !activeSheet.editable) return
@@ -123,6 +163,24 @@ export function SpreadsheetPreview({ filePath, sheets, mtimeMs, onDirtyChange, o
     if (!activeSheet) return 0
     return activeSheet.rows.reduce((max, row) => Math.max(max, row.length), 0)
   }, [activeSheet])
+
+  const mergeMaps = useMemo(() => {
+    const spans = new Map<string, { rowSpan: number; colSpan: number }>()
+    const hidden = new Set<string>()
+    for (const m of activeSheet?.merges ?? []) {
+      const rowSpan = Math.max(1, m.endRow - m.startRow + 1)
+      const colSpan = Math.max(1, m.endCol - m.startCol + 1)
+      if (rowSpan === 1 && colSpan === 1) continue
+      spans.set(`${m.startRow}:${m.startCol}`, { rowSpan, colSpan })
+      for (let r = m.startRow; r <= m.endRow; r++) {
+        for (let c = m.startCol; c <= m.endCol; c++) {
+          if (r === m.startRow && c === m.startCol) continue
+          hidden.add(`${r}:${c}`)
+        }
+      }
+    }
+    return { spans, hidden }
+  }, [activeSheet?.merges])
 
   const bounds = useMemo(() => (range ? normalizeCellRange(range) : null), [range])
   const anchorLabel = activeSheet && range ? formatCellRange(activeSheet.name, range) : null
@@ -200,11 +258,15 @@ export function SpreadsheetPreview({ filePath, sheets, mtimeMs, onDirtyChange, o
                 >
                   #
                 </th>
-                {Array.from({ length: colCount }, (_, colIdx) => (
+                {Array.from({ length: colCount }, (_, colIdx) => {
+                  const colW = activeSheet.colWidths?.[colIdx]
+                  return (
                   <th
                     key={colIdx}
                     className="sticky top-0 z-10 min-w-[82px] border-r border-b px-2.5 py-1.5 text-center font-mono text-[10px] font-medium last:border-r-0"
                     style={{
+                      width: colW ? `${colW}px` : undefined,
+                      minWidth: colW ? `${Math.min(colW, 240)}px` : undefined,
                       borderColor: 'var(--border-subtle)',
                       background: 'color-mix(in srgb, var(--bg-secondary) 72%, var(--card-bg))',
                       color: 'var(--text-muted)',
@@ -212,7 +274,8 @@ export function SpreadsheetPreview({ filePath, sheets, mtimeMs, onDirtyChange, o
                   >
                     {columnIndexToLetter(colIdx)}
                   </th>
-                ))}
+                  )
+                })}
               </tr>
             </thead>
             <tbody>
@@ -232,11 +295,15 @@ export function SpreadsheetPreview({ filePath, sheets, mtimeMs, onDirtyChange, o
                       {rowIdx + 1}
                     </td>
                     {Array.from({ length: colCount }, (_, colIdx) => {
+                      const cellKey = `${rowIdx}:${colIdx}`
+                      if (mergeMaps.hidden.has(cellKey)) return null
+                      const span = mergeMaps.spans.get(cellKey)
                       const selected = isCellInRange(rowIdx, colIdx, range)
                       const value = row[colIdx] ?? ''
-                      const formula = activeSheet.cellStyles?.[`${rowIdx}:${colIdx}`]?.isFormula
+                      const cellStyle = activeSheet.cellStyles?.[cellKey]
+                      const formula = cellStyle?.isFormula
                       const isEditing = editing?.row === rowIdx && editing.col === colIdx
-                      const numeric = !isHeaderRow && isNumericCell(value)
+                      const numeric = !isHeaderRow && !cellStyle?.align && isNumericCell(value)
                       const shadows: string[] = []
                       if (selected && bounds) {
                         if (rowIdx === bounds.minRow) shadows.push('inset 0 1.5px 0 0 var(--accent)')
@@ -249,9 +316,16 @@ export function SpreadsheetPreview({ filePath, sheets, mtimeMs, onDirtyChange, o
                         : isEvenData
                           ? 'color-mix(in srgb, var(--bg-secondary) 22%, var(--card-bg))'
                           : undefined
+                      const resolvedBg = selected
+                        ? 'color-mix(in srgb, var(--accent) 12%, var(--card-bg))'
+                        : cellStyle?.bgColor
+                          ? `color-mix(in srgb, ${cellStyle.bgColor} 32%, var(--card-bg))`
+                          : rowBg
                       return (
                         <td
                           key={colIdx}
+                          rowSpan={span?.rowSpan}
+                          colSpan={span?.colSpan}
                           data-cell={`${columnIndexToLetter(colIdx)}${rowIdx + 1}`}
                           data-selected={selected ? 'true' : undefined}
                           onDoubleClick={() => {
@@ -270,14 +344,16 @@ export function SpreadsheetPreview({ filePath, sheets, mtimeMs, onDirtyChange, o
                             if (!dragging) return
                             setRange((prev) => prev ? { start: prev.start, end: { row: rowIdx, col: colIdx } } : null)
                           }}
-                          className={`max-w-[220px] cursor-cell truncate border-r border-b px-2.5 py-1.5 transition-colors last:border-r-0 ${isHeaderRow ? 'font-medium' : ''} ${numeric ? 'text-right font-mono tabular-nums' : ''}`}
+                          className={`max-w-[260px] cursor-cell truncate border-r border-b px-2.5 py-1.5 transition-colors last:border-r-0 ${isHeaderRow || cellStyle?.bold ? 'font-medium' : ''} ${cellStyle?.italic ? 'italic' : ''} ${numeric ? 'text-right font-mono tabular-nums' : ''}`}
                           style={{
                             borderColor: 'color-mix(in srgb, var(--border-subtle) 85%, transparent)',
-                            background: selected ? 'color-mix(in srgb, var(--accent) 12%, var(--card-bg))' : rowBg,
+                            background: resolvedBg,
                             color: selected ? 'var(--accent-fg)' : 'var(--text-primary)',
+                            textAlign: cellStyle?.align ?? undefined,
+                            verticalAlign: cellStyle?.vAlign ?? undefined,
                             boxShadow: shadows.length > 0 ? shadows.join(', ') : undefined,
                           }}
-                          title={formula ? `公式：${activeSheet.cellStyles?.[`${rowIdx}:${colIdx}`]?.formula || ''}` : value}
+                          title={formula ? `公式（只读保护）：${cellStyle?.formula || ''}` : value}
                         >
                           {isEditing ? (
                             <input
@@ -342,7 +418,9 @@ export function SpreadsheetPreview({ filePath, sheets, mtimeMs, onDirtyChange, o
       {saveError && (
         <div className="flex shrink-0 items-center justify-between gap-2 border-t px-3 py-2 text-[11px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--danger)' }}>
           <span>{saveError}</span>
-          <button type="button" aria-label="关闭保存错误" onClick={() => setSaveError(null)}><X size={12} /></button>
+          <IconButton label="关闭保存错误" size={24} onClick={() => setSaveError(null)}>
+            <X size={12} />
+          </IconButton>
         </div>
       )}
     </div>

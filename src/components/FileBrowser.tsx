@@ -47,7 +47,7 @@ export type FileBrowserPreviewFile =
   | { path: string; kind: 'text'; content: string; languageHint?: string; size?: number }
   | { path: string; kind: 'image'; dataUrl: string; mimeType?: string; size?: number }
   | { path: string; kind: 'spreadsheet'; sheets: SpreadsheetSheetData[]; size?: number; mtimeMs?: number }
-  | { path: string; kind: 'docx'; html: string; notices?: string[]; size?: number; mtimeMs?: number; nativePdfAvailable?: boolean }
+  | { path: string; kind: 'docx'; html: string; docxBase64?: string; notices?: string[]; size?: number; mtimeMs?: number; nativePdfAvailable?: boolean }
   | { path: string; kind: 'pdf'; pages: PdfPreviewPage[]; pdfBase64?: string; size?: number; mtimeMs?: number }
   | { path: string; kind: 'pptx'; slides: PptxSlideData[]; size?: number; mtimeMs?: number; nativePdfAvailable?: boolean }
   | { path: string; kind: 'unsupported'; reason: string; size?: number }
@@ -88,6 +88,7 @@ interface FileBrowserProps {
   onTakeToChat?: (text: string) => void
   onQueueAnnotation?: (item: Omit<AnnotationQueueItem, 'id' | 'createdAt'>) => void
   onDirtyChange?: (dirty: boolean) => void
+  onRegisterSaveHandler?: (handler: (() => Promise<{ ok: boolean; error?: string }>) | null) => void
 }
 
 /**
@@ -103,7 +104,7 @@ export async function readFilePreview(path: string, data?: FileBrowserPreviewDat
     if (result.error && !result.kind) return { path, kind: 'error', message: result.error }
     if (result.kind === 'image' && result.dataUrl) return { path, kind: 'image', dataUrl: result.dataUrl, mimeType: result.mimeType, size: result.size }
     if (result.kind === 'spreadsheet' && result.sheets) return { path, kind: 'spreadsheet', sheets: result.sheets, size: result.size, mtimeMs: result.mtimeMs }
-    if (result.kind === 'docx' && result.html !== undefined) return { path, kind: 'docx', html: result.html, notices: result.notices, size: result.size, mtimeMs: result.mtimeMs, nativePdfAvailable: result.nativePdfAvailable }
+    if (result.kind === 'docx' && result.html !== undefined) return { path, kind: 'docx', html: result.html, docxBase64: result.docxBase64, notices: result.notices, size: result.size, mtimeMs: result.mtimeMs, nativePdfAvailable: result.nativePdfAvailable }
     if (result.kind === 'pdf' && result.pages) return { path, kind: 'pdf', pages: result.pages, pdfBase64: result.pdfBase64, size: result.size, mtimeMs: result.mtimeMs }
     if (result.kind === 'pptx' && result.slides) return { path, kind: 'pptx', slides: result.slides, size: result.size, mtimeMs: result.mtimeMs, nativePdfAvailable: result.nativePdfAvailable }
     if (result.kind === 'unsupported') return { path, kind: 'unsupported', reason: result.reason || result.error || '无法预览', size: result.size }
@@ -119,7 +120,7 @@ function initialPreview(data?: FileBrowserPreviewData): FileBrowserPreviewState 
   return data.files[data.initialPath] ?? null
 }
 
-export function FileBrowser({ projectPath, onClose, embedded = false, previewData, mode = 'split', previewState, onPreviewStateChange, onFileSelect, hideProjectHeader = false, hidePreviewClose = false, hidePreviewHeader = false, treeHeaderActions, onRetry, onTakeToChat, onQueueAnnotation, onDirtyChange }: FileBrowserProps) {
+export function FileBrowser({ projectPath, onClose, embedded = false, previewData, mode = 'split', previewState, onPreviewStateChange, onFileSelect, hideProjectHeader = false, hidePreviewClose = false, hidePreviewHeader = false, treeHeaderActions, onRetry, onTakeToChat, onQueueAnnotation, onDirtyChange, onRegisterSaveHandler }: FileBrowserProps) {
   const [tree, setTree] = useState<FileEntry[]>(() => previewData?.tree ?? [])
   const [filter, setFilter] = useState('')
   const [internalPreview, setInternalPreview] = useState<FileBrowserPreviewState>(() => initialPreview(previewData))
@@ -335,6 +336,7 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                             sheets={preview.sheets}
                             mtimeMs={preview.mtimeMs}
                             onDirtyChange={onDirtyChange}
+                            onRegisterSaveHandler={onRegisterSaveHandler}
                             onSendToChat={onTakeToChat}
                             onQueueAnnotation={onQueueAnnotation}
                           />
@@ -343,6 +345,8 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                           <DocxPreview
                             filePath={preview.path}
                             htmlContent={preview.html}
+                            docxBase64={preview.docxBase64}
+                            nativePdfAvailable={preview.nativePdfAvailable}
                             notices={preview.notices}
                             onOpenExternal={!previewData ? () => { void openExternal() } : undefined}
                             onSendToChat={onTakeToChat}
@@ -362,6 +366,7 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                           <PptxPreview
                             filePath={preview.path}
                             slides={preview.slides}
+                            nativePdfAvailable={preview.nativePdfAvailable}
                             onSendToChat={onTakeToChat}
                             onQueueAnnotation={onQueueAnnotation}
                           />

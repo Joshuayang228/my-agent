@@ -1,5 +1,7 @@
 # 项目进度
 
+右侧工作区批次 1（Office 高保真渲染 + Excel/CSV 轻编辑 + 未保存全场景防丢保护 + 热刷新）完整闭环（2026-11-25）：主进程与渲染层全面接通 `exceljs` 合并单元格/样式还原与保样式写回、`docx-preview` 秒开高保真 + 本机原版 PDF 切换、`pdfjs-dist` Canvas 高清渲染与透明 `TextLayer` 划词批注、`PptxPreview` 本机静默转 PDF 高保真与大纲/备注双模，以及覆盖关标签、关工作区、切项目和退出窗口的应用内三态未保存拦截弹窗（`UnsavedChangesModal`）与脏标圆点；同时修复 `.cursor/hooks/docs-capability-remind.py` 的 Windows GBK 乱码与存量未提交改动反复拉起问题。下一步待确认后进入批次 2（Markdown 类 Typora 所见即所得与代码原地编辑）。
+
 修复公网脚本网页白屏（2026-11-25）：正式浏览器通过主进程完成地址与跳转校验后，在不授予同源权限的 `allow-scripts` 沙箱 iframe 中加载网页，使百度等脚本驱动页面不再因 `srcDoc` 空沙箱而只显示白页；Playground 与本地 HTML 仍沿原有 `srcDoc` 隔离路径。
 
 修复工作区网络与大 HTML 预览（2026-11-25）：浏览器地址栏支持裸域名自动补 `https://`，外部网页跳转改为逐跳重新执行 SSRF 校验并限制跳转次数；项目 HTML 预览单独提高到 10MB 有界上限，避免被通用文本 512KB 限制误伤。

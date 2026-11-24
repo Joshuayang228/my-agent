@@ -172,6 +172,19 @@ function App() {
   const [currentProject, setCurrentProject] = useState<{ path: string; name: string } | null>(null)
   const [recentProjects, setRecentProjects] = useState<{ path: string; name: string }[]>([])
   const [projectMenuOpen, setProjectMenuOpen] = useState(false)
+  const [workspaceDirtyCount, setWorkspaceDirtyCount] = useState(0)
+  const workspaceUnsavedGuardRef = useRef<((actionLabel: string, onProceed: () => void) => void) | null>(null)
+  const runWithWorkspaceGuard = useCallback((actionLabel: string, onProceed: () => void) => {
+    const guard = workspaceUnsavedGuardRef.current
+    if (!guard || workspaceDirtyCount === 0) {
+      onProceed()
+      return
+    }
+    // 若右侧工作区正处于收起隐藏态，先展开确保未保存三态弹窗完整可见
+    setShowFileBrowser(true)
+    setRightDockCollapsed(false)
+    guard(actionLabel, onProceed)
+  }, [workspaceDirtyCount])
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
   const [availableChatModels, setAvailableChatModels] = useState<Array<{ connectionId: string; connectionName: string; model: string }>>([])
   /** 确认请求串行队列（M12-C4）：并发 tool_confirm 不得互相覆盖 */
@@ -322,6 +335,7 @@ function App() {
   const [sidebarSearchOpen, setSidebarSearchOpen] = useState(false)
   const [showFileBrowser, setShowFileBrowser] = useState(false)
   const [rightDockCollapsed, setRightDockCollapsed] = useState(false)
+  const [rightDockWide, setRightDockWide] = useState(false)
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1280))
   const sidebarAutoCollapsedRef = useRef(false)
   const manualSidebarWithDockRef = useRef(false)
@@ -352,14 +366,21 @@ function App() {
       }
       return
     }
+    const targetDockWidth = rightDockWide ? Math.max(rightDockWidth, Math.round(viewportWidth * 0.6)) : rightDockWidth
     if (sidebarOpen && !manualSidebarWithDockRef.current) {
-      const centerRemaining = viewportWidth - 54 - sidebarWidth - rightDockWidth
+      const centerRemaining = viewportWidth - 54 - sidebarWidth - targetDockWidth
       if (centerRemaining < 440) {
         sidebarAutoCollapsedRef.current = true
         setSidebarOpen(false)
       }
+    } else if (!sidebarOpen && sidebarAutoCollapsedRef.current && !manualSidebarWithDockRef.current) {
+      const centerRemaining = viewportWidth - 54 - sidebarWidth - targetDockWidth
+      if (centerRemaining >= 440) {
+        sidebarAutoCollapsedRef.current = false
+        setSidebarOpen(true)
+      }
     }
-  }, [dockActive, viewportWidth, sidebarWidth, rightDockWidth, sidebarOpen])
+  }, [dockActive, viewportWidth, sidebarWidth, rightDockWidth, rightDockWide, sidebarOpen])
   const [mentionOpen, setMentionOpen] = useState(false)
   const [mentionQuery, setMentionQuery] = useState('')
   const [mentionAnchor, setMentionAnchor] = useState({ top: 0, left: 0 })
@@ -1535,7 +1556,7 @@ function App() {
                 }
                 setProjectMenuOpen(!projectMenuOpen)
               }}
-              className={`flex h-6 cursor-pointer items-center gap-1.5 rounded-md px-2 text-[12px] transition hover:bg-[var(--hover-overlay)] hover:text-[var(--text-primary)] ${currentProject ? 'text-[var(--text-secondary)]' : 'text-[var(--text-muted)] opacity-75 hover:opacity-100'}`}
+              className={`flex h-6 cursor-pointer select-none items-center gap-1.5 rounded-md px-2 text-[12px] transition hover:bg-[var(--hover-overlay)] hover:text-[var(--text-primary)] ${currentProject ? 'text-[var(--text-secondary)]' : 'text-[var(--text-muted)] opacity-75 hover:opacity-100'}`}
             >
               <Folder size={13} style={{ color: 'var(--text-muted)' }} />
               <span>{currentProject?.name || '选择工作区'}</span>
@@ -1553,11 +1574,15 @@ function App() {
                   <button
                     key={proj.path}
                     type="button"
-                    onClick={async (e) => {
+                    onClick={(e) => {
                       e.stopPropagation()
-                      await window.electronAPI.project.set(proj.path)
-                      setCurrentProject(proj)
                       setProjectMenuOpen(false)
+                      if (currentProject?.path === proj.path) return
+                      runWithWorkspaceGuard('切换项目', () => {
+                        void window.electronAPI.project.set(proj.path).then(() => {
+                          setCurrentProject(proj)
+                        })
+                      })
                     }}
                     className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] transition"
                     style={{
@@ -1578,15 +1603,18 @@ function App() {
 
                 <button
                   type="button"
-                  onClick={async (e) => {
+                  onClick={(e) => {
                     e.stopPropagation()
-                    const result = await window.electronAPI.project.browse()
-                    if (result) {
-                      setCurrentProject(result)
-                      const list = await window.electronAPI.project.list()
-                      if (list) setRecentProjects(list)
-                    }
                     setProjectMenuOpen(false)
+                    runWithWorkspaceGuard('切换项目', () => {
+                      void window.electronAPI.project.browse().then(async (result) => {
+                        if (result) {
+                          setCurrentProject(result)
+                          const list = await window.electronAPI.project.list()
+                          if (list) setRecentProjects(list)
+                        }
+                      })
+                    })
                   }}
                   className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] transition hover:bg-[var(--hover-overlay)]"
                   style={{ color: 'var(--text-secondary)' }}
@@ -1597,13 +1625,16 @@ function App() {
 
                 <button
                   type="button"
-                  onClick={async (e) => {
+                  onClick={(e) => {
                     e.stopPropagation()
-                    await window.electronAPI.project.set(null)
-                    setCurrentProject(null)
-                    setRightDockCollapsed(false)
-                    setShowFileBrowser(false)
                     setProjectMenuOpen(false)
+                    runWithWorkspaceGuard('关闭当前项目', () => {
+                      void window.electronAPI.project.set(null).then(() => {
+                        setCurrentProject(null)
+                        setRightDockCollapsed(false)
+                        setShowFileBrowser(false)
+                      })
+                    })
                   }}
                   className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] transition hover:bg-[var(--hover-overlay)]"
                   style={{ color: 'var(--text-muted)' }}
@@ -1902,8 +1933,6 @@ function App() {
             }}
             className="pointer-events-auto absolute left-3 top-3 z-30 hover:bg-[var(--hover-overlay)]"
             style={{ color: 'var(--text-muted)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--hover-overlay)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '')}
             title="展开侧边栏 (Ctrl+B)"
           >
             <PanelLeftOpen size={16} />
@@ -1923,19 +1952,24 @@ function App() {
                   }
                 }}
                 size={32}
-                className="pointer-events-auto mr-2 transition hover:bg-[var(--hover-overlay)]"
+                className="pointer-events-auto relative mr-2 transition hover:bg-[var(--hover-overlay)]"
                 style={{
                   color: showFileBrowser && !rightDockCollapsed ? 'var(--accent-fg)' : 'var(--text-muted)',
                   background: showFileBrowser && !rightDockCollapsed ? 'var(--accent-subtle)' : undefined,
                 }}
                 aria-expanded={showFileBrowser && !rightDockCollapsed}
                 aria-controls="chat-right-dock"
-                onMouseEnter={(e) => { if (!showFileBrowser || rightDockCollapsed) e.currentTarget.style.background = 'var(--hover-overlay)' }}
-                onMouseLeave={(e) => { if (!showFileBrowser || rightDockCollapsed) e.currentTarget.style.background = '' }}
                 label={showFileBrowser && !rightDockCollapsed ? '收起工作区' : '打开工作区'}
-                title={showFileBrowser && !rightDockCollapsed ? '收起工作区' : '打开工作区'}
+                title={workspaceDirtyCount > 0 ? `工作区有 ${workspaceDirtyCount} 个文件未保存` : (showFileBrowser && !rightDockCollapsed ? '收起工作区' : '打开工作区')}
               >
                 <PanelRight size={16} />
+                {workspaceDirtyCount > 0 && (!showFileBrowser || rightDockCollapsed) && (
+                  <span
+                    className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full"
+                    style={{ background: 'var(--warning)' }}
+                    aria-hidden="true"
+                  />
+                )}
               </IconButton>
             {(() => {
               const session = sessions.find((item) => item.id === activeSessionId)
@@ -2406,12 +2440,19 @@ function App() {
           {activeView === 'chat' && !rightDockCollapsed && <ResizeHandle
             orientation="vertical"
             title="拖动调整右坞宽度"
-            onDelta={(dx) => setRightDockWidth((w) => w - dx)}
+            onDelta={(dx) => {
+              const base = rightDockWide ? Math.max(rightDockWidth, Math.round(viewportWidth * 0.6)) : rightDockWidth
+              if (rightDockWide) setRightDockWide(false)
+              setRightDockWidth(base - dx)
+            }}
           />}
           {(() => {
             const occupiedLeft = 54 + (sidebarOpen && activeView === 'chat' ? sidebarWidth : 0)
-            const maxDockForCenter = Math.max(LAYOUT_BOUNDS.rightDockWidth.min, viewportWidth - occupiedLeft - 380)
-            const effectiveRightDockWidth = Math.max(LAYOUT_BOUNDS.rightDockWidth.min, Math.min(rightDockWidth, maxDockForCenter))
+            const maxDockForCenter = Math.max(LAYOUT_BOUNDS.rightDockWidth.min, viewportWidth - occupiedLeft - 360)
+            const desiredDockWidth = rightDockWide
+              ? Math.max(rightDockWidth, Math.round(viewportWidth * 0.6))
+              : rightDockWidth
+            const effectiveRightDockWidth = Math.max(LAYOUT_BOUNDS.rightDockWidth.min, Math.min(desiredDockWidth, maxDockForCenter))
             return (
               <ChatRightDock
                 key={currentProject?.path || 'no-project'}
@@ -2420,7 +2461,11 @@ function App() {
                 showFiles={showFileBrowser}
                 collapsed={rightDockCollapsed || activeView !== 'chat'}
                 width={effectiveRightDockWidth}
-                onCloseFiles={() => { setRightDockCollapsed(false); setShowFileBrowser(false) }}
+                wide={rightDockWide}
+                onToggleWide={() => setRightDockWide((prev) => !prev)}
+                onCloseFiles={() => { setRightDockCollapsed(false); setRightDockWide(false); setShowFileBrowser(false) }}
+                onRegisterUnsavedGuard={(guard) => { workspaceUnsavedGuardRef.current = guard }}
+                onDirtyCountChange={setWorkspaceDirtyCount}
                 onTakeToChat={({ text }) => {
                   setActiveView('chat')
                   setInput(text)

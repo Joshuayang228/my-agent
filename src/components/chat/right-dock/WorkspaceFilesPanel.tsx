@@ -6,7 +6,18 @@ import { IconButton } from '../../foundation/IconButton'
 import { ActionButton } from '../../foundation/ActionButton'
 import { TabStrip } from '../../foundation/TabStrip'
 import { AnnotationQueueDrawer } from './preview/AnnotationQueueDrawer'
+import { UnsavedChangesModal } from './preview/UnsavedChangesModal'
 import { formatAnnotationQueueForChat, type AnnotationQueueItem } from './preview/annotation-format'
+
+export type WorkspaceFileSaveHandler = () => Promise<{ ok: boolean; error?: string }>
+
+export interface PendingUnsavedGuard {
+  paths: string[]
+  actionLabel: string
+  onProceed: () => void
+  saving: boolean
+  error: string | null
+}
 
 export interface WorkspaceFilesStateOptions {
   projectPath: string | null
@@ -34,12 +45,16 @@ export function useWorkspaceFilesState({
   const [copiedPath, setCopiedPath] = useState<string | null>(null)
   const [dirtyPaths, setDirtyPaths] = useState<string[]>([])
   const [externalChangedPath, setExternalChangedPath] = useState<string | null>(null)
+  const [pendingGuard, setPendingGuard] = useState<PendingUnsavedGuard | null>(null)
   const filesRef = useRef(files)
   const activePathRef = useRef(activePath)
   const recentOrderRef = useRef(recentOrder)
+  const dirtyPathsRef = useRef(dirtyPaths)
+  const saveHandlersRef = useRef(new Map<string, WorkspaceFileSaveHandler>())
   filesRef.current = files
   activePathRef.current = activePath
   recentOrderRef.current = recentOrder
+  dirtyPathsRef.current = dirtyPaths
 
   const requests = useRef(new Map<string, number>())
   const sequence = useRef(0)
@@ -63,7 +78,20 @@ export function useWorkspaceFilesState({
     setCopiedPath(null)
     setDirtyPaths([])
     setExternalChangedPath(null)
+    setPendingGuard(null)
+    saveHandlersRef.current.clear()
   }, [projectPath, previewData])
+
+  // 存在未保存修改时阻断窗口直接退出/刷新，联动主进程 will-prevent-unload 钩子防止静默丢稿
+  useEffect(() => {
+    if (previewData || dirtyPaths.length === 0) return
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [previewData, dirtyPaths.length])
 
   useEffect(() => () => {
     requests.current.clear()
@@ -121,9 +149,14 @@ export function useWorkspaceFilesState({
     }
   }, [previewData, dirtyPaths, openFile, files.length])
 
-  const closeFile = useCallback((path: string) => {
-    if (dirtyPaths.includes(path) && !window.confirm('该文件有未保存修改，确定放弃并关闭吗？')) return
+  const registerSaveHandler = useCallback((path: string, handler: WorkspaceFileSaveHandler | null) => {
+    if (handler) saveHandlersRef.current.set(path, handler)
+    else saveHandlersRef.current.delete(path)
+  }, [])
+
+  const forceCloseFile = useCallback((path: string) => {
     requests.current.delete(path)
+    saveHandlersRef.current.delete(path)
     const remaining = filesRef.current.filter((file) => file.path !== path)
     const nextOrder = recentOrderRef.current.filter((item) => item !== path)
     const nextActive = activePathRef.current === path
@@ -137,7 +170,56 @@ export function useWorkspaceFilesState({
     setActivePath(nextActive)
     setDirtyPaths((current) => current.filter((item) => item !== path))
     setExternalChangedPath((current) => current === path ? null : current)
-  }, [dirtyPaths])
+  }, [])
+
+  const requestGuard = useCallback((targetPaths: string[], actionLabel: string, onProceed: () => void) => {
+    const dirtyTargets = targetPaths.filter((p) => dirtyPathsRef.current.includes(p))
+    if (dirtyTargets.length === 0) {
+      onProceed()
+      return
+    }
+    setPendingGuard({
+      paths: dirtyTargets,
+      actionLabel,
+      onProceed,
+      saving: false,
+      error: null,
+    })
+  }, [])
+
+  const resolveGuardSave = useCallback(async () => {
+    if (!pendingGuard || pendingGuard.saving) return
+    setPendingGuard((prev) => (prev ? { ...prev, saving: true, error: null } : null))
+    for (const filePath of pendingGuard.paths) {
+      const handler = saveHandlersRef.current.get(filePath)
+      if (!handler) continue
+      const result = await handler()
+      if (!result.ok) {
+        setPendingGuard((prev) => (prev ? { ...prev, saving: false, error: result.error || '保存失败，请检查文件是否被其他应用占用' } : null))
+        return
+      }
+    }
+    const proceed = pendingGuard.onProceed
+    setPendingGuard(null)
+    proceed()
+  }, [pendingGuard])
+
+  const resolveGuardDiscard = useCallback(() => {
+    if (!pendingGuard || pendingGuard.saving) return
+    const discarded = new Set(pendingGuard.paths)
+    const proceed = pendingGuard.onProceed
+    setDirtyPaths((current) => current.filter((item) => !discarded.has(item)))
+    setPendingGuard(null)
+    proceed()
+  }, [pendingGuard])
+
+  const cancelGuard = useCallback(() => {
+    setPendingGuard((prev) => (prev && !prev.saving ? null : prev))
+  }, [])
+
+  const closeFile = useCallback((path: string) => {
+    requestGuard([path], '关闭文档', () => forceCloseFile(path))
+  }, [requestGuard, forceCloseFile])
 
   const markDirty = useCallback((path: string, dirty: boolean) => {
     setDirtyPaths((current) => dirty
@@ -203,6 +285,7 @@ export function useWorkspaceFilesState({
     selectPath,
     openFile,
     closeFile,
+    forceCloseFile,
     handleCopyActiveFile,
     handleOpenActiveExternal,
     handleQueueAnnotation,
@@ -213,6 +296,12 @@ export function useWorkspaceFilesState({
     externalChangedPath,
     setExternalChangedPath,
     markDirty,
+    registerSaveHandler,
+    pendingGuard,
+    requestGuard,
+    resolveGuardSave,
+    resolveGuardDiscard,
+    cancelGuard,
   }
 }
 
@@ -290,6 +379,11 @@ function FilesWorkspaceContent({
     externalChangedPath,
     setExternalChangedPath,
     markDirty,
+    registerSaveHandler,
+    pendingGuard,
+    resolveGuardSave,
+    resolveGuardDiscard,
+    cancelGuard,
   } = state
 
   useEffect(() => {
@@ -354,11 +448,15 @@ function FilesWorkspaceContent({
                 label="文件预览"
                 itemTestId="workspace-file-preview-tab"
                 activeId={activePath}
-                items={files.map((file, index) => ({
-                  id: file.path,
-                  label: file.path.split(/[/\\]/).pop() || file.path,
-                  panelId: prefix + '-file-' + index,
-                }))}
+                items={files.map((file, index) => {
+                  const base = file.path.split(/[/\\]/).pop() || file.path
+                  const isDirty = dirtyPaths.includes(file.path)
+                  return {
+                    id: file.path,
+                    label: isDirty ? `• ${base}` : base,
+                    panelId: prefix + '-file-' + index,
+                  }
+                })}
                 onSelect={selectPath}
                 onClose={closeFile}
               />
@@ -467,6 +565,7 @@ function FilesWorkspaceContent({
                   onTakeToChat={handleDirectSend}
                   onQueueAnnotation={handleQueueAnnotation}
                   onDirtyChange={(dirty) => markDirty(file.path, dirty)}
+                  onRegisterSaveHandler={(handler) => registerSaveHandler(file.path, handler)}
                 />
               </div>
             )
@@ -515,6 +614,17 @@ function FilesWorkspaceContent({
           </aside>
         </>
       )}
+
+      <UnsavedChangesModal
+        open={Boolean(pendingGuard)}
+        filePaths={pendingGuard?.paths ?? []}
+        actionLabel={pendingGuard?.actionLabel ?? '继续'}
+        saving={pendingGuard?.saving}
+        error={pendingGuard?.error}
+        onSaveAndContinue={() => { void resolveGuardSave() }}
+        onDiscardAndContinue={resolveGuardDiscard}
+        onCancel={cancelGuard}
+      />
     </div>
   )
 }

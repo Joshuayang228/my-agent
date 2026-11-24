@@ -4,6 +4,8 @@
 
 2026-11-25 网络与 HTML 预览复核：浏览器地址栏裸域名归一化不改变受限 URL 校验；每个重定向目标重新校验并受跳转次数限制，项目 HTML 预览使用独立 10MB 上限。回归覆盖浏览器取消、裸域名和安全跳转链路。
 
+2026-11-25 右侧项目文件工作区完成 Batch A 高保真 Office 渲染与未保存防丢保护全场景闭环：`document-parser.ts` 与 `project:saveSpreadsheetCells` 切换 `.xlsx` 至 `exceljs` 还原合并单元格/列宽/样式并按坐标原地保样式写回；`project:readFile` 返回 `docxBase64` 驱动 `DocxPreview` 使用 `docx-preview` 秒开高保真（支持本机 WPS/Office 原版 PDF 视图切换）；`PdfPreview` 升级 `pdfjs-dist` Canvas 高清渲染与透明 `TextLayer` 划词批注；`PptxPreview` 接入本机静默转 PDF 高保真并可切大纲与备注；全场景未保存防丢保护（Tab/溢出/收起入口圆点、应用内三态拦截弹窗 `UnsavedChangesModal`、关标签/关工作区/切项目/`beforeunload` 退出拦截与 Windows 占用锁保稿提示）全部落盘。
+
 2026-11-25 右侧项目文件工作区补齐真实文件生命周期：`project:readFile` 返回 mtime 与结构化 Office 预览，`project:saveSpreadsheetCells` 以 mtime 冲突检测和临时文件原子替换保护 `.xlsx/.csv` 写回，`project:watchFile` 只向受信任窗口广播文件变化；Renderer 的未保存草稿不被外部变化静默覆盖。
 
 2026-11-23 复核：主对话输出预算不再把旧版 4096 当作通用上限，OpenAI-compatible 请求在无显式预算时交给模型能力决定；输出截断若没有正文或工具调用则返回 `LLM_OUTPUT_TRUNCATED`，不再注入空 assistant 续写消息；`ipc/companion.ts#companion:get-contacts` 对空串 `universeId` 归一回退 `'default'`，不改变 IPC 通道契约。
@@ -626,7 +628,7 @@ MCP 已启用配置由主进程启动恢复，连接失败不阻塞窗口；意�
 | Playground 单项采用标记与主题对照 | 已落地 | `AdoptionMark` 只挂具体 token / 组件 / 故事证据，不再给目录批量标记或提供全局开关；七主题同页审计 |
 | UI 组件 / 图标语义资产注册 | 已落地 | `ui-component-registry.ts` 继续承担组件资产身份与生命周期；`foundation-story-registry.ts` 负责 Foundation Playground 故事的 story key、assetKey、分组和 renderer 关系；基础组件工作台按 13 个任务入口展示全部已建故事，并补齐 Select / Form Field / Checkbox / Switch / Diff Viewer 及 IconButton / Card / Badge / Tag / Divider 隔离故事，完整候选登记由注册表 / Debug 承担；业务结构由产品体验注册表的 `experienceParts` 登记；图标目录仅显示紧凑的图标 + 中英文名，具体 adopted 小勾位于对应图标卡右上角并来自真实证据 |
 | 全局 Debug 诊断 | 已落地 | `DevPanel` 全页工作区；七组 26 入口，默认提示词管理器；运行概览融入系统状态，Skill 与人格验收分别进入；Chat 不再叠加 Debug 半屏 |
-| 项目文件预览 | 已落地 | `FileBrowser` + `chat/right-dock/preview/*` · text/image/spreadsheet/docx/pdf/pptx/unsupported；Excel/CSV 多 Sheet 框选批注、HTML 沙箱选元素批注、Word 清洗富文本划词批注、PDF 原版/文字双模按页批注、PPT 大纲卡片按页批注，并配跨文件批注草稿篮直达 Chat 输入框；老 `.doc`/`.ppt` 等外开 |
+| 项目文件预览 | 已落地 | `FileBrowser` + `chat/right-dock/preview/*` · text/image/spreadsheet/docx/pdf/pptx/unsupported；Excel/CSV（`exceljs` 还原合并单元格/列宽/样式 + 双击/Enter 轻编辑 + 公式保护 + 原地原子写回 + 框选批注）、Word（`docx-preview` 秒开高保真 + 可选本机原版 PDF 视图 + 划词批注）、PDF（`pdfjs-dist` Canvas 高清渲染 + 透明文字层划词/按页批注）、PPT（优先本机静默转 PDF 高保真 + 降级大纲卡片与备注）、HTML 沙箱选元素批注，并配跨文件批注草稿篮与全场景未保存三态防丢保护（关标签/关工作区/切项目/退应用） |
 | Chat 右侧能力坞 | 部分 | `ChatRightDock` · 五入口顺序为审阅/浏览器/文件/终端/侧边聊天；五工具已有真实 IPC；侧聊支持受控上下文、确认隔离、创建/发送失败重试及父会话切换清理；四主题/Mermaid 与 Foundation 全量复用仍待验收，浏览器受限只读、终端非 PTY |
 | Agent 生产资产目录与运行证据链 | 已落地 | Debug「提示词管理器」聚合 Prompt / 伙伴人格 / 记忆策略 / 权限与沙箱 / Tool schema / Skill / Eval Case 与 Grader / Eval Judge / 模型 Provider / MCP；真实 LLM / Tool / Memory / Permission 运行通过稳定 key 写入脱敏证据，支持调用级分组、资产最近使用、跨面板跳转与 JSON / JSONL 导出；前端按 Alice 参考收口为生产证据页头、资产摘要、分类计数和左右分栏详情 |
 | GitHub Actions 质量门禁 | 已落地 | Docs / Asset 工作流；Unit 在无界面 Runner 使用 Electron external 占位路径，不下载桌面二进制；官方 Actions 使用 v7 |

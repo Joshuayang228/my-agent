@@ -112,7 +112,7 @@ export function registerBrowserIPC(): void {
       return { ok: true, url: validation.url, contentType, body }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') return { ok: false, error: '网页加载已取消' }
-      log.warn('Browser load failed', { urlHash: hashForLog(validation.url), errorType: error instanceof Error ? error.name : 'unknown' })
+      log.warn('Browser load failed', { urlHash: hashForLog(validation.ok ? validation.url : ''), errorType: error instanceof Error ? error.name : 'unknown' })
       return { ok: false, error: '网页加载失败，请检查地址或网络连接' }
     } finally {
       clearTimeout(timer)

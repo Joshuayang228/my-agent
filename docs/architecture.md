@@ -1,5 +1,7 @@
 # 系统架构
 
+2026-11-25 右侧工作区 Office 高保真渲染与未保存防丢数据流：`.xlsx` 解析与写回切换至 `exceljs` 原地按坐标改值（合并单元格自动定向左上角主格、保留全表样式与 500 行之外数据）；`.docx` 读取同步返回 `docxBase64` 供前端 `docx-preview` 秒开渲染，Word / PPT 在检测到本机 WPS / Office / LibreOffice 时经 `project:convertOfficeToPdf` 缓存转 PDF 后复用 `pdfjs-dist` Canvas + 透明 `TextLayer` 渲染与划词；未保存修改拦截统一收敛至 `useWorkspaceFilesState` 的 `requestGuard` + `UnsavedChangesModal` 并联动 `beforeunload` / `will-prevent-unload`，覆盖关标签、关工作区、切项目与退出应用。
+
 2026-11-25 浏览器渲染数据流：主进程先通过 `validateFetchUrl` 校验输入和有限重定向，再把最终公网地址交给 Renderer 的 `sandbox="allow-scripts"` iframe；iframe 不开启 `allow-same-origin`，本地 HTML 与 Playground 继续使用 `srcDoc`，避免外部文档继承应用权限。
 
 2026-11-25 工作区网页读取继续保持主进程网络边界：地址栏裸域名只在进入 `validateFetchUrl` 前补 HTTPS，重定向目标按绝对/相对 URL 解析后逐跳重新执行协议、凭据、DNS 与内网校验，并限制最大跳转次数；Renderer 仍只接收受大小限制的 HTML 文本并放入无权限 sandbox。项目 HTML 文件则走独立 10MB 上限，不再共用普通文本的 512KB 限制。

@@ -334,9 +334,14 @@ html[data-font-scale="lg"] {
   box-shadow: 0 8px 26px color-mix(in srgb, var(--text-primary) 6%, transparent),
     0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
 }
+.foundation-action-button,
+.foundation-button,
+.foundation-icon-button {
+  border-radius: var(--radius-control);
+}
 .foundation-text-field-outlined {
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-input);
 }
 .foundation-text-field-outlined:focus-visible {
   box-shadow: none;
@@ -350,36 +355,19 @@ html[data-font-scale="lg"] {
   border-radius: 0;
   box-shadow: none;
 }
-.playground-shape-scope .foundation-action-button,
-.playground-shape-scope .foundation-button,
-.playground-shape-scope .foundation-icon-button,
-.world-shape-scope .foundation-action-button,
-.world-shape-scope .foundation-button,
-.world-shape-scope .foundation-icon-button,
-.chat-shape-scope .foundation-action-button,
-.chat-shape-scope .foundation-button,
-.chat-shape-scope .foundation-icon-button {
-  border-radius: var(--radius-control);
-}
-.playground-shape-scope .foundation-text-field-outlined,
-.world-shape-scope .foundation-text-field-outlined,
-.chat-shape-scope .foundation-text-field-outlined {
-  border-radius: var(--radius-input);
-}
 .playground-shape-scope .playground-story-block,
-.playground-shape-scope [data-shape="card"],
-.world-shape-scope [data-shape="card"] {
+[data-shape="card"] {
   border-radius: var(--radius-card);
 }
-.playground-shape-scope [role="dialog"],
-.world-shape-scope [role="dialog"] {
+[role="dialog"]:not(.inset-0) {
   border-radius: var(--radius-overlay);
 }
-.playground-shape-scope [data-foundation="tabs"][data-tab-variant="surface"] > [role="presentation"],
-.world-shape-scope [data-foundation="tabs"][data-tab-variant="surface"] > [role="presentation"],
-.chat-shape-scope [data-foundation="tabs"][data-tab-variant="surface"] > [role="presentation"] {
-  border: 1px solid var(--border-color);
+[data-foundation="tabs"][data-tab-variant="surface"] > [role="presentation"] {
+  border: 1px solid transparent;
   border-radius: var(--radius-control);
+}
+[data-foundation="tabs"][data-tab-variant="surface"] > [role="presentation"][data-active="true"] {
+  border-color: var(--border-color);
 }
 .reasoning-callback-content {
   max-height: 0;
@@ -726,14 +714,13 @@ html[data-font-scale="lg"] {
     color var(--motion-normal) var(--motion-ease);
 }
 
-/* Markdown 引用：用底色分层，不用左侧 accent 竖线（公理 1） */
+/* Markdown 引用：用底色分层、正体中文排印，不用左侧 accent 竖线（公理 1） */
 .md-blockquote {
   margin: 0.75rem 0;
-  padding: 0.65rem 0.9rem;
+  padding: 0.7rem 1rem;
   border-radius: var(--radius-md);
-  background: var(--bg-secondary);
+  background: color-mix(in srgb, var(--bg-secondary) 70%, var(--card-bg));
   color: var(--text-secondary);
-  font-style: italic;
 }
 
 /* 事件行强调：底色而非 border-l 色条 */
@@ -1022,3 +1009,153 @@ html[data-font-scale="lg"] {
 .ququ-md em {
   font-style: italic;
 }
+
+/* ── 右侧工作区三层材质系统 ──
+ * 背景：各文件预览与工具面板曾混用深底暗卡、硬编码白纸与不同高度子顶栏，切换时割裂明显。
+ * 设计意图：收敛为「底层微沉工作台 → 上层主题纸面 → 统一 36px 轻子工具栏」，全部引用主题语义 token 以自适应浅色与深色主题。
+ * 关键约束：严禁写死十六进制底色；Word 表格仅用浅细分隔线，不还原 HTML 默认粗黑框线。
+ */
+.workspace-surface-stage {
+  background: color-mix(in srgb, var(--bg-secondary) 52%, var(--bg-primary));
+}
+
+.workspace-surface-paper {
+  background: var(--card-bg);
+  border-color: color-mix(in srgb, var(--border-subtle) 88%, transparent);
+  box-shadow: var(--companion-shadow-card, 0 1px 3px rgba(0, 0, 0, 0.04));
+}
+
+.workspace-subtoolbar {
+  height: 36px;
+  border-color: var(--border-subtle);
+  background: color-mix(in srgb, var(--bg-primary) 78%, var(--bg-secondary));
+}
+
+.workspace-image-checker {
+  background-color: var(--card-bg);
+  background-image:
+    linear-gradient(45deg, color-mix(in srgb, var(--bg-secondary) 55%, transparent) 25%, transparent 25%),
+    linear-gradient(-45deg, color-mix(in srgb, var(--bg-secondary) 55%, transparent) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, color-mix(in srgb, var(--bg-secondary) 55%, transparent) 75%),
+    linear-gradient(-45deg, transparent 75%, color-mix(in srgb, var(--bg-secondary) 55%, transparent) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+
+.docx-prose h1 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.45;
+  margin-bottom: 0.75rem;
+  color: var(--text-primary);
+}
+.docx-prose h2 {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+.docx-prose h3 {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.55;
+  margin-top: 1rem;
+  margin-bottom: 0.35rem;
+  color: var(--text-primary);
+}
+.docx-prose p {
+  margin: 0.5rem 0;
+  color: var(--text-primary);
+}
+.docx-prose ul,
+.docx-prose ol {
+  margin: 0.5rem 0;
+  padding-left: 1.35rem;
+}
+.docx-prose ul {
+  list-style: disc;
+}
+.docx-prose ol {
+  list-style: decimal;
+}
+.docx-prose li {
+  margin: 0.25rem 0;
+}
+.docx-prose blockquote {
+  margin: 0.75rem 0;
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg-secondary) 68%, var(--card-bg));
+  color: var(--text-secondary);
+}
+.docx-prose table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 1rem 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  font-size: 12.5px;
+}
+.docx-prose th {
+  background: color-mix(in srgb, var(--bg-secondary) 62%, var(--card-bg));
+  font-weight: 600;
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+.docx-prose td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 65%, transparent);
+  color: var(--text-secondary);
+}
+.docx-prose tr:last-child td {
+  border-bottom: none;
+}
+
+/* docx-preview 高保真容器适配：去掉默认灰底包装，让纸面融入工作台并自适应窄宽 */
+.docx-preview-host .docx-wrapper {
+  background: transparent !important;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+.docx-preview-host .docx-wrapper > section.docx {
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: auto !important;
+  margin: 0 auto !important;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+  overflow-x: auto;
+}
+
+/* pdfjs-dist 透明文字层：与 Canvas 精准叠合，文字透明且可划词高亮 */
+.pdf-text-layer {
+  opacity: 1;
+  line-height: 1;
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+}
+.pdf-text-layer span,
+.pdf-text-layer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+.pdf-text-layer ::selection {
+  background: color-mix(in srgb, var(--accent) 32%, transparent);
+  color: transparent;
+}
+

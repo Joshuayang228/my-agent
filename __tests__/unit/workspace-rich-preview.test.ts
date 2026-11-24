@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { parseSpreadsheetPreview } from '../../electron/main/utils/document-parser'
 import {
   buildHtmlPickerSrcDoc,
   columnIndexToLetter,
@@ -134,6 +135,16 @@ describe('workspace rich preview & annotation formatters', () => {
     expect(pdfMsg).toContain('第 2 / 5 页')
     expect(pdfMsg).toContain('提炼这一页的三个核心指标')
 
+    const pdfSelectionMsg = formatPdfPageAnnotation({
+      filePath: 'docs/report.pdf',
+      pageNumber: 2,
+      totalPages: 5,
+      selectedText: '核心转化率同比提升 18.4%',
+      comment: '核对这个同比口径',
+    })
+    expect(pdfSelectionMsg).toContain('> 核心转化率同比提升 18.4%')
+    expect(pdfSelectionMsg).toContain('核对这个同比口径')
+
     const pptxMsg = formatPptxSlideAnnotation({
       filePath: 'decks/roadmap.pptx',
       slideNumber: 2,
@@ -173,5 +184,38 @@ describe('workspace rich preview & annotation formatters', () => {
     expect(merged).toContain('### 批注 1')
     expect(merged).toContain('### 批注 2')
     expect(merged).toContain('#cta')
+  })
+
+  it('parses xlsx merges, column widths, styles, and formula protection via exceljs', async () => {
+    const mod = await import('exceljs')
+    const ExcelJS = (mod as unknown as { default?: typeof import('exceljs') }).default ?? mod
+    const wb = new ExcelJS.Workbook()
+    const ws = wb.addWorksheet('预算汇总')
+    ws.getColumn(1).width = 20
+    ws.getCell('A1').value = '2026 季度预算'
+    ws.getCell('A1').font = { bold: true }
+    ws.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2F0D9' } }
+    ws.getCell('A1').alignment = { horizontal: 'center' }
+    ws.mergeCells('A1:B1')
+    ws.getCell('A2').value = '研发'
+    ws.getCell('B2').value = 120
+    ws.getCell('A3').value = '合计'
+    ws.getCell('B3').value = { formula: 'SUM(B2:B2)', result: 120 }
+
+    const raw = await wb.xlsx.writeBuffer()
+    const parsed = await parseSpreadsheetPreview(Buffer.from(raw as ArrayBuffer), 'budget.xlsx')
+    expect(parsed.ok).toBe(true)
+    if (!parsed.ok) return
+    expect(parsed.sheets).toHaveLength(1)
+    const sheet = parsed.sheets[0]
+    expect(sheet.name).toBe('预算汇总')
+    expect(sheet.editable).toBe(true)
+    expect(sheet.merges).toEqual([{ startRow: 0, startCol: 0, endRow: 0, endCol: 1 }])
+    expect(sheet.colWidths?.[0]).toBeGreaterThan(100)
+    expect(sheet.cellStyles?.['0:0']?.bold).toBe(true)
+    expect(sheet.cellStyles?.['0:0']?.bgColor).toBe('#E2F0D9')
+    expect(sheet.cellStyles?.['0:0']?.align).toBe('center')
+    expect(sheet.cellStyles?.['2:1']?.isFormula).toBe(true)
+    expect(sheet.cellStyles?.['2:1']?.formula).toBe('=SUM(B2:B2)')
   })
 })

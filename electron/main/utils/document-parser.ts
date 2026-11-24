@@ -98,6 +98,163 @@ export async function parseDocumentAttachment(fileName: string, buffer: Buffer):
   }
 }
 
+function argbToCssHex(argb?: string): string | undefined {
+  if (!argb || typeof argb !== 'string') return undefined
+  const clean = argb.trim().replace(/^#/, '')
+  if (/^[0-9a-fA-F]{8}$/.test(clean)) {
+    // 跳过完全透明（alpha = 00）
+    if (clean.slice(0, 2).toUpperCase() === '00') return undefined
+    return `#${clean.slice(2).toUpperCase()}`
+  }
+  if (/^[0-9a-fA-F]{6}$/.test(clean)) return `#${clean.toUpperCase()}`
+  return undefined
+}
+
+function formatExcelJsCellValue(value: unknown): string {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return ''
+    const y = value.getFullYear()
+    const m = String(value.getMonth() + 1).padStart(2, '0')
+    const d = String(value.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }
+  if (typeof value === 'object') {
+    const rec = value as Record<string, unknown>
+    if (Array.isArray(rec.richText)) {
+      return rec.richText
+        .map((part) => (part && typeof part === 'object' ? String((part as Record<string, unknown>).text ?? '') : ''))
+        .join('')
+    }
+    if ('result' in rec && rec.result !== undefined) {
+      return formatExcelJsCellValue(rec.result)
+    }
+    if (typeof rec.text === 'string') return rec.text
+    if (typeof rec.formula === 'string') return `=${rec.formula}`
+    if (typeof rec.error === 'string') return rec.error
+  }
+  return String(value)
+}
+
+function parseA1RangeToMerge(ref: string): { startRow: number; startCol: number; endRow: number; endCol: number } | null {
+  const m = /^([A-Z]+)(\d+):([A-Z]+)(\d+)$/i.exec(ref.trim())
+  if (!m) return null
+  const colToIdx = (letters: string): number => {
+    let n = 0
+    for (const ch of letters.toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64)
+    return n - 1
+  }
+  const startCol = colToIdx(m[1])
+  const startRow = Number(m[2]) - 1
+  const endCol = colToIdx(m[3])
+  const endRow = Number(m[4]) - 1
+  if (startRow < 0 || startCol < 0 || endRow < startRow || endCol < startCol) return null
+  return { startRow, startCol, endRow, endCol }
+}
+
+async function parseXlsxWithExcelJs(buffer: Buffer): Promise<ProjectFilePreviewSheet[]> {
+  const mod = await import('exceljs')
+  const ExcelJS = (mod as unknown as { default?: typeof import('exceljs') }).default ?? mod
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.load(buffer as unknown as Parameters<typeof workbook.xlsx.load>[0])
+
+  const sheets: ProjectFilePreviewSheet[] = []
+  for (const worksheet of workbook.worksheets) {
+    const totalRows = worksheet.rowCount || 0
+    const totalCols = worksheet.columnCount || 0
+    const rowLimit = Math.min(totalRows, MAX_PREVIEW_SHEET_ROWS)
+    const colLimit = Math.min(totalCols, MAX_PREVIEW_SHEET_COLS)
+    const truncatedRows = totalRows > MAX_PREVIEW_SHEET_ROWS
+    const truncatedCols = totalCols > MAX_PREVIEW_SHEET_COLS
+
+    const colWidths: number[] = []
+    for (let c = 1; c <= colLimit; c++) {
+      const col = worksheet.getColumn(c)
+      const w = typeof col?.width === 'number' && Number.isFinite(col.width)
+        ? Math.min(360, Math.max(64, Math.round(col.width * 7.5 + 16)))
+        : 100
+      colWidths.push(w)
+    }
+
+    const rows: string[][] = []
+    const cellStyles: NonNullable<ProjectFilePreviewSheet['cellStyles']> = {}
+
+    for (let r = 1; r <= rowLimit; r++) {
+      const wsRow = worksheet.getRow(r)
+      const line: string[] = []
+      for (let c = 1; c <= colLimit; c++) {
+        const cell = wsRow.getCell(c)
+        const rawVal = cell.value
+        let display = ''
+        if (typeof cell.text === 'string' && cell.text.length > 0 && !(rawVal && typeof rawVal === 'object' && 'formula' in rawVal && (rawVal as { result?: unknown }).result === undefined)) {
+          display = cell.text
+        } else {
+          display = formatExcelJsCellValue(rawVal)
+        }
+        line.push(display)
+
+        const style: NonNullable<ProjectFilePreviewSheet['cellStyles']>[string] = {}
+        if (rawVal && typeof rawVal === 'object' && 'formula' in rawVal && typeof (rawVal as { formula?: unknown }).formula === 'string') {
+          style.isFormula = true
+          style.formula = `=${(rawVal as { formula: string }).formula}`
+        } else if (rawVal && typeof rawVal === 'object' && 'sharedFormula' in rawVal && typeof (rawVal as { sharedFormula?: unknown }).sharedFormula === 'string') {
+          style.isFormula = true
+          style.formula = `=${(rawVal as { sharedFormula: string }).sharedFormula}`
+        }
+        if (cell.font?.bold) style.bold = true
+        if (cell.font?.italic) style.italic = true
+        const fgColor = argbToCssHex(cell.font?.color?.argb)
+        if (fgColor) style.color = fgColor
+        if (cell.fill && cell.fill.type === 'pattern' && cell.fill.pattern !== 'none') {
+          const fillColor = argbToCssHex((cell.fill as { fgColor?: { argb?: string } }).fgColor?.argb)
+          if (fillColor) style.bgColor = fillColor
+        }
+        const hAlign = cell.alignment?.horizontal
+        if (hAlign === 'left' || hAlign === 'center' || hAlign === 'right') style.align = hAlign
+        const vAlign = cell.alignment?.vertical
+        if (vAlign === 'top' || vAlign === 'middle' || vAlign === 'bottom') style.vAlign = vAlign
+
+        if (Object.keys(style).length > 0) {
+          cellStyles[`${r - 1}:${c - 1}`] = style
+        }
+      }
+      rows.push(line)
+    }
+
+    const merges: NonNullable<ProjectFilePreviewSheet['merges']> = []
+    const rawMerges = Array.isArray((worksheet.model as { merges?: string[] } | undefined)?.merges)
+      ? (worksheet.model as { merges: string[] }).merges
+      : []
+    for (const ref of rawMerges) {
+      const parsed = parseA1RangeToMerge(ref)
+      if (!parsed) continue
+      if (parsed.startRow >= rowLimit || parsed.startCol >= colLimit) continue
+      merges.push({
+        startRow: parsed.startRow,
+        startCol: parsed.startCol,
+        endRow: Math.min(parsed.endRow, rowLimit - 1),
+        endCol: Math.min(parsed.endCol, colLimit - 1),
+      })
+    }
+
+    sheets.push({
+      name: worksheet.name,
+      rows,
+      colWidths: colWidths.length > 0 ? colWidths : undefined,
+      merges: merges.length > 0 ? merges : undefined,
+      cellStyles: Object.keys(cellStyles).length > 0 ? cellStyles : undefined,
+      editable: true,
+      truncatedRows,
+      truncatedCols,
+      totalRows,
+      totalCols,
+    })
+  }
+  return sheets
+}
+
 /** 解析 Excel / CSV 为右侧工作区结构化多 Sheet 预览载荷（硬限制 500 行 × 50 列防 OOM）。 */
 export async function parseSpreadsheetPreview(
   buffer: Buffer,
@@ -110,8 +267,17 @@ export async function parseSpreadsheetPreview(
     return { ok: false, error: '表格文件超过 10MB 预览上限，请用系统应用打开' }
   }
   try {
-    const XLSX = await import('xlsx')
     const ext = path.extname(fileName).toLowerCase()
+    if (ext === '.xlsx') {
+      try {
+        const sheets = await parseXlsxWithExcelJs(buffer)
+        return { ok: true, sheets }
+      } catch {
+        // 某些非标准 .xlsx 兜底回退到 xlsx 解析器，确保不白屏
+      }
+    }
+
+    const XLSX = await import('xlsx')
     const workbook = ext === '.csv'
       ? XLSX.read(buffer.toString('utf-8'), { type: 'string' })
       : XLSX.read(buffer, { type: 'buffer' })

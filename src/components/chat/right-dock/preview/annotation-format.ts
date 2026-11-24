@@ -24,10 +24,21 @@ export interface NormalizedCellRange {
   maxCol: number
 }
 
+export interface SpreadsheetCellStyleData {
+  bold?: boolean
+  italic?: boolean
+  color?: string
+  bgColor?: string
+  align?: 'left' | 'center' | 'right'
+  vAlign?: 'top' | 'middle' | 'bottom'
+  isFormula?: boolean
+  formula?: string
+}
+
 export interface SpreadsheetSheetData {
   name: string
   rows: string[][]
-  cellStyles?: Record<string, { isFormula?: boolean; formula?: string }>
+  cellStyles?: Record<string, SpreadsheetCellStyleData>
   editable?: boolean
   colWidths?: number[]
   merges?: Array<{ startRow: number; startCol: number; endRow: number; endCol: number }>
@@ -199,14 +210,19 @@ export function formatPdfPageAnnotation(opts: {
   filePath: string
   pageNumber: number
   totalPages: number
+  selectedText?: string
   comment: string
 }): string {
   const note = opts.comment.trim()
-  return [
+  const snippet = opts.selectedText?.replace(/\s+/g, ' ').trim()
+  const lines = [
     `[PDF 批注] 文件：\`${opts.filePath}\` · 第 ${opts.pageNumber} / ${opts.totalPages} 页`,
-    '',
-    `批注说明：${note}`,
-  ].join('\n')
+  ]
+  if (snippet) {
+    lines.push('', `> ${snippet.slice(0, 500)}`)
+  }
+  lines.push('', `批注说明：${note}`)
+  return lines.join('\n')
 }
 
 export function formatPptxSlideAnnotation(opts: {
