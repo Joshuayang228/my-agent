@@ -6,7 +6,10 @@ import type {
   ImageAttachment,
   MemoryCitation,
   BackgroundTaskInfo,
+  ModelConnectionProfile,
+  ModelRouteProfile,
 } from './shared/types'
+import { enabledConnectionModelIds } from './shared/llm-model-fetch'
 import { MarkdownRenderer } from './components/MarkdownRenderer'
 import { SettingsPanel } from './components/SettingsPanel'
 import { DevPanel } from './components/DevPanel'
@@ -169,6 +172,8 @@ function App() {
   const [currentProject, setCurrentProject] = useState<{ path: string; name: string } | null>(null)
   const [recentProjects, setRecentProjects] = useState<{ path: string; name: string }[]>([])
   const [projectMenuOpen, setProjectMenuOpen] = useState(false)
+  const [modelMenuOpen, setModelMenuOpen] = useState(false)
+  const [availableChatModels, setAvailableChatModels] = useState<Array<{ connectionId: string; connectionName: string; model: string }>>([])
   /** 确认请求串行队列（M12-C4）：并发 tool_confirm 不得互相覆盖 */
   const [confirmQueue, setConfirmQueue] = useState<Array<{
     requestId: string
@@ -239,11 +244,44 @@ function App() {
   const [chatBackdropEnabled, setChatBackdropEnabled] = useState(true)
   const [chatBackdropOpacity, setChatBackdropOpacity] = useState(12)
 
+  const refreshAvailableChatModels = useCallback(async () => {
+    const api = window.electronAPI?.settings
+    if (!api?.get) return
+    try {
+      const s = await api.get()
+      if (s.llmEffectiveModel) setCurrentModel(s.llmEffectiveModel)
+      const connections = JSON.parse(s.modelConnections || '[]') as ModelConnectionProfile[]
+      if (!Array.isArray(connections)) return
+      const options: Array<{ connectionId: string; connectionName: string; model: string }> = []
+      const seen = new Set<string>()
+      for (const conn of connections) {
+        if (!conn.enabled || !conn.baseUrl?.trim()) continue
+        const modelIds = enabledConnectionModelIds(conn)
+        for (const modelId of modelIds) {
+          const trimmed = modelId.trim()
+          if (!trimmed) continue
+          const key = `${conn.id}::${trimmed}`
+          if (seen.has(key)) continue
+          seen.add(key)
+          options.push({
+            connectionId: conn.id,
+            connectionName: conn.name || conn.id,
+            model: trimmed,
+          })
+        }
+      }
+      setAvailableChatModels(options)
+    } catch {
+      // 模型清单读取异常时保持当前模型展示
+    }
+  }, [])
+
   useEffect(() => {
     if ((activeView === 'world' && worldTab === 'moments') || activeView === 'moments') {
       setUnreadMomentsCount(0)
     }
     if (activeView === 'chat') {
+      void refreshAvailableChatModels()
       void window.electronAPI?.settings?.get?.().then((s) => {
         if (s && typeof s.companionChatBackdropEnabled === 'string') {
           setChatBackdropEnabled(s.companionChatBackdropEnabled !== 'false')
@@ -254,7 +292,7 @@ function App() {
         }
       }).catch(() => {})
     }
-  }, [activeView, worldTab])
+  }, [activeView, worldTab, refreshAvailableChatModels])
   const [protagonistNames, setProtagonistNames] = useState<Record<string, string>>({ luffy: '路飞' })
   const [reasoning, setReasoning] = useState<ReasoningCallbackState>(() => resetReasoning())
   const [thinkingExpanded, setThinkingExpanded] = useState(false)
@@ -787,6 +825,13 @@ function App() {
     document.addEventListener('click', handler)
     return () => document.removeEventListener('click', handler)
   }, [projectMenuOpen])
+
+  useEffect(() => {
+    if (!modelMenuOpen) return
+    const handler = () => { setModelMenuOpen(false) }
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
+  }, [modelMenuOpen])
 
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
   const [activeTurnId, setActiveTurnId] = useState<string | null>(null)
@@ -1446,8 +1491,7 @@ function App() {
                 }
                 setProjectMenuOpen(!projectMenuOpen)
               }}
-              className="flex h-7 items-center gap-1.5 rounded-md px-2 text-[12px] transition hover:bg-[var(--hover-overlay)]"
-              style={{ color: 'var(--text-secondary)' }}
+              className="flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-2 text-[12px] text-[var(--text-secondary)] transition hover:bg-[var(--hover-overlay)] hover:text-[var(--text-primary)]"
             >
               <Folder size={13} style={{ color: 'var(--text-muted)' }} />
               <span>{currentProject?.name || '未选择项目'}</span>
@@ -1522,6 +1566,109 @@ function App() {
                 >
                   <Ban size={12} />
                   <span>不使用项目</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        modelControl={(
+          <div className="relative">
+            <button
+              type="button"
+              data-testid="chat-current-model"
+              title={currentModel || '未配置模型'}
+              onClick={async (e) => {
+                e.stopPropagation()
+                if (!modelMenuOpen) {
+                  await refreshAvailableChatModels()
+                }
+                setModelMenuOpen(!modelMenuOpen)
+              }}
+              className="flex h-7 cursor-pointer items-center gap-1 rounded-md px-2 text-[12px] text-[var(--text-secondary)] transition hover:bg-[var(--hover-overlay)] hover:text-[var(--text-primary)]"
+            >
+              <span className="max-w-40 truncate">{currentModel || '未配置模型'}</span>
+              <ChevronDown size={11} style={{ color: 'var(--text-muted)' }} />
+            </button>
+
+            {modelMenuOpen && (
+              <div
+                className="absolute bottom-full right-0 z-50 mb-1.5 w-60 rounded-lg border py-1 shadow-lg"
+                style={{ borderColor: 'var(--border-color)', background: 'var(--dropdown-bg)' }}
+              >
+                <div className="px-3 pb-1.5 pt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>切换对话模型</div>
+
+                {availableChatModels.length > 0 ? (
+                  <div className="max-h-56 overflow-y-auto">
+                    {availableChatModels.map((item) => {
+                      const active = currentModel === item.model
+                      return (
+                        <button
+                          key={`${item.connectionId}::${item.model}`}
+                          type="button"
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            try {
+                              const s = await window.electronAPI.settings.get()
+                              const prevRoutes = (JSON.parse(s.modelRoutes || '[]') as ModelRouteProfile[])
+                              const routesList = Array.isArray(prevRoutes) ? prevRoutes : []
+                              const selectedRoute: ModelRouteProfile = {
+                                purpose: 'primary',
+                                connectionId: item.connectionId,
+                                model: item.model,
+                                enabled: true,
+                              }
+                              const remainingPrimary = routesList.filter(
+                                (r) => r.purpose === 'primary' && !(r.connectionId === item.connectionId && r.model.trim() === item.model),
+                              )
+                              const nonPrimary = routesList.filter((r) => r.purpose !== 'primary')
+                              const nextRoutes = [selectedRoute, ...remainingPrimary, ...nonPrimary]
+                              await window.electronAPI.settings.saveModelConfiguration({
+                                connections: s.modelConnections || '[]',
+                                routes: JSON.stringify(nextRoutes),
+                              })
+                              setCurrentModel(item.model)
+                            } catch {
+                              toast('切换模型失败，请前往模型设置检查连接', 'error')
+                            }
+                            setModelMenuOpen(false)
+                          }}
+                          className="flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-1.5 text-left text-[12px] transition"
+                          style={{
+                            color: active ? 'var(--accent-fg)' : 'var(--text-secondary)',
+                            background: active ? 'var(--accent-subtle)' : undefined,
+                          }}
+                          onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'var(--hover-overlay)' }}
+                          onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = '' }}
+                          title={`${item.connectionName} · ${item.model}`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate font-medium">{item.model}</div>
+                            <div className="truncate text-[10px]" style={{ color: 'var(--text-muted)' }}>{item.connectionName}</div>
+                          </div>
+                          {active && <Check size={12} className="shrink-0" style={{ color: 'var(--accent-fg)' }} />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="px-3 py-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    当前仅有：{currentModel || '未配置模型'}
+                  </div>
+                )}
+
+                <div className="mx-2 my-1 h-px" style={{ background: 'var(--border-subtle)' }} />
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setModelMenuOpen(false)
+                    setActiveView('settings')
+                  }}
+                  className="flex w-full cursor-pointer items-center justify-between px-3 py-1.5 text-left text-[12px] text-[var(--text-secondary)] transition hover:bg-[var(--hover-overlay)] hover:text-[var(--text-primary)]"
+                >
+                  <span>管理模型设置…</span>
+                  <ChevronRight size={12} style={{ color: 'var(--text-muted)' }} />
                 </button>
               </div>
             )}

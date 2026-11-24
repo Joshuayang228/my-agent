@@ -23,9 +23,9 @@ export const ActionButton = forwardRef<HTMLButtonElement, ActionButtonProps>(fun
       ? { color: 'var(--danger)', background: 'color-mix(in srgb, var(--danger) 10%, transparent)', borderColor: 'color-mix(in srgb, var(--danger) 35%, transparent)' }
       : variant === 'plain'
         ? { color: 'var(--text-secondary)', borderColor: 'transparent' }
-        : { color: 'var(--text-secondary)', background: 'transparent', borderColor: 'var(--border-color)' }
+        : { color: 'var(--text-secondary)', borderColor: 'var(--border-color)' }
   return <button {...props} ref={ref} type={props.type ?? 'button'}
-    className={`foundation-action-button inline-flex shrink-0 items-center justify-center rounded border text-[11px] transition ${variant === 'plain' ? 'bg-transparent hover:bg-[var(--hover-overlay)] focus-visible:bg-[var(--hover-overlay)]' : ''} disabled:cursor-not-allowed disabled:opacity-45 ${size === 'md' ? 'min-h-8' : 'min-h-7'} ${padding === 'none' ? 'p-0' : size === 'md' ? 'px-3' : 'px-2.5'} ${className}`}
+    className={`foundation-action-button inline-flex shrink-0 cursor-pointer items-center justify-center rounded border text-[11px] transition ${tone === 'neutral' ? 'bg-transparent hover:bg-[var(--hover-overlay)] hover:text-[var(--text-primary)] focus-visible:bg-[var(--hover-overlay)]' : ''} disabled:cursor-not-allowed disabled:opacity-45 ${size === 'md' ? 'min-h-8' : 'min-h-7'} ${padding === 'none' ? 'p-0' : size === 'md' ? 'px-3' : 'px-2.5'} ${className}`}
     style={{ ...colors, ...style }}>
     {children}
   </button>

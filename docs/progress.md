@@ -1,10 +1,12 @@
 # 项目进度
 
-统一人物世界图标注册事实源、收口输入卡底栏与固化字号基线（2026-11-23）：`icon-registry.ts` 建立 8 大生活切面几何图标单一事实源供左导轨与 `WorldHub` 同源消费；`ChatComposer.tsx` 收纳项目工作区选择器入框、消除框外“双下巴”与重复 `Debug` 链接并将正文提至 `14px`、工具栏统一 `12px`；`ChatApprovalControl.tsx` 自动审批改用 `ShieldCheck`，`ChatWelcome.tsx` 最新动态卡去除 AI 星星图标；全套规范写入 `frontend-guidelines.md` 与 `foundation-enforcement-gate.test.ts` 门禁。
+统一人物世界图标注册事实源、修复底栏按钮 hover 并恢复可点击模型切换器（2026-11-23）：`icon-registry.ts` 将左导轨 8 大生活切面图标（`Aperture` / `FileText` / `Gift` / `Shirt` / `BookOpen` / `Home` / `Users` / `MapPin`）固化为单一事实源供 `NavigationRail` 与 `WorldHub` 同源消费；`ActionButton.tsx` 与 `IconButton.tsx` 修复内联 `background: 'transparent'` 压死 hover 的问题；`ChatComposer.tsx` 与 `App.tsx` 接入 `modelControl` 可点击模型切换下拉菜单，并将项目选择器收进输入框底栏、消除框外“双下巴”与重复 `Debug` 链接。
 
 恢复侧栏「+ 新对话」胶囊按钮与修复 hover、移除角色名下拉箭头及修正路飞台词（2026-11-23）：`PrimarySidebar.tsx` 恢复浅绿胶囊「+ 新对话」与右侧搜索按钮并修复 hover，移除角色名旁误导性 `▾` 箭头；路飞 `manifest.json` 招牌台词修正为「我是要成为海贼王的男人！」。
 
 左导轨 20px 图标体系统一与去重收口（2026-11-23）：`NavigationRail.tsx` 全员放大至 `20px`（`38×38` 热区），底部 `Debug` / `Playground` 换为简洁几何图标 `Terminal` / `Layers`，并去除与「朋友圈」重复的常驻「人物世界」图标（仅在 0 快捷项时兜底）。
+
+右侧工作区视觉批注升级 Batch B P0（Playground 隔离候选）就绪（2026-11-23）：新增 `HtmlVisualAnnotateCandidate.tsx` 与 `visual-annotation-format.ts`，实现浏览/选元素/拖拽区域框选三态、所见即所得 Adjust 样式临时试调（实时预览文案/字号/内边距/颜色/圆角并在发送时输出 `before → after` 对比，不修改源文件）及受控 `localhost` 本地浏览器批注样张，接入 `Playground → 产品体验 → 工作区` 的「浏览器 · 本地开发批注」与「文件 · HTML 视觉试调」场景并联动跨文件批注草稿篮；未改动任何正式生产页面，待验收确认后进入 Batch B P1。
 
 右侧工作区富文档渲染与批注回传 Batch A P1 正式回流完成（2026-11-23）：经 P0 Playground 验收确认后，将 5 类富预览与批注组件迁入 `src/components/chat/right-dock/preview/` 并晋升 `ui-component-registry.ts` 为 `adopted`；主进程 `document-parser.ts` 与 `project:readFile`（四处 IPC 同步）放开 `.xlsx/.xls/.csv`（多 Sheet 500×50 上限）、`.docx`（语义 HTML + 前端白名单清洗）、`.pdf`（原版 Chromium 预览 + 按页文字双模）与 `.pptx`（零依赖原生 ZIP/XML 幻灯片与备注），`ChatRightDock` → `WorkspaceFilesPanel` → `FileBrowser` 打通跨文件「批注草稿篮」与 `onTakeToChat` 直达主对话输入框。
 

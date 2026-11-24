@@ -9,6 +9,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   Activity,
+  Aperture,
   Archive,
   ArchiveRestore,
   ArrowLeft,
@@ -193,14 +194,15 @@ export const ADOPTED_ICON_SOURCES: Readonly<Record<string, readonly string[]>> =
   'developer.playground': ['src/components/shell/PrimarySidebar.tsx'],
   'developer.activity': ['src/components/DevPanel.tsx'],
   'developer.test': ['src/components/DevPanel.tsx'],
-  'companion.sparkles': ['src/components/shell/PrimarySidebar.tsx', 'src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
+  'companion.sparkles': ['src/components/shell/PrimarySidebar.tsx'],
+  'companion.moments': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
+  'assets.text-file': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
+  'companion.gift': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
+  'companion.wardrobe': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
   'companion.book': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
-  'companion.heart': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
-  'companion.palette': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
-  'companion.flower': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
-  'companion.coffee': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
+  'navigation.home': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
   'companion.people': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
-  'companion.compass': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
+  'companion.location': ['src/components/shell/NavigationRail.tsx', 'src/components/shell/WorldHub.tsx'],
   'assets.folder': ['src/App.tsx'],
   'assets.folder-open': ['src/App.tsx'],
   'assets.shield': ['src/App.tsx'],
@@ -316,7 +318,8 @@ export const ICON_ASSETS: readonly IconAssetDefinition[] = [
   icon('companion', 'companion.coffee', '日常', 'Coffee', '日常活动', 'P1', Coffee),
   icon('companion', 'companion.food', '饮食', 'Utensils', '生活事件 / 饮食', 'P1', Utensils),
   icon('companion', 'companion.music', '音乐', 'Music', '生活氛围 / 活动', 'P1', Music2),
-  icon('companion', 'companion.camera', '朋友圈', 'Camera', 'Moments / 记录', 'P0', Camera),
+  icon('companion', 'companion.camera', '朋友圈相机', 'Camera', 'Moments / 拍照记录', 'P0', Camera),
+  icon('companion', 'companion.moments', '朋友圈', 'Aperture', 'Moments / 朋友圈镜头光圈', 'P0', Aperture),
   icon('companion', 'companion.image', '图片', 'Image', '图片资产 / 视觉', 'P1', Image),
   icon('companion', 'companion.palette', '审美', 'Palette', '主题 / 视觉实验', 'P1', Palette),
   icon('companion', 'companion.flower', '花草', 'Flower 2', '生活世界装饰语义', 'P1', Flower2),
@@ -384,14 +387,14 @@ export function getIconAsset(key: IconKey): IconAssetDefinition {
  * 设计意图：全部收敛至 icon-registry 的极简几何语义图标，左导轨与 WorldHub 统一由此读取。
  */
 export const WORLD_SURFACE_ICON_KEYS = {
-  moments: 'companion.sparkles',
-  journal: 'companion.book',
-  keepsakes: 'companion.heart',
-  wardrobe: 'companion.palette',
-  culture: 'companion.flower',
-  home: 'companion.coffee',
+  moments: 'companion.moments',
+  journal: 'assets.text-file',
+  keepsakes: 'companion.gift',
+  wardrobe: 'companion.wardrobe',
+  culture: 'companion.book',
+  home: 'navigation.home',
   cast: 'companion.people',
-  footprints: 'companion.compass',
+  footprints: 'companion.location',
 } as const satisfies Record<string, IconKey>
 
 export type WorldSurfaceIconId = keyof typeof WORLD_SURFACE_ICON_KEYS

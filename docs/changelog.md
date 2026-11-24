@@ -1,10 +1,12 @@
 # 变更日志
 
-2026-11-23 统一人物世界 8 大切面图标至 `icon-registry` 单一事实源、消除输入框“双下巴”与外露 Debug 并固化字号基线：`src/shared/icon-registry.ts` 新增 `WORLD_SURFACE_ICON_KEYS` 与 `getWorldSurfaceIcon`（朋友圈 `Sparkles`、日记 `BookOpen`、礼物 `Heart`、衣柜 `Palette`、文化角 `Flower2`、家居 `Coffee`、通讯录 `Users`、足迹 `Compass`），`NavigationRail.tsx` 与 `WorldHub.tsx` 同源消费；`ChatComposer.tsx` 与 `App.tsx` 将项目工作区选择（`📁 Desktop ▾`）收进输入卡片内部底栏（`projectControl`）并移除框外下方悬挂的工具行与重复 `Debug` 文字链接，输入正文提至 `14px`、底栏控件统一 `12px`；`ChatApprovalControl.tsx` 将自动审批图标由刷新箭头 `RefreshCw` 换为 `ShieldCheck`；`ChatWelcome.tsx` 移除最新动态卡左上角的 `Sparkles` 图标；同步固化至 `agent-skills/frontend-guidelines.md` 与 `foundation-enforcement-gate.test.ts`。
+2026-11-23 统一人物世界 8 大切面图标至 `icon-registry` 单一事实源、修复底栏按钮 hover 与恢复可点击模型切换器：`src/shared/icon-registry.ts` 新增 `WORLD_SURFACE_ICON_KEYS` 与 `getWorldSurfaceIcon`，将左导轨 8 个生活切面图标（朋友圈 `Aperture`、日记 `FileText`、礼物 `Gift`、衣柜 `Shirt`、文化角 `BookOpen`、家居 `Home`、通讯录 `Users`、足迹 `MapPin`）注册为单一事实源供 `NavigationRail.tsx` 与 `WorldHub.tsx` 同源消费；`ActionButton.tsx` 与 `IconButton.tsx` 移除压死 Tailwind `hover:bg-[var(--hover-overlay)]` 的内联 `background: 'transparent'` 并补齐 `hover:text-[var(--text-primary)]`；`ChatComposer.tsx` 与 `App.tsx` 新增 `modelControl` 可点击模型切换下拉菜单（支持一键切换主对话模型或直达模型设置）、将项目工作区选择（`📁 Desktop ▾`）收进输入卡片内部底栏（`projectControl`）并移除框外悬挂工具行与重复 `Debug` 链接；`ChatApprovalControl.tsx` 将自动审批图标由 `RefreshCw` 换为 `ShieldCheck`；`ChatWelcome.tsx` 移除最新动态卡左上角的 `Sparkles` 图标。
 
 2026-11-23 恢复侧栏「+ 新对话」浅绿胶囊按钮并修复 hover、移除角色名误导下拉箭头与补齐路飞台词「是」字：`PrimarySidebar.tsx` 恢复耐看的柔和浅绿胶囊「+ 新对话」大按钮与右侧并排 `🔍` 搜索按钮、修复内联 `background: 'transparent'` 压死 hover 的问题，并去掉「路飞」右侧像下拉菜单的 `▾` 箭头；`roles/luffy/manifest.json` 与 `App.tsx` 将招牌台词修正为「我是要成为海贼王的男人！」。
 
 2026-11-23 左导轨全员图标放大至 `20px`、替换底部碎图标并消除冗余「人物世界」入口：`NavigationRail.tsx` 将全轨图标统一放大至 `20px`（`38×38` 热区、导轨 `54px`），底部 `Debug` / `Playground` / `设置` 统一换为 `20px` 极简几何图标（`Terminal` / `Layers` / `Settings`），并在已有快捷入口时隐藏重复的「人物世界」图标（仅在快捷入口全空时兜底显示）。
+
+2026-11-23 Playground 工作区新增 Batch B 视觉批注与样式试调候选（Phase P0，未改动正式页面）：在 `Playground → 产品体验 → 工作区` 新增「浏览器 · 本地开发批注」与「文件 · HTML 视觉试调」隔离场景，支持浏览 / 选元素 / 拖拽区域框选三态、选中元素 Adjust 样式所见即所得临时试调（输出 `before → after` 参考变更表且不改源文件）与受控 `localhost` 地址校验。
 
 2026-11-23 右侧工作区正式支持 Office / PDF / HTML 富渲染与选区/元素批注发送到对话（Batch A P1 正式回流）：在项目文件工作区打开 `.xlsx/.xls/.csv`（多 Sheet 切换 + 拖拽框选单元格区域批注）、`.html`（沙箱选元素批注）、`.docx`（清洗富文本阅读 + 划词批注）、`.pdf`（原版高保真预览 / 文字页双模 + 按页批注）与 `.pptx`（幻灯片大纲卡片 + 演讲者备注 + 按页批注），均支持单条直发或先加入跨文件「批注草稿篮」再一键汇总发送到主对话输入框。
 

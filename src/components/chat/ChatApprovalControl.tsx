@@ -64,9 +64,9 @@ export function ChatApprovalControl({ value, onChange, disabled = false }: {
   return <div ref={root} className="relative shrink-0" data-testid="chat-approval-control"
     onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) close() }}
     onKeyDown={event => { if (event.key === 'Escape' && open) { event.stopPropagation(); close(true) } }}>
-    <ActionButton ref={trigger} disabled={unavailable} aria-label={current.shortLabel} aria-haspopup="menu" aria-expanded={open}
+    <ActionButton ref={trigger} variant="plain" disabled={unavailable} aria-label={current.shortLabel} aria-haspopup="menu" aria-expanded={open}
       title={unavailable ? '审批设置在此样张中不可修改' : current.shortLabel}
-      className="h-7 w-auto gap-1.5 !border-0 !px-2 !text-[12px] hover:bg-[var(--hover-overlay)]"
+      className="h-7 w-auto gap-1.5 rounded-md !border-0 !px-2 !text-[12px] hover:bg-[var(--hover-overlay)] hover:!text-[var(--text-primary)]"
       onClick={() => { visible.current = !open; setOpen(!open) }}>
       <current.Icon size={13} aria-hidden="true" /><span>{current.shortLabel}</span><ChevronDown size={10} aria-hidden="true" />
     </ActionButton>

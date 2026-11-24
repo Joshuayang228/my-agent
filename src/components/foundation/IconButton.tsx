@@ -14,7 +14,7 @@ interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton({ label, children, size = 28, className = '', title, style, ...props }, ref) {
   return <button {...props} type={props.type ?? 'button'} aria-label={label} title={title ?? label}
     ref={ref}
-    className={`foundation-icon-button inline-flex shrink-0 items-center justify-center rounded ${className}`}
+    className={`foundation-icon-button inline-flex shrink-0 cursor-pointer items-center justify-center rounded transition hover:bg-[var(--hover-overlay)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed ${className}`}
     style={{ width: size, height: size, ...style }}>
     {children}
   </button>
