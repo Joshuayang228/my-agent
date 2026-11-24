@@ -1,5 +1,7 @@
 # Agent 运行时
 
+2026-11-25 浏览器渲染边界复核：公网网页经过主进程 URL / 跳转校验后由无同源权限的 `allow-scripts` iframe 呈现，解决脚本驱动页面白屏；不会继承应用 preload、用户 Cookie 或本地同源权限。
+
 2026-11-25 网络与 HTML 预览复核：浏览器地址栏裸域名归一化不改变受限 URL 校验；每个重定向目标重新校验并受跳转次数限制，项目 HTML 预览使用独立 10MB 上限。回归覆盖浏览器取消、裸域名和安全跳转链路。
 
 2026-11-25 右侧项目文件工作区补齐真实文件生命周期：`project:readFile` 返回 mtime 与结构化 Office 预览，`project:saveSpreadsheetCells` 以 mtime 冲突检测和临时文件原子替换保护 `.xlsx/.csv` 写回，`project:watchFile` 只向受信任窗口广播文件变化；Renderer 的未保存草稿不被外部变化静默覆盖。

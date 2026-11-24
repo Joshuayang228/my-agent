@@ -1,5 +1,7 @@
 # 系统架构
 
+2026-11-25 浏览器渲染数据流：主进程先通过 `validateFetchUrl` 校验输入和有限重定向，再把最终公网地址交给 Renderer 的 `sandbox="allow-scripts"` iframe；iframe 不开启 `allow-same-origin`，本地 HTML 与 Playground 继续使用 `srcDoc`，避免外部文档继承应用权限。
+
 2026-11-25 工作区网页读取继续保持主进程网络边界：地址栏裸域名只在进入 `validateFetchUrl` 前补 HTTPS，重定向目标按绝对/相对 URL 解析后逐跳重新执行协议、凭据、DNS 与内网校验，并限制最大跳转次数；Renderer 仍只接收受大小限制的 HTML 文本并放入无权限 sandbox。项目 HTML 文件则走独立 10MB 上限，不再共用普通文本的 512KB 限制。
 
 2026-11-25 工作区文件写回与热刷新数据流：Renderer 通过 preload 调用受信任的 `project:saveSpreadsheetCells`、`project:convertOfficeToPdf` 和 `project:watchFile`；主进程统一复用 `resolveCurrentProjectFile` 的 realpath 工作区边界，表格写回先校验 mtime / 公式 / 坐标，再写临时文件并原子替换。文件监听只向已登记窗口发送 `project:file-changed`，未保存草稿由 Renderer 保留并显式选择加载磁盘版本或继续编辑。

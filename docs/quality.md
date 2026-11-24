@@ -1,5 +1,7 @@
 # 质量总控
 
+2026-11-25 浏览器渲染回归：网络网页在主进程安全校验后进入 `sandbox="allow-scripts"` iframe；不授予 `allow-same-origin`，本地 HTML / Playground 仍使用隔离 `srcDoc`。浏览器生命周期测试继续覆盖裸域名、有限跳转与取消请求。
+
 2026-11-25 右侧工作区网络 / HTML 回归：`browser-lifecycle.test.ts` 覆盖裸域名补 HTTPS、有限安全重定向与取消请求；项目 HTML 预览保持 10MB 有界读取，避免通用文本 512KB 限制误伤，同时不放宽外部网页的 SSRF 防线。
 
 全站设计系统 2.0 表面统一与生产构建验收（2026-11-24）：`foundation-enforcement-gate.test.ts`（16 项）新增 `overview.maxWidth <= 560`、`.chat-composer-card:focus-within`、`14%` 轻盈滚动条与 `WorkspaceToolMenu` 圆角浮层门禁；5 个定向测试文件 73 项全部通过，`tsc --noEmit`、`tsc -p tsconfig.node.json --noEmit` 与 `vite build`（渲染层 + Electron 主进程 + preload）完整零错通过。
