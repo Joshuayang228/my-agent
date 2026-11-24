@@ -1,5 +1,7 @@
 # 项目进度
 
+右侧工作区全功能面板完成设计系统 2.0 升级（2026-11-24）：`WorkspaceFilesPanel` 支持按需收起文件树全宽阅读、`ReviewPanel` 升级圆角变更项与计数胶囊、`TerminalPanel` 配备状态胶囊与一键发终端输出到主对话并采用 `.chat-composer-card` 命令行输入框、`BrowserPanel` 地址栏胶囊化、`SideChatPanel` 完全对齐主对话聊天气泡与输入底座。
+
 右坞侧栏防挤压自适应与文件浏览器视觉焕新（2026-11-24）：`App.tsx` 补齐三栏宽度守卫（打开大尺寸右坞自动让步左会话栏，保证中栏 Chat 最小 `380px` 永不被挤成窄条）与右键菜单圆角内缩；`FileBrowser.tsx` 对齐设计系统 2.0 的目录树行距、柔和文件夹配色、圆角搜索框与宽敞阅读留白。
 
 全站设计系统 2.0 表面语言统一落地（2026-11-24）：完成全局柔光聚焦与轻盈滚动条、开屏动态留白与柔和「+ 新对话」胶囊、朋友圈单层滚动、家居 `560px` 总览图与房间摘要、右侧工作区（`TabStrip` / `WorkspaceToolMenu` / `ChatRightDock` / `WorkspaceFilesPanel`）及设置全局（`SettingsLayout` / `SettingsFields`）视觉统一升级，并正式固化进 `frontend-guidelines.md` 与自动化提交门禁；全套单测、双端 TypeScript 检查与 `vite build` 生产构建全部通过。

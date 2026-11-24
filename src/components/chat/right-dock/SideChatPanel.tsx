@@ -152,9 +152,15 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
   }
 
   return <div className="relative flex h-full min-h-0 flex-col" data-testid="workspace-sidechat-panel">
-    <div className="flex shrink-0 items-center justify-between border-b px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
-      <div className="flex items-center gap-2">
-        <MessageCircle size={14} style={{ color: 'var(--text-muted)' }} /><span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>关于当前工作区</span>
+    <div className="flex shrink-0 items-center justify-between gap-2 border-b px-3.5 py-2.5" style={{ borderColor: 'var(--border-subtle)' }}>
+      <div className="flex min-w-0 items-center gap-2">
+        <MessageCircle size={14} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
+        <span className="shrink-0 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>关于当前工作区</span>
+        {workspaceFocus?.path && (
+          <span className="min-w-0 truncate rounded-full px-2 py-0.5 text-[10.5px]" style={{ background: 'var(--accent-subtle)', color: 'var(--accent-fg)' }} title={workspaceFocus.path}>
+            {workspaceFocus.path.split(/[/\\]/).pop() || workspaceFocus.path}
+          </span>
+        )}
       </div>
       {parentSessionId && (
         <IconButton label="新起侧聊" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => { void handleClear() }} disabled={loading || sending}>
@@ -162,10 +168,10 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
         </IconButton>
       )}
     </div>
-    <div className="min-h-0 flex-1 space-y-3 overflow-auto p-3" data-testid="workspace-sidechat-messages">
+    <div className="min-h-0 flex-1 space-y-3.5 overflow-auto p-3.5" data-testid="workspace-sidechat-messages">
       {loading && <div className="flex items-center gap-2 text-[11px]" role="status"><LoaderCircle size={13} className="animate-spin" />正在打开侧边聊天</div>}
       {!loading && messages.length === 0 && !error && <p className="py-10 text-center text-[12px]" style={{ color: 'var(--text-muted)' }}>从当前工作区开始聊聊</p>}
-      {messages.filter(message => message.role !== 'tool').map(message => <div key={message.id} className={message.role === 'user' ? 'ml-auto max-w-[90%] rounded-lg px-3 py-2 text-[12px]' : 'min-w-0 text-[12px] leading-6'} style={{ background: message.role === 'user' ? 'var(--bg-tertiary)' : undefined }}>
+      {messages.filter(message => message.role !== 'tool').map(message => <div key={message.id} className={message.role === 'user' ? 'ml-auto max-w-[88%] rounded-2xl px-3.5 py-2 text-[12.5px] leading-relaxed' : 'min-w-0 text-[13px] leading-relaxed'} style={{ background: message.role === 'user' ? 'var(--msg-user-bg)' : undefined, color: message.role === 'user' ? 'var(--text-primary)' : undefined }}>
         {message.content && <MarkdownRenderer content={message.content} />}
         {message.role === 'assistant' && renderTools(resolveToolsForAssistant(message, messages, { liveHostId, liveTools: activeTools }))}
       </div>)}
@@ -173,9 +179,9 @@ export function SideChatPanel({ parentSessionId, projectPath, workspaceFocus }: 
       {sending && <div className="flex items-center gap-2 text-[11px]" role="status"><LoaderCircle size={13} className="animate-spin" />正在生成</div>}
       {error && <div className="flex items-center gap-2 text-[11px]" role="alert" style={{ color: 'var(--danger)' }}><span>{error}</span><ActionButton tone="accent" onClick={retry}>重试</ActionButton></div>}
     </div>
-    <form className="flex items-end gap-2 border-t p-3" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event: FormEvent<HTMLFormElement>) => { event.preventDefault(); void send() }}>
-      <TextField multiline aria-label="侧边聊天消息" rows={2} placeholder="继续聊聊…" className="flex-1 resize-none" value={input} disabled={loading || !sessionId} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setInput(event.target.value)} />
-      <IconButton type="button" label={sending ? '停止生成' : '发送消息'} size={28} className="disabled:opacity-40" style={{ color: sending ? 'var(--danger)' : 'var(--accent-fg)', background: 'var(--accent-subtle)' }} disabled={loading || !sessionId || (!sending && !input.trim())} onClick={() => { if (sending) stop(); else void send() }}>{sending ? <Square size={14} /> : <ArrowUp size={14} />}</IconButton>
+    <form className="chat-composer-card mx-3 mb-3 mt-1 flex items-end gap-2 rounded-[var(--radius-lg)] border px-2.5 py-2" onSubmit={(event: FormEvent<HTMLFormElement>) => { event.preventDefault(); void send() }}>
+      <TextField appearance="embedded" multiline aria-label="侧边聊天消息" rows={2} placeholder="继续聊聊…" className="flex-1 resize-none !text-[12.5px]" value={input} disabled={loading || !sessionId} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setInput(event.target.value)} />
+      <IconButton type="button" label={sending ? '停止生成' : '发送消息'} size={28} className="!rounded-full transition" style={{ background: sending ? 'var(--danger)' : (loading || !sessionId || !input.trim()) ? 'var(--bg-tertiary)' : 'var(--accent-emphasis)', color: sending || !(loading || !sessionId || !input.trim()) ? 'var(--bg-primary)' : 'var(--text-muted)' }} disabled={loading || !sessionId || (!sending && !input.trim())} onClick={() => { if (sending) stop(); else void send() }}>{sending ? <Square size={11} fill="currentColor" /> : <ArrowUp size={14} />}</IconButton>
     </form>
     {confirmRequest && <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/45 p-3">
       <PermissionConfirmCard

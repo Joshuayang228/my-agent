@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import type { WorkspaceChatFocus } from '../../../shared/types'
 import { FileBrowser, readFilePreview, type FileBrowserPreviewData, type FileBrowserPreviewFile } from '../../FileBrowser'
+import { IconButton } from '../../foundation/IconButton'
 import { TabStrip } from '../../foundation/TabStrip'
 import { AnnotationQueueDrawer } from './preview/AnnotationQueueDrawer'
 import { formatAnnotationQueueForChat, type AnnotationQueueItem } from './preview/annotation-format'
@@ -26,6 +28,7 @@ function FilesWorkspace({ projectPath, previewData, onContextChange, onTakeToCha
   const initial = previewData?.initialPath ? previewData.files[previewData.initialPath] : undefined
   const [files, setFiles] = useState<FileBrowserPreviewFile[]>(initial ? [initial] : [])
   const [activePath, setActivePath] = useState<string | null>(initial?.path ?? null)
+  const [treeCollapsed, setTreeCollapsed] = useState(false)
   const [annotationQueue, setAnnotationQueue] = useState<AnnotationQueueItem[]>([])
   const requests = useRef(new Map<string, number>())
   const sequence = useRef(0)
@@ -81,12 +84,20 @@ function FilesWorkspace({ projectPath, previewData, onContextChange, onTakeToCha
   }, [activeFile, onContextChange])
   return <div className="flex h-full min-h-0 min-w-0 flex-1" data-testid="workspace-files-layout">
     <div className="min-w-0 shrink-0 overflow-hidden border-r"
-      style={{ width: files.length ? '32%' : '100%', borderColor: 'var(--border-subtle)' }} data-testid="workspace-file-tree">
+      style={{ display: files.length > 0 && treeCollapsed ? 'none' : undefined, width: files.length ? '32%' : '100%', borderColor: 'var(--border-subtle)' }} data-testid="workspace-file-tree">
       <FileBrowser projectPath={projectPath} embedded mode="files" previewData={previewData}
         previewState={activeFile} onFileSelect={openFile} onClose={() => {}} />
     </div>
     {files.length > 0 && <div className="flex min-h-0 min-w-0 flex-1 flex-col" data-testid="workspace-file-preview">
-      <div className="flex shrink-0 items-center border-b px-2 py-1.5" style={{ borderColor: 'var(--border-subtle)' }}>
+      <div className="flex shrink-0 items-center gap-1 border-b px-2 py-1.5" style={{ borderColor: 'var(--border-subtle)' }}>
+        <IconButton
+          size={28}
+          label={treeCollapsed ? '展开文件树' : '收起文件树'}
+          onClick={() => setTreeCollapsed((collapsed) => !collapsed)}
+          style={{ color: 'var(--text-muted)' }}
+        >
+          {treeCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
+        </IconButton>
         <TabStrip label="文件预览" itemTestId="workspace-file-preview-tab" activeId={activePath}
           items={files.map((file, index) => ({ id: file.path, label: file.path.split(/[/\\]/).pop() || file.path, panelId: prefix + '-file-' + index }))}
           onSelect={setActivePath} onClose={closeFile} />

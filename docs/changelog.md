@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-24 右侧工作区五大面板全面对齐设计系统 2.0：`WorkspaceFilesPanel.tsx` 在预览标签栏左侧增加「收起 / 展开文件树」切换钮（支持全宽阅读与批注）；`ReviewPanel.tsx` 升级圆角内缩改动列表、计数胶囊与空态圆形徽标并放宽 diff 边距；`TerminalPanel.tsx` 改为目录短名与状态胶囊顶栏、新增「将最近输出发送到对话」一键快捷回传并升级为 `.chat-composer-card` 圆角命令输入区；`BrowserPanel.tsx` 地址栏升级为带图标的圆角胶囊框；`SideChatPanel.tsx` 同步主对话气泡造型、聚焦文件胶囊提示及 `.chat-composer-card` 输入底座。
+
 2026-11-24 优化右坞侧栏展开时的中栏对话防挤压策略并升级 `FileBrowser` 至设计系统 2.0：`App.tsx` 监听视口宽度并在打开/拉宽右坞导致中栏剩余不足 `440px` 时自动收起旁侧会话抽屉（关闭/折叠右坞时自动恢复，手动再展开仍保证右坞主动让步为中栏保留至少 `380px`），同时升级会话右键菜单为圆角内缩规范；`FileBrowser.tsx` 顶栏改为展示目录短名与全路径提示、柔和搜索框与暖色调文件夹图标、放宽树节点行距与选中胶囊反馈、去重隐藏已有标签页的文件名重复条并将预览阅读区留白与 Markdown 正文分别放宽/提至 `px-5 py-4` 与 `13px`。
 
 2026-11-24 全站设计系统 2.0 表面语言统一与规范沉淀：沉淀 5 项设计系统 2.0 基线至 `agent-skills/frontend-guidelines.md` 并扩展 `foundation-enforcement-gate.test.ts` 自动门禁；`src/index.css` 统一柔光聚焦晕与低对比悬停滚动条（`14% / 28%`）；`ChatWelcome.tsx` 拉开动态悬浮卡距至 `mt-7`；`PrimarySidebar.tsx` 将「+ 新对话」改为轻透微浮胶囊并与选中态区分；`MomentsPanel.tsx` 移除嵌入模式双重滚动；`content-layout.ts` 与 `WorldHomeGallery.tsx` 收口家居总览 `overview` 至 `560px` 并补充空间跳转摘要条；`TabStrip.tsx`、`WorkspaceToolMenu.tsx`、`ChatRightDock.tsx`、`WorkspaceFilesPanel.tsx` 及 `SettingsLayout.tsx`、`SettingsFields.tsx` 全面对齐圆角内缩浮层、细腻卡片投影、极简分割与衬线页头排版。

@@ -150,23 +150,33 @@ export function TerminalPanel({ projectPath, onTakeToChat }: TerminalPanelProps)
 
   return (
     <div className="flex h-full min-h-0 flex-col" style={{ background: 'var(--bg-primary)' }}>
-      <div className="flex shrink-0 items-center justify-between border-b px-2 py-1 text-[10px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
-        <span className="truncate" title={projectPath || undefined}>{projectPath || '当前进程工作目录'}</span>
-        <span data-testid="workspace-terminal-status" className="ml-2 shrink-0" style={{ color: status === 'error' ? 'var(--danger)' : status === 'success' ? 'var(--success)' : status === 'running' || status === 'stopping' ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{status === 'running' ? '运行中' : status === 'stopping' ? '正在停止' : status === 'success' ? '已完成' : status === 'error' ? '失败' : '待命'}</span>
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2 text-[11.5px]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
+        <span className="min-w-0 truncate font-medium" style={{ color: 'var(--text-secondary)' }} title={projectPath || undefined}>{projectPath ? (projectPath.split(/[/\\]/).filter(Boolean).pop() || projectPath) : '当前工作目录'}</span>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {onTakeToChat && lines.length > 2 && (
+            <IconButton label="将最近输出发送到对话" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => {
+              const tail = lines.filter((line) => line.trim()).slice(-20).join('\n')
+              if (tail) onTakeToChat({ text: `请帮我看看终端最近的输出：\n\`\`\`text\n${tail}\n\`\`\`` })
+            }}>
+              <MessageSquareShare size={13} />
+            </IconButton>
+          )}
+          <span data-testid="workspace-terminal-status" className="shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ background: status === 'error' ? 'color-mix(in srgb, var(--danger) 12%, transparent)' : status === 'running' || status === 'stopping' ? 'var(--accent-subtle)' : 'var(--bg-tertiary)', color: status === 'error' ? 'var(--danger)' : status === 'success' ? 'var(--success)' : status === 'running' || status === 'stopping' ? 'var(--accent-fg)' : 'var(--text-muted)' }}>{status === 'running' ? '运行中' : status === 'stopping' ? '正在停止' : status === 'success' ? '已完成' : status === 'error' ? '失败' : '待命'}</span>
+        </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto scrollbar-hover p-2 font-mono text-[11px] leading-relaxed select-text" style={{ color: 'var(--text-secondary)' }}>
+      <div className="min-h-0 flex-1 overflow-auto scrollbar-hover px-3.5 py-3 font-mono text-[12px] leading-relaxed select-text" style={{ color: 'var(--text-secondary)' }}>
         {lines.map((l, i) => (
           <div key={`${i}-${l.slice(0, 12)}`} className="whitespace-pre-wrap break-all">{l || ' '}</div>
         ))}
         <div ref={bottomRef} />
       </div>
       <div
-        className="flex shrink-0 items-center gap-1 border-t px-2 py-1.5"
-        style={{ borderColor: 'var(--border-subtle)' }}
+        className="chat-composer-card mx-2.5 mb-2.5 mt-1 flex shrink-0 items-center gap-2 rounded-[var(--radius-lg)] border px-2.5 py-1.5"
       >
-        <span className="font-mono text-[11px]" style={{ color: 'var(--text-muted)' }}>$</span>
+        <span className="font-mono text-[12px]" style={{ color: 'var(--text-muted)' }}>$</span>
         <TextField
-          className="flex-1 font-mono text-[11px]"
+          appearance="embedded"
+          className="flex-1 font-mono text-[12px]"
           value={cmd}
           disabled={busy}
           placeholder={projectPath ? '输入命令…' : '未打开项目时在进程 cwd 执行'}
@@ -199,8 +209,11 @@ export function TerminalPanel({ projectPath, onTakeToChat }: TerminalPanelProps)
             }
           }}
         />
-        <IconButton type="button" size={24} className="disabled:opacity-50"
-          style={{ color: busy ? 'var(--danger)' : 'var(--accent-fg)', background: 'var(--accent-subtle)' }}
+        <IconButton type="button" size={28} className="!rounded-full transition"
+          style={{
+            background: busy ? 'var(--danger)' : !cmd.trim() ? 'var(--bg-tertiary)' : 'var(--accent-emphasis)',
+            color: busy || cmd.trim() ? 'var(--bg-primary)' : 'var(--text-muted)',
+          }}
           title={stopping ? '正在终止' : busy ? '终止' : '运行'}
           label={stopping ? '正在终止' : busy ? '终止' : '运行'}
           disabled={stopping || (!busy && !cmd.trim())}

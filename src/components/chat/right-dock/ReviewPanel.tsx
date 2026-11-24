@@ -142,11 +142,11 @@ export function ReviewPanel({ sessionId, onContextChange, onTakeToChat }: Review
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div
-        className="flex shrink-0 items-center gap-1 border-b px-2 py-1.5"
+        className="flex shrink-0 items-center gap-1.5 border-b px-3 py-2"
         style={{ borderColor: 'var(--border-subtle)' }}
       >
-        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-          本会话改动 {items.length}
+        <span className="flex items-center gap-1.5 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>
+          <span>本会话改动</span><span className="rounded-full px-1.5 py-0.5 text-[10.5px] font-normal" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{items.length}</span>
         </span>
         <IconButton label="刷新" size={24} className="ml-auto" style={{ color: 'var(--text-muted)' }} onClick={() => { void reload() }}>
           <RefreshCw size={12} />
@@ -176,8 +176,8 @@ export function ReviewPanel({ sessionId, onContextChange, onTakeToChat }: Review
             <p role="alert" className="text-[12px]" style={{ color: 'var(--danger)' }}>{error}</p>
             <ActionButton tone="accent" onClick={() => { void reload() }}>重新读取</ActionButton>
           </> : <>
-            <FileCode2 size={20} style={{ color: 'var(--text-muted)' }} />
-            <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}><FileCode2 size={18} /></div>
+            <p className="text-[12.5px]" style={{ color: 'var(--text-muted)' }}>
               Agent 写入 / 编辑文件后，会显示在这里
             </p>
           </>}
@@ -185,7 +185,7 @@ export function ReviewPanel({ sessionId, onContextChange, onTakeToChat }: Review
       ) : (
         <div ref={splitRef} className="flex min-h-0 flex-1 flex-col">
           <div
-            className="shrink-0 overflow-auto scrollbar-hover border-b"
+            className="shrink-0 space-y-0.5 overflow-auto border-b p-1.5 scrollbar-hover"
             style={{ borderColor: 'var(--border-subtle)', height: `${Math.round(listRatio * 100)}%` }}
           >
             {items.map((it) => {
@@ -194,7 +194,7 @@ export function ReviewPanel({ sessionId, onContextChange, onTakeToChat }: Review
               return (
                 <ActionButton
                   key={it.path}
-                  className="w-full flex-col items-stretch gap-0.5 rounded-none border-0 px-2.5 py-1.5 text-left text-[11px] hover:bg-[var(--hover-overlay)]"
+                  className="w-full flex-col items-stretch gap-0.5 rounded-md border-0 px-2.5 py-2 text-left text-[12px] hover:bg-[var(--hover-overlay)]"
                   style={{
                     background: active ? 'var(--accent-subtle)' : undefined,
                     color: 'var(--text-primary)',
@@ -220,7 +220,7 @@ export function ReviewPanel({ sessionId, onContextChange, onTakeToChat }: Review
               setListRatio((r) => r + dy / h)
             }}
           />
-          <div className="min-h-0 flex-1 overflow-auto scrollbar-hover p-2 select-text">
+          <div className="min-h-0 flex-1 overflow-auto scrollbar-hover p-3.5 select-text">
             {loadingDiff && (
               <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>加载中…</p>
             )}

@@ -1,4 +1,4 @@
-import { LoaderCircle, RefreshCw } from 'lucide-react'
+import { Globe, LoaderCircle, RefreshCw } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react'
 import { IconButton } from '../../foundation/IconButton'
@@ -50,8 +50,11 @@ export function BrowserPanel() {
   }
   return <div className="flex h-full min-h-0 flex-col" data-testid="workspace-browser-panel">
     <form className="flex shrink-0 items-center gap-2 border-b px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }} onSubmit={(event: FormEvent<HTMLFormElement>) => { event.preventDefault(); void load() }}>
-      <TextField aria-label="浏览器地址" value={draft} onChange={(event: ChangeEvent<HTMLInputElement>) => setDraft(event.target.value)} onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => { if (event.key === 'Escape') { setDraft(address); event.currentTarget.blur() } }} className="flex-1 text-center text-[11px]" />
-      <IconButton type="submit" label={loading ? '正在加载' : '刷新页面'} size={24} disabled={loading} className="disabled:opacity-50" style={{ color: 'var(--text-muted)' }}>{loading ? <LoaderCircle size={13} className="animate-spin" /> : <RefreshCw size={13} />}</IconButton>
+      <div className="flex flex-1 items-center gap-2 rounded-lg border px-2.5 py-1" style={{ borderColor: 'color-mix(in srgb, var(--border-color) 75%, transparent)', background: 'var(--card-bg)' }}>
+        <Globe size={13} style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
+        <TextField appearance="embedded" aria-label="浏览器地址" value={draft} onChange={(event: ChangeEvent<HTMLInputElement>) => setDraft(event.target.value)} onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => { if (event.key === 'Escape') { setDraft(address); event.currentTarget.blur() } }} className="flex-1 text-[12px]" />
+      </div>
+      <IconButton type="submit" label={loading ? '正在加载' : '刷新页面'} size={28} disabled={loading} className="disabled:opacity-50" style={{ color: 'var(--text-muted)' }}>{loading ? <LoaderCircle size={13} className="animate-spin" /> : <RefreshCw size={13} />}</IconButton>
     </form>
     {error ? <ErrorState className="m-auto" title="网页加载失败" description={error} action={<Button tone="accent" onClick={() => { void load() }}>重新加载</Button>} /> : document == null ? <EmptyState className="m-auto" title="还没有网页内容" description="输入地址后加载网页" /> : <iframe title="网页内容" sandbox="" referrerPolicy="no-referrer" srcDoc={toSandboxDocument(document)} className="min-h-0 w-full flex-1 border-0" />}
   </div>
