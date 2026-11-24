@@ -3,30 +3,26 @@ import {
   buildColdStartCopy,
   buildReacquaintCopy,
   buildTimeOfDayGreeting,
+  buildTimeOfDaySubtitle,
 } from '../../src/shared/companion-presence'
 
 describe('companion presence', () => {
-  it('按时段返回亲切活人感问候', () => {
+  it('按时段返回亲切活人感双行问候与引导', () => {
     expect(buildTimeOfDayGreeting(7)).toBe('早上好啊')
+    expect(buildTimeOfDaySubtitle(7)).toBe('新的一天，想先从哪件事开始？')
     expect(buildTimeOfDayGreeting(10)).toBe('上午好啊')
+    expect(buildTimeOfDaySubtitle(10)).toBe('今天想一起做点什么？')
     expect(buildTimeOfDayGreeting(12)).toBe('中午好啊')
+    expect(buildTimeOfDaySubtitle(12)).toBe('吃过饭了吗？下午打算忙点啥？')
     expect(buildTimeOfDayGreeting(15)).toBe('下午好啊')
+    expect(buildTimeOfDaySubtitle(15)).toBe('歇口气，有什么想聊的随时说。')
     expect(buildTimeOfDayGreeting(20)).toBe('晚上好啊')
-    expect(buildTimeOfDayGreeting(1)).toBe('夜深了，还没歇着呀')
+    expect(buildTimeOfDaySubtitle(20)).toBe('忙了一天，今晚想聊点啥？')
+    expect(buildTimeOfDayGreeting(1)).toBe('夜深了')
+    expect(buildTimeOfDaySubtitle(1)).toBe('还没歇着呀，陪你待一会儿。')
   })
 
-  it('无 quote 角色回退简介并采用时段问候标题', () => {
-    const copy = buildColdStartCopy({
-      name: '小林',
-      description: '沉稳体贴的数字伙伴',
-      hour: 10,
-    })
-    expect(copy.title).toBe('上午好啊')
-    expect(copy.subtitle).toContain('沉稳体贴')
-    expect(copy).not.toHaveProperty('hint')
-  })
-
-  it('既有角色冷启动优先使用人物首次宣言', () => {
+  it('既有角色冷启动首次相遇保留人物首次宣言', () => {
     const copy = buildColdStartCopy({
       name: '路飞',
       description: '自由、直率的冒险伙伴',
@@ -36,7 +32,7 @@ describe('companion presence', () => {
     expect(copy.subtitle).toContain('路飞')
   })
 
-  it('常规空态首屏采用时段问候标题并优先展示角色第一人称台词 quote', () => {
+  it('日常回头开聊改走温暖时段双行问候，不重复人物口号', () => {
     const copy = buildColdStartCopy({
       name: '路飞',
       description: '自由、直率的冒险伙伴',
@@ -44,7 +40,8 @@ describe('companion presence', () => {
       hour: 10,
     })
     expect(copy.title).toBe('上午好啊')
-    expect(copy.subtitle).toBe('我是要成为海贼王的男人！')
+    expect(copy.subtitle).toBe('今天想一起做点什么？')
+    expect(copy.subtitle).not.toContain('海贼王')
   })
 
   it('换角再认识文案：换视角非重开，且点名双方', () => {

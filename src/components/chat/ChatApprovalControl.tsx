@@ -85,7 +85,7 @@ export function ChatApprovalControl({ value, onChange, disabled = false }: {
       <div className="px-2 pb-1.5 pt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>应如何批准操作？</div>
       {options.map(option => <ActionButton key={option.mode} role="menuitemradio" aria-checked={value === option.mode}
         aria-disabled={pending} onClick={() => void choose(option.mode)}
-        className="w-full !items-start !justify-start gap-2 !border-0 !px-2 py-2 text-left hover:bg-[var(--hover-overlay)] focus-visible:bg-[var(--hover-overlay)]"
+        className="w-full !items-start !justify-start gap-2 rounded-md !border-0 !px-2 py-2 text-left hover:bg-[var(--hover-overlay)] focus-visible:bg-[var(--hover-overlay)]"
         style={{ background: value === option.mode ? 'var(--accent-subtle)' : undefined }}>
         <option.Icon size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
         <span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2 text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>

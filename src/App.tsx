@@ -1507,7 +1507,7 @@ function App() {
                 }
                 setProjectMenuOpen(!projectMenuOpen)
               }}
-              className="flex h-6 cursor-pointer items-center gap-1.5 rounded-md px-2 text-[12px] text-[var(--text-secondary)] transition hover:bg-[var(--hover-overlay)] hover:text-[var(--text-primary)]"
+              className={`flex h-6 cursor-pointer items-center gap-1.5 rounded-md px-2 text-[12px] transition hover:bg-[var(--hover-overlay)] hover:text-[var(--text-primary)] ${currentProject ? 'text-[var(--text-secondary)]' : 'text-[var(--text-muted)] opacity-75 hover:opacity-100'}`}
             >
               <Folder size={13} style={{ color: 'var(--text-muted)' }} />
               <span>{currentProject?.name || '选择工作区'}</span>
@@ -1516,10 +1516,10 @@ function App() {
 
             {projectMenuOpen && (
               <div
-                className="absolute bottom-full left-0 z-50 mb-1 w-56 rounded-lg border py-1 shadow-lg"
+                className="absolute bottom-full left-0 z-50 mb-1 w-56 rounded-lg border p-1 shadow-lg"
                 style={{ borderColor: 'var(--border-color)', background: 'var(--dropdown-bg)' }}
               >
-                <div className="px-3 pb-1.5 pt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>项目目录</div>
+                <div className="px-2.5 pb-1.5 pt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>项目目录</div>
 
                 {recentProjects.map((proj) => (
                   <button
@@ -1531,7 +1531,7 @@ function App() {
                       setCurrentProject(proj)
                       setProjectMenuOpen(false)
                     }}
-                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition"
+                    className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] transition"
                     style={{
                       color: currentProject?.path === proj.path ? 'var(--accent-fg)' : 'var(--text-secondary)',
                       background: currentProject?.path === proj.path ? 'var(--accent-subtle)' : undefined,
@@ -1546,7 +1546,7 @@ function App() {
                   </button>
                 ))}
 
-                <div className="mx-2 my-1 h-px" style={{ background: 'var(--border-subtle)' }} />
+                <div className="mx-1.5 my-1 h-px" style={{ background: 'var(--border-subtle)' }} />
 
                 <button
                   type="button"
@@ -1560,7 +1560,7 @@ function App() {
                     }
                     setProjectMenuOpen(false)
                   }}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition hover:bg-[var(--hover-overlay)]"
+                  className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] transition hover:bg-[var(--hover-overlay)]"
                   style={{ color: 'var(--text-secondary)' }}
                 >
                   <FolderOpen size={12} />
@@ -1577,7 +1577,7 @@ function App() {
                     setShowFileBrowser(false)
                     setProjectMenuOpen(false)
                   }}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] transition hover:bg-[var(--hover-overlay)]"
+                  className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] transition hover:bg-[var(--hover-overlay)]"
                   style={{ color: 'var(--text-muted)' }}
                 >
                   <Ban size={12} />
@@ -1609,10 +1609,10 @@ function App() {
             {modelMenuOpen && (
               <div
                 onMouseDown={(e) => e.stopPropagation()}
-                className="absolute bottom-full right-0 z-50 mb-1.5 w-60 rounded-lg border py-1 shadow-lg"
+                className="absolute bottom-full right-0 z-50 mb-1.5 w-60 rounded-lg border p-1 shadow-lg"
                 style={{ borderColor: 'var(--border-color)', background: 'var(--dropdown-bg)' }}
               >
-                <div className="px-3 pb-1.5 pt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>切换对话模型</div>
+                <div className="px-2.5 pb-1.5 pt-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>切换对话模型</div>
 
                 {availableChatModels.length > 0 ? (
                   <div className="max-h-56 overflow-y-auto">
@@ -1649,7 +1649,7 @@ function App() {
                             }
                             setModelMenuOpen(false)
                           }}
-                          className="flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-1.5 text-left text-[12px] transition"
+                          className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] transition"
                           style={{
                             color: active ? 'var(--accent-fg)' : 'var(--text-secondary)',
                             background: active ? 'var(--accent-subtle)' : undefined,
@@ -1668,12 +1668,12 @@ function App() {
                     })}
                   </div>
                 ) : (
-                  <div className="px-3 py-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  <div className="px-2.5 py-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>
                     当前仅有：{currentModel || '未配置模型'}
                   </div>
                 )}
 
-                <div className="mx-2 my-1 h-px" style={{ background: 'var(--border-subtle)' }} />
+                <div className="mx-1.5 my-1 h-px" style={{ background: 'var(--border-subtle)' }} />
 
                 <button
                   type="button"
@@ -1682,7 +1682,7 @@ function App() {
                     setModelMenuOpen(false)
                     openModelSettings()
                   }}
-                  className="flex w-full cursor-pointer items-center justify-between px-3 py-1.5 text-left text-[12px] text-[var(--text-secondary)] transition hover:bg-[var(--hover-overlay)] hover:text-[var(--text-primary)]"
+                  className="flex w-full cursor-pointer items-center justify-between rounded-md px-2.5 py-1.5 text-left text-[12px] text-[var(--text-secondary)] transition hover:bg-[var(--hover-overlay)] hover:text-[var(--text-primary)]"
                 >
                   <span>管理模型设置…</span>
                   <ChevronRight size={12} style={{ color: 'var(--text-muted)' }} />
@@ -2036,7 +2036,7 @@ function App() {
           <div className="mx-auto flex min-h-full w-full flex-1 flex-col" style={{ maxWidth: 'var(--layout-width)' }} data-testid="chat-content">
             {/* 欢迎屏 — 无头像时段问候 + 角色台词 + 居中输入框（上盖托盘）+ 等宽毛玻璃朋友圈悬浮切片卡 */}
             {messages.length === 0 && (
-              <div className="flex flex-1 flex-col items-center justify-center py-6">
+              <div className="flex flex-1 flex-col items-center justify-center pb-14 pt-4">
                 <ChatWelcome
                   title={coldStart.title}
                   subtitle={coldStart.subtitle}

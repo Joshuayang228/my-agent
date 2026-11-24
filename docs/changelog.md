@@ -1,5 +1,7 @@
 # 变更日志
 
+2026-11-24 人物世界布局收口回 Foundation 并强化静态防偏移门禁、日常开屏改走温暖时段双行问候与四项细节精修：`content-layout.ts` 新增 `LAYOUT_CLASSES.portraitGrid` 与 `MEDIA_FRAME_PRESETS.portraitHero`；`MomentsPanel.tsx` 复用 `readingContentStyle('world')` 居中限宽（672px）收敛过长信息流；`AssetsPanel.tsx` 移除全部手写 `aspect-[3/4]` 与 3 列大格，改用 `mediaFrameStyle('portraitHero')` 左图右槽双栏陈列「正在穿着」并统一走 `LAYOUT_CLASSES.portraitGrid`；`foundation-enforcement-gate.test.ts` 新增对朋友圈、衣柜与四大画廊的媒体框/网格自动化拦截；`companion-presence.ts` 新增 `buildTimeOfDaySubtitle`，日常回头开聊不重复喊人物口号；`App.tsx`、`ChatWelcome.tsx`、`ChatApprovalControl.tsx` 补齐菜单项圆角内缩、未选工作区上盖弱化、标题可读性与开屏重心微上移。
+
 2026-11-24 修复输入框「管理模型设置…」未直达模型设置页与删除会话后残影 Bug：`SettingsPanel.tsx` 与 `App.tsx` 为 `initialEntry` 新增 `'model'` 直达入口（`openModelSettings`），并记录返回来源与阻止下拉浮层事件误消；`deleteSession` 与 `showPendingReasoning` 同步清理/守卫空会话状态，消除删除当前会话后首页左下角残留「思考过程 >」的问题。
 
 2026-11-24 重构对话开屏欢迎区与 Codex 风格双层嵌套输入框：`src/shared/companion-presence.ts` 新增 `buildTimeOfDayGreeting` 并使 `buildColdStartCopy` 对老朋友开屏改为按时段亲切问候（「上午好啊 / 下午好啊」等），角色按自身 Role Pack 的 `firstContact.quote` 展示个性台词（未配 `quote` 回退简介）；`ChatComposer.tsx` 与 `src/index.css` 新增聚焦柔光（`.chat-composer-card`）、支持由 `projectControl` 构成上盖环境托盘、去除底栏竖线分割并将附件与生图收敛入 `+` 弹出菜单，同时清晰区分发送按钮空态与激活态；`ChatWelcome.tsx` 去除拦截视线的 3 颗模板胶囊，将输入框下方升级为等宽毛玻璃朋友圈悬浮切片卡（带角色名、时间、光圈徽标/缩略图、`聊聊 ›` 与朋友圈直达入口）；同步更新 `App.tsx`、`SurfaceBaselinePanel.tsx` 与单元测试。

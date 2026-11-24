@@ -611,7 +611,7 @@ function ChatSurface({ persona, onNavigate, onOpenRoleShelf }: { persona: Playgr
                   {isWelcome ? (
                     <ChatWelcome
                       title="上午好啊"
-                      subtitle={persona.blurb}
+                      subtitle="今天想一起做点什么？"
                       roleName={persona.name}
                       latestMoment={{
                         id: 'preview-moment-1',

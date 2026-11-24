@@ -1,5 +1,7 @@
 # 项目进度
 
+人物世界排版收口 Foundation、自动防偏移门禁与日常开屏温情化（2026-11-24）：`content-layout.ts` 补齐 `portraitGrid` 与 `portraitHero` 单一事实源，`MomentsPanel` 回归 `readingContentStyle('world')` 居中阅读列，`AssetsPanel` 收回 `mediaFrameStyle` 与 `portraitGrid` 并改为左图右槽主视觉；`foundation-enforcement-gate.test.ts` 强制锁死画廊/衣柜/朋友圈禁写手写媒体比例与私自网格；`companion-presence.ts` 为日常开屏改配时段双行温情问候，同步完成下拉圆角内缩、空工作区弱化、副标题对比度与欢迎重心上移。
+
 修复模型切换器直达设置页与删除活跃会话思考过程残影（2026-11-24）：`SettingsPanel` 支持 `initialEntry="model"` 直达「模型」分页，`App.tsx` 打通 `openModelSettings` 跳转与返回链路，并在删除活跃会话及空态消息流时彻底重置/守卫残余 `reasoning` 状态。
 
 对话开屏页与 Codex 风格双层嵌套输入框焕新（2026-11-24）：`companion-presence.ts` 为开屏主标题加入按时段温情问候（「上午好啊 / 下午好啊」等）并与 Role Pack 个性台词/简介解耦；`ChatComposer.tsx` 升级为上盖工作区托盘 + 下层柔光主输入卡双层嵌套形态，底栏收口为 `+` 弹出菜单（收纳附件/生图）与审批胶囊、清晰区分发送按钮两态；`ChatWelcome.tsx` 移除 3 颗泛用模板胶囊并将底部收束为等宽毛玻璃朋友圈悬浮切片卡；`App.tsx`、`SurfaceBaselinePanel.tsx` 与单测同步通过。

@@ -8,6 +8,7 @@ import {
   LAYOUT_CLASSES,
   LAYOUT_DENSITIES,
   LAYOUT_PROFILES,
+  MEDIA_FRAME_PRESETS,
   readingContentStyle,
 } from '../../src/shared/content-layout'
 
@@ -460,6 +461,32 @@ describe('Foundation 布局与控件复用自动门禁', () => {
 
       const welcomeSource = readFileSync(resolve('src/components/chat/ChatWelcome.tsx'), 'utf8')
       expect(welcomeSource).not.toContain('Sparkles')
+    })
+
+    it('朋友圈与人物世界画廊/衣柜统一消费 Foundation 布局与媒体框，禁止手写裸 aspect-[...]', () => {
+      expect(LAYOUT_CLASSES.portraitGrid).toBeTruthy()
+      expect(MEDIA_FRAME_PRESETS.portraitHero).toMatchObject({ aspectRatio: '3 / 4', maxWidth: 280 })
+
+      const momentsSource = readFileSync(resolve('src/components/MomentsPanel.tsx'), 'utf8')
+      expect(momentsSource).toContain('readingContentStyle')
+      expect(momentsSource).not.toMatch(/\baspect-\[/)
+
+      const assetsSource = readFileSync(resolve('src/components/AssetsPanel.tsx'), 'utf8')
+      expect(assetsSource).toContain('mediaFrameStyle')
+      expect(assetsSource).toContain('LAYOUT_CLASSES.portraitGrid')
+      expect(assetsSource).not.toMatch(/\baspect-\[/)
+
+      for (const galleryFile of [
+        'src/components/world/WorldHomeGallery.tsx',
+        'src/components/world/WorldCultureGallery.tsx',
+        'src/components/world/WorldKeepsakesPanel.tsx',
+        'src/components/world/WorldTravelGallery.tsx',
+      ]) {
+        const source = readFileSync(resolve(galleryFile), 'utf8')
+        expect(source, `${galleryFile} 必须使用 mediaFrameStyle`).toContain('mediaFrameStyle')
+        expect(source, `${galleryFile} 必须使用 LAYOUT_CLASSES.cardGrid`).toContain('LAYOUT_CLASSES.cardGrid')
+        expect(source, `${galleryFile} 禁止手写裸 aspect-[...]`).not.toMatch(/\baspect-\[/)
+      }
     })
   })
 })

@@ -66,13 +66,21 @@ export function ChatWelcome({
     >
       <h1
         className="break-words font-display text-[2.1rem] font-medium tracking-tight"
-        style={{ color: 'var(--text-primary)', overflowWrap: 'anywhere' }}
+        style={{
+          color: 'var(--text-primary)',
+          overflowWrap: 'anywhere',
+          textShadow: '0 1px 12px color-mix(in srgb, var(--bg-primary) 85%, transparent)',
+        }}
       >
         {title}
       </h1>
       <p
         className="mt-2 max-w-lg whitespace-pre-wrap break-words text-[14.5px] leading-relaxed"
-        style={{ color: 'var(--text-secondary)', overflowWrap: 'anywhere' }}
+        style={{
+          color: 'color-mix(in srgb, var(--text-primary) 72%, var(--text-secondary))',
+          overflowWrap: 'anywhere',
+          textShadow: '0 1px 12px color-mix(in srgb, var(--bg-primary) 85%, transparent)',
+        }}
       >
         {subtitle}
       </p>

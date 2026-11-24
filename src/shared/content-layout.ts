@@ -62,6 +62,7 @@ export const LAYOUT_CLASSES = {
   section: 'space-y-[var(--layout-section,1rem)]',
   grid: 'gap-[var(--layout-list,0.75rem)]',
   cardGrid: 'grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3',
+  portraitGrid: 'grid min-w-0 grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5',
   list: 'space-y-[var(--layout-list,0.75rem)]',
   card: 'p-[var(--layout-card-small,1rem)] sm:p-[var(--layout-card-large,1.25rem)]',
 } as const
@@ -83,13 +84,15 @@ export function readingContentStyle(profile?: LayoutProfileId) {
 /**
  * 人物世界各画廊共享的统一媒体图框档位（单一事实源）。
  * - card：网格卡片统一 4/3 横卡（文化角、家居物件、足迹）
- * - portrait：立绘与穿搭 3/4 竖卡（衣柜）
+ * - portrait：立绘与穿搭 3/4 竖卡（衣柜列表）
+ * - portraitHero：正在穿着全身主视觉 3/4 竖框（限宽 280px，确保主视觉大于下方画廊单品）
  * - overview：宽幅总览大图 16/9 + 限宽 760px（家居总览、足迹详情）
  * - scene：单空间场景图 16/9 + 限宽 560px（家居单房间）
  */
 export const MEDIA_FRAME_PRESETS = {
   card: { aspectRatio: '4 / 3' },
   portrait: { aspectRatio: '3 / 4' },
+  portraitHero: { aspectRatio: '3 / 4', maxWidth: 280 },
   overview: { aspectRatio: '16 / 9', maxWidth: 760 },
   scene: { aspectRatio: '16 / 9', maxWidth: 560 },
 } as const

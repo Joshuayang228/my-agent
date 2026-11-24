@@ -10,7 +10,7 @@ import { ImageViewer } from './foundation/ImageViewer'
 import { IconButton } from './foundation/IconButton'
 import { TextField } from './foundation/TextField'
 import { ErrorState } from './foundation/ErrorState'
-import { LAYOUT_CLASSES } from '../shared/content-layout'
+import { LAYOUT_CLASSES, readingContentStyle } from '../shared/content-layout'
 import { MomentImageGrid } from './world/MomentImageGrid'
 import { CompanionAvatar } from './CompanionAvatar'
 import {
@@ -419,6 +419,7 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
       )}
 
       <div className={loadError ? `flex-1 overflow-y-auto ${LAYOUT_CLASSES.gutter} ${LAYOUT_CLASSES.block} scrollbar-thin` : isSocialFeed ? 'flex-1 overflow-y-auto px-[var(--layout-gutter-small,1.25rem)] py-4 scrollbar-thin' : 'flex-1 overflow-y-auto px-4 py-3 scrollbar-thin'} data-testid="moments-content-scroll">
+        <div style={isSocialFeed ? readingContentStyle('world') : undefined}>
 
         {!isSocialFeed && summary ? (
           <div className="mb-4 rounded-lg border px-3 py-2.5 text-[12px] leading-relaxed" style={{ borderColor: 'var(--companion-catchup-border)', background: 'var(--companion-catchup-bg)', color: 'var(--text-secondary)' }}>
@@ -714,6 +715,7 @@ export function MomentsPanel({ onClose, refreshToken, onLoadingChange, previewDa
           </ul>
         )}
         {isSocialFeed && !minimalPreviewChrome && <p className="pt-5 text-center text-[10px]" style={{ color: 'var(--text-muted)' }}>最近的生活动态</p>}
+        </div>
       </div>
       <ImageViewer
         items={previewImage?.items ?? []}

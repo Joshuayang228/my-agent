@@ -16,13 +16,23 @@ export function buildTimeOfDayGreeting(hour = new Date().getHours()): string {
   if (h >= 12 && h < 14) return '中午好啊'
   if (h >= 14 && h < 18) return '下午好啊'
   if (h >= 18 && h < 23) return '晚上好啊'
-  return '夜深了，还没歇着呀'
+  return '夜深了'
+}
+
+export function buildTimeOfDaySubtitle(hour = new Date().getHours()): string {
+  const h = ((Math.floor(hour) % 24) + 24) % 24
+  if (h >= 5 && h < 9) return '新的一天，想先从哪件事开始？'
+  if (h >= 9 && h < 12) return '今天想一起做点什么？'
+  if (h >= 12 && h < 14) return '吃过饭了吗？下午打算忙点啥？'
+  if (h >= 14 && h < 18) return '歇口气，有什么想聊的随时说。'
+  if (h >= 18 && h < 23) return '忙了一天，今晚想聊点啥？'
+  return '还没歇着呀，陪你待一会儿。'
 }
 
 export function buildColdStartCopy(role: {
   name: string
   description: string
-  /** 角色第一人称招牌台词（来自 Role Pack `firstContact.quote`），优先作为常规首屏副标题 */
+  /** 首次冷启宣言仍保留人物口号；日常回头开聊改走温暖时段双行问候 */
   quote?: string
   firstContact?: { openingLine: string; quote?: string }
   hour?: number
@@ -36,10 +46,9 @@ export function buildColdStartCopy(role: {
       subtitle: `${name} · ${description}`,
     }
   }
-  const signatureQuote = role.quote?.trim()
   return {
     title: buildTimeOfDayGreeting(role.hour),
-    subtitle: signatureQuote || description,
+    subtitle: buildTimeOfDaySubtitle(role.hour),
   }
 }
 

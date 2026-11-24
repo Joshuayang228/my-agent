@@ -10,7 +10,7 @@ import { IconButton } from './foundation/IconButton'
 import { ImagePreviewImage } from './foundation/ImagePreviewImage'
 import { GeneratedImageResult } from './chat/callbacks/GeneratedImageResult'
 import { TabStrip } from './foundation/TabStrip'
-import { LAYOUT_CLASSES } from '../shared/content-layout'
+import { LAYOUT_CLASSES, mediaFrameStyle, readingContentStyle } from '../shared/content-layout'
 import {
   WorldAssetActions,
   WorldAssetAddRow,
@@ -74,7 +74,7 @@ function occasionTags(payload: Record<string, unknown>): string[] {
 function PreviewAssetImage({ asset, gallery = false }: { asset: WorldAssetRecord; gallery?: boolean }) {
   const src = typeof asset.payload.playgroundImageSrc === 'string' ? asset.payload.playgroundImageSrc : ''
   if (!src) return null
-  return <ImagePreviewImage src={src} alt={`${asset.name}的穿着参考图`} className={`mb-3 block w-full rounded-[var(--radius-md)] ${gallery ? 'aspect-[3/4] object-contain' : 'aspect-[4/3] object-cover'}`} buttonClassName="w-full" />
+  return <div className="mb-3 w-full overflow-hidden rounded-[var(--radius-md)]" style={mediaFrameStyle(gallery ? 'portrait' : 'card')}><ImagePreviewImage src={src} alt={`${asset.name}的穿着参考图`} className={`block h-full w-full ${gallery ? 'object-contain' : 'object-cover'}`} buttonClassName="h-full w-full" /></div>
 }
 
 function imageFromAsset(asset: WorldAssetRecord): GeneratedImageReference | null {
@@ -349,9 +349,11 @@ export function AssetsPanel({ refreshToken, onLoadingChange, previewAssets, prev
     const parsed = wardrobeSlotsSchema.safeParse(asset.payload.slots)
     return { id: asset.id, name: asset.name, slots: parsed.success ? parsed.data : {} }
   })
-  const realPicture = (asset: WorldAssetRecord, versioned = false) => {
+  const realPicture = (asset: WorldAssetRecord, versioned = false, bare = false) => {
     const image = versioned && asset.payload.imageOutfitVersion !== asset.payload.outfitVersion ? null : worldRecordImageReference(asset.payload)
-    return <div className="mb-3 aspect-[3/4] w-full overflow-hidden rounded-[var(--radius-md)]" style={{ background: 'var(--bg-secondary)' }}>{image ? <WorldRecordImage assetId={asset.id} image={image} alt={asset.name} readImage={(id, imageId) => window.electronAPI.companion.readAssetImage(id, imageId)} revealImage={(id, imageId) => window.electronAPI.companion.revealAssetImage(id, imageId)} /> : <div className="flex h-full items-center justify-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}><Shirt size={20} />暂无图片</div>}</div>
+    const pictureInner = image ? <WorldRecordImage assetId={asset.id} image={image} alt={asset.name} readImage={(id, imageId) => window.electronAPI.companion.readAssetImage(id, imageId)} revealImage={(id, imageId) => window.electronAPI.companion.revealAssetImage(id, imageId)} /> : <div className="flex h-full items-center justify-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}><Shirt size={20} />暂无图片</div>
+    if (bare) return pictureInner
+    return <div className="mb-3 w-full overflow-hidden rounded-[var(--radius-md)]" style={mediaFrameStyle('portrait')}>{pictureInner}</div>
   }
   const changeFormal = async (assetId: string) => {
     if (writing.current || changingId || isPreview) return
@@ -462,27 +464,27 @@ export function AssetsPanel({ refreshToken, onLoadingChange, previewAssets, prev
               <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--companion-accent-warm)' }}>{wardrobeGallery ? '正在穿着' : '穿着中'}</div>
             </div>}
             {wearing ? (
-              <div className={wardrobeGallery ? 'py-2' : 'companion-life-card rounded-xl border p-4'} data-testid="world-wardrobe-wearing" style={wardrobeGallery ? undefined : { borderColor: 'var(--companion-accent-warm)', background: 'var(--card-bg)', boxShadow: 'var(--companion-shadow-card)' }}>
-                <div className={wardrobeGallery ? 'flex min-w-0 flex-col items-center gap-4' : 'flex items-start gap-3'}>
+              <div className={wardrobeGallery ? 'py-2' : 'companion-life-card rounded-xl border p-4'} data-testid="world-wardrobe-wearing" style={wardrobeGallery ? readingContentStyle('chat') : { borderColor: 'var(--companion-accent-warm)', background: 'var(--card-bg)', boxShadow: 'var(--companion-shadow-card)' }}>
+                <div className={wardrobeGallery ? 'flex min-w-0 flex-col items-center gap-6 sm:flex-row sm:items-start' : 'flex items-start gap-3'}>
                   {wardrobeGallery
-                    ? <div className="aspect-[3/4] w-full max-w-60 overflow-hidden rounded-[var(--radius-md)]" data-testid="wardrobe-outfit-image" style={{ background: 'var(--bg-secondary)' }}>
-                      {!isPreview ? realPicture(wearing, true) : outfitImageSrc
-                        ? <ImagePreviewImage src={outfitImageSrc} alt="当前穿搭全身图" className="block aspect-[3/4] w-full object-contain" buttonClassName="h-full w-full" />
+                    ? <div className="w-full shrink-0 overflow-hidden rounded-[var(--radius-lg)] border shadow-sm" data-testid="wardrobe-outfit-image" style={{ ...mediaFrameStyle('portraitHero'), borderColor: 'var(--card-border)' }}>
+                      {!isPreview ? realPicture(wearing, true, true) : outfitImageSrc
+                        ? <ImagePreviewImage src={outfitImageSrc} alt="当前穿搭全身图" className="block h-full w-full object-contain" buttonClassName="h-full w-full" />
                         : <div className="flex h-full flex-col items-center justify-center gap-3 px-4 text-center text-[12px]" role="status" style={{ color: 'var(--text-muted)' }}>
                           <Shirt size={22} />
                           <span>{outfitImageStatus === 'pending' ? '正在生成穿搭图片' : outfitImageStatus === 'failed' ? '穿搭图片生成失败，当前穿着已保留' : '暂无当前穿搭图片'}</span>
                         </div>}
                     </div>
                     : isPreview && wearing.payload.playgroundImageSrc
-                    ? <ImagePreviewImage src={String(wearing.payload.playgroundImageSrc)} alt={`${wearing.name}的穿着参考图`} className={wardrobeGallery ? 'block aspect-[3/4] max-h-80 w-full rounded-[var(--radius-md)] object-contain' : 'h-24 w-24 shrink-0 rounded-[var(--radius-md)] object-cover'} buttonClassName={wardrobeGallery ? 'w-full' : ''} />
-                    : <div className={`flex shrink-0 items-center justify-center rounded-xl ${wardrobeGallery ? 'aspect-[3/4] max-h-80 w-full' : 'h-14 w-14'}`} style={{ background: 'var(--companion-catchup-bg)', color: 'var(--companion-accent-warm)' }}><Sparkles size={22} /></div>}
-                  <div className={wardrobeGallery ? 'w-full min-w-0 max-w-2xl' : 'min-w-0 flex-1'}>
-                    {!wardrobeGallery && <div className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{wearing.name}</div>}
+                    ? <ImagePreviewImage src={String(wearing.payload.playgroundImageSrc)} alt={`${wearing.name}的穿着参考图`} className="h-24 w-24 shrink-0 rounded-[var(--radius-md)] object-cover" />
+                    : <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl" style={{ background: 'var(--companion-catchup-bg)', color: 'var(--companion-accent-warm)' }}><Sparkles size={22} /></div>}
+                  <div className={wardrobeGallery ? 'w-full min-w-0 flex-1' : 'min-w-0 flex-1'}>
+                    <div className={wardrobeGallery ? 'mb-3 text-[15px] font-medium' : 'text-[15px] font-semibold'} style={{ color: 'var(--text-primary)' }}>{wearing.name}</div>
                     {wearingHint ? <div className="mt-0.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>{wearingHint}</div> : null}
-                    {wardrobeGallery && <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="wardrobe-current-slots">
+                    {wardrobeGallery && <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2" data-testid="wardrobe-current-slots">
                       {Object.entries(slotLabels).map(([slot, label]) => {
                         const current = items.find((asset) => asset.id === displaySlots[slot] && asset.payload.category === slot && asset.roleId === wearing.roleId)
-                        return <div key={slot} className="flex min-h-12 min-w-0 flex-col gap-1 text-[12px]">
+                        return <div key={slot} className="flex min-h-12 min-w-0 flex-col justify-center gap-1 rounded-[var(--radius-md)] border px-3.5 py-2.5 text-[12px]" style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}>
                           <span style={{ color: 'var(--text-muted)' }}>{label}</span>
                           <span className="min-w-0 truncate" title={current?.name} style={{ color: 'var(--text-primary)' }}>{current?.name ?? '未选择'}</span>
                         </div>
@@ -493,7 +495,7 @@ export function AssetsPanel({ refreshToken, onLoadingChange, previewAssets, prev
                         <span key={tag} className="rounded-full px-2 py-0.5 text-[10px]" style={{ background: 'var(--companion-catchup-bg)', color: 'var(--companion-accent-warm)' }}>{tag}</span>
                       ))}
                     </div>}
-                    {!isPreview && wardrobeGallery ? allowAssetEditing && onGenerateAssetImage && <IconButton label="为当前穿搭生成图片" disabled={busy} onClick={() => onGenerateAssetImage(wearing)}><ImagePlus size={14} /></IconButton> : editingId === wearing.id
+                    {!isPreview && wardrobeGallery ? allowAssetEditing && onGenerateAssetImage && <div className="mt-3"><IconButton label="为当前穿搭生成图片" disabled={busy} onClick={() => onGenerateAssetImage(wearing)}><ImagePlus size={14} /></IconButton></div> : editingId === wearing.id
                       ? <WorldAssetForm draft={editDraft} onChange={setEditDraft} onSave={() => void saveEdit()} onCancel={() => { if (!busy) { setEditingId(null); setWriteError('') } }} busy={busy} saveLabel="保存衣物" />
                       : canEdit ? <WorldAssetActions name={wearing.name} disabled={busy} onGenerate={onGenerateAssetImage ? () => onGenerateAssetImage(wearing) : undefined} onEdit={() => startEdit(wearing)} onDelete={() => setPendingDelete(wearing)} /> : null}
                   </div>
@@ -513,10 +515,10 @@ export function AssetsPanel({ refreshToken, onLoadingChange, previewAssets, prev
           ) : null}
 
           {wardrobeGallery && previewWardrobeView === 'outfits' && <section data-testid="wardrobe-outfits">
-          {outfits.length ? <div className={`grid ${LAYOUT_CLASSES.grid} sm:grid-cols-2 lg:grid-cols-3`}>
+          {outfits.length ? <div className={LAYOUT_CLASSES.portraitGrid}>
             {outfits.map((outfit) => <article key={outfit.id} aria-label={outfit.name} data-shape="card" className="min-w-0 rounded-md border p-3.5" style={{ borderColor: 'var(--card-border)', background: 'var(--card-bg)' }}>
-              <div className="mb-3 aspect-[3/4] overflow-hidden rounded-md" style={{ background: 'var(--bg-secondary)' }}>
-                {!isPreview ? realPicture(tabItems.find(asset => asset.id === outfit.id)!, true) : outfit.imageSrc ? <ImagePreviewImage src={outfit.imageSrc} alt={`${outfit.name}的穿搭参考图`} className="block h-full w-full object-contain" buttonClassName="h-full w-full" />
+              <div className="mb-3 w-full overflow-hidden rounded-md" style={mediaFrameStyle('portrait')}>
+                {!isPreview ? realPicture(tabItems.find(asset => asset.id === outfit.id)!, true, true) : outfit.imageSrc ? <ImagePreviewImage src={outfit.imageSrc} alt={`${outfit.name}的穿搭参考图`} className="block h-full w-full object-contain" buttonClassName="h-full w-full" />
                   : <div className="flex h-full items-center justify-center gap-2 text-[12px]" style={{ color: 'var(--text-muted)' }}><Shirt size={20} />暂无套装图片</div>}
               </div>
               <div className="line-clamp-2 min-h-10 text-[13px] font-medium" title={outfit.name} style={{ color: 'var(--text-primary)' }}>{outfit.name}</div>
@@ -533,12 +535,12 @@ export function AssetsPanel({ refreshToken, onLoadingChange, previewAssets, prev
           {visibleItems.length === 0 && !loading ? (
             <p className="py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>{tab === 'bookshelf' ? '书架还是空的。' : '衣柜还是空的。'}</p>
           ) : (
-            <div className={wardrobeGallery ? `grid ${LAYOUT_CLASSES.grid} sm:grid-cols-2 lg:grid-cols-3` : 'grid gap-2.5'} style={wardrobeGallery ? undefined : { gridTemplateColumns: 'repeat(auto-fill, minmax(9.5rem, 1fr))' }}>
+            <div className={wardrobeGallery ? LAYOUT_CLASSES.portraitGrid : 'grid gap-2.5'} style={wardrobeGallery ? undefined : { gridTemplateColumns: 'repeat(auto-fill, minmax(9.5rem, 1fr))' }}>
               {visibleItems.map((asset) => (
                 <div key={asset.id} data-shape="card" className={`companion-life-card rounded-xl border ${wardrobeGallery ? 'p-3.5' : 'px-3 py-3'}`} style={{ borderColor: editingId === asset.id ? 'var(--companion-accent-warm)' : 'var(--card-border)', background: 'var(--card-bg)', boxShadow: 'var(--companion-shadow-card)' }}>
                   {isPreview && <PreviewAssetImage asset={asset} gallery={wardrobeGallery} />}
                   {!isPreview && (wardrobeGallery ? realPicture(asset) : <AssetImage asset={asset} />)}
-                  {(!wardrobeGallery || isPreview && (typeof asset.payload.playgroundImageSrc !== 'string' || !asset.payload.playgroundImageSrc)) && <div className={`${wardrobeGallery ? 'mb-3 aspect-[3/4] w-full' : 'mb-2 h-9 w-9'} flex items-center justify-center rounded-lg`} style={{ background: 'var(--bg-secondary)' }}>
+                  {(!wardrobeGallery || isPreview && (typeof asset.payload.playgroundImageSrc !== 'string' || !asset.payload.playgroundImageSrc)) && <div className={`${wardrobeGallery ? 'mb-3 w-full' : 'mb-2 h-9 w-9'} flex items-center justify-center rounded-lg`} style={wardrobeGallery ? mediaFrameStyle('portrait') : { background: 'var(--bg-secondary)' }}>
                     {wardrobeGallery && <span className="mr-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>{asset.payload.previewImageState === 'pending' ? '生成中' : asset.payload.previewImageState === 'failed' ? '生成失败' : '暂无图片'}</span>}
                     <KindIcon size={wardrobeGallery ? 22 : 16} style={{ color: 'var(--text-secondary)' }} />
                   </div>}
