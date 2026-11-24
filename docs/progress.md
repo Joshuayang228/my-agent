@@ -1,5 +1,7 @@
 # 项目进度
 
+修复工作区网络与大 HTML 预览（2026-11-25）：浏览器地址栏支持裸域名自动补 `https://`，外部网页跳转改为逐跳重新执行 SSRF 校验并限制跳转次数；项目 HTML 预览单独提高到 10MB 有界上限，避免被通用文本 512KB 限制误伤。
+
 右侧工作区 Batch A 写回与热刷新补齐（2026-11-25）：为正式项目文件接通 `project:saveSpreadsheetCells`、`project:convertOfficeToPdf`、`project:watchFile` / `unwatchFile` 及安全路径复核；表格预览支持公式锁定、双击轻编辑、Ctrl+S 原子写回、未保存状态和外部修改提示，关闭未保存文件会先拦截确认。相关类型、preload、主进程 handler、预览组件与契约测试已同步。
 
 右侧工作区全功能面板完成设计系统 2.0 升级（2026-11-24）：`WorkspaceFilesPanel` 支持按需收起文件树全宽阅读、`ReviewPanel` 升级圆角变更项与计数胶囊、`TerminalPanel` 配备状态胶囊与一键发终端输出到主对话并采用 `.chat-composer-card` 命令行输入框、`BrowserPanel` 地址栏胶囊化、`SideChatPanel` 完全对齐主对话聊天气泡与输入底座。

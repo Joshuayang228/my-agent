@@ -19,6 +19,7 @@ const MAX_URL_LENGTH = 4_096
 const MAX_RESPONSE_BYTES = 512 * 1024
 const TIMEOUT_MS = 15_000
 const MAX_REQUEST_ID_LENGTH = 200
+const MAX_REDIRECTS = 3
 const activeRequests = new Map<string, AbortController>()
 
 function requestKey(senderId: number, requestId: string): string {
@@ -51,6 +52,21 @@ async function readBody(response: Response): Promise<string | null> {
   }
 }
 
+/**
+ * 将地址栏中的常见裸域名补成 HTTPS 地址。
+ *
+ * 背景：用户通常输入 `baidu.com` 或 `www.example.com`，而 `URL` 构造器只接受带协议的绝对 URL，
+ *       直接传入会在真正发起网络请求前返回“URL 格式无效”。
+ * 设计意图：仅对没有协议分隔符且不含空白的裸域名补 `https://`；带协议的输入仍完整交给统一 SSRF 校验，
+ *       不接受 `javascript:`、`file:` 等伪装协议。
+ * 关键约束：不改写带协议的用户输入，不放宽 `validateFetchUrl` 的协议、凭据、内网和 DNS 检查。
+ */
+export function normalizeBrowserUrl(raw: string): string {
+  const value = raw.trim()
+  if (!value || /\s/.test(value) || value.includes('://')) return value
+  return `https://${value}`
+}
+
 export function registerBrowserIPC(): void {
   registerSecureIpcHandler('browser:load', async (event, rawUrl: unknown, rawRequestId: unknown) => {
     if (typeof rawRequestId !== 'string' || rawRequestId.length === 0 || rawRequestId.length > MAX_REQUEST_ID_LENGTH) {
@@ -59,7 +75,7 @@ export function registerBrowserIPC(): void {
     if (typeof rawUrl !== 'string' || rawUrl.trim().length === 0 || rawUrl.length > MAX_URL_LENGTH) {
       return { ok: false, error: '网页地址无效或过长' }
     }
-    const validation = await validateFetchUrl(rawUrl.trim())
+    let validation = await validateFetchUrl(normalizeBrowserUrl(rawUrl))
     if (!validation.ok) return { ok: false, error: validation.reason }
 
     const controller = new AbortController()
@@ -67,15 +83,25 @@ export function registerBrowserIPC(): void {
     activeRequests.set(key, controller)
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
     try {
-      const response = await fetch(validation.url, {
-        signal: controller.signal,
-        redirect: 'manual',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; MyAgent/1.0)',
-          Accept: 'text/html,application/xhtml+xml,text/plain',
-        },
-      })
-      if (response.status >= 300 && response.status < 400) return { ok: false, error: '为避免跳转到未知地址，暂不跟随网页重定向' }
+      let response: Response | null = null
+      for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount++) {
+        response = await fetch(validation.url, {
+          signal: controller.signal,
+          redirect: 'manual',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; MyAgent/1.0)',
+            Accept: 'text/html,application/xhtml+xml,text/plain',
+          },
+        })
+        if (response.status < 300 || response.status >= 400) break
+        if (redirectCount === MAX_REDIRECTS) return { ok: false, error: '网页跳转次数过多，已停止加载' }
+        const location = response.headers.get('location')
+        if (!location) return { ok: false, error: '网页跳转地址缺失，无法加载' }
+        const redirectUrl = new URL(location, validation.url).toString()
+        validation = await validateFetchUrl(redirectUrl)
+        if (!validation.ok) return { ok: false, error: `网页跳转被安全策略拦截：${validation.reason}` }
+      }
+      if (!response) return { ok: false, error: '网页加载失败，请重试' }
       if (!response.ok) return { ok: false, error: `网页暂时无法打开（HTTP ${response.status}）` }
       const body = await readBody(response)
       if (body == null) return { ok: false, error: '网页内容过大，无法在工作区显示' }

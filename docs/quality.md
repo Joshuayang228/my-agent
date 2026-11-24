@@ -1,5 +1,7 @@
 # 质量总控
 
+2026-11-25 右侧工作区网络 / HTML 回归：`browser-lifecycle.test.ts` 覆盖裸域名补 HTTPS、有限安全重定向与取消请求；项目 HTML 预览保持 10MB 有界读取，避免通用文本 512KB 限制误伤，同时不放宽外部网页的 SSRF 防线。
+
 全站设计系统 2.0 表面统一与生产构建验收（2026-11-24）：`foundation-enforcement-gate.test.ts`（16 项）新增 `overview.maxWidth <= 560`、`.chat-composer-card:focus-within`、`14%` 轻盈滚动条与 `WorkspaceToolMenu` 圆角浮层门禁；5 个定向测试文件 73 项全部通过，`tsc --noEmit`、`tsc -p tsconfig.node.json --noEmit` 与 `vite build`（渲染层 + Electron 主进程 + preload）完整零错通过。
 
 人物世界排版单一事实源门禁与开屏温情问候回归（2026-11-24）：`foundation-enforcement-gate.test.ts` 扩展至 16 项门禁，强制校验 `MomentsPanel` 使用 `readingContentStyle`、`AssetsPanel` 使用 `mediaFrameStyle` 与 `LAYOUT_CLASSES.portraitGrid`、四大画廊使用 `mediaFrameStyle` + `cardGrid` 且全线零裸 `aspect-[...]` 类；`companion-presence.test.ts` 更新时段双行问候与 `firstContact` 分流断言；定向单测（73 项）与 `tsc --noEmit` 全绿通过。

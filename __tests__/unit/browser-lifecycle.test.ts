@@ -9,7 +9,7 @@ vi.mock('electron', () => ({ ipcMain: { handle: vi.fn((name: string, handler: (.
 vi.mock('../../electron/main/tools/builtins/url-fetch', () => ({ validateFetchUrl: vi.fn(async (url: string) => ({ ok: true, url })) }))
 vi.mock('../../electron/main/utils/logger', () => ({ createLogger: () => ({ info: vi.fn(), warn: vi.fn() }), hashForLog: () => 'hash' }))
 
-import { registerBrowserIPC } from '../../electron/main/ipc/browser'
+import { normalizeBrowserUrl, registerBrowserIPC } from '../../electron/main/ipc/browser'
 
 function sender(id = 1) {
   return { id, isDestroyed: () => false, send: vi.fn() }
@@ -23,6 +23,19 @@ beforeEach(() => {
 })
 
 describe('受限浏览器请求生命周期', () => {
+  it('为地址栏裸域名补 HTTPS，并在安全校验后跟随有限跳转', async () => {
+    mocks.fetch
+      .mockResolvedValueOnce(new Response(null, { status: 302, headers: { location: 'https://www.baidu.com/' } }))
+      .mockResolvedValueOnce(new Response('<html>ok</html>', { status: 200, headers: { 'content-type': 'text/html' } }))
+
+    expect(normalizeBrowserUrl('baidu.com')).toBe('https://baidu.com')
+    const result = await mocks.handlers.get('browser:load')!(trustedIpcEvent(sender()), 'baidu.com', 'request-redirect')
+
+    expect(result).toMatchObject({ ok: true, url: 'https://www.baidu.com/' })
+    expect(mocks.fetch).toHaveBeenNthCalledWith(1, 'https://baidu.com', expect.any(Object))
+    expect(mocks.fetch).toHaveBeenNthCalledWith(2, 'https://www.baidu.com/', expect.any(Object))
+  })
+
   it('关闭请求只取消同一窗口的抓取，并返回可识别的取消结果', async () => {
     mocks.fetch.mockImplementation((_url: string, options: { signal: AbortSignal }) => new Promise((_resolve, reject) => {
       options.signal.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })), { once: true })

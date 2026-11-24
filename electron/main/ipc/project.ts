@@ -18,6 +18,7 @@ const log = createLogger('ProjectIPC')
 
 const MAX_RECENT = 10
 const MAX_TREE_DEPTH = 5
+const MAX_PROJECT_HTML_BYTES = 10 * 1024 * 1024
 
 const watchedFiles = new Map<string, { watcher: fs.FSWatcher; refCount: number }>()
 
@@ -260,11 +261,13 @@ export function registerProjectIPC(): void {
 
       if (ext === '.docx') {
         if (stat.size > 10 * 1024 * 1024) return { kind: 'unsupported' as const, size: stat.size, reason: 'Word 文档超过 10MB 预览上限，可用系统应用打开' }
-        const parsed = await parseDocxHtmlPreview(fs.readFileSync(resolvedFile))
+        const rawBuf = fs.readFileSync(resolvedFile)
+        const parsed = await parseDocxHtmlPreview(rawBuf)
         if (!parsed.ok) return { error: parsed.error, size: stat.size }
         return {
           kind: 'docx' as const,
           html: parsed.html,
+          docxBase64: rawBuf.toString('base64'),
           notices: parsed.notices,
           size: stat.size,
           mtimeMs: stat.mtimeMs,
@@ -297,6 +300,18 @@ export function registerProjectIPC(): void {
           kind: 'unsupported' as const,
           size: stat.size,
           reason: '该格式不适合内嵌预览，可用系统应用打开',
+        }
+      }
+
+      if (ext === '.html' || ext === '.htm') {
+        if (stat.size > MAX_PROJECT_HTML_BYTES) return { error: 'HTML 文件超过 10MB 预览上限，请用系统应用打开', size: stat.size }
+        const content = fs.readFileSync(resolvedFile, 'utf-8')
+        return {
+          kind: 'text' as const,
+          content,
+          size: stat.size,
+          mtimeMs: stat.mtimeMs,
+          languageHint: 'html',
         }
       }
 
@@ -346,26 +361,51 @@ export function registerProjectIPC(): void {
       if (!input.force && typeof input.expectedMtimeMs === 'number' && Math.abs(currentStat.mtimeMs - input.expectedMtimeMs) > 1) {
         return { ok: false as const, code: 'CONFLICT' as const, error: '文件已被外部修改，请先重新读取后再保存', currentMtimeMs: currentStat.mtimeMs }
       }
-      const XLSX = await import('xlsx')
-      const workbook = ext === '.csv'
-        ? XLSX.read(fs.readFileSync(resolvedFile).toString('utf-8'), { type: 'string' })
-        : XLSX.read(fs.readFileSync(resolvedFile), { type: 'buffer', cellFormula: true })
-      for (const edit of edits) {
-        const sheetName = workbook.SheetNames[edit.sheetIndex]
-        if (!sheetName || (edit.sheetName && edit.sheetName !== sheetName)) return { ok: false as const, code: 'INVALID' as const, error: '工作表已发生变化，请重新读取' }
-        const sheet = workbook.Sheets[sheetName]
-        const address = XLSX.utils.encode_cell({ r: edit.row, c: edit.col })
-        const cell = sheet[address] as { f?: string } | undefined
-        if (cell?.f) return { ok: false as const, code: 'INVALID' as const, error: `${sheetName}!${address} 含公式，不能直接改写` }
-        sheet[address] = { t: 's', v: edit.value }
-      }
       const tempPath = `${resolvedFile}.${process.pid}.${Date.now()}.tmp`
-      try {
-        if (ext === '.csv') XLSX.writeFile(workbook, tempPath, { bookType: 'csv', FS: ',' })
-        else XLSX.writeFile(workbook, tempPath, { bookType: 'xlsx' })
-        fs.renameSync(tempPath, resolvedFile)
-      } finally {
-        try { if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath) } catch { /* ignore cleanup failure */ }
+      if (ext === '.xlsx') {
+        // 使用 exceljs 原地按坐标改写，保留原工作簿样式、合并单元格、公式及 500 行之外的完整数据
+        const mod = await import('exceljs')
+        const ExcelJS = (mod as unknown as { default?: typeof import('exceljs') }).default ?? mod
+        const workbook = new ExcelJS.Workbook()
+        await workbook.xlsx.load(fs.readFileSync(resolvedFile) as unknown as Parameters<typeof workbook.xlsx.load>[0])
+        for (const edit of edits) {
+          const worksheet = workbook.worksheets[edit.sheetIndex]
+          if (!worksheet || (edit.sheetName && worksheet.name !== edit.sheetName)) {
+            return { ok: false as const, code: 'INVALID' as const, error: '工作表已发生变化，请重新读取' }
+          }
+          const targetCell = worksheet.getCell(edit.row + 1, edit.col + 1)
+          // 合并单元格始终写向左上角主格，防止拆分破坏合并结构
+          const masterCell = targetCell.master ?? targetCell
+          const rawVal = masterCell.value
+          if (rawVal && typeof rawVal === 'object' && ('formula' in rawVal || 'sharedFormula' in rawVal)) {
+            return { ok: false as const, code: 'INVALID' as const, error: `${worksheet.name}!${masterCell.address} 含公式，不能直接改写` }
+          }
+          const trimmed = edit.value.trim()
+          const numVal = trimmed !== '' && /^[+-]?\d+(?:\.\d+)?$/.test(trimmed) ? Number(trimmed) : null
+          masterCell.value = numVal !== null && Number.isFinite(numVal) ? numVal : edit.value
+        }
+        try {
+          await workbook.xlsx.writeFile(tempPath)
+          fs.renameSync(tempPath, resolvedFile)
+        } finally {
+          try { if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath) } catch { /* ignore cleanup failure */ }
+        }
+      } else {
+        const XLSX = await import('xlsx')
+        const workbook = XLSX.read(fs.readFileSync(resolvedFile).toString('utf-8'), { type: 'string' })
+        for (const edit of edits) {
+          const sheetName = workbook.SheetNames[edit.sheetIndex]
+          if (!sheetName) return { ok: false as const, code: 'INVALID' as const, error: '工作表已发生变化，请重新读取' }
+          const sheet = workbook.Sheets[sheetName]
+          const address = XLSX.utils.encode_cell({ r: edit.row, c: edit.col })
+          sheet[address] = { t: 's', v: edit.value }
+        }
+        try {
+          XLSX.writeFile(workbook, tempPath, { bookType: 'csv', FS: ',' })
+          fs.renameSync(tempPath, resolvedFile)
+        } finally {
+          try { if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath) } catch { /* ignore cleanup failure */ }
+        }
       }
       const saved = fs.statSync(resolvedFile)
       const parsed = await parseSpreadsheetPreview(fs.readFileSync(resolvedFile), path.basename(resolvedFile))
