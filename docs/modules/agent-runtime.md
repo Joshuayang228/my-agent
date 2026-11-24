@@ -1,5 +1,7 @@
 # Agent 运行时
 
+2026-11-25 右侧项目文件工作区补齐真实文件生命周期：`project:readFile` 返回 mtime 与结构化 Office 预览，`project:saveSpreadsheetCells` 以 mtime 冲突检测和临时文件原子替换保护 `.xlsx/.csv` 写回，`project:watchFile` 只向受信任窗口广播文件变化；Renderer 的未保存草稿不被外部变化静默覆盖。
+
 2026-11-23 复核：主对话输出预算不再把旧版 4096 当作通用上限，OpenAI-compatible 请求在无显式预算时交给模型能力决定；输出截断若没有正文或工具调用则返回 `LLM_OUTPUT_TRUNCATED`，不再注入空 assistant 续写消息；`ipc/companion.ts#companion:get-contacts` 对空串 `universeId` 归一回退 `'default'`，不改变 IPC 通道契约。
 
 画像提炼、智能标题和用户消息索引在入队时保存原始回复及用户消息 ID。重启读取该轮之前的历史并沿用辅助模型用途，来源被删除的任务结束并报告不可恢复。

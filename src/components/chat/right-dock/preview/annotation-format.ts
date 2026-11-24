@@ -27,6 +27,10 @@ export interface NormalizedCellRange {
 export interface SpreadsheetSheetData {
   name: string
   rows: string[][]
+  cellStyles?: Record<string, { isFormula?: boolean; formula?: string }>
+  editable?: boolean
+  colWidths?: number[]
+  merges?: Array<{ startRow: number; startCol: number; endRow: number; endCol: number }>
   truncatedRows?: boolean
   truncatedCols?: boolean
   totalRows?: number

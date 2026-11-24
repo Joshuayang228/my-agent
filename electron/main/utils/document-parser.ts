@@ -134,9 +134,21 @@ export async function parseSpreadsheetPreview(
         const arr = Array.isArray(r) ? r : []
         return arr.slice(0, MAX_PREVIEW_SHEET_COLS).map((cell) => String(cell ?? ''))
       })
+      const cellStyles: ProjectFilePreviewSheet['cellStyles'] = {}
+      const range = sheet['!ref'] ? XLSX.utils.decode_range(sheet['!ref']) : null
+      if (range) {
+        for (let row = range.s.r; row <= Math.min(range.e.r, MAX_PREVIEW_SHEET_ROWS - 1); row++) {
+          for (let col = range.s.c; col <= Math.min(range.e.c, MAX_PREVIEW_SHEET_COLS - 1); col++) {
+            const cell = sheet[XLSX.utils.encode_cell({ r: row, c: col })] as { f?: string } | undefined
+            if (cell?.f) cellStyles[`${row}:${col}`] = { isFormula: true, formula: `=${cell.f}` }
+          }
+        }
+      }
       sheets.push({
         name: ext === '.csv' ? path.basename(fileName) : sheetName,
         rows,
+        cellStyles: Object.keys(cellStyles).length > 0 ? cellStyles : undefined,
+        editable: ext !== '.xls',
         truncatedRows,
         truncatedCols,
         totalRows,

@@ -16,7 +16,11 @@ import type {
   AgentAssetUsageQueryResult,
   ChatMessage,
   ChatSession,
+  ProjectConvertOfficePdfResult,
+  ProjectFileChangedEvent,
   ProjectReadFileResult,
+  ProjectSaveSpreadsheetResult,
+  SpreadsheetCellEditInput,
   GeneratedImageReadResult,
   GeneratedImageRevealResult,
   AgentStreamEvent,
@@ -712,6 +716,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('project:listFiles', dirPath, depth),
     readFile: (filePath: string): Promise<ProjectReadFileResult> =>
       ipcRenderer.invoke('project:readFile', filePath),
+    saveSpreadsheetCells: (input: {
+      filePath: string
+      expectedMtimeMs?: number
+      force?: boolean
+      edits: SpreadsheetCellEditInput[]
+    }): Promise<ProjectSaveSpreadsheetResult> =>
+      ipcRenderer.invoke('project:saveSpreadsheetCells', input),
+    convertOfficeToPdf: (filePath: string): Promise<ProjectConvertOfficePdfResult> =>
+      ipcRenderer.invoke('project:convertOfficeToPdf', filePath),
+    watchFile: (filePath: string): Promise<{ ok: boolean }> =>
+      ipcRenderer.invoke('project:watchFile', filePath),
+    unwatchFile: (filePath: string): Promise<{ ok: boolean }> =>
+      ipcRenderer.invoke('project:unwatchFile', filePath),
+    onFileChanged: (callback: (event: ProjectFileChangedEvent) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, payload: ProjectFileChangedEvent) => callback(payload)
+      ipcRenderer.on('project:file-changed', listener)
+      return () => ipcRenderer.removeListener('project:file-changed', listener)
+    },
     openExternal: (filePath: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('project:openExternal', filePath),
   },

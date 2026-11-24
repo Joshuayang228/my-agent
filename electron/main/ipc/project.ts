@@ -11,11 +11,43 @@ import {
   parsePptxPreview,
   parseSpreadsheetPreview,
 } from '../utils/document-parser'
+import { convertOfficeFileToPdf, hasHostOfficeConverter } from '../utils/office-pdf-converter'
+import type { SpreadsheetCellEditInput } from '../../../src/shared/types'
 
 const log = createLogger('ProjectIPC')
 
 const MAX_RECENT = 10
 const MAX_TREE_DEPTH = 5
+
+const watchedFiles = new Map<string, { watcher: fs.FSWatcher; refCount: number }>()
+
+function emitFileChanged(filePath: string, mtimeMs: number): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) window.webContents.send('project:file-changed', { filePath, mtimeMs })
+  }
+}
+
+function watchProjectFile(filePath: string): void {
+  const existing = watchedFiles.get(filePath)
+  if (existing) { existing.refCount += 1; return }
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const watcher = fs.watch(filePath, { persistent: false }, () => {
+    clearTimeout(timer)
+    timer = setTimeout(() => {
+      try { emitFileChanged(filePath, fs.statSync(filePath).mtimeMs) } catch { /* 文件正在替换或已删除，下一次读取会给出友好错误 */ }
+    }, 80)
+  })
+  watchedFiles.set(filePath, { watcher, refCount: 1 })
+}
+
+function unwatchProjectFile(filePath: string): void {
+  const current = watchedFiles.get(filePath)
+  if (!current) return
+  current.refCount -= 1
+  if (current.refCount > 0) return
+  current.watcher.close()
+  watchedFiles.delete(filePath)
+}
 
 interface ProjectInfo {
   path: string
@@ -223,28 +255,41 @@ export function registerProjectIPC(): void {
         if (stat.size > 10 * 1024 * 1024) return { kind: 'unsupported' as const, size: stat.size, reason: '表格文件超过 10MB 预览上限，可用系统应用打开' }
         const parsed = await parseSpreadsheetPreview(fs.readFileSync(resolvedFile), path.basename(resolvedFile))
         if (!parsed.ok) return { error: parsed.error, size: stat.size }
-        return { kind: 'spreadsheet' as const, sheets: parsed.sheets, size: stat.size }
+        return { kind: 'spreadsheet' as const, sheets: parsed.sheets, size: stat.size, mtimeMs: stat.mtimeMs }
       }
 
       if (ext === '.docx') {
         if (stat.size > 10 * 1024 * 1024) return { kind: 'unsupported' as const, size: stat.size, reason: 'Word 文档超过 10MB 预览上限，可用系统应用打开' }
         const parsed = await parseDocxHtmlPreview(fs.readFileSync(resolvedFile))
         if (!parsed.ok) return { error: parsed.error, size: stat.size }
-        return { kind: 'docx' as const, html: parsed.html, notices: parsed.notices, size: stat.size }
+        return {
+          kind: 'docx' as const,
+          html: parsed.html,
+          notices: parsed.notices,
+          size: stat.size,
+          mtimeMs: stat.mtimeMs,
+          nativePdfAvailable: await hasHostOfficeConverter('.docx'),
+        }
       }
 
       if (ext === '.pdf') {
         if (stat.size > 10 * 1024 * 1024) return { kind: 'unsupported' as const, size: stat.size, reason: 'PDF 文件超过 10MB 预览上限，可用系统应用打开' }
         const parsed = await parsePdfPreview(fs.readFileSync(resolvedFile))
         if (!parsed.ok) return { error: parsed.error, size: stat.size }
-        return { kind: 'pdf' as const, pages: parsed.pages, pdfBase64: parsed.pdfBase64, size: stat.size }
+        return { kind: 'pdf' as const, pages: parsed.pages, pdfBase64: parsed.pdfBase64, size: stat.size, mtimeMs: stat.mtimeMs }
       }
 
       if (ext === '.pptx') {
         if (stat.size > 10 * 1024 * 1024) return { kind: 'unsupported' as const, size: stat.size, reason: 'PPT 文件超过 10MB 预览上限，可用系统应用打开' }
         const parsed = await parsePptxPreview(fs.readFileSync(resolvedFile))
         if (!parsed.ok) return { error: parsed.error, size: stat.size }
-        return { kind: 'pptx' as const, slides: parsed.slides, size: stat.size }
+        return {
+          kind: 'pptx' as const,
+          slides: parsed.slides,
+          size: stat.size,
+          mtimeMs: stat.mtimeMs,
+          nativePdfAvailable: await hasHostOfficeConverter('.pptx'),
+        }
       }
 
       if (externalOnly.has(ext)) {
@@ -271,12 +316,84 @@ export function registerProjectIPC(): void {
         kind: 'text' as const,
         content,
         size: stat.size,
+        mtimeMs: stat.mtimeMs,
         languageHint: languageHintFromExt(ext),
       }
     } catch (err) {
       log.warn('Project preview failed', { errorType: err instanceof Error ? err.name : 'unknown' })
       return { error: '读取项目文件失败' }
     }
+  })
+
+  registerSecureIpcHandler('project:saveSpreadsheetCells', async (_event, input: {
+    filePath?: unknown
+    expectedMtimeMs?: unknown
+    force?: unknown
+    edits?: unknown
+  }) => {
+    try {
+      const resolvedFile = await resolveCurrentProjectFile(input?.filePath)
+      if (!resolvedFile) return { ok: false as const, code: 'INVALID' as const, error: '文件不在当前项目内或不是普通文件' }
+      const ext = path.extname(resolvedFile).toLowerCase()
+      if (ext === '.xls') return { ok: false as const, code: 'UNSUPPORTED' as const, error: '老式 .xls 文件暂不支持安全写回' }
+      if (ext !== '.xlsx' && ext !== '.csv') return { ok: false as const, code: 'INVALID' as const, error: '仅支持写回 .xlsx 或 .csv 文件' }
+      const edits = Array.isArray(input?.edits) ? input.edits as SpreadsheetCellEditInput[] : []
+      if (edits.length === 0 || edits.length > 200) return { ok: false as const, code: 'INVALID' as const, error: '没有可保存的单元格修改' }
+      if (edits.some((edit) => !edit || typeof edit.sheetIndex !== 'number' || !Number.isInteger(edit.row) || !Number.isInteger(edit.col) || edit.row < 0 || edit.col < 0 || edit.row >= 500 || edit.col >= 50 || typeof edit.value !== 'string' || edit.value.length > 10_000)) {
+        return { ok: false as const, code: 'INVALID' as const, error: '单元格修改参数无效' }
+      }
+      const currentStat = fs.statSync(resolvedFile)
+      if (!input.force && typeof input.expectedMtimeMs === 'number' && Math.abs(currentStat.mtimeMs - input.expectedMtimeMs) > 1) {
+        return { ok: false as const, code: 'CONFLICT' as const, error: '文件已被外部修改，请先重新读取后再保存', currentMtimeMs: currentStat.mtimeMs }
+      }
+      const XLSX = await import('xlsx')
+      const workbook = ext === '.csv'
+        ? XLSX.read(fs.readFileSync(resolvedFile).toString('utf-8'), { type: 'string' })
+        : XLSX.read(fs.readFileSync(resolvedFile), { type: 'buffer', cellFormula: true })
+      for (const edit of edits) {
+        const sheetName = workbook.SheetNames[edit.sheetIndex]
+        if (!sheetName || (edit.sheetName && edit.sheetName !== sheetName)) return { ok: false as const, code: 'INVALID' as const, error: '工作表已发生变化，请重新读取' }
+        const sheet = workbook.Sheets[sheetName]
+        const address = XLSX.utils.encode_cell({ r: edit.row, c: edit.col })
+        const cell = sheet[address] as { f?: string } | undefined
+        if (cell?.f) return { ok: false as const, code: 'INVALID' as const, error: `${sheetName}!${address} 含公式，不能直接改写` }
+        sheet[address] = { t: 's', v: edit.value }
+      }
+      const tempPath = `${resolvedFile}.${process.pid}.${Date.now()}.tmp`
+      try {
+        if (ext === '.csv') XLSX.writeFile(workbook, tempPath, { bookType: 'csv', FS: ',' })
+        else XLSX.writeFile(workbook, tempPath, { bookType: 'xlsx' })
+        fs.renameSync(tempPath, resolvedFile)
+      } finally {
+        try { if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath) } catch { /* ignore cleanup failure */ }
+      }
+      const saved = fs.statSync(resolvedFile)
+      const parsed = await parseSpreadsheetPreview(fs.readFileSync(resolvedFile), path.basename(resolvedFile))
+      if (!parsed.ok) return { ok: false as const, code: 'ERROR' as const, error: parsed.error }
+      return { ok: true as const, mtimeMs: saved.mtimeMs, sheets: parsed.sheets }
+    } catch (err) {
+      log.warn('Spreadsheet save failed', { errorType: err instanceof Error ? err.name : 'unknown' })
+      return { ok: false as const, code: 'LOCKED' as const, error: '文件保存失败，可能正被其他应用占用；请关闭 WPS/Excel 后重试' }
+    }
+  })
+
+  registerSecureIpcHandler('project:convertOfficeToPdf', async (_event, filePath: string) => {
+    const resolvedFile = await resolveCurrentProjectFile(filePath)
+    if (!resolvedFile) return { ok: false as const, error: '文件不在当前项目内或不是普通文件' }
+    return convertOfficeFileToPdf(resolvedFile)
+  })
+
+  registerSecureIpcHandler('project:watchFile', async (_event, filePath: string) => {
+    const resolvedFile = await resolveCurrentProjectFile(filePath)
+    if (!resolvedFile) return { ok: false as const }
+    watchProjectFile(resolvedFile)
+    return { ok: true as const }
+  })
+
+  registerSecureIpcHandler('project:unwatchFile', async (_event, filePath: string) => {
+    const resolvedFile = await resolveCurrentProjectFile(filePath)
+    if (resolvedFile) unwatchProjectFile(resolvedFile)
+    return { ok: true as const }
   })
 
   registerSecureIpcHandler('project:openExternal', async (_e, filePath: string) => {

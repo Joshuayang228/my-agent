@@ -17,7 +17,11 @@ import type {
   AgentAssetUsageQueryResult,
   ChatMessage,
   ChatSession,
+  ProjectConvertOfficePdfResult,
+  ProjectFileChangedEvent,
   ProjectReadFileResult,
+  ProjectSaveSpreadsheetResult,
+  SpreadsheetCellEditInput,
   GeneratedImageReadResult,
   GeneratedImageRevealResult,
   AgentStreamEvent,
@@ -511,6 +515,16 @@ declare global {
         get: () => Promise<{ path: string; name: string } | null>
         listFiles: (dirPath: string, depth?: number) => Promise<Array<{ name: string; path: string; isDir: boolean; children?: Array<{ name: string; path: string; isDir: boolean; children?: unknown[] }> }>>
         readFile: (filePath: string) => Promise<ProjectReadFileResult>
+        saveSpreadsheetCells: (input: {
+          filePath: string
+          expectedMtimeMs?: number
+          force?: boolean
+          edits: SpreadsheetCellEditInput[]
+        }) => Promise<ProjectSaveSpreadsheetResult>
+        convertOfficeToPdf: (filePath: string) => Promise<ProjectConvertOfficePdfResult>
+        watchFile: (filePath: string) => Promise<{ ok: boolean }>
+        unwatchFile: (filePath: string) => Promise<{ ok: boolean }>
+        onFileChanged: (callback: (event: ProjectFileChangedEvent) => void) => () => void
         openExternal: (filePath: string) => Promise<{ ok: boolean; error?: string }>
       }
       debug: {

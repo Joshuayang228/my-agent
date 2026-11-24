@@ -1,5 +1,7 @@
 # 系统架构
 
+2026-11-25 工作区文件写回与热刷新数据流：Renderer 通过 preload 调用受信任的 `project:saveSpreadsheetCells`、`project:convertOfficeToPdf` 和 `project:watchFile`；主进程统一复用 `resolveCurrentProjectFile` 的 realpath 工作区边界，表格写回先校验 mtime / 公式 / 坐标，再写临时文件并原子替换。文件监听只向已登记窗口发送 `project:file-changed`，未保存草稿由 Renderer 保留并显式选择加载磁盘版本或继续编辑。
+
 2026-11-23 复核：Agent Loop 的截断恢复保持消息协议完整性。模型没有可继续正文或工具调用时直接产生结构化终态；OpenAI-compatible 输出预算由 Provider / 模型在未显式配置时决定，显式预算仍由配置工厂传递；`companion:get-contacts` 与角色视觉资产加载器对空串 `universeId` 统一回退 `'default'`，不改变跨层数据流边界。
 
 常规聊天后台队列将源回复和用户消息 ID 放在持久 checkpoint，索引任务以同一源键重复执行，任务记录只存引用。

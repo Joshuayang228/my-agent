@@ -1645,13 +1645,58 @@ export interface ReplanResult {
 
 export type HostCareTriggerInput = 'fatigue_break' | 'late_night_sleep' | 'welcome_back'
 
+export interface ProjectFilePreviewSheetCellStyle {
+  bold?: boolean
+  italic?: boolean
+  color?: string
+  bgColor?: string
+  align?: 'left' | 'center' | 'right'
+  vAlign?: 'top' | 'middle' | 'bottom'
+  isFormula?: boolean
+  formula?: string
+}
+
+export interface ProjectFilePreviewSheetMerge {
+  /** 0 起始起止坐标 */
+  startRow: number
+  startCol: number
+  endRow: number
+  endCol: number
+}
+
 export interface ProjectFilePreviewSheet {
   name: string
   rows: string[][]
+  colWidths?: number[]
+  merges?: ProjectFilePreviewSheetMerge[]
+  /** 稀疏单元格样式映射，键为 `${row}:${col}`（0 起始） */
+  cellStyles?: Record<string, ProjectFilePreviewSheetCellStyle>
+  editable?: boolean
   truncatedRows?: boolean
   truncatedCols?: boolean
   totalRows?: number
   totalCols?: number
+}
+
+export interface SpreadsheetCellEditInput {
+  sheetIndex: number
+  sheetName: string
+  row: number
+  col: number
+  value: string
+}
+
+export type ProjectSaveSpreadsheetResult =
+  | { ok: true; mtimeMs: number; sheets: ProjectFilePreviewSheet[] }
+  | { ok: false; code?: 'CONFLICT' | 'LOCKED' | 'UNSUPPORTED' | 'INVALID' | 'ERROR'; error: string; currentMtimeMs?: number }
+
+export type ProjectConvertOfficePdfResult =
+  | { ok: true; pdfBase64: string; converter: 'wps' | 'office' | 'libreoffice' }
+  | { ok: false; error: string }
+
+export interface ProjectFileChangedEvent {
+  filePath: string
+  mtimeMs: number
 }
 
 export interface ProjectFilePreviewPdfPage {
@@ -1675,10 +1720,13 @@ export interface ProjectReadFileResult {
   languageHint?: string
   sheets?: ProjectFilePreviewSheet[]
   html?: string
+  docxBase64?: string
   notices?: string[]
   pages?: ProjectFilePreviewPdfPage[]
   pdfBase64?: string
   slides?: ProjectFilePreviewPptxSlide[]
+  mtimeMs?: number
+  nativePdfAvailable?: boolean
   reason?: string
   size?: number
   error?: string

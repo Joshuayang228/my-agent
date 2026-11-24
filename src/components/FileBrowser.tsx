@@ -6,14 +6,14 @@
  * 关键约束：依赖 project:readFile / openExternal；预览体积受主进程上限约束。
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import type { ChangeEvent } from 'react'
+import { useState, useEffect, useCallback, useRef, type ChangeEvent, type ReactNode } from 'react'
 import {
   ChevronRight,
   ChevronDown,
   Copy,
   ExternalLink,
   File,
+  FileQuestion,
   Folder,
   FolderOpen,
   Search,
@@ -25,6 +25,8 @@ import { ResizeHandle } from './shell/ResizeHandle'
 import { LAYOUT_BOUNDS, LAYOUT_KEYS, usePersistedNumber } from '../shared/panel-layout'
 import { IconButton } from './foundation/IconButton'
 import { ActionButton } from './foundation/ActionButton'
+import { EmptyState } from './foundation/EmptyState'
+import { ErrorState } from './foundation/ErrorState'
 import { TextField } from './foundation/TextField'
 import { ImagePreviewImage } from './foundation/ImagePreviewImage'
 import { SpreadsheetPreview } from './chat/right-dock/preview/SpreadsheetPreview'
@@ -44,10 +46,10 @@ export interface FileBrowserPreviewEntry {
 export type FileBrowserPreviewFile =
   | { path: string; kind: 'text'; content: string; languageHint?: string; size?: number }
   | { path: string; kind: 'image'; dataUrl: string; mimeType?: string; size?: number }
-  | { path: string; kind: 'spreadsheet'; sheets: SpreadsheetSheetData[]; size?: number }
-  | { path: string; kind: 'docx'; html: string; notices?: string[]; size?: number }
-  | { path: string; kind: 'pdf'; pages: PdfPreviewPage[]; pdfBase64?: string; size?: number }
-  | { path: string; kind: 'pptx'; slides: PptxSlideData[]; size?: number }
+  | { path: string; kind: 'spreadsheet'; sheets: SpreadsheetSheetData[]; size?: number; mtimeMs?: number }
+  | { path: string; kind: 'docx'; html: string; notices?: string[]; size?: number; mtimeMs?: number; nativePdfAvailable?: boolean }
+  | { path: string; kind: 'pdf'; pages: PdfPreviewPage[]; pdfBase64?: string; size?: number; mtimeMs?: number }
+  | { path: string; kind: 'pptx'; slides: PptxSlideData[]; size?: number; mtimeMs?: number; nativePdfAvailable?: boolean }
   | { path: string; kind: 'unsupported'; reason: string; size?: number }
   | { path: string; kind: 'error'; message: string }
   | { path: string; kind: 'loading' }
@@ -78,9 +80,14 @@ interface FileBrowserProps {
   onFileSelect?: (path: string) => void
   hideProjectHeader?: boolean
   hidePreviewClose?: boolean
+  /** 多文件预览 Tab 栏已承接标题和动作时，隐藏内部冗余文件操作栏 */
+  hidePreviewHeader?: boolean
+  /** 嵌入模式左树顶栏右侧附加操作槽（例如收起文件树） */
+  treeHeaderActions?: ReactNode
   onRetry?: () => void
   onTakeToChat?: (text: string) => void
   onQueueAnnotation?: (item: Omit<AnnotationQueueItem, 'id' | 'createdAt'>) => void
+  onDirtyChange?: (dirty: boolean) => void
 }
 
 /**
@@ -95,10 +102,10 @@ export async function readFilePreview(path: string, data?: FileBrowserPreviewDat
     if (!result) return { path, kind: 'error', message: '读取失败，请重试' }
     if (result.error && !result.kind) return { path, kind: 'error', message: result.error }
     if (result.kind === 'image' && result.dataUrl) return { path, kind: 'image', dataUrl: result.dataUrl, mimeType: result.mimeType, size: result.size }
-    if (result.kind === 'spreadsheet' && result.sheets) return { path, kind: 'spreadsheet', sheets: result.sheets, size: result.size }
-    if (result.kind === 'docx' && result.html !== undefined) return { path, kind: 'docx', html: result.html, notices: result.notices, size: result.size }
-    if (result.kind === 'pdf' && result.pages) return { path, kind: 'pdf', pages: result.pages, pdfBase64: result.pdfBase64, size: result.size }
-    if (result.kind === 'pptx' && result.slides) return { path, kind: 'pptx', slides: result.slides, size: result.size }
+    if (result.kind === 'spreadsheet' && result.sheets) return { path, kind: 'spreadsheet', sheets: result.sheets, size: result.size, mtimeMs: result.mtimeMs }
+    if (result.kind === 'docx' && result.html !== undefined) return { path, kind: 'docx', html: result.html, notices: result.notices, size: result.size, mtimeMs: result.mtimeMs, nativePdfAvailable: result.nativePdfAvailable }
+    if (result.kind === 'pdf' && result.pages) return { path, kind: 'pdf', pages: result.pages, pdfBase64: result.pdfBase64, size: result.size, mtimeMs: result.mtimeMs }
+    if (result.kind === 'pptx' && result.slides) return { path, kind: 'pptx', slides: result.slides, size: result.size, mtimeMs: result.mtimeMs, nativePdfAvailable: result.nativePdfAvailable }
     if (result.kind === 'unsupported') return { path, kind: 'unsupported', reason: result.reason || result.error || '无法预览', size: result.size }
     if (result.content !== undefined) return { path, kind: 'text', content: result.content, languageHint: result.languageHint, size: result.size }
     return { path, kind: 'error', message: result.error || '无法预览' }
@@ -112,7 +119,7 @@ function initialPreview(data?: FileBrowserPreviewData): FileBrowserPreviewState 
   return data.files[data.initialPath] ?? null
 }
 
-export function FileBrowser({ projectPath, onClose, embedded = false, previewData, mode = 'split', previewState, onPreviewStateChange, onFileSelect, hideProjectHeader = false, hidePreviewClose = false, onRetry, onTakeToChat, onQueueAnnotation }: FileBrowserProps) {
+export function FileBrowser({ projectPath, onClose, embedded = false, previewData, mode = 'split', previewState, onPreviewStateChange, onFileSelect, hideProjectHeader = false, hidePreviewClose = false, hidePreviewHeader = false, treeHeaderActions, onRetry, onTakeToChat, onQueueAnnotation, onDirtyChange }: FileBrowserProps) {
   const [tree, setTree] = useState<FileEntry[]>(() => previewData?.tree ?? [])
   const [filter, setFilter] = useState('')
   const [internalPreview, setInternalPreview] = useState<FileBrowserPreviewState>(() => initialPreview(previewData))
@@ -206,7 +213,7 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
       )}
       {embedded && !hideProjectHeader && (
         <div
-          className="flex shrink-0 items-center gap-1.5 border-b px-3 py-2"
+          className="flex h-10 shrink-0 select-none items-center gap-1 border-b px-3"
           style={{ borderColor: 'var(--border-subtle)' }}
         >
           <span className="min-w-0 flex-1 truncate text-[12px] font-medium" style={{ color: 'var(--text-primary)' }} title={displayProjectPath || undefined}>
@@ -215,22 +222,25 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
           <IconButton label="刷新" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => { void loadTree() }}>
             <RefreshCw size={12} className={loading ? 'animate-spin' : undefined} />
           </IconButton>
+          {treeHeaderActions}
         </div>
       )}
 
       {!displayProjectPath ? (
-        <div className="flex flex-1 items-center justify-center p-4 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
-          请先选择一个项目目录
+        <div className="flex min-h-0 flex-1 flex-col">
+          <EmptyState variant="minimal" icon={<FolderOpen size={18} />} title="未选择项目" description="请先选择一个项目目录" />
         </div>
       ) : (
         <>
-          {showTree && <div className="border-b px-3 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
+          {showTree && <div className="border-b px-2.5 py-2" style={{ borderColor: 'var(--border-subtle)' }}>
             <div
-              className="flex items-center gap-2 rounded-lg border px-2.5 py-1.5"
+              className="flex items-center gap-2 rounded-[var(--radius-input)] border px-2.5 py-1.5 transition focus-within:border-[var(--accent)]"
               style={{ borderColor: 'color-mix(in srgb, var(--border-color) 75%, transparent)', background: 'color-mix(in srgb, var(--card-bg) 85%, transparent)' }}
             >
-              <Search size={12} style={{ color: 'var(--text-muted)' }} />
+              <Search size={12} className="shrink-0" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
               <TextField
+                appearance="embedded"
+                aria-label="搜索文件名"
                 value={filter}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setFilter(e.target.value)}
                 placeholder="搜索文件名..."
@@ -242,15 +252,18 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
           {/* Alice 式：树上、预览下；中间可拖 */}
           <div ref={splitRef} className="flex min-h-0 flex-1 flex-col">
             {showTree && <div
-              className={`min-h-0 space-y-0.5 overflow-y-auto px-2 py-1.5 scrollbar-hover ${showPreview && preview ? 'shrink-0' : 'flex-1'}`}
+              className={`min-h-0 overflow-y-auto px-2 py-1.5 scrollbar-hover ${showPreview && preview ? 'shrink-0 space-y-0.5' : 'flex flex-1 flex-col gap-0.5'}`}
               style={showPreview && preview ? { height: `${Math.round(treeRatio * 100)}%` } : undefined}
               data-testid="file-browser-tree"
             >
-              {treeError && <p role="alert" className="p-3 text-xs" style={{ color: 'var(--danger)' }}>{treeError}</p>}
+              {treeError && <ErrorState className="m-1 min-h-24 px-4 py-5" title="无法读取目录" description={treeError} action={<ActionButton tone="accent" onClick={() => { void loadTree() }}>刷新重试</ActionButton>} />}
               {filteredTree.length === 0 && !loading && !treeError && (
-                <div className="p-4 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
-                  {filter ? '无匹配文件' : '目录为空'}
-                </div>
+                <EmptyState
+                  variant="minimal"
+                  icon={filter ? <Search size={18} /> : <FolderOpen size={18} />}
+                  title={filter ? '没有匹配项' : '暂无文件'}
+                  description={filter ? '无匹配文件，请尝试其他关键词' : '目录为空'}
+                />
               )}
               {filteredTree.map((entry) => (
                 <TreeNode
@@ -275,27 +288,29 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                   }}
                 />}
               <div
-                className="flex min-h-0 flex-1 flex-col border-t"
+                className={`flex min-h-0 flex-1 flex-col ${mode === 'split' ? 'border-t' : ''}`}
                 data-testid="file-browser-preview"
-                style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}
+                style={{ borderColor: 'var(--border-subtle)', background: 'var(--card-bg)' }}
               >
-                <div
-                  className="flex shrink-0 items-center justify-end gap-1 border-b px-3 py-1"
-                  style={{ borderColor: 'var(--border-subtle)' }}
-                >
-                  <span className="min-w-0 flex-1 truncate text-[11px]" style={{ color: 'var(--text-muted)' }} title={preview.path}>
-                    {hidePreviewClose ? '' : fileName}
-                  </span>
-                  {preview.kind === 'text' && (
-                    <IconButton label="复制正文" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => { void copyText() }}>
-                      <Copy size={12} />
+                {!hidePreviewHeader && (
+                  <div
+                    className="workspace-subtoolbar flex shrink-0 select-none items-center justify-end gap-1 border-b px-3"
+                    style={{ borderColor: 'var(--border-subtle)' }}
+                  >
+                    <span className="min-w-0 flex-1 truncate text-[11px]" style={{ color: 'var(--text-muted)' }} title={preview.path}>
+                      {hidePreviewClose ? '' : fileName}
+                    </span>
+                    {preview.kind === 'text' && preview.languageHint === 'markdown' && (
+                      <IconButton label="复制正文" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => { void copyText() }}>
+                        <Copy size={12} />
+                      </IconButton>
+                    )}
+                    <IconButton label="用系统应用打开" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => { void openExternal() }}>
+                      <ExternalLink size={12} />
                     </IconButton>
-                  )}
-                  <IconButton label="用系统应用打开" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => { void openExternal() }}>
-                    <ExternalLink size={12} />
-                  </IconButton>
-                  {!hidePreviewClose && <IconButton label="关闭预览" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => setPreview(null)}><X size={12} /></IconButton>}
-                </div>
+                    {!hidePreviewClose && <IconButton label="关闭预览" size={24} style={{ color: 'var(--text-muted)' }} onClick={() => setPreview(null)}><X size={12} /></IconButton>}
+                  </div>
+                )}
 
                 {(() => {
                   const isRichPreview = preview.kind === 'spreadsheet'
@@ -318,6 +333,8 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                           <SpreadsheetPreview
                             filePath={preview.path}
                             sheets={preview.sheets}
+                            mtimeMs={preview.mtimeMs}
+                            onDirtyChange={onDirtyChange}
                             onSendToChat={onTakeToChat}
                             onQueueAnnotation={onQueueAnnotation}
                           />
@@ -327,6 +344,7 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                             filePath={preview.path}
                             htmlContent={preview.html}
                             notices={preview.notices}
+                            onOpenExternal={!previewData ? () => { void openExternal() } : undefined}
                             onSendToChat={onTakeToChat}
                             onQueueAnnotation={onQueueAnnotation}
                           />
@@ -351,37 +369,67 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                       </div>
                     )
                   }
-                  return (
-                    <div className="min-h-0 flex-1 overflow-auto scrollbar-hover select-text px-5 py-4">
-                      {preview.kind === 'loading' && <p role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>正在读取文件…</p>}
-                      {preview.kind === 'image' && (
-                        <ImagePreviewImage
-                          src={preview.dataUrl}
-                          alt={fileName}
-                          className="mx-auto max-h-full max-w-full object-contain"
-                          buttonClassName="mx-auto max-w-full"
+                  if (preview.kind === 'image') {
+                    return (
+                      <div className="workspace-surface-stage flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-auto p-6">
+                        <div className="workspace-surface-paper workspace-image-checker flex max-h-[calc(100%-2rem)] max-w-full items-center justify-center overflow-hidden rounded-[var(--radius-card)] border p-2">
+                          <ImagePreviewImage
+                            src={preview.dataUrl}
+                            alt={fileName}
+                            className="max-h-[420px] max-w-full rounded-[var(--radius-md)] object-contain"
+                            buttonClassName="flex max-h-full max-w-full items-center justify-center"
+                          />
+                        </div>
+                        <p className="select-none text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                          {fileName} · 点击图片放大查看
+                        </p>
+                      </div>
+                    )
+                  }
+                  if (preview.kind === 'unsupported') {
+                    return (
+                      <div className="workspace-surface-stage flex min-h-0 flex-1 flex-col">
+                        <EmptyState
+                          variant="minimal"
+                          icon={<FileQuestion size={18} />}
+                          title="暂不支持内嵌预览"
+                          description={preview.reason}
+                          action={!previewData ? <ActionButton size="md" onClick={() => { void openExternal() }}>用系统应用打开</ActionButton> : undefined}
                         />
-                      )}
-                      {preview.kind === 'text' && preview.languageHint === 'markdown' && (
-                        <div className="text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                      </div>
+                    )
+                  }
+                  if (preview.kind === 'error') {
+                    return (
+                      <div className="workspace-surface-stage flex min-h-0 flex-1 flex-col p-6">
+                        <ErrorState
+                          className="m-auto w-full max-w-md"
+                          title="无法读取文件"
+                          description={preview.message}
+                          action={onRetry ? <ActionButton tone="accent" onClick={onRetry}>重新读取</ActionButton> : undefined}
+                        />
+                      </div>
+                    )
+                  }
+                  if (preview.kind === 'loading') {
+                    return (
+                      <div className="workspace-surface-paper flex min-h-0 flex-1 items-center justify-center p-6">
+                        <p role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>正在读取文件…</p>
+                      </div>
+                    )
+                  }
+                  if (preview.kind === 'text' && preview.languageHint === 'markdown') {
+                    return (
+                      <div className="workspace-surface-paper min-h-0 flex-1 overflow-auto scrollbar-hover select-text px-6 py-5">
+                        <div className="mx-auto max-w-[740px] text-[13.5px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                           <MarkdownRenderer content={preview.content} />
                         </div>
-                      )}
-                      {preview.kind === 'text' && preview.languageHint !== 'markdown' && (
-                        <CodeBlock code={preview.content} language={preview.languageHint || 'text'} />
-                      )}
-                      {preview.kind === 'unsupported' && (
-                        <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
-                          <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{preview.reason}</p>
-                          <ActionButton size="md" onClick={() => { void openExternal() }}>用系统应用打开</ActionButton>
-                        </div>
-                      )}
-                      {preview.kind === 'error' && (
-                        <div role="alert" className="space-y-2 text-[12px]" style={{ color: 'var(--danger)' }}>
-                          <p>{preview.message}</p>
-                          {onRetry && <ActionButton tone="accent" onClick={onRetry}>重新读取</ActionButton>}
-                        </div>
-                      )}
+                      </div>
+                    )
+                  }
+                  return (
+                    <div className="workspace-surface-paper min-h-0 flex-1 overflow-auto scrollbar-hover select-text px-4 py-3">
+                      <CodeBlock code={preview.content} language={preview.languageHint || 'text'} />
                     </div>
                   )
                 })()}
@@ -442,9 +490,10 @@ function TreeNode({ entry, depth, onFileClick, selectedPath }: {
 
   return (
     <div>
-      <button
-        type="button"
-        className={`flex w-full cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[12.5px] transition hover:bg-[var(--hover-overlay)] ${isSelected ? 'font-medium' : ''}`}
+      <ActionButton
+        variant="plain"
+        padding="none"
+        className={`!w-full !min-h-0 !justify-start gap-1.5 !border-0 py-1.5 pr-2 text-left text-[12.5px] ${isSelected ? 'font-medium' : 'font-normal'}`}
         style={{
           paddingLeft: depth * 14 + 8,
           color: isSelected ? 'var(--accent-fg)' : 'var(--text-secondary)',
@@ -462,12 +511,12 @@ function TreeNode({ entry, depth, onFileClick, selectedPath }: {
           </>
         ) : (
           <>
-            <span className="w-3" />
-            <File size={13} style={{ color: 'var(--text-muted)' }} />
+            <span className="w-3 shrink-0" />
+            <File size={13} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
           </>
         )}
         <span className="truncate">{entry.name}</span>
-      </button>
+      </ActionButton>
       {entry.isDir && open && entry.children?.map((child) => (
         <TreeNode key={child.path} entry={child} depth={depth + 1} onFileClick={onFileClick} selectedPath={selectedPath} />
       ))}
