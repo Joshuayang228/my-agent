@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseSpreadsheetPreview } from '../../electron/main/utils/document-parser'
+import { joinYamlFrontmatter, splitYamlFrontmatter } from '../../src/components/chat/right-dock/preview/markdown-frontmatter'
 import {
   buildHtmlPickerSrcDoc,
   columnIndexToLetter,
@@ -217,5 +218,33 @@ describe('workspace rich preview & annotation formatters', () => {
     expect(sheet.cellStyles?.['0:0']?.align).toBe('center')
     expect(sheet.cellStyles?.['2:1']?.isFormula).toBe(true)
     expect(sheet.cellStyles?.['2:1']?.formula).toBe('=SUM(B2:B2)')
+  }, 20_000)
+
+  it('preserves YAML frontmatter cleanly across split and join round-trips', () => {
+    const doc = [
+      '---',
+      'title: 产品方案',
+      'tags: [workspace, markdown]',
+      '---',
+      '',
+      '# 正文标题',
+      '',
+      '---',
+      '',
+      '正文分割线不应被误判为 frontmatter。',
+    ].join('\n')
+
+    const split = splitYamlFrontmatter(doc)
+    expect(split.frontmatter).toBe('---\ntitle: 产品方案\ntags: [workspace, markdown]\n---\n')
+    expect(split.body.trimStart().startsWith('# 正文标题')).toBe(true)
+    expect(split.body).toContain('正文分割线不应被误判为 frontmatter。')
+
+    const rejoined = joinYamlFrontmatter(split.frontmatter, '# 正文标题（已修改）\n')
+    expect(rejoined.startsWith('---\ntitle: 产品方案\n')).toBe(true)
+    expect(rejoined).toContain('# 正文标题（已修改）')
+
+    const plain = '# 没有 Frontmatter\n\n---\n\n内容'
+    expect(splitYamlFrontmatter(plain)).toEqual({ frontmatter: '', body: plain })
+    expect(joinYamlFrontmatter('', plain)).toBe(plain)
   })
 })

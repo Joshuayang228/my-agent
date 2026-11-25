@@ -4,6 +4,8 @@
 
 2026-11-25 网络与 HTML 预览复核：浏览器地址栏裸域名归一化不改变受限 URL 校验；每个重定向目标重新校验并受跳转次数限制，项目 HTML 预览使用独立 10MB 上限。回归覆盖浏览器取消、裸域名和安全跳转链路。
 
+2026-11-25 右侧项目文件工作区完成 Batch B（批次 2）Markdown 类 Typora 所见即所得与代码原地编辑：`project:writeFile` 完成四处 IPC 同步（`resolveCurrentProjectFile` 防穿越、体积上限、`mtimeMs` 乐观锁冲突检测、临时文件原子替换）；新增 `MarkdownWysiwygEditor.tsx`（TipTap v3 + `@tiptap/markdown` + `markdown-frontmatter.ts` 保护 YAML Frontmatter 往返不丢失 + 所见即所得/源码切换 + 划词批注 + `Ctrl+S` 保存）与 `CodeMirrorEditor.tsx`（CodeMirror 6 多语言高亮 + 主题适配 + `Ctrl+S` 保存与冲突强制覆盖），零成本复用全场景未保存三态防丢保护。
+
 2026-11-25 右侧项目文件工作区完成 Batch A 高保真 Office 渲染与未保存防丢保护全场景闭环：`document-parser.ts` 与 `project:saveSpreadsheetCells` 切换 `.xlsx` 至 `exceljs` 还原合并单元格/列宽/样式并按坐标原地保样式写回；`project:readFile` 返回 `docxBase64` 驱动 `DocxPreview` 使用 `docx-preview` 秒开高保真（支持本机 WPS/Office 原版 PDF 视图切换）；`PdfPreview` 升级 `pdfjs-dist` Canvas 高清渲染与透明 `TextLayer` 划词批注；`PptxPreview` 接入本机静默转 PDF 高保真并可切大纲与备注；全场景未保存防丢保护（Tab/溢出/收起入口圆点、应用内三态拦截弹窗 `UnsavedChangesModal`、关标签/关工作区/切项目/`beforeunload` 退出拦截与 Windows 占用锁保稿提示）全部落盘。
 
 2026-11-25 右侧项目文件工作区补齐真实文件生命周期：`project:readFile` 返回 mtime 与结构化 Office 预览，`project:saveSpreadsheetCells` 以 mtime 冲突检测和临时文件原子替换保护 `.xlsx/.csv` 写回，`project:watchFile` 只向受信任窗口广播文件变化；Renderer 的未保存草稿不被外部变化静默覆盖。

@@ -21,6 +21,7 @@ import type {
   ProjectFileChangedEvent,
   ProjectReadFileResult,
   ProjectSaveSpreadsheetResult,
+  ProjectWriteFileResult,
   SpreadsheetCellEditInput,
   GeneratedImageReadResult,
   GeneratedImageRevealResult,
@@ -73,6 +74,8 @@ declare global {
       browser: {
         load: (url: string, requestId: string) => Promise<{ ok: true; url: string; contentType: string; body: string } | { ok: false; error: string }>
         cancel: (requestId: string) => Promise<{ ok: boolean }>
+        stageHtmlPreview: (html: string) => Promise<{ ok: true; url: string } | { ok: false; error: string }>
+        openExternal: (url: string) => Promise<{ ok: boolean; error?: string }>
       }
       session: {
         revealGeneratedImage: (sessionId: string, imageId: string) => Promise<GeneratedImageRevealResult>
@@ -515,6 +518,12 @@ declare global {
         get: () => Promise<{ path: string; name: string } | null>
         listFiles: (dirPath: string, depth?: number) => Promise<Array<{ name: string; path: string; isDir: boolean; children?: Array<{ name: string; path: string; isDir: boolean; children?: unknown[] }> }>>
         readFile: (filePath: string) => Promise<ProjectReadFileResult>
+        writeFile: (input: {
+          filePath: string
+          content: string
+          expectedMtimeMs?: number
+          force?: boolean
+        }) => Promise<ProjectWriteFileResult>
         saveSpreadsheetCells: (input: {
           filePath: string
           expectedMtimeMs?: number
@@ -877,6 +886,16 @@ declare global {
         cancel: (taskId: string) => Promise<boolean>
         acknowledge: (taskId: string) => Promise<boolean>
         onEvent: (callback: (event: import('./shared/types').TaskLifecycleEvent) => void) => () => void
+      }
+    }
+  }
+}
+
+declare module 'react' {
+  namespace JSX {
+    interface IntrinsicElements {
+      webview: React.DetailedHTMLProps<React.WebViewHTMLAttributes<HTMLElement>, HTMLElement> & {
+        partition?: string
       }
     }
   }

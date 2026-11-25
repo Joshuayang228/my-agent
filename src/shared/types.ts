@@ -1690,6 +1690,10 @@ export type ProjectSaveSpreadsheetResult =
   | { ok: true; mtimeMs: number; sheets: ProjectFilePreviewSheet[] }
   | { ok: false; code?: 'CONFLICT' | 'LOCKED' | 'UNSUPPORTED' | 'INVALID' | 'ERROR'; error: string; currentMtimeMs?: number }
 
+export type ProjectWriteFileResult =
+  | { ok: true; mtimeMs: number; size: number }
+  | { ok: false; code?: 'CONFLICT' | 'LOCKED' | 'INVALID' | 'ERROR'; error: string; currentMtimeMs?: number }
+
 export type ProjectConvertOfficePdfResult =
   | { ok: true; pdfBase64: string; converter: 'wps' | 'office' | 'libreoffice' }
   | { ok: false; error: string }

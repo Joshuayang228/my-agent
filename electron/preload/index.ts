@@ -20,6 +20,7 @@ import type {
   ProjectFileChangedEvent,
   ProjectReadFileResult,
   ProjectSaveSpreadsheetResult,
+  ProjectWriteFileResult,
   SpreadsheetCellEditInput,
   GeneratedImageReadResult,
   GeneratedImageRevealResult,
@@ -79,6 +80,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     load: (url: string, requestId: string): Promise<{ ok: true; url: string; contentType: string; body: string } | { ok: false; error: string }> =>
       ipcRenderer.invoke('browser:load', url, requestId),
     cancel: (requestId: string): Promise<{ ok: boolean }> => ipcRenderer.invoke('browser:cancel', requestId),
+    stageHtmlPreview: (html: string): Promise<{ ok: true; url: string } | { ok: false; error: string }> =>
+      ipcRenderer.invoke('browser:stage-html-preview', html),
+    openExternal: (url: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('browser:open-external', url),
   },
 
   session: {
@@ -716,6 +721,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('project:listFiles', dirPath, depth),
     readFile: (filePath: string): Promise<ProjectReadFileResult> =>
       ipcRenderer.invoke('project:readFile', filePath),
+    writeFile: (input: {
+      filePath: string
+      content: string
+      expectedMtimeMs?: number
+      force?: boolean
+    }): Promise<ProjectWriteFileResult> =>
+      ipcRenderer.invoke('project:writeFile', input),
     saveSpreadsheetCells: (input: {
       filePath: string
       expectedMtimeMs?: number

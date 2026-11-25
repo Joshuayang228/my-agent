@@ -1,5 +1,7 @@
 # 质量总控
 
+2026-11-25 右侧工作区批次 2（Markdown 类 Typora 与代码原地编辑）回归：`__tests__/unit/workspace-rich-preview.test.ts` 新增 YAML Frontmatter 拆分/还原与正文水平线隔离测试；`workspace-rich-preview` / `workspace-foundation-control-audit` / `ui-component-registry` / `foundation-enforcement-gate` / `empty-state-alignment` / `navigation-rail`（6 files / 82 tests）、`typecheck` 与 `vite build` 全部通过。
+
 2026-11-25 右侧工作区 Office 高保真渲染与未保存保护回归：`__tests__/unit/workspace-rich-preview.test.ts` 新增真实 `exceljs` 生成 `.xlsx` 的合并单元格、列宽、加粗/底色/对齐与公式只读保护解析测试，以及 `formatPdfPageAnnotation` 划词摘录断言；`workspace-rich-preview` / `workspace-foundation-control-audit` / `empty-state-alignment` / `navigation-rail` / `workspace-visual-annotate` / `foundation-enforcement-gate`（6 files / 38 tests）、`provider-asset-registry`（7 tests）、`arch:check`（16 tests）、`assets:check`（124 tests）、`typecheck` 与 `vite build` 全部通过。
 
 2026-11-25 浏览器渲染回归：网络网页在主进程安全校验后进入 `sandbox="allow-scripts"` iframe；不授予 `allow-same-origin`，本地 HTML / Playground 仍使用隔离 `srcDoc`。浏览器生命周期测试继续覆盖裸域名、有限跳转与取消请求。

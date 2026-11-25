@@ -1,5 +1,7 @@
 # 系统架构
 
+2026-11-25 右侧工作区文本/Markdown 原地写回数据流：Renderer 通过 preload 调用 `project:writeFile`（沿用 `resolveCurrentProjectFile` realpath 边界、UTF-8 体积上限、`mtimeMs` 冲突检测与临时文件原子替换）；Markdown 文件在 `MarkdownWysiwygEditor` 中经 `splitYamlFrontmatter` / `joinYamlFrontmatter` 保护头部 YAML 元数据，正文由 TipTap v3 + `@tiptap/markdown` 双向编辑，源码视图与常规代码/文本统一复用 `CodeMirrorEditor` 并接入 `useWorkspaceFilesState` 的未保存三态保护链。
+
 2026-11-25 右侧工作区 Office 高保真渲染与未保存防丢数据流：`.xlsx` 解析与写回切换至 `exceljs` 原地按坐标改值（合并单元格自动定向左上角主格、保留全表样式与 500 行之外数据）；`.docx` 读取同步返回 `docxBase64` 供前端 `docx-preview` 秒开渲染，Word / PPT 在检测到本机 WPS / Office / LibreOffice 时经 `project:convertOfficeToPdf` 缓存转 PDF 后复用 `pdfjs-dist` Canvas + 透明 `TextLayer` 渲染与划词；未保存修改拦截统一收敛至 `useWorkspaceFilesState` 的 `requestGuard` + `UnsavedChangesModal` 并联动 `beforeunload` / `will-prevent-unload`，覆盖关标签、关工作区、切项目与退出应用。
 
 2026-11-25 浏览器渲染数据流：主进程先通过 `validateFetchUrl` 校验输入和有限重定向，再把最终公网地址交给 Renderer 的 `sandbox="allow-scripts"` iframe；iframe 不开启 `allow-same-origin`，本地 HTML 与 Playground 继续使用 `srcDoc`，避免外部文档继承应用权限。

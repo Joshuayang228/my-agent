@@ -34,6 +34,8 @@ import { HtmlAnnotatePreview } from './chat/right-dock/preview/HtmlAnnotatePrevi
 import { DocxPreview } from './chat/right-dock/preview/DocxPreview'
 import { PdfPreview, type PdfPreviewPage } from './chat/right-dock/preview/PdfPreview'
 import { PptxPreview } from './chat/right-dock/preview/PptxPreview'
+import { MarkdownWysiwygEditor } from './chat/right-dock/preview/MarkdownWysiwygEditor'
+import { CodeMirrorEditor } from './chat/right-dock/preview/CodeMirrorEditor'
 import type { AnnotationQueueItem, PptxSlideData, SpreadsheetSheetData } from './chat/right-dock/preview/annotation-format'
 
 export interface FileBrowserPreviewEntry {
@@ -44,7 +46,7 @@ export interface FileBrowserPreviewEntry {
 }
 
 export type FileBrowserPreviewFile =
-  | { path: string; kind: 'text'; content: string; languageHint?: string; size?: number }
+  | { path: string; kind: 'text'; content: string; languageHint?: string; size?: number; mtimeMs?: number }
   | { path: string; kind: 'image'; dataUrl: string; mimeType?: string; size?: number }
   | { path: string; kind: 'spreadsheet'; sheets: SpreadsheetSheetData[]; size?: number; mtimeMs?: number }
   | { path: string; kind: 'docx'; html: string; docxBase64?: string; notices?: string[]; size?: number; mtimeMs?: number; nativePdfAvailable?: boolean }
@@ -108,7 +110,7 @@ export async function readFilePreview(path: string, data?: FileBrowserPreviewDat
     if (result.kind === 'pdf' && result.pages) return { path, kind: 'pdf', pages: result.pages, pdfBase64: result.pdfBase64, size: result.size, mtimeMs: result.mtimeMs }
     if (result.kind === 'pptx' && result.slides) return { path, kind: 'pptx', slides: result.slides, size: result.size, mtimeMs: result.mtimeMs, nativePdfAvailable: result.nativePdfAvailable }
     if (result.kind === 'unsupported') return { path, kind: 'unsupported', reason: result.reason || result.error || '无法预览', size: result.size }
-    if (result.content !== undefined) return { path, kind: 'text', content: result.content, languageHint: result.languageHint, size: result.size }
+    if (result.content !== undefined) return { path, kind: 'text', content: result.content, languageHint: result.languageHint, size: result.size, mtimeMs: result.mtimeMs }
     return { path, kind: 'error', message: result.error || '无法预览' }
   } catch {
     return { path, kind: 'error', message: '读取文件失败，请重试' }
@@ -326,6 +328,10 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                           <HtmlAnnotatePreview
                             filePath={preview.path}
                             htmlContent={preview.content}
+                            mtimeMs={preview.mtimeMs}
+                            readOnly={Boolean(previewData)}
+                            onDirtyChange={onDirtyChange}
+                            onRegisterSaveHandler={onRegisterSaveHandler}
                             onSendToChat={onTakeToChat}
                             onQueueAnnotation={onQueueAnnotation}
                           />
@@ -424,17 +430,46 @@ export function FileBrowser({ projectPath, onClose, embedded = false, previewDat
                     )
                   }
                   if (preview.kind === 'text' && preview.languageHint === 'markdown') {
-                    return (
-                      <div className="workspace-surface-paper min-h-0 flex-1 overflow-auto scrollbar-hover select-text px-6 py-5">
-                        <div className="mx-auto max-w-[740px] text-[13.5px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                          <MarkdownRenderer content={preview.content} />
+                    if (previewData) {
+                      return (
+                        <div className="workspace-surface-paper min-h-0 flex-1 overflow-auto scrollbar-hover select-text px-6 py-5">
+                          <div className="mx-auto max-w-[740px] text-[13.5px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                            <MarkdownRenderer content={preview.content} />
+                          </div>
                         </div>
+                      )
+                    }
+                    return (
+                      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                        <MarkdownWysiwygEditor
+                          filePath={preview.path}
+                          content={preview.content}
+                          mtimeMs={preview.mtimeMs}
+                          onDirtyChange={onDirtyChange}
+                          onRegisterSaveHandler={onRegisterSaveHandler}
+                          onSendToChat={onTakeToChat}
+                          onQueueAnnotation={onQueueAnnotation}
+                        />
+                      </div>
+                    )
+                  }
+                  if (previewData) {
+                    return (
+                      <div className="workspace-surface-paper min-h-0 flex-1 overflow-auto scrollbar-hover select-text px-4 py-3">
+                        <CodeBlock code={preview.content} language={preview.languageHint || 'text'} />
                       </div>
                     )
                   }
                   return (
-                    <div className="workspace-surface-paper min-h-0 flex-1 overflow-auto scrollbar-hover select-text px-4 py-3">
-                      <CodeBlock code={preview.content} language={preview.languageHint || 'text'} />
+                    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                      <CodeMirrorEditor
+                        filePath={preview.path}
+                        content={preview.content}
+                        languageHint={preview.languageHint}
+                        mtimeMs={preview.mtimeMs}
+                        onDirtyChange={onDirtyChange}
+                        onRegisterSaveHandler={onRegisterSaveHandler}
+                      />
                     </div>
                   )
                 })()}

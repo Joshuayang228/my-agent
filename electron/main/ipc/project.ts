@@ -419,6 +419,48 @@ export function registerProjectIPC(): void {
     }
   })
 
+  registerSecureIpcHandler('project:writeFile', async (_event, input: {
+    filePath?: unknown
+    content?: unknown
+    expectedMtimeMs?: unknown
+    force?: unknown
+  }) => {
+    try {
+      const resolvedFile = await resolveCurrentProjectFile(input?.filePath)
+      if (!resolvedFile) return { ok: false as const, code: 'INVALID' as const, error: '文件不在当前项目内或不是普通文件' }
+      if (typeof input?.content !== 'string') {
+        return { ok: false as const, code: 'INVALID' as const, error: '写入内容必须为文本字符串' }
+      }
+      const ext = path.extname(resolvedFile).toLowerCase()
+      const maxBytes = ext === '.html' || ext === '.htm' ? MAX_PROJECT_HTML_BYTES : 2 * 1024 * 1024
+      const byteLength = Buffer.byteLength(input.content, 'utf-8')
+      if (byteLength > maxBytes) {
+        return { ok: false as const, code: 'INVALID' as const, error: '文本内容超过允许保存的体积上限' }
+      }
+      const currentStat = fs.statSync(resolvedFile)
+      if (!input.force && typeof input.expectedMtimeMs === 'number' && Math.abs(currentStat.mtimeMs - input.expectedMtimeMs) > 1) {
+        return {
+          ok: false as const,
+          code: 'CONFLICT' as const,
+          error: '文件已被外部修改，请先决定加载磁盘最新或强制覆盖',
+          currentMtimeMs: currentStat.mtimeMs,
+        }
+      }
+      const tempPath = `${resolvedFile}.${process.pid}.${Date.now()}.tmp`
+      try {
+        fs.writeFileSync(tempPath, input.content, 'utf-8')
+        fs.renameSync(tempPath, resolvedFile)
+      } finally {
+        try { if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath) } catch { /* ignore cleanup failure */ }
+      }
+      const saved = fs.statSync(resolvedFile)
+      return { ok: true as const, mtimeMs: saved.mtimeMs, size: saved.size }
+    } catch (err) {
+      log.warn('Project writeFile failed', { errorType: err instanceof Error ? err.name : 'unknown' })
+      return { ok: false as const, code: 'LOCKED' as const, error: '文件保存失败，可能正被其他应用占用或无写权限' }
+    }
+  })
+
   registerSecureIpcHandler('project:convertOfficeToPdf', async (_event, filePath: string) => {
     const resolvedFile = await resolveCurrentProjectFile(filePath)
     if (!resolvedFile) return { ok: false as const, error: '文件不在当前项目内或不是普通文件' }
